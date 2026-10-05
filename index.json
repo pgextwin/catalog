@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "extensions": [
-    "pg_bigm"
+    "pg_bigm",
+    "pg_cron"
   ]
 }
