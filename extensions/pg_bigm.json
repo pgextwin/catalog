@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_bigm",
+  "displayName": "pg_bigm",
+  "description": "2-gram full text search extension for PostgreSQL.",
+  "upstream": {
+    "repository": "pgbigm/pg_bigm",
+    "version": "1.2"
+  },
+  "repository": "pgextwin/pg_bigm",
+  "license": "PostgreSQL",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.2-20250903-windows.1"
+  },
+  "postgresql": {
+    "14": {
+      "available": true,
+      "asset": "pg_bigm-v1.2-20250903-pg14-windows-x64.zip"
+    },
+    "15": {
+      "available": true,
+      "asset": "pg_bigm-v1.2-20250903-pg15-windows-x64.zip"
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_bigm-v1.2-20250903-pg16-windows-x64.zip"
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_bigm-v1.2-20250903-pg17-windows-x64.zip"
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_bigm-v1.2-20250903-pg18-windows-x64.zip"
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "pg_bigm"
+    ]
+  }
+}
