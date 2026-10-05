@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_cron",
+  "displayName": "pg_cron",
+  "description": "Cron-based job scheduler for PostgreSQL.",
+  "upstream": {
+    "repository": "citusdata/pg_cron",
+    "version": "1.6.8"
+  },
+  "repository": "pgextwin/pg_cron",
+  "license": "PostgreSQL-style",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.6.8-windows.1"
+  },
+  "postgresql": {
+    "14": {
+      "available": true,
+      "asset": "pg_cron-v1.6.8-pg14-windows-x64.zip"
+    },
+    "15": {
+      "available": true,
+      "asset": "pg_cron-v1.6.8-pg15-windows-x64.zip"
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_cron-v1.6.8-pg16-windows-x64.zip"
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_cron-v1.6.8-pg17-windows-x64.zip"
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_cron-v1.6.8-pg18-windows-x64.zip"
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "pg_cron"
+    ]
+  }
+}
