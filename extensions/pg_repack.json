@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_repack",
+  "displayName": "pg_repack",
+  "description": "Online table and index reorganization utility for PostgreSQL.",
+  "upstream": {
+    "repository": "reorg/pg_repack",
+    "version": "1.5.3"
+  },
+  "repository": "pgextwin/pg_repack",
+  "license": "BSD-style and PostgreSQL License",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.5.3-windows.1"
+  },
+  "postgresql": {
+    "14": { "available": true, "asset": "pg_repack-ver_1.5.3-pg14-windows-x64.zip" },
+    "15": { "available": true, "asset": "pg_repack-ver_1.5.3-pg15-windows-x64.zip" },
+    "16": { "available": true, "asset": "pg_repack-ver_1.5.3-pg16-windows-x64.zip" },
+    "17": { "available": true, "asset": "pg_repack-ver_1.5.3-pg17-windows-x64.zip" },
+    "18": { "available": true, "asset": "pg_repack-ver_1.5.3-pg18-windows-x64.zip" }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": []
+  }
+}
