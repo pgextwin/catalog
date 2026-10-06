@@ -26,3 +26,9 @@ extensions/
 - unpublished or unverified builds are not listed as available.
 
 The catalog schema is versioned so the website and future `pgextwin` CLI can consume the same data safely.
+
+## Current milestone
+
+All eight initial extensions — pg_bigm, pg_cron, pg_hint_plan, pgAudit, set_user, pg_repack, pg_ivm, and pg_qualstats — have published PostgreSQL 14–18 Windows x64 Releases and are registered in this catalog. **Initial extension roadmap: complete.**
+
+This milestone keeps catalog schema v1 unchanged. Catalog schema v2 and broader package-metadata work are separate future milestones.
