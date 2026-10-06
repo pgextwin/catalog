@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "set_user",
+  "displayName": "set_user",
+  "description": "Controlled PostgreSQL user switching with auditing and privilege-management safeguards.",
+  "upstream": {
+    "repository": "pgaudit/set_user",
+    "version": "4.2.0"
+  },
+  "repository": "pgextwin/set_user",
+  "license": "PostgreSQL License",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v4.2.0-windows.1"
+  },
+  "postgresql": {
+    "14": { "available": true, "asset": "set_user-REL4_2_0-pg14-windows-x64.zip" },
+    "15": { "available": true, "asset": "set_user-REL4_2_0-pg15-windows-x64.zip" },
+    "16": { "available": true, "asset": "set_user-REL4_2_0-pg16-windows-x64.zip" },
+    "17": { "available": true, "asset": "set_user-REL4_2_0-pg17-windows-x64.zip" },
+    "18": { "available": true, "asset": "set_user-REL4_2_0-pg18-windows-x64.zip" }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": ["set_user"]
+  }
+}
