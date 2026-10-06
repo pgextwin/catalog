@@ -4,6 +4,7 @@
     "pg_bigm",
     "pg_cron",
     "pg_hint_plan",
-    "pgaudit"
+    "pgaudit",
+    "set_user"
   ]
 }
