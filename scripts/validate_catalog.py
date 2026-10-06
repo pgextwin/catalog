@@ -52,6 +52,22 @@ def main() -> int:
             )
             errors += 1
 
+        upstream = record.get("upstream", {})
+        per_postgresql = upstream.get("perPostgresql")
+        if isinstance(per_postgresql, dict):
+            available_majors = {
+                str(major)
+                for major, info in record.get("postgresql", {}).items()
+                if isinstance(info, dict) and info.get("available") is True
+            }
+            missing_upstream = sorted(available_majors - set(per_postgresql))
+            for major in missing_upstream:
+                print(
+                    f"{path.relative_to(ROOT)}: upstream.perPostgresql is missing available PostgreSQL major {major}",
+                    file=sys.stderr,
+                )
+                errors += 1
+
     if EXTENSIONS_DIR.exists():
         unindexed = sorted(
             path.stem
