@@ -4,6 +4,7 @@
     "pg_bigm",
     "pg_cron",
     "pg_hint_plan",
+    "pg_ivm",
     "pg_repack",
     "pgaudit",
     "set_user"
