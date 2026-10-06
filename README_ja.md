@@ -26,3 +26,9 @@ extensions/
 - 未公開・未検証のbuildを「利用可能」として登録しない
 
 Websiteと将来の `pgextwin` CLIが同じデータを安全に利用できるよう、catalog schemaをversion管理します。
+
+## 現在のmilestone
+
+初期8 Extension（pg_bigm、pg_cron、pg_hint_plan、pgAudit、set_user、pg_repack、pg_ivm、pg_qualstats）はすべてPostgreSQL 14〜18向けWindows x64 Releaseまで公開済みで、このcatalogにも8件すべて登録済みです。**Initial extension roadmap: 完了。**
+
+このmilestoneでは現行のcatalog schema v1を維持します。schema v2やpackage metadata拡張は後続の独立した作業として扱います。
