@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_qualstats",
+  "displayName": "pg_qualstats",
+  "description": "Predicate statistics collection extension for PostgreSQL.",
+  "upstream": {
+    "repository": "powa-team/pg_qualstats",
+    "version": "2.1.4"
+  },
+  "repository": "pgextwin/pg_qualstats",
+  "license": "PostgreSQL-style",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v2.1.4-windows.1"
+  },
+  "postgresql": {
+    "14": { "available": true, "asset": "pg_qualstats-2.1.4-pg14-windows-x64.zip" },
+    "15": { "available": true, "asset": "pg_qualstats-2.1.4-pg15-windows-x64.zip" },
+    "16": { "available": true, "asset": "pg_qualstats-2.1.4-pg16-windows-x64.zip" },
+    "17": { "available": true, "asset": "pg_qualstats-2.1.4-pg17-windows-x64.zip" },
+    "18": { "available": true, "asset": "pg_qualstats-2.1.4-pg18-windows-x64.zip" }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": ["pg_qualstats"]
+  }
+}
