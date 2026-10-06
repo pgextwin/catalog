@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "pgaudit",
+  "displayName": "pgAudit",
+  "description": "Detailed session and object audit logging for PostgreSQL.",
+  "upstream": {
+    "repository": "pgaudit/pgaudit",
+    "perPostgresql": {
+      "14": { "version": "1.6.3", "ref": "1.6.3" },
+      "15": { "version": "1.7.1", "ref": "1.7.1" },
+      "16": { "version": "16.1", "ref": "16.1" },
+      "17": { "version": "17.1", "ref": "17.1" },
+      "18": { "version": "18.0", "ref": "18.0" }
+    }
+  },
+  "repository": "pgextwin/pgaudit",
+  "license": "PostgreSQL License",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v18.0-windows.1"
+  },
+  "postgresql": {
+    "14": { "available": true, "asset": "pgaudit-1.6.3-pg14-windows-x64.zip" },
+    "15": { "available": true, "asset": "pgaudit-1.7.1-pg15-windows-x64.zip" },
+    "16": { "available": true, "asset": "pgaudit-16.1-pg16-windows-x64.zip" },
+    "17": { "available": true, "asset": "pgaudit-17.1-pg17-windows-x64.zip" },
+    "18": { "available": true, "asset": "pgaudit-18.0-pg18-windows-x64.zip" }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": ["pgaudit"]
+  }
+}

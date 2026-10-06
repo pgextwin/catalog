@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_hint_plan",
+  "displayName": "pg_hint_plan",
+  "description": "Execution-plan hinting extension for PostgreSQL.",
+  "upstream": {
+    "repository": "ossc-db/pg_hint_plan",
+    "perPostgresql": {
+      "14": { "version": "1.4.4", "ref": "REL14_1_4_4" },
+      "15": { "version": "1.5.3", "ref": "REL15_1_5_3" },
+      "16": { "version": "1.6.2", "ref": "REL16_1_6_2" },
+      "17": { "version": "1.7.1", "ref": "REL17_1_7_1" },
+      "18": { "version": "1.8.0", "ref": "REL18_1_8_0" }
+    }
+  },
+  "repository": "pgextwin/pg_hint_plan",
+  "license": "BSD-style and PostgreSQL-derived notices",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.8.0-windows.1"
+  },
+  "postgresql": {
+    "14": { "available": true, "asset": "pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip" },
+    "15": { "available": true, "asset": "pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip" },
+    "16": { "available": true, "asset": "pg_hint_plan-REL16_1_6_2-pg16-windows-x64.zip" },
+    "17": { "available": true, "asset": "pg_hint_plan-REL17_1_7_1-pg17-windows-x64.zip" },
+    "18": { "available": true, "asset": "pg_hint_plan-REL18_1_8_0-pg18-windows-x64.zip" }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": []
+  }
+}
