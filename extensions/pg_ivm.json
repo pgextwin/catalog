@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_ivm",
+  "displayName": "pg_ivm",
+  "description": "Incremental View Maintenance extension for PostgreSQL.",
+  "upstream": {
+    "repository": "sraoss/pg_ivm",
+    "version": "1.16"
+  },
+  "repository": "pgextwin/pg_ivm",
+  "license": "PostgreSQL-style",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.16-windows.1"
+  },
+  "postgresql": {
+    "14": { "available": true, "asset": "pg_ivm-v1.16-pg14-windows-x64.zip" },
+    "15": { "available": true, "asset": "pg_ivm-v1.16-pg15-windows-x64.zip" },
+    "16": { "available": true, "asset": "pg_ivm-v1.16-pg16-windows-x64.zip" },
+    "17": { "available": true, "asset": "pg_ivm-v1.16-pg17-windows-x64.zip" },
+    "18": { "available": true, "asset": "pg_ivm-v1.16-pg18-windows-x64.zip" }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": ["pg_ivm"]
+  }
+}
