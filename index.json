@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "extensions": [
     "pg_bigm",
-    "pg_cron"
+    "pg_cron",
+    "pg_hint_plan",
+    "pgaudit"
   ]
 }
