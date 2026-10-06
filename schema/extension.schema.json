@@ -18,7 +18,9 @@
     "runtime"
   ],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": {
+      "const": 1
+    },
     "name": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_.-]+$"
@@ -34,7 +36,9 @@
     "upstream": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository", "version"],
+      "required": [
+        "repository"
+      ],
       "properties": {
         "repository": {
           "type": "string",
@@ -43,8 +47,54 @@
         "version": {
           "type": "string",
           "minLength": 1
+        },
+        "perPostgresql": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version"
+            ],
+            "properties": {
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "version"
+          ],
+          "not": {
+            "required": [
+              "perPostgresql"
+            ]
+          }
+        },
+        {
+          "required": [
+            "perPostgresql"
+          ],
+          "not": {
+            "required": [
+              "version"
+            ]
+          }
+        }
+      ]
     },
     "repository": {
       "type": "string",
@@ -60,7 +110,9 @@
     "latest": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["releaseTag"],
+      "required": [
+        "releaseTag"
+      ],
       "properties": {
         "releaseTag": {
           "type": "string",
@@ -74,22 +126,32 @@
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["available"],
+        "required": [
+          "available"
+        ],
         "properties": {
-          "available": { "type": "boolean" },
-          "asset": { "type": "string" }
+          "available": {
+            "type": "boolean"
+          },
+          "asset": {
+            "type": "string"
+          }
         }
       }
     },
     "runtime": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sharedPreloadLibraries"],
+      "required": [
+        "sharedPreloadLibraries"
+      ],
       "properties": {
         "sharedPreloadLibraries": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     }
