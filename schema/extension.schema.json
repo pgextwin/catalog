@@ -122,6 +122,7 @@
     },
     "postgresql": {
       "type": "object",
+      "description": "Published and verified binary availability by PostgreSQL major. This is historical availability metadata, not current PostgreSQL community maintenance status.",
       "minProperties": 1,
       "additionalProperties": {
         "type": "object",
@@ -131,10 +132,12 @@
         ],
         "properties": {
           "available": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True when a published and verified Windows x64 binary asset exists for this PostgreSQL major. This does not indicate whether the PostgreSQL major is currently maintained."
           },
           "asset": {
-            "type": "string"
+            "type": "string",
+            "description": "Published release asset filename for this PostgreSQL major when recorded."
           }
         }
       }
