@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "set_user",
   "displayName": "set_user",
   "description": "Controlled PostgreSQL user switching with auditing and privilege-management safeguards.",
@@ -11,16 +11,150 @@
   "license": "PostgreSQL License",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v4.2.0-windows.1"
+    "releaseTag": "v4.2.0-windows.1",
+    "publishedAt": "2026-10-06T01:36:13Z",
+    "releaseUrl": "https://github.com/pgextwin/set_user/releases/tag/v4.2.0-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
-    "14": { "available": true, "asset": "set_user-REL4_2_0-pg14-windows-x64.zip" },
-    "15": { "available": true, "asset": "set_user-REL4_2_0-pg15-windows-x64.zip" },
-    "16": { "available": true, "asset": "set_user-REL4_2_0-pg16-windows-x64.zip" },
-    "17": { "available": true, "asset": "set_user-REL4_2_0-pg17-windows-x64.zip" },
-    "18": { "available": true, "asset": "set_user-REL4_2_0-pg18-windows-x64.zip" }
+    "14": {
+      "available": true,
+      "asset": "set_user-REL4_2_0-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.2.0-windows.1/set_user-REL4_2_0-pg14-windows-x64.zip",
+      "sha256": "8aee37373ffc1010ac4adc8df8ea24a1d82af4fea681aea9cca5f01bede37dab",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "15": {
+      "available": true,
+      "asset": "set_user-REL4_2_0-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.2.0-windows.1/set_user-REL4_2_0-pg15-windows-x64.zip",
+      "sha256": "5c7cd1d88ff2c08b0585224c47f13d6d0455198471282d45d1be474e6bcd0144",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "set_user-REL4_2_0-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.2.0-windows.1/set_user-REL4_2_0-pg16-windows-x64.zip",
+      "sha256": "dbff8fc5b616b5df07394274056aa41ecc196180fc26634ec68b3c1b11dcc3c7",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "set_user-REL4_2_0-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.2.0-windows.1/set_user-REL4_2_0-pg17-windows-x64.zip",
+      "sha256": "5525789f56b0ba7a9d507d3144bf5eff2352775854d2353713d5d6972e1613b2",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "set_user-REL4_2_0-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.2.0-windows.1/set_user-REL4_2_0-pg18-windows-x64.zip",
+      "sha256": "cc42d35e912139dea0477235549722036a4b088a38e808b9066dea768a32fc8c",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    }
   },
   "runtime": {
-    "sharedPreloadLibraries": ["set_user"]
+    "sharedPreloadLibraries": [
+      "set_user"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "shared",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "role-transition-and-reset",
+        "description": "Transitions current_user to a target role, resets to the original superuser, and verifies both state changes and server-log transition entries.",
+        "evidence": [
+          "sql-result",
+          "server-log"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/set_user",
+    "path": "config/test-contract.json",
+    "commit": "525d33eab87151d474bd16e44bf947f971e14e8c"
   }
 }

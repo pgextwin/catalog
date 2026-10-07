@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "pg_qualstats",
   "displayName": "pg_qualstats",
   "description": "Predicate statistics collection extension for PostgreSQL.",
@@ -11,16 +11,149 @@
   "license": "PostgreSQL-style",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v2.1.4-windows.1"
+    "releaseTag": "v2.1.4-windows.1",
+    "publishedAt": "2026-10-06T08:51:25Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_qualstats/releases/tag/v2.1.4-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
-    "14": { "available": true, "asset": "pg_qualstats-2.1.4-pg14-windows-x64.zip" },
-    "15": { "available": true, "asset": "pg_qualstats-2.1.4-pg15-windows-x64.zip" },
-    "16": { "available": true, "asset": "pg_qualstats-2.1.4-pg16-windows-x64.zip" },
-    "17": { "available": true, "asset": "pg_qualstats-2.1.4-pg17-windows-x64.zip" },
-    "18": { "available": true, "asset": "pg_qualstats-2.1.4-pg18-windows-x64.zip" }
+    "14": {
+      "available": true,
+      "asset": "pg_qualstats-2.1.4-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg14-windows-x64.zip",
+      "sha256": "1e3166fb10a6e7a10a3bfa3b392217f3e0a522f39ca4599f941e6e09c42f50ae",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "15": {
+      "available": true,
+      "asset": "pg_qualstats-2.1.4-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg15-windows-x64.zip",
+      "sha256": "959f8a6cbcd62d139b745988f8bd7c97f93b402b4d1c0065e37fe17935adad90",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_qualstats-2.1.4-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg16-windows-x64.zip",
+      "sha256": "d12d6233f86d12a3a020a84e4c65d7869205f361b537d253226ceb0c400eeeca",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_qualstats-2.1.4-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg17-windows-x64.zip",
+      "sha256": "c72cb07d3cc039fc08bec634898fb8bcd75ff7be338e765af07c8089c44f1c02",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_qualstats-2.1.4-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg18-windows-x64.zip",
+      "sha256": "89d56bdbef7ef69b1104f40549a1259ced6695018b7af9619d27375d89bb4ac1",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    }
   },
   "runtime": {
-    "sharedPreloadLibraries": ["pg_qualstats"]
+    "sharedPreloadLibraries": [
+      "pg_qualstats"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "optional",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-applicable",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "predicate-statistics-collected",
+        "description": "Executes real predicates and verifies predicate rows are collected and exposed through both pg_qualstats and pg_qualstats_pretty.",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_qualstats",
+    "path": "config/test-contract.json",
+    "commit": "6b2be416ac09c723f7d52329932dbabe10a8f3af"
   }
 }
