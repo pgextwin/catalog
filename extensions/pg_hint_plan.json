@@ -1,32 +1,190 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "pg_hint_plan",
   "displayName": "pg_hint_plan",
   "description": "Execution-plan hinting extension for PostgreSQL.",
   "upstream": {
     "repository": "ossc-db/pg_hint_plan",
     "perPostgresql": {
-      "14": { "version": "1.4.4", "ref": "REL14_1_4_4" },
-      "15": { "version": "1.5.3", "ref": "REL15_1_5_3" },
-      "16": { "version": "1.6.2", "ref": "REL16_1_6_2" },
-      "17": { "version": "1.7.1", "ref": "REL17_1_7_1" },
-      "18": { "version": "1.8.0", "ref": "REL18_1_8_0" }
+      "14": {
+        "version": "1.4.4",
+        "ref": "REL14_1_4_4"
+      },
+      "15": {
+        "version": "1.5.3",
+        "ref": "REL15_1_5_3"
+      },
+      "16": {
+        "version": "1.6.2",
+        "ref": "REL16_1_6_2"
+      },
+      "17": {
+        "version": "1.7.1",
+        "ref": "REL17_1_7_1"
+      },
+      "18": {
+        "version": "1.8.0",
+        "ref": "REL18_1_8_0"
+      }
     }
   },
   "repository": "pgextwin/pg_hint_plan",
   "license": "BSD-style and PostgreSQL-derived notices",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.8.0-windows.1"
+    "releaseTag": "v1.8.0-windows.1",
+    "publishedAt": "2026-10-06T01:19:06Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_hint_plan/releases/tag/v1.8.0-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
-    "14": { "available": true, "asset": "pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip" },
-    "15": { "available": true, "asset": "pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip" },
-    "16": { "available": true, "asset": "pg_hint_plan-REL16_1_6_2-pg16-windows-x64.zip" },
-    "17": { "available": true, "asset": "pg_hint_plan-REL17_1_7_1-pg17-windows-x64.zip" },
-    "18": { "available": true, "asset": "pg_hint_plan-REL18_1_8_0-pg18-windows-x64.zip" }
+    "14": {
+      "available": true,
+      "asset": "pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.1/pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip",
+      "sha256": "910a5807b20a2434671c0b3dddf04b4e00495dbac8c0f20cbb18324af66557fc",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "15": {
+      "available": true,
+      "asset": "pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.1/pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip",
+      "sha256": "ebafa7cd81ec1a0dfb00dcfebcde98832f34463071ad50ee61e354a9799f64c5",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_hint_plan-REL16_1_6_2-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.1/pg_hint_plan-REL16_1_6_2-pg16-windows-x64.zip",
+      "sha256": "868c0e12be4782152a7f11b385f1e833f47c4900cfe5e0ca237eeb9a23b3dc3b",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_hint_plan-REL17_1_7_1-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.1/pg_hint_plan-REL17_1_7_1-pg17-windows-x64.zip",
+      "sha256": "88c9f156a22f78a2e7c4deaeee45e1f22210fa2697a68253d9a84131b8fd7f44",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_hint_plan-REL18_1_8_0-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.1/pg_hint_plan-REL18_1_8_0-pg18-windows-x64.zip",
+      "sha256": "4a27000447d699df65d9e15260f26c115faa699f540bcc5f3a82022a478e61e0",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
+    }
   },
   "runtime": {
-    "sharedPreloadLibraries": []
+    "sharedPreloadLibraries": [],
+    "requirements": {
+      "extensionCreation": "optional",
+      "preload": "optional",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-applicable",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "planner-hints-applied",
+        "description": "Verifies SeqScan and IndexScan hints change the observed EXPLAIN plan to the requested scan shapes.",
+        "evidence": [
+          "query-plan"
+        ]
+      },
+      {
+        "id": "hint-table-compatibility-pg14-16",
+        "description": "Exercises the PostgreSQL 14-16 query-jumble and hint-table compatibility path and verifies it produces an execution plan.",
+        "evidence": [
+          "query-plan"
+        ],
+        "postgresqlMajors": [
+          14,
+          15,
+          16
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_hint_plan",
+    "path": "config/test-contract.json",
+    "commit": "2bd98dcc75c8a76eec6a626dd2742ba8bad411b5"
   }
 }

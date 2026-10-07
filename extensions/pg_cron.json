@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "pg_cron",
   "displayName": "pg_cron",
   "description": "Cron-based job scheduler for PostgreSQL.",
@@ -11,33 +11,150 @@
   "license": "PostgreSQL-style",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.6.8-windows.1"
+    "releaseTag": "v1.6.8-windows.1",
+    "publishedAt": "2026-10-05T18:43:44Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_cron/releases/tag/v1.6.8-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
-      "asset": "pg_cron-v1.6.8-pg14-windows-x64.zip"
+      "asset": "pg_cron-v1.6.8-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.1/pg_cron-v1.6.8-pg14-windows-x64.zip",
+      "sha256": "d50180ea4e0ef84c45603bce8f61c6c9227b7151d2545105aa272a7233b03060",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
     },
     "15": {
       "available": true,
-      "asset": "pg_cron-v1.6.8-pg15-windows-x64.zip"
+      "asset": "pg_cron-v1.6.8-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.1/pg_cron-v1.6.8-pg15-windows-x64.zip",
+      "sha256": "9f9c1556bed52a6c3d08e85cf820acec4bc79de92306aa19b6cb3e5a3da58595",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
     },
     "16": {
       "available": true,
-      "asset": "pg_cron-v1.6.8-pg16-windows-x64.zip"
+      "asset": "pg_cron-v1.6.8-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.1/pg_cron-v1.6.8-pg16-windows-x64.zip",
+      "sha256": "e9dce9a0f16f7e85e38acfb7a3d1b4ec944e27f473099e00736a63403366f746",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
     },
     "17": {
       "available": true,
-      "asset": "pg_cron-v1.6.8-pg17-windows-x64.zip"
+      "asset": "pg_cron-v1.6.8-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.1/pg_cron-v1.6.8-pg17-windows-x64.zip",
+      "sha256": "c7b2f6e5c4002bddd610a4abaa39f823ae68749201bad981e8db51192197107d",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
     },
     "18": {
       "available": true,
-      "asset": "pg_cron-v1.6.8-pg18-windows-x64.zip"
+      "asset": "pg_cron-v1.6.8-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.1/pg_cron-v1.6.8-pg18-windows-x64.zip",
+      "sha256": "f389db7146caa43b30920494d48bdfad2b40a99aa10bec7fd28a7317fbbd179c",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": false
+        },
+        "sbom": {
+          "available": false
+        },
+        "sbomAttestation": {
+          "available": false
+        },
+        "vulnerabilityReport": {
+          "available": false
+        }
+      }
     }
   },
   "runtime": {
     "sharedPreloadLibraries": [
       "pg_cron"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "shared",
+      "backgroundWorker": true,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "covered",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-applicable",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "scheduled-job-executes",
+        "description": "Schedules a one-second cron job in background-worker mode and verifies the job inserts a probe row.",
+        "evidence": [
+          "background-worker-side-effect",
+          "sql-result"
+        ]
+      }
     ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_cron",
+    "path": "config/test-contract.json",
+    "commit": "c90668fd73d2f7ebab3aafc2b9d783bc0293254d"
   }
 }
