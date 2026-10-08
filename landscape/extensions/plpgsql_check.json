@@ -7,7 +7,7 @@
   "description": "PL/pgSQL static analysis and profiling",
   "upstreamRepository": "okbob/plpgsql_check",
   "status": "candidate",
-  "license": "See upstream LICENSE",
+  "license": "MIT",
   "currentStableVersion": "2.10.13",
   "pg18Support": "supported",
   "pg19Readiness": "unknown",
@@ -18,6 +18,7 @@
   "candidateRationale": "Useful developer linting and diagnostics; no verified official Windows prebuilt release was identified.",
   "evidenceUrls": [
     "https://github.com/okbob/plpgsql_check/releases/tag/v2.10.13",
-    "https://github.com/okbob/plpgsql_check"
+    "https://github.com/okbob/plpgsql_check",
+    "https://github.com/okbob/plpgsql_check/blob/master/LICENSE"
   ]
 }
