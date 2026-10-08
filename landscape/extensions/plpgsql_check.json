@@ -10,15 +10,23 @@
   "license": "MIT",
   "currentStableVersion": "2.10.13",
   "pg18Support": "supported",
-  "pg19Readiness": "unknown",
-  "windowsUpstreamSupport": "unknown",
+  "pg19Readiness": "documented",
+  "windowsUpstreamSupport": "build-instructions",
   "knownWindowsBinaryAvailability": "none-identified",
   "estimatedWindowsEffort": "medium",
   "preliminaryPriority": "high",
   "candidateRationale": "Useful developer linting and diagnostics; no verified official Windows prebuilt release was identified.",
   "evidenceUrls": [
     "https://github.com/okbob/plpgsql_check/releases/tag/v2.10.13",
-    "https://github.com/okbob/plpgsql_check",
-    "https://github.com/okbob/plpgsql_check/blob/master/LICENSE"
-  ]
+    "https://github.com/okbob/plpgsql_check/blob/v2.10.13/README.md",
+    "https://github.com/okbob/plpgsql_check/blob/v2.10.13/README.meson_msvc",
+    "https://github.com/okbob/plpgsql_check/blob/v2.10.13/meson.build",
+    "https://github.com/okbob/plpgsql_check/blob/v2.10.13/LICENSE"
+  ],
+  "roadmap": {
+    "decision": "wave-2",
+    "order": 1,
+    "decisionDate": "2026-10-08",
+    "rationale": "First pilot: documented native MSVC/Meson path, PostgreSQL 14–19 upstream support, deterministic linting scenario and high developer value. Validate PL/pgSQL internal symbol linkage, ABI and DLL exports before any release."
+  }
 }

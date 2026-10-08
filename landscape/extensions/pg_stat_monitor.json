@@ -13,12 +13,18 @@
   "pg19Readiness": "unknown",
   "windowsUpstreamSupport": "unknown",
   "knownWindowsBinaryAvailability": "none-identified",
-  "estimatedWindowsEffort": "high",
+  "estimatedWindowsEffort": "very-high",
   "preliminaryPriority": "medium",
   "candidateRationale": "Percona publishes PostgreSQL 14–18 Linux packages; public binaries for ordinary Windows PostgreSQL not confirmed.",
   "evidenceUrls": [
-    "https://docs.percona.com/pg-stat-monitor/install.html",
-    "https://github.com/percona/pg_stat_monitor",
-    "https://github.com/percona/pg_stat_monitor/blob/main/LICENSE"
-  ]
+    "https://github.com/percona/pg_stat_monitor/releases/tag/2.4.0",
+    "https://github.com/percona/pg_stat_monitor/blob/2.4.0/README.md",
+    "https://github.com/percona/pg_stat_monitor/blob/2.4.0/Makefile",
+    "https://github.com/percona/pg_stat_monitor/blob/2.4.0/LICENSE"
+  ],
+  "roadmap": {
+    "decision": "reserve",
+    "decisionDate": "2026-10-08",
+    "rationale": "Percona actively maintains PG18 observability; mandatory preload, hooks, shared memory and OS assumptions make reliable Windows delivery more complex than selected pilots."
+  }
 }

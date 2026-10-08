@@ -13,12 +13,18 @@
   "pg19Readiness": "under-review",
   "windowsUpstreamSupport": "unknown",
   "knownWindowsBinaryAvailability": "none-identified",
-  "estimatedWindowsEffort": "high",
+  "estimatedWindowsEffort": "very-high",
   "preliminaryPriority": "medium",
   "candidateRationale": "High demand for partition operations; C background worker and maintenance lifecycle require extra validation.",
   "evidenceUrls": [
     "https://github.com/pgpartman/pg_partman/releases/tag/v5.5.0",
-    "https://github.com/pgpartman/pg_partman",
-    "https://github.com/pgpartman/pg_partman/blob/development/LICENSE.txt"
-  ]
+    "https://github.com/pgpartman/pg_partman/blob/v5.5.0/README.md",
+    "https://github.com/pgpartman/pg_partman/blob/v5.5.0/CHANGELOG.md",
+    "https://github.com/pgpartman/pg_partman/blob/v5.5.0/LICENSE.txt"
+  ],
+  "roadmap": {
+    "decision": "reserve",
+    "decisionDate": "2026-10-08",
+    "rationale": "High production value and PG18 support, but SQL-only versus optional background worker packaging, secure maintenance-role setup and broad lifecycle coverage need a dedicated Windows design gate."
+  }
 }
