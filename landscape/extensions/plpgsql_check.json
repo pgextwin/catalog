@@ -6,7 +6,7 @@
   "upstreamRepository": "okbob/plpgsql_check",
   "status": "implemented",
   "pgextwinCatalogName": "plpgsql_check",
-  "lastReviewed": "2026-10-09",
+  "lastReviewed": "2026-10-08",
   "evidenceUrls": [
     "https://github.com/pgextwin/plpgsql_check/releases/tag/v2.10.13-windows.1",
     "https://github.com/okbob/plpgsql_check/releases/tag/v2.10.13",
