@@ -33,7 +33,6 @@ def validate_landscape(root=ROOT):
     available = set(dist_index.get("extensions", []))
     implemented = set()
     wave_orders = []
-    roadmap_seen = 0
     for path in paths:
         try:
             record = load(path)
@@ -58,7 +57,6 @@ def validate_landscape(root=ROOT):
                 errors.append(f"{path.name}: not-planned requires an acquisition source")
         roadmap = record.get("roadmap")
         if roadmap is not None:
-            roadmap_seen += 1
             if record.get("status") != "candidate":
                 errors.append(f"{path.name}: roadmap only allowed for candidate")
             if not str(roadmap.get("rationale", "")).strip():
@@ -86,11 +84,10 @@ def validate_landscape(root=ROOT):
                 errors.append(f"{path.name}: lastReviewed is in the future")
         except (ValueError, TypeError):
             errors.append(f"{path.name}: invalid lastReviewed")
-    if roadmap_seen:
-        if len(wave_orders) != 3:
-            errors.append(f"Wave 2 must have exactly three records; got {len(wave_orders)}")
-        if sorted(x for x in wave_orders if isinstance(x, int)) != [1, 2, 3] or len(set(map(str, wave_orders))) != len(wave_orders):
-            errors.append(f"Wave 2 order must be unique and exactly [1,2,3]; got {wave_orders}")
+    if len(wave_orders) != 3:
+        errors.append(f"Wave 2 must have exactly three records; got {len(wave_orders)}")
+    if sorted(x for x in wave_orders if isinstance(x, int)) != [1, 2, 3] or len(set(map(str, wave_orders))) != len(wave_orders):
+        errors.append(f"Wave 2 order must be unique and exactly [1,2,3]; got {wave_orders}")
     if not INITIAL_EIGHT.issubset(implemented):
         errors.append(f"Missing implemented initial eight: {sorted(INITIAL_EIGHT-implemented)}")
     if implemented != available:
