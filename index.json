@@ -8,6 +8,7 @@
     "pg_qualstats",
     "pg_repack",
     "pgaudit",
+    "plpgsql_check",
     "set_user"
   ]
 }
