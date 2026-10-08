@@ -21,5 +21,6 @@
   "notPlannedReason": "Upstream officially publishes Windows ZIP assets for PG14–18; no need to duplicate native Oracle SDK dependency handling.",
   "evidenceUrls": [
     "https://github.com/laurenz/oracle_fdw#building-oracle_fdw-on-windows"
-  ]
+  ],
+  "notPlannedReasonJa": "上流公式ReleaseがPG14〜18用のWindows ZIPを提供しています。Oracle Instant Clientなどの導入前提を確認してください。"
 }

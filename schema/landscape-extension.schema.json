@@ -133,6 +133,10 @@
       "items": {
         "$ref": "#/$defs/source"
       }
+    },
+    "notPlannedReasonJa": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {

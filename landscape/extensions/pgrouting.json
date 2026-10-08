@@ -21,5 +21,6 @@
   "notPlannedReason": "Published PostGIS Windows bundles include pgRouting; building overlapping native GIS toolchains adds little value.",
   "evidenceUrls": [
     "https://github.com/pgRouting/pgrouting"
-  ]
+  ],
+  "notPlannedReasonJa": "PostGISのWindowsバンドルにpgRoutingが同梱されており、独自の複雑なGISビルドを重複させる必要性が低いため。"
 }

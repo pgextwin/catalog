@@ -9,13 +9,13 @@
   "status": "candidate",
   "license": "BSD-3-Clause",
   "currentStableVersion": "2.6",
-  "pg18Support": "supported",
-  "pg19Readiness": "under-review",
+  "pg18Support": "unknown",
+  "pg19Readiness": "unknown",
   "windowsUpstreamSupport": "build-instructions",
   "knownWindowsBinaryAvailability": "none-identified",
   "estimatedWindowsEffort": "low",
   "preliminaryPriority": "high",
-  "candidateRationale": "Useful CDC and replication output plugin; upstream documents a Windows Visual Studio build but does not publish Windows Release assets.",
+  "candidateRationale": "Useful CDC and replication output plugin; upstream documents a Windows Visual Studio build but does not publish Windows Release assets. PG18 compatibility is not yet verified by this registry.",
   "evidenceUrls": [
     "https://github.com/eulerto/wal2json#building-on-windows",
     "https://github.com/eulerto/wal2json"

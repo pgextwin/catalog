@@ -21,5 +21,6 @@
   "notPlannedReason": "PostGIS Windows bundles now ship pgSphere binaries; niche demand does not justify a duplicate standalone pipeline.",
   "evidenceUrls": [
     "https://postgis.net/documentation/getting_started/install_windows/released_versions/"
-  ]
+  ],
+  "notPlannedReasonJa": "PostGIS Windowsバンドルから既存の配布物を取得できるため、現時点では独立配布の優先度が低いため。"
 }

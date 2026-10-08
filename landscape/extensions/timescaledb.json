@@ -21,5 +21,6 @@
   "notPlannedReason": "Upstream publishes matching Windows ZIPs and installation documentation; complex native build and upgrade surface better handled upstream.",
   "evidenceUrls": [
     "https://docs.timescale.com/self-hosted/latest/install/installation-windows/"
-  ]
+  ],
+  "notPlannedReasonJa": "上流公式ReleaseがPG16〜18用のWindows ZIPを公開しています。対応するPostgreSQLと実行時依存関係を確認してください。"
 }

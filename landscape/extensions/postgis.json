@@ -21,5 +21,6 @@
   "notPlannedReason": "Official Windows installers cover PG14–18 including dependencies; duplicating GIS dependency packaging is unnecessary now.",
   "evidenceUrls": [
     "https://postgis.net/documentation/getting_started/install_windows/released_versions/"
-  ]
+  ],
+  "notPlannedReasonJa": "PostGISの公式Windowsインストーラーがあり、GIS関連ライブラリをpgextwinで重複配布する必要性が低いため。"
 }
