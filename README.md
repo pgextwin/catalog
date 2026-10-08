@@ -162,3 +162,11 @@ Remote verification uses immutable Test Contract commits and the current canonic
 Catalog v2 is the machine-readable API contract. It does **not** implement Website v2.
 
 The current Website continues to consume the v1-compatible fields listed above and independently combines them with PostgreSQL lifecycle metadata. A later Website v2 may opt into direct-download integrity, runtime requirements, capability coverage, and supply-chain evidence fields without changing their meaning in the catalog.
+
+## Windows Extension Landscape Registry (independent v1)
+
+The distribution Catalog v2 (root `index.json`, `extensions/*.json`) remains **only published pgextwin binary metadata**. The independent `landscape/index.json` and `landscape/extensions/*.json` identify implemented packages (by catalog name reference), provisional future candidates, and not-planned projects with verified external acquisition routes. Landscape records **never** alter distribution availability, release hashes, or release assets.
+
+Each record has upstream/evidence URLs and `lastReviewed`, a review date rather than a guaranteed current fact. Sources distinguish upstream, community, vendor, package-manager, public vs limited commercial availability, and standard vs vendor/conda PostgreSQL compatibility. An existing Windows binary can coexist with candidate status. Not planned does **not** mean incompatible or unavailable. The registry is intentionally manually reviewed, with no automatic vendor-feed trust assumption.
+
+Run `python scripts/validate_landscape.py`; this validator and its tests run separately from `validate_catalog.py` in CI. Second Wave decisions remain provisional.

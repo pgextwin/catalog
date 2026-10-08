@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [
+    {
+      "provider": "PostGIS / OSGeo",
+      "type": "upstream-official",
+      "url": "https://www.postgresql.org/ftp/postgis/pg18/v3.6.2/win64/",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "standard-postgresql",
+      "notes": "PostGIS 3.6.2 PG18 x64 installer; choose a matching PostgreSQL major at the official downloads page."
+    }
+  ],
+  "name": "postgis",
+  "displayName": "PostGIS",
+  "description": "Spatial types and GIS functions",
+  "upstreamRepository": "postgis/postgis",
+  "status": "not-planned",
+  "reasonCode": "existing-windows-distribution",
+  "notPlannedReason": "Official Windows installers cover PG14–18 including dependencies; duplicating GIS dependency packaging is unnecessary now.",
+  "evidenceUrls": [
+    "https://postgis.net/documentation/getting_started/install_windows/released_versions/"
+  ],
+  "notPlannedReasonJa": "PostGISの公式Windowsインストーラーがあり、GIS関連ライブラリをpgextwinで重複配布する必要性が低いため。"
+}

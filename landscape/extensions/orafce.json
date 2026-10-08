@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "orafce",
+  "displayName": "orafce",
+  "description": "Oracle-compatible functions and packages on community PostgreSQL",
+  "upstreamRepository": "orafce/orafce",
+  "status": "candidate",
+  "license": "BSD",
+  "currentStableVersion": "4.16.13",
+  "pg18Support": "supported",
+  "pg19Readiness": "unknown",
+  "windowsUpstreamSupport": "unknown",
+  "knownWindowsBinaryAvailability": "none-identified",
+  "estimatedWindowsEffort": "medium",
+  "preliminaryPriority": "unranked",
+  "candidateRationale": "Oracle migration utility warrants further review; EDB Advanced Server's built-in Oracle compatibility is not equivalent to a downloadable orafce DLL for community PostgreSQL.",
+  "evidenceUrls": [
+    "https://github.com/orafce/orafce/releases/tag/VERSION_4_16_13",
+    "https://github.com/orafce/orafce"
+  ]
+}

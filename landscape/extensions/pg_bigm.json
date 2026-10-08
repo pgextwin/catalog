@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_bigm",
+  "displayName": "pg_bigm",
+  "description": "2-gram full-text search",
+  "upstreamRepository": "pgbigm/pg_bigm",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_bigm",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_bigm/releases"
+  ]
+}

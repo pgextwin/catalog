@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_cron",
+  "displayName": "pg_cron",
+  "description": "Cron scheduler",
+  "upstreamRepository": "citusdata/pg_cron",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_cron",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_cron/releases"
+  ]
+}

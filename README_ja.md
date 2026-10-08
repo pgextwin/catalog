@@ -162,3 +162,11 @@ remote verificationは、immutableなTest Contract commitと現在のcanonical G
 Catalog v2はmachine-readable API contractです。**Website v2は今回実装しません。**
 
 現行Websiteは上記のv1-compatible fieldをそのまま利用でき、PostgreSQL lifecycle metadataとは従来どおり表示時に結合します。将来のWebsite v2は、direct download integrity、runtime requirement、capability coverage、supply-chain evidenceを同じ意味のまま利用できます。
+
+## 独立したWindows Extension Landscape Registry (v1)
+
+ルートの `index.json` / `extensions/*.json` は、**pgextwinが実際に公開したバイナリだけ**を扱うCatalog v2です。独立した `landscape/index.json` / `landscape/extensions/*.json` は、配布済み（Catalog参照のみ）、今後の候補、pgextwinでは当面実装しない拡張機能と外部取得先を扱います。`available` の意味やReleaseのSHA-256は変更しません。
+
+外部取得先の公開・商用条件、通常PostgreSQLとの互換性、公式/コミュニティ/ベンダー/パッケージマネージャの区別を記録します。`not-planned` は利用不可・非互換の意味ではありません。`lastReviewed` は最終レビュー日であり、現在も有効という保証ではありません。候補の優先順位は暫定です。
+
+独立validatorは `python scripts/validate_landscape.py`。CIでdistribution Catalogと別々に検証します。

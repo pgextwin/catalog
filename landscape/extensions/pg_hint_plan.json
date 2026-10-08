@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [
+    {
+      "provider": "SRA OSS PostgreSQL support service",
+      "type": "vendor",
+      "url": "https://www.sraoss.co.jp/prod_serv/support/pgsql-mainte/",
+      "availability": "support-customer",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "Windows binaries provided to support-contract customers, not public downloads. Request the exact PostgreSQL major/version from SRA OSS."
+    }
+  ],
+  "name": "pg_hint_plan",
+  "displayName": "pg_hint_plan",
+  "description": "Planner hints",
+  "upstreamRepository": "ossc-db/pg_hint_plan",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_hint_plan",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_hint_plan/releases",
+    "https://www.sraoss.co.jp/prod_serv/support/pgsql-mainte/third-party-software-list/"
+  ]
+}

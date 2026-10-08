@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [
+    {
+      "provider": "conda-forge",
+      "type": "package-manager",
+      "url": "https://anaconda.org/conda-forge/pgvector",
+      "availability": "public",
+      "postgresqlDistribution": "conda-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "win-64 package published; use the matching conda PostgreSQL environment. Not a drop-in EDB/PostgreSQL installer."
+    }
+  ],
+  "name": "pgvector",
+  "displayName": "pgvector",
+  "description": "Vector similarity search",
+  "upstreamRepository": "pgvector/pgvector",
+  "status": "not-planned",
+  "reasonCode": "existing-windows-distribution",
+  "notPlannedReason": "Upstream supplies an nmake build path and conda-forge publishes win-64 packages; standard EDB installations are not necessarily ABI-compatible with conda packages.",
+  "evidenceUrls": [
+    "https://github.com/pgvector/pgvector#installation"
+  ],
+  "notPlannedReasonJa": "conda-forgeがWindows向けパッケージを公開し、上流もWindowsビルド手順を提供しています。ただし通常のEDB版への流用には互換性確認が必要です。"
+}

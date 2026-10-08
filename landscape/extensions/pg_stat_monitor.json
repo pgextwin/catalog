@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_stat_monitor",
+  "displayName": "pg_stat_monitor",
+  "description": "Time-bucketed query performance monitoring",
+  "upstreamRepository": "percona/pg_stat_monitor",
+  "status": "candidate",
+  "license": "See upstream LICENSE",
+  "currentStableVersion": "2.4.0",
+  "pg18Support": "supported",
+  "pg19Readiness": "unknown",
+  "windowsUpstreamSupport": "unknown",
+  "knownWindowsBinaryAvailability": "none-identified",
+  "estimatedWindowsEffort": "high",
+  "preliminaryPriority": "medium",
+  "candidateRationale": "Percona publishes PostgreSQL 14–18 Linux packages; public binaries for ordinary Windows PostgreSQL not confirmed.",
+  "evidenceUrls": [
+    "https://docs.percona.com/pg-stat-monitor/install.html",
+    "https://github.com/percona/pg_stat_monitor"
+  ]
+}

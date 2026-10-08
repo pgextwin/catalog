@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_qualstats",
+  "displayName": "pg_qualstats",
+  "description": "Predicate statistics",
+  "upstreamRepository": "powa-team/pg_qualstats",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_qualstats",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_qualstats/releases"
+  ]
+}

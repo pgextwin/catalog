@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [
+    {
+      "provider": "Community contributor (HypoPG issue #112)",
+      "type": "community",
+      "url": "https://github.com/HypoPG/hypopg/issues/112",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "Individually attached PG17/18 DLLs; not an official, maintained release channel. Validate provenance, matching PG build, and runtime safety independently."
+    }
+  ],
+  "name": "hypopg",
+  "displayName": "HypoPG",
+  "description": "Hypothetical index planning without creating indexes",
+  "upstreamRepository": "HypoPG/hypopg",
+  "status": "candidate",
+  "license": "See upstream LICENSE",
+  "currentStableVersion": "1.4.3",
+  "pg18Support": "supported",
+  "pg19Readiness": "documented",
+  "windowsUpstreamSupport": "unknown",
+  "knownWindowsBinaryAvailability": "limited",
+  "estimatedWindowsEffort": "medium",
+  "preliminaryPriority": "high",
+  "candidateRationale": "Useful advisor functionality; isolated issue-attached community DLLs are not an established official Windows release channel.",
+  "evidenceUrls": [
+    "https://github.com/HypoPG/hypopg/issues/112",
+    "https://github.com/HypoPG/hypopg"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_ivm",
+  "displayName": "pg_ivm",
+  "description": "Incremental view maintenance",
+  "upstreamRepository": "sraoss/pg_ivm",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_ivm",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_ivm/releases"
+  ]
+}

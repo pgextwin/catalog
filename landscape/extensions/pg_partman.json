@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_partman",
+  "displayName": "pg_partman",
+  "description": "Time-based and ID-based partition maintenance",
+  "upstreamRepository": "pgpartman/pg_partman",
+  "status": "candidate",
+  "license": "See upstream LICENSE",
+  "currentStableVersion": "5.5.0",
+  "pg18Support": "supported",
+  "pg19Readiness": "under-review",
+  "windowsUpstreamSupport": "unknown",
+  "knownWindowsBinaryAvailability": "none-identified",
+  "estimatedWindowsEffort": "high",
+  "preliminaryPriority": "medium",
+  "candidateRationale": "High demand for partition operations; C background worker and maintenance lifecycle require extra validation.",
+  "evidenceUrls": [
+    "https://github.com/pgpartman/pg_partman/releases/tag/v5.5.0",
+    "https://github.com/pgpartman/pg_partman"
+  ]
+}
