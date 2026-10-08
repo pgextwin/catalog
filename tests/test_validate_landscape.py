@@ -70,6 +70,22 @@ class LandscapeTests(unittest.TestCase):
         wave = [x for x in records if x.get("roadmap", {}).get("decision") == "wave-2"]
         self.assertEqual([1, 2, 3], sorted(x["roadmap"]["order"] for x in wave))
         self.assertEqual(3, len(wave))
+    def test_missing_all_wave_orders_rejected(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            shutil.copytree(ROOT / "landscape", base / "landscape")
+            shutil.copytree(ROOT / "schema", base / "schema")
+            shutil.copy(ROOT / "index.json", base / "index.json")
+            for name in ("hypopg", "plpgsql_check", "wal2json"):
+                path = base / "landscape" / "extensions" / (name + ".json")
+                record = json.loads(path.read_text())
+                record.pop("roadmap")
+                path.write_text(json.dumps(record))
+            errors = module.validate_landscape(base)
+            self.assertTrue(any("exactly three" in issue for issue in errors), errors)
+    def test_one_wave_record_missing_rejected(self):
+        self.assertRegistryMutationRejected("wal2json",lambda x: x.pop("roadmap"), "exactly three")
     def test_duplicate_wave_order_rejected(self):
         self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(order=1), "order")
     def test_missing_roadmap_rationale_rejected(self):
