@@ -346,18 +346,44 @@
       "if": {
         "properties": {
           "status": {
-            "const": "candidate"
+            "const": "implemented"
           }
         },
         "required": [
           "status"
         ]
       },
+      "then": {
+        "properties": {
+          "roadmap": {
+            "properties": {
+              "decision": {
+                "const": "wave-2"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          }
+        }
+      },
       "else": {
-        "not": {
+        "if": {
+          "properties": {
+            "status": {
+              "const": "candidate"
+            }
+          },
           "required": [
-            "roadmap"
+            "status"
           ]
+        },
+        "else": {
+          "not": {
+            "required": [
+              "roadmap"
+            ]
+          }
         }
       }
     }
