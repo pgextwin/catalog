@@ -57,8 +57,8 @@ def validate_landscape(root=ROOT):
                 errors.append(f"{path.name}: not-planned requires an acquisition source")
         roadmap = record.get("roadmap")
         if roadmap is not None:
-            if record.get("status") != "candidate":
-                errors.append(f"{path.name}: roadmap only allowed for candidate")
+            if record.get("status") != "candidate" and not (record.get("status") == "implemented" and roadmap.get("decision") == "wave-2"):
+                errors.append(f"{path.name}: roadmap only allowed for candidate or implemented Wave 2 history")
             if not str(roadmap.get("rationale", "")).strip():
                 errors.append(f"{path.name}: roadmap rationale required")
             try:
