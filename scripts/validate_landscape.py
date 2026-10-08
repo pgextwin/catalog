@@ -32,6 +32,8 @@ def validate_landscape(root=ROOT):
     dist_index = load(root / "index.json")
     available = set(dist_index.get("extensions", []))
     implemented = set()
+    wave_orders = []
+    roadmap_seen = 0
     for path in paths:
         try:
             record = load(path)
@@ -54,6 +56,25 @@ def validate_landscape(root=ROOT):
                 errors.append(f"{path.name}: missing not-planned reason")
             if not record.get("windowsBinarySources"):
                 errors.append(f"{path.name}: not-planned requires an acquisition source")
+        roadmap = record.get("roadmap")
+        if roadmap is not None:
+            roadmap_seen += 1
+            if record.get("status") != "candidate":
+                errors.append(f"{path.name}: roadmap only allowed for candidate")
+            if not str(roadmap.get("rationale", "")).strip():
+                errors.append(f"{path.name}: roadmap rationale required")
+            try:
+                decision_date = date.fromisoformat(roadmap.get("decisionDate", ""))
+                if decision_date.isoformat() != roadmap.get("decisionDate"):
+                    errors.append(f"{path.name}: noncanonical decisionDate")
+                if decision_date > date.today():
+                    errors.append(f"{path.name}: future decisionDate")
+            except (ValueError, TypeError):
+                errors.append(f"{path.name}: malformed decisionDate")
+            if roadmap.get("decision") == "wave-2":
+                wave_orders.append(roadmap.get("order"))
+            elif "order" in roadmap:
+                errors.append(f"{path.name}: non-wave roadmap must not have order")
         for source in record.get("windowsBinarySources", []):
             if source.get("type") not in ("upstream-official", "community", "vendor", "package-manager") or not source.get("provider"):
                 errors.append(f"{path.name}: invalid source provider or type")
@@ -65,6 +86,11 @@ def validate_landscape(root=ROOT):
                 errors.append(f"{path.name}: lastReviewed is in the future")
         except (ValueError, TypeError):
             errors.append(f"{path.name}: invalid lastReviewed")
+    if roadmap_seen:
+        if len(wave_orders) != 3:
+            errors.append(f"Wave 2 must have exactly three records; got {len(wave_orders)}")
+        if sorted(x for x in wave_orders if isinstance(x, int)) != [1, 2, 3] or len(set(map(str, wave_orders))) != len(wave_orders):
+            errors.append(f"Wave 2 order must be unique and exactly [1,2,3]; got {wave_orders}")
     if not INITIAL_EIGHT.issubset(implemented):
         errors.append(f"Missing implemented initial eight: {sorted(INITIAL_EIGHT-implemented)}")
     if implemented != available:

@@ -64,5 +64,37 @@ class LandscapeTests(unittest.TestCase):
             record["pgextwinCatalogName"] = "fake"
             record_path.write_text(json.dumps(record))
             self.assertTrue(any("invalid distribution catalog reference" in x for x in module.validate_landscape(base)))
+
+    def test_three_wave_two_orders(self):
+        records = [module.load(p) for p in (ROOT / "landscape" / "extensions").glob("*.json")]
+        wave = [x for x in records if x.get("roadmap", {}).get("decision") == "wave-2"]
+        self.assertEqual([1, 2, 3], sorted(x["roadmap"]["order"] for x in wave))
+        self.assertEqual(3, len(wave))
+    def test_duplicate_wave_order_rejected(self):
+        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(order=1), "order")
+    def test_missing_roadmap_rationale_rejected(self):
+        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(rationale=""), "rationale")
+    def test_reserve_cannot_have_order(self):
+        self.assertRegistryMutationRejected("pg_partman", lambda x: x["roadmap"].update(order=2), "order")
+    def test_not_planned_roadmap_rejected(self):
+        self.assertRegistryMutationRejected("postgis", lambda x: x.update(roadmap={"decision":"research","decisionDate":"2026-10-08","rationale":"test"}), "roadmap")
+    def test_bad_decision_date_rejected(self):
+        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(decisionDate="2026-02-31"), "decisionDate")
+    def test_missing_wave_order_rejected(self):
+        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].pop("order"), "order")
+    def assertRegistryMutationRejected(self, name, mutate, fragment):
+        import shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            shutil.copytree(ROOT / "landscape", base / "landscape")
+            shutil.copytree(ROOT / "schema", base / "schema")
+            shutil.copy(ROOT / "index.json", base / "index.json")
+            path = base / "landscape" / "extensions" / (name + ".json")
+            record = json.loads(path.read_text())
+            mutate(record)
+            path.write_text(json.dumps(record))
+            errors = module.validate_landscape(base)
+            self.assertTrue(any(fragment in issue for issue in errors), errors)
+
 if __name__ == "__main__":
     unittest.main()
