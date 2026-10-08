@@ -10,15 +10,21 @@
   "license": "0BSD",
   "currentStableVersion": "4.16.13",
   "pg18Support": "supported",
-  "pg19Readiness": "unknown",
-  "windowsUpstreamSupport": "unknown",
+  "pg19Readiness": "under-review",
+  "windowsUpstreamSupport": "build-instructions",
   "knownWindowsBinaryAvailability": "none-identified",
-  "estimatedWindowsEffort": "medium",
+  "estimatedWindowsEffort": "high",
   "preliminaryPriority": "unranked",
   "candidateRationale": "Oracle migration utility warrants further review; EDB Advanced Server's built-in Oracle compatibility is not equivalent to a downloadable orafce DLL for community PostgreSQL.",
   "evidenceUrls": [
     "https://github.com/orafce/orafce/releases/tag/VERSION_4_16_13",
-    "https://github.com/orafce/orafce",
-    "https://github.com/orafce/orafce/blob/master/LICENSE"
-  ]
+    "https://github.com/orafce/orafce/blob/VERSION_4_16_13/README.meson_msvc",
+    "https://github.com/orafce/orafce/blob/VERSION_4_16_13/README.msvc",
+    "https://github.com/orafce/orafce/blob/VERSION_4_16_13/LICENSE"
+  ],
+  "roadmap": {
+    "decision": "research",
+    "decisionDate": "2026-10-08",
+    "rationale": "Upstream offers MSVC/Meson builds and PG18 path, but ICU/toolchain alignment, very broad SQL/export surface and historical alternative Windows channels warrant further scoping."
+  }
 }

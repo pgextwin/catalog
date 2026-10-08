@@ -3,6 +3,15 @@
   "lastReviewed": "2026-10-08",
   "windowsBinarySources": [
     {
+      "provider": "HypoPG upstream (historical 1.4.1)",
+      "type": "upstream-official",
+      "url": "https://github.com/HypoPG/hypopg/releases/tag/1.4.1",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "Official 1.4.1 Windows x64 release assets cover PG14–16; there are no official 1.4.3/PG17–18 assets. Not a current alternative for the later majors."
+    },
+    {
       "provider": "Community contributor (HypoPG issue #112)",
       "type": "community",
       "url": "https://github.com/HypoPG/hypopg/issues/112",
@@ -21,14 +30,22 @@
   "currentStableVersion": "1.4.3",
   "pg18Support": "supported",
   "pg19Readiness": "documented",
-  "windowsUpstreamSupport": "unknown",
+  "windowsUpstreamSupport": "native-binary",
   "knownWindowsBinaryAvailability": "limited",
   "estimatedWindowsEffort": "medium",
   "preliminaryPriority": "high",
   "candidateRationale": "Useful advisor functionality; isolated issue-attached community DLLs are not an established official Windows release channel.",
   "evidenceUrls": [
-    "https://github.com/HypoPG/hypopg/issues/112",
-    "https://github.com/HypoPG/hypopg",
-    "https://github.com/HypoPG/hypopg/blob/REL1_STABLE/LICENSE"
-  ]
+    "https://github.com/HypoPG/hypopg/releases/tag/1.4.3",
+    "https://github.com/HypoPG/hypopg/releases/tag/1.4.1",
+    "https://github.com/HypoPG/hypopg/blob/1.4.3/CHANGELOG.md",
+    "https://github.com/HypoPG/hypopg/blob/1.4.3/LICENSE",
+    "https://github.com/HypoPG/hypopg/issues/112"
+  ],
+  "roadmap": {
+    "decision": "wave-2",
+    "order": 2,
+    "decisionDate": "2026-10-08",
+    "rationale": "Planner advisor with explicit PG18/PG19 upstream fixes and reliable EXPLAIN tests; historical upstream Windows releases cover only PG14–16 and newer issue attachments are not maintained official assets. Pilot planner hooks and imported internal symbols."
+  }
 }

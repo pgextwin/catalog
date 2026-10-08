@@ -76,8 +76,10 @@
     "pg19Readiness": {
       "enum": [
         "documented",
+        "upstream-ci-probe",
         "under-review",
-        "unknown"
+        "unknown",
+        "known-incompatible"
       ]
     },
     "windowsUpstreamSupport": {
@@ -101,6 +103,7 @@
         "low",
         "medium",
         "high",
+        "very-high",
         "unknown"
       ]
     },
@@ -137,6 +140,64 @@
     "notPlannedReasonJa": {
       "type": "string",
       "minLength": 1
+    },
+    "roadmap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "decisionDate",
+        "rationale"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "wave-2",
+            "reserve",
+            "research"
+          ]
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "decisionDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "rationale": {
+          "type": "string",
+          "pattern": "\\S",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "wave-2"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "required": [
+              "order"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "order"
+              ]
+            }
+          }
+        }
+      ]
     }
   },
   "$defs": {
@@ -278,6 +339,25 @@
           "windowsBinarySources": {
             "minItems": 1
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "candidate"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "roadmap"
+          ]
         }
       }
     }
