@@ -17,7 +17,7 @@
   "description": "Hypothetical index planning without creating indexes",
   "upstreamRepository": "HypoPG/hypopg",
   "status": "candidate",
-  "license": "See upstream LICENSE",
+  "license": "PostgreSQL",
   "currentStableVersion": "1.4.3",
   "pg18Support": "supported",
   "pg19Readiness": "documented",
@@ -28,6 +28,7 @@
   "candidateRationale": "Useful advisor functionality; isolated issue-attached community DLLs are not an established official Windows release channel.",
   "evidenceUrls": [
     "https://github.com/HypoPG/hypopg/issues/112",
-    "https://github.com/HypoPG/hypopg"
+    "https://github.com/HypoPG/hypopg",
+    "https://github.com/HypoPG/hypopg/blob/REL1_STABLE/LICENSE"
   ]
 }
