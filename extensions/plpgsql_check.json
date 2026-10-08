@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 2,
+  "name": "plpgsql_check",
+  "displayName": "plpgsql_check",
+  "description": "Static analysis and diagnostic checks for PL/pgSQL functions.",
+  "upstream": {
+    "repository": "okbob/plpgsql_check",
+    "version": "2.10.13"
+  },
+  "repository": "pgextwin/plpgsql_check",
+  "license": "MIT",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v2.10.13-windows.1",
+    "publishedAt": "2026-10-08T23:02:57Z",
+    "releaseUrl": "https://github.com/pgextwin/plpgsql_check/releases/tag/v2.10.13-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
+  },
+  "postgresql": {
+    "15": {
+      "available": true,
+      "asset": "plpgsql_check-v2.10.13-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg15-windows-x64.zip",
+      "sha256": "ac64221f477f0fbb58f835bdde30a6a195831fd27394c30d508c57b352e81944",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg15-windows-x64.spdx.json",
+          "sha256": "58c82d1abdbeaaf7f57d66118900cf598182beb25c87ea51d86d4adfb6e00a71"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "08a139465539bf7830d1f6e2062cc09bd80f5b6a0e531aa8256e59d280dcf48d"
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "plpgsql_check-v2.10.13-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg16-windows-x64.zip",
+      "sha256": "a30297a8dc80e5b395b6092656efcaecf27d1725c19e3f5e0f3cb3129f5c0af2",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg16-windows-x64.spdx.json",
+          "sha256": "8add545b759e4b2ee495c3a4e822eeed426dcae37920eca5b8b169f172101940"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "a011fc905ab56f91e8b92653338e7495e0412799f6030f68f2272938bb7ec19b"
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "plpgsql_check-v2.10.13-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg17-windows-x64.zip",
+      "sha256": "cf305df436b4be9c196257f631261f2656f4cb397e9994fddf9a4083ae26f93c",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg17-windows-x64.spdx.json",
+          "sha256": "a669f7946b654d1cd90854e1c5725aa4f9e776e5577c6d83cec2c86daf26d72b"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "35681476cb90856b660816ff6c1f5f2ae8b5fbb1e53570c37cb8ef4100b5e9aa"
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "plpgsql_check-v2.10.13-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg18-windows-x64.zip",
+      "sha256": "958c15fed94cb15cefa6812dcf18e9e009cff7bc6003da0e7cea9f819467ecb3",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg18-windows-x64.spdx.json",
+          "sha256": "ea2dcfa6bf199af7073a5e6b763cf7a44d34e7c5e0f21cb904e5aea90567cbd5"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "plpgsql_check-v2.10.13-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.13-windows.1/plpgsql_check-v2.10.13-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "4b35c0975ec575e7e42d11cbe82131cfb0781c5c2922fd8fd1f9363415193a55"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "plpgsql_check"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "optional",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "detect-invalid-record-field",
+        "description": "Diagnoses a missing record field on an empty-table loop without executing the function, then verifies the diagnostic disappears after a correction.",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/plpgsql_check",
+    "path": "config/test-contract.json",
+    "commit": "d057a38c39e892eb91fb9aef5e90af2cdd58ddb6"
+  }
+}
