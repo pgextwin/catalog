@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [
+    {
+      "provider": "PostGIS / OSGeo Windows bundle",
+      "type": "community",
+      "url": "https://postgis.net/documentation/getting_started/install_windows/enabling_postgis/",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "pgSphere artifacts are under the bundle's extras directories; verify the actual target major and compatible DLLs."
+    }
+  ],
+  "name": "pg_sphere",
+  "displayName": "pgSphere",
+  "description": "Spherical geometry and astronomy",
+  "upstreamRepository": "pgsphere/pgsphere",
+  "status": "not-planned",
+  "reasonCode": "existing-windows-distribution",
+  "notPlannedReason": "PostGIS Windows bundles now ship pgSphere binaries; niche demand does not justify a duplicate standalone pipeline.",
+  "evidenceUrls": [
+    "https://postgis.net/documentation/getting_started/install_windows/released_versions/"
+  ]
+}

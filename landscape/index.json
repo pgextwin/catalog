@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "extensions": [
+    "hypopg",
+    "oracle_fdw",
+    "orafce",
+    "pg_bigm",
+    "pg_cron",
+    "pg_hint_plan",
+    "pg_ivm",
+    "pg_partman",
+    "pg_qualstats",
+    "pg_repack",
+    "pg_sphere",
+    "pg_stat_monitor",
+    "pgaudit",
+    "pgrouting",
+    "pgvector",
+    "plpgsql_check",
+    "postgis",
+    "set_user",
+    "timescaledb",
+    "wal2json"
+  ]
+}

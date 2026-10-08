@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pgaudit",
+  "displayName": "pgAudit",
+  "description": "Auditing",
+  "upstreamRepository": "pgaudit/pgaudit",
+  "status": "implemented",
+  "pgextwinCatalogName": "pgaudit",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pgaudit/releases"
+  ]
+}

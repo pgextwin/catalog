@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "plpgsql_check",
+  "displayName": "plpgsql_check",
+  "description": "PL/pgSQL static analysis and profiling",
+  "upstreamRepository": "okbob/plpgsql_check",
+  "status": "candidate",
+  "license": "See upstream LICENSE",
+  "currentStableVersion": "2.10.13",
+  "pg18Support": "supported",
+  "pg19Readiness": "unknown",
+  "windowsUpstreamSupport": "unknown",
+  "knownWindowsBinaryAvailability": "none-identified",
+  "estimatedWindowsEffort": "medium",
+  "preliminaryPriority": "high",
+  "candidateRationale": "Useful developer linting and diagnostics; no verified official Windows prebuilt release was identified.",
+  "evidenceUrls": [
+    "https://github.com/okbob/plpgsql_check/releases/tag/v2.10.13",
+    "https://github.com/okbob/plpgsql_check"
+  ]
+}

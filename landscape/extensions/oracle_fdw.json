@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [
+    {
+      "provider": "oracle_fdw upstream",
+      "type": "upstream-official",
+      "url": "https://github.com/laurenz/oracle_fdw/releases/tag/ORACLE_FDW_2_9_0",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "Official release 2.9.0 provides pg14–18 win64 ZIPs; Oracle Instant Client runtime required. Match PostgreSQL build and Oracle client."
+    }
+  ],
+  "name": "oracle_fdw",
+  "displayName": "oracle_fdw",
+  "description": "Oracle foreign-data wrapper",
+  "upstreamRepository": "laurenz/oracle_fdw",
+  "status": "not-planned",
+  "reasonCode": "existing-windows-distribution",
+  "notPlannedReason": "Upstream officially publishes Windows ZIP assets for PG14–18; no need to duplicate native Oracle SDK dependency handling.",
+  "evidenceUrls": [
+    "https://github.com/laurenz/oracle_fdw#building-oracle_fdw-on-windows"
+  ]
+}

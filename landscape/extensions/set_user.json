@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "set_user",
+  "displayName": "set_user",
+  "description": "Controlled privilege switching",
+  "upstreamRepository": "pgaudit/set_user",
+  "status": "implemented",
+  "pgextwinCatalogName": "set_user",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/set_user/releases"
+  ]
+}

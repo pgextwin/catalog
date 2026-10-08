@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pgextwin/catalog/blob/main/schema/landscape-extension.schema.json",
+  "title": "pgextwin Windows Extension Landscape v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "name",
+    "displayName",
+    "description",
+    "upstreamRepository",
+    "status",
+    "lastReviewed",
+    "evidenceUrls",
+    "windowsBinarySources"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "upstreamRepository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "status": {
+      "enum": [
+        "implemented",
+        "candidate",
+        "not-planned"
+      ]
+    },
+    "lastReviewed": {
+      "type": "string",
+      "format": "date"
+    },
+    "evidenceUrls": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/https"
+      }
+    },
+    "pgextwinCatalogName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "currentStableVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pg18Support": {
+      "enum": [
+        "supported",
+        "not-supported",
+        "unknown"
+      ]
+    },
+    "pg19Readiness": {
+      "enum": [
+        "documented",
+        "under-review",
+        "unknown"
+      ]
+    },
+    "windowsUpstreamSupport": {
+      "enum": [
+        "build-instructions",
+        "native-binary",
+        "unknown",
+        "not-supported"
+      ]
+    },
+    "knownWindowsBinaryAvailability": {
+      "enum": [
+        "none-identified",
+        "limited",
+        "public",
+        "unknown"
+      ]
+    },
+    "estimatedWindowsEffort": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "unknown"
+      ]
+    },
+    "preliminaryPriority": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unranked"
+      ]
+    },
+    "candidateRationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reasonCode": {
+      "enum": [
+        "existing-windows-distribution",
+        "out-of-scope",
+        "platform-mismatch",
+        "excessive-complexity"
+      ]
+    },
+    "notPlannedReason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "windowsBinarySources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    }
+  },
+  "$defs": {
+    "https": {
+      "type": "string",
+      "pattern": "^https://[^\\s]+$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "type",
+        "url",
+        "availability",
+        "postgresqlDistribution",
+        "compatibility",
+        "notes"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "upstream-official",
+            "community",
+            "vendor",
+            "package-manager"
+          ]
+        },
+        "url": {
+          "$ref": "#/$defs/https"
+        },
+        "availability": {
+          "enum": [
+            "public",
+            "vendor-product",
+            "support-customer",
+            "commercial-bundled"
+          ]
+        },
+        "postgresqlDistribution": {
+          "enum": [
+            "standard-postgresql",
+            "vendor-postgresql",
+            "conda-postgresql",
+            "unknown"
+          ]
+        },
+        "compatibility": {
+          "enum": [
+            "standard-postgresql",
+            "vendor-specific",
+            "manual-verification-required",
+            "unknown"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "implemented"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "pgextwinCatalogName"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "candidateRationale"
+              ]
+            },
+            {
+              "required": [
+                "notPlannedReason"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "pgextwinCatalogName"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "candidate"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "license",
+          "currentStableVersion",
+          "pg18Support",
+          "pg19Readiness",
+          "windowsUpstreamSupport",
+          "knownWindowsBinaryAvailability",
+          "estimatedWindowsEffort",
+          "preliminaryPriority",
+          "candidateRationale"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "not-planned"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "reasonCode",
+          "notPlannedReason"
+        ],
+        "properties": {
+          "windowsBinarySources": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

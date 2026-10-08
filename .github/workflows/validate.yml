@@ -28,6 +28,9 @@ jobs:
       - name: Run validator tests
         run: python -m unittest discover -s tests -v
 
+      - name: Validate independent Windows Extension Landscape
+        run: python scripts/validate_landscape.py
+
       - name: Validate catalog
         run: python scripts/validate_catalog.py
 

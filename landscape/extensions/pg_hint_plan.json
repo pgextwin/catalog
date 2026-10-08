@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_hint_plan",
+  "displayName": "pg_hint_plan",
+  "description": "Planner hints",
+  "upstreamRepository": "ossc-db/pg_hint_plan",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_hint_plan",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_hint_plan/releases"
+  ]
+}

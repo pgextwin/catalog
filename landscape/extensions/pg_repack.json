@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-10-08",
+  "windowsBinarySources": [],
+  "name": "pg_repack",
+  "displayName": "pg_repack",
+  "description": "Online relation reorganization",
+  "upstreamRepository": "reorg/pg_repack",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_repack",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_repack/releases"
+  ]
+}
