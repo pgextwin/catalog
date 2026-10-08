@@ -39,6 +39,20 @@ class CatalogV2ValidationTests(unittest.TestCase):
             f"expected error containing {needle!r}; got:\n" + "\n".join(errors),
         )
 
+    def test_step18_plpgsql_check_release_metadata(self):
+        record = validate_catalog.load_json(ROOT / "extensions" / "plpgsql_check.json")
+        self.assertEqual([], self.errors_for(record))
+        self.assertEqual({"15", "16", "17", "18"}, {major for major, metadata in record["postgresql"].items() if metadata["available"]})
+        self.assertNotIn("14", record["postgresql"])
+        self.assertNotIn("19", record["postgresql"])
+        self.assertEqual("optional", record["runtime"]["requirements"]["preload"])
+        self.assertEqual("required", record["runtime"]["requirements"]["extensionCreation"])
+        self.assertFalse(record["runtime"]["requirements"]["backgroundWorker"])
+        self.assertEqual("not-covered", record["capabilities"]["coverage"]["upgrade"])
+        self.assertEqual(["detect-invalid-record-field"], [s["id"] for s in record["capabilities"]["functionalScenarios"]])
+        self.assertEqual(40, len(record["capabilitiesSource"]["commit"]))
+        self.assertTrue(all(metadata["evidence"]["buildProvenanceAttestation"]["available"] and metadata["evidence"]["sbomAttestation"]["available"] for metadata in record["postgresql"].values()))
+
     def test_valid_v2_record(self):
         self.assertEqual([], self.errors_for(copy.deepcopy(self.valid)))
 

@@ -65,6 +65,61 @@ class LandscapeTests(unittest.TestCase):
             record_path.write_text(json.dumps(record))
             self.assertTrue(any("invalid distribution catalog reference" in x for x in module.validate_landscape(base)))
 
+    def test_step18_implemented_wave_history(self):
+        plpgsql = module.load(ROOT / "landscape" / "extensions" / "plpgsql_check.json")
+        self.assertValid(plpgsql)
+        self.assertEqual("implemented", plpgsql["status"])
+        self.assertEqual("plpgsql_check", plpgsql["pgextwinCatalogName"])
+        self.assertEqual({"decision": "wave-2", "order": 1, "decisionDate": "2026-10-08"}, {key: plpgsql["roadmap"][key] for key in ("decision", "order", "decisionDate")})
+        for choice in ("reserve", "research"):
+            bad = copy.deepcopy(plpgsql)
+            bad["roadmap"]["decision"] = choice
+            bad["roadmap"].pop("order")
+            self.assertInvalid(bad)
+        bad = copy.deepcopy(plpgsql)
+        bad.pop("pgextwinCatalogName")
+        self.assertInvalid(bad)
+        bad = copy.deepcopy(self.other)
+        bad["roadmap"] = plpgsql["roadmap"]
+        self.assertInvalid(bad)
+
+    def test_step18_registry_counts_and_historical_compatibility(self):
+        records = [module.load(p) for p in (ROOT / "landscape" / "extensions").glob("*.json")]
+        statuses = {status: sum(r["status"] == status for r in records) for status in ("implemented", "candidate", "not-planned")}
+        self.assertEqual(20, len(records))
+        self.assertEqual({"implemented": 9, "candidate": 5, "not-planned": 6}, statuses)
+        byname = {r["name"]: r for r in records}
+        for name in module.INITIAL_EIGHT:
+            self.assertEqual("implemented", byname[name]["status"])
+        for name, order in (("hypopg",2),("wal2json",3)):
+            self.assertEqual("candidate", byname[name]["status"])
+            self.assertEqual(order, byname[name]["roadmap"]["order"])
+            self.assertEqual("2026-10-08", byname[name]["roadmap"]["decisionDate"])
+        for record in records:
+            if record["status"] == "not-planned":
+                self.assertTrue(record["windowsBinarySources"])
+        catalog_index = module.load(ROOT / "index.json")["extensions"]
+        self.assertEqual(set(catalog_index), {r["name"] for r in records if r["status"] == "implemented"})
+        self.assertTrue(all(name not in catalog_index for name in ("hypopg", "wal2json")))
+
+    def test_future_wave_two_implementations_same_schema(self):
+        import shutil
+        for name in ("hypopg", "wal2json"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                base = Path(tmp)
+                shutil.copytree(ROOT / "landscape", base / "landscape")
+                shutil.copytree(ROOT / "schema", base / "schema")
+                index = module.load(ROOT / "index.json")
+                index["extensions"].append(name)
+                (base / "index.json").write_text(json.dumps(index))
+                path = base / "landscape" / "extensions" / (name + ".json")
+                record = json.loads(path.read_text())
+                record["status"] = "implemented"
+                record["pgextwinCatalogName"] = name
+                record.pop("candidateRationale")
+                path.write_text(json.dumps(record))
+                self.assertEqual([], module.validate_landscape(base))
+
     def test_three_wave_two_orders(self):
         records = [module.load(p) for p in (ROOT / "landscape" / "extensions").glob("*.json")]
         wave = [x for x in records if x.get("roadmap", {}).get("decision") == "wave-2"]
