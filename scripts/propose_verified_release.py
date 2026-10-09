@@ -131,6 +131,8 @@ def generate(extension, tag, dest):
         for filename,expected in sums.items():
             require(digest(folder/filename)==expected,"wrong remote ZIP/report digest")
         source_commit=None
+        upstream_commit=None
+        formal_run_id=None
         for major in (15,16,17,18):
             stem=EXT+"-v"+TAG.fullmatch(tag).group(1)+"-pg"+str(major)+"-windows-x64"
             zip_file=folder/(stem+".zip")
@@ -140,7 +142,12 @@ def generate(extension, tag, dest):
             commit=pkg["source"]["packagingCommit"]
             require(COMMIT.fullmatch(commit) is not None,"unpinned package commit")
             source_commit=source_commit or commit
-            require(commit==source_commit
+            upstream_commit=upstream_commit or pkg["upstream"]["commit"]
+            formal_run_id=formal_run_id or pkg["workflowRun"]["id"]
+            require(pkg["upstream"]["commit"]==upstream_commit
+                    and pkg["workflowRun"]["id"]==formal_run_id
+                    and pkg["upstream"]["version"]==TAG.fullmatch(tag).group(1)
+                    and commit==source_commit
                     and pkg["buildMode"]=="release-attested"
                     and pkg["package"]["name"]==EXT
                     and pkg["upstream"]["repository"]=="okbob/plpgsql_check"
@@ -161,7 +168,7 @@ def generate(extension, tag, dest):
                 "package source commit not in current trusted main ancestry")
         manifest=pinned_json(source_commit,"config/extension.json")
         tc=pinned_json(source_commit,"config/test-contract.json")
-        require(manifest["upstream"]["commit"]==pkg["upstream"]["commit"]
+        require(manifest["upstream"]["commit"]==upstream_commit
                 and manifest["upstream"]["version"]==TAG.fullmatch(tag).group(1),
                 "upstream manifest changed from release")
         original=json.loads(dest.read_text(encoding="utf-8"))
