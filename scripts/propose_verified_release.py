@@ -123,7 +123,7 @@ def generate(extension, tag, dest):
         lines=(folder/"SHA256SUMS.txt").read_text(encoding="utf-8").splitlines()
         sums={}
         for line in lines:
-            m=re.fullmatch(r"([a-f0-9]{64})  ([A-Za-z0-9_.-]+)",line)
+            m=re.fullmatch(r"([a-f0-9]{64})  (?:\./)?([A-Za-z0-9_.-]+)",line)
             require(m is not None,"unparseable checksum entry")
             require(m.group(2) not in sums,"duplicate checksum line")
             sums[m.group(2)]=m.group(1)
