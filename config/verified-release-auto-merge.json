@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "extension": "plpgsql_check",
+  "recordPath": "extensions/plpgsql_check.json",
+  "requiredWorkflow": "validate.yml",
+  "expectedRepository": "pgextwin/catalog",
+  "centralPolicyRepository": "pgextwin/build",
+  "notes": "Opt-in only after independent GitHub App and branch-protection acceptance. Untrusted PR code must never be executed with the merge App token."
+}
