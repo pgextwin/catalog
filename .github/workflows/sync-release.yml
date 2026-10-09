@@ -1,0 +1,87 @@
+name: Propose signed Release to Catalog v2
+
+on:
+  workflow_dispatch:
+    inputs:
+      extension:
+        description: Explicit extension pilot (currently plpgsql_check only)
+        required: true
+        type: string
+      release_tag:
+        description: Existing and publicly verified immutable Release
+        required: true
+        type: string
+
+concurrency:
+  group: verified-release-catalog-${{ inputs.extension }}-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    name: Verify published assets and create a reviewable Catalog PR
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+      - name: Install Catalog validators
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4,<5"
+      - name: Run offline generator regression tests
+        run: python tests/test_propose_verified_release.py
+      - name: Verify public signed Release and generate changed extension record
+        id: generate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXTENSION: ${{ inputs.extension }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python scripts/propose_verified_release.py \
+            --extension "$EXTENSION" \
+            --release-tag "$RELEASE_TAG" \
+            --output "extensions/$EXTENSION.json"
+      - name: Validate schema v2, source commit, live assets and compatibility
+        if: steps.generate.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -m unittest discover -s tests -v
+          python scripts/validate_landscape.py
+          python scripts/validate_catalog.py
+          python scripts/validate_catalog.py --verify-remote
+      - name: Create one candidate Catalog PR; never auto-merge
+        if: steps.generate.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXTENSION: ${{ inputs.extension }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="auto-catalog/$EXTENSION-$RELEASE_TAG"
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "extensions/$EXTENSION.json"
+          git diff --cached --quiet && { echo "::error::Expected Catalog change was empty"; exit 1; }
+          git commit -m "catalog: propose $EXTENSION $RELEASE_TAG"
+          git push -u origin "$branch"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "catalog: verified $EXTENSION $RELEASE_TAG" \
+            --body "Signed public Release and all PG-major ZIP/SPDX/Grype digests independently verified. Catalog schema v2, pinned Test Contract, remote Release validation and website-v1 compatibility tested. HUMAN REVIEW REQUIRED. No automatic merge."
+          gh workflow run validate.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+      - name: Report safe no-op
+        if: steps.generate.outputs.changed == 'false'
+        run: echo "Catalog already matches signed public Release; no PR needed." >> "$GITHUB_STEP_SUMMARY"
