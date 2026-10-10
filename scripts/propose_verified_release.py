@@ -111,12 +111,11 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
     }
     return updated
 
-def valid_build_origin(pkg, tag, manifest):
-    """Permit only existing reviewed main promotion or one audited PG14 backfill."""
+def valid_build_origin(pkg, tag):
+    """Permit reviewed main promotion or exactly one signed PG14 backfill route."""
     run = pkg.get("workflowRun", {})
     if tag == "v2.10.13-windows.2":
-        return (manifest["upstream"]["commit"] == "61776b0af7418d3fd593cccea73178e3d93c9ee1"
-                and manifest["postgresql"]["majors"] == [14,15,16,17,18]
+        return (pkg.get("upstream", {}).get("commit") == "61776b0af7418d3fd593cccea73178e3d93c9ee1"
                 and run.get("ref") == "refs/heads/release/v2.10.13-windows.2"
                 and run.get("event") == "push")
     return (run.get("ref") == "refs/heads/main" and run.get("event") == "workflow_dispatch")
@@ -176,7 +175,7 @@ def generate(extension, tag, dest):
                     and pkg["package"]["name"]==EXT
                     and pkg["upstream"]["repository"]=="okbob/plpgsql_check"
                     and pkg["postgresql"]["major"]==major
-                    and valid_build_origin(pkg, tag, {"upstream":{"commit":upstream_commit}, "postgresql":{"majors": [14,15,16,17,18] if tag == "v2.10.13-windows.2" else []}}),
+                    and valid_build_origin(pkg, tag),
                     "Release package metadata not from one approved main build")
             require(json.loads((folder/(stem+".spdx.json")).read_text(encoding="utf-8-sig"))["spdxVersion"]=="SPDX-2.3",
                     "not an SPDX 2.3 SBOM")
