@@ -1,0 +1,109 @@
+name: Verify Wave 3 signed Release and propose Catalog PR
+on:
+  workflow_dispatch:
+    inputs:
+      extension:
+        description: "Wave 3 extension"
+        required: true
+        type: choice
+        options: [pg_partman, orafce, pg_stat_monitor]
+      release_tag:
+        description: "Already public, attested Release tag"
+        required: true
+        type: string
+  push:
+    branches:
+      - "verified-catalog/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-propose:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/verified-catalog/') }}
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Check out trusted branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.13"
+      - name: Install pinned validator major
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4,<5"
+      - name: Resolve allowlisted request
+        id: request
+        env:
+          INPUT_EXTENSION: ${{ inputs.extension }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            [[ "$GITHUB_REF_NAME" == verified-catalog/* ]] || exit 1
+            [[ -f requests/wave3-release.json ]] || exit 1
+            extension="$(python -c 'import json; print(json.load(open("requests/wave3-release.json"))["extension"])')"
+            tag="$(python -c 'import json; print(json.load(open("requests/wave3-release.json"))["release_tag"])')"
+            [[ "$GITHUB_REF_NAME" == "verified-catalog/$extension-$tag" ]] || exit 1
+          else
+            extension="$INPUT_EXTENSION"
+            tag="$INPUT_TAG"
+          fi
+          case "$extension" in pg_partman|orafce|pg_stat_monitor) ;; *) exit 1 ;; esac
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-windows\.[1-9][0-9]*$ ]] || exit 1
+          echo "extension=$extension" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Run offline regression suite
+        run: |
+          python tests/test_propose_verified_release.py
+          python tests/test_propose_verified_wave3.py
+      - name: Independently verify signed Release, checksums and source
+        id: generate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXTENSION: ${{ steps.request.outputs.extension }}
+          RELEASE_TAG: ${{ steps.request.outputs.tag }}
+        run: |
+          python scripts/propose_verified_wave3.py \
+            --extension "$EXTENSION" --release-tag "$RELEASE_TAG" \
+            --output "extensions/$EXTENSION.json"
+      - name: Validate all Catalog and Website contracts
+        if: steps.generate.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -m unittest discover -s tests -v
+          python scripts/validate_landscape.py
+          python scripts/validate_catalog.py
+          python scripts/validate_catalog.py --verify-remote
+      - name: Open reviewable Catalog PR only on fully verified change
+        if: steps.generate.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXTENSION: ${{ steps.request.outputs.extension }}
+          RELEASE_TAG: ${{ steps.request.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="auto-catalog/$EXTENSION-$RELEASE_TAG"
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "extensions/$EXTENSION.json" "landscape/extensions/$EXTENSION.json" index.json
+          git diff --cached --quiet && { echo "::error::No verified Catalog change"; exit 1; }
+          git commit -m "catalog: verified $EXTENSION $RELEASE_TAG"
+          git push -u origin "$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "catalog: verified $EXTENSION $RELEASE_TAG" \
+            --body "Independent Release ZIP/SHA256/SPDX/Grype, PG-major compatibility, immutable source SHA, GitHub signed build/SBOM attestations and Catalog validators passed. Review and merge; no unverified auto-publication."
+          gh workflow run validate.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+      - name: Report safe no-op
+        if: steps.generate.outputs.changed == 'false'
+        run: echo "Already published in Catalog; no change" >> "$GITHUB_STEP_SUMMARY"
