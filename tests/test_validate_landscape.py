@@ -16,7 +16,7 @@ class LandscapeTests(unittest.TestCase):
         cls.schema = module.load(ROOT / "schema" / "landscape-extension.schema.json")
         cls.validator = module.Draft202012Validator(cls.schema, format_checker=module.FormatChecker())
         cls.impl = module.load(ROOT / "landscape" / "extensions" / "pg_cron.json")
-        cls.candidate = module.load(ROOT / "landscape" / "extensions" / "wal2json.json")
+        cls.candidate = module.load(ROOT / "landscape" / "extensions" / "pg_partman.json")
         cls.other = module.load(ROOT / "landscape" / "extensions" / "postgis.json")
     def assertValid(self, record):
         self.assertEqual([], list(self.validator.iter_errors(record)))
