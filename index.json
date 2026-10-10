@@ -9,6 +9,7 @@
     "pg_repack",
     "pgaudit",
     "plpgsql_check",
-    "set_user"
+    "set_user",
+    "wal2json"
   ]
 }
