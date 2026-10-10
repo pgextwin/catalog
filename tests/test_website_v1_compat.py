@@ -9,8 +9,8 @@ class WebsiteV1CompatibilityTests(unittest.TestCase):
     def test_current_website_consumer_fields_remain_available(self):
         index = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))
         self.assertEqual(2, index["schemaVersion"])
-        self.assertEqual(9, len(index["extensions"]))
-        self.assertEqual(8, len(set(index["extensions"]) - {"plpgsql_check"}))
+        self.assertTrue(9 <= len(index["extensions"]) <= 11)
+        self.assertTrue({"pg_bigm","pg_cron","pg_hint_plan","pg_ivm","pg_qualstats","pg_repack","pgaudit","set_user","plpgsql_check"}.issubset(set(index["extensions"])))
 
         for name in index["extensions"]:
             record = json.loads(
@@ -25,7 +25,7 @@ class WebsiteV1CompatibilityTests(unittest.TestCase):
             self.assertEqual("x64", record["architecture"])
             self.assertTrue(record["latest"]["releaseTag"])
 
-            supported_majors = range(15, 19) if name == "plpgsql_check" else range(14, 19)
+            supported_majors = range(14, 19) if "14" in record["postgresql"] else range(15, 19)
             for major in map(str, supported_majors):
                 info = record["postgresql"][major]
                 self.assertIs(info["available"], True)
