@@ -88,4 +88,25 @@ class CatalogProposal(unittest.TestCase):
         self.assertEqual(out["postgresql"]["14"],{"available":True,"asset":"historical-pg14.zip"})
         self.assertEqual(len(out["postgresql"]),5)
 
+    def test_only_one_compatibility_backfill_tag_and_origin_allowed(self):
+        pkg={"upstream":{"commit":"61776b0af7418d3fd593cccea73178e3d93c9ee1"},
+             "workflowRun":{"ref":"refs/heads/release/v2.10.13-windows.2","event":"push"}}
+        self.assertTrue(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.3"))
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.14-windows.2"))
+        pkg["workflowRun"]["ref"]="refs/heads/release/another"
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+        pkg["workflowRun"]["ref"]="refs/heads/release/v2.10.13-windows.2"
+        pkg["upstream"]["commit"]="a"*40
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+        pkg["upstream"]["commit"]="61776b0af7418d3fd593cccea73178e3d93c9ee1"
+        pkg["workflowRun"]["event"]="workflow_dispatch"
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+
+    def test_existing_manual_main_approval_path_unchanged(self):
+        pkg={"workflowRun":{"ref":"refs/heads/main","event":"workflow_dispatch"}}
+        self.assertTrue(mod.valid_build_origin(pkg,"v2.10.14-windows.1"))
+        pkg["workflowRun"]["ref"]="refs/heads/release/v2.10.14-windows.1"
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.14-windows.1"))
+
 if __name__=="__main__":unittest.main()

@@ -111,6 +111,16 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
     }
     return updated
 
+def valid_build_origin(pkg, tag):
+    """Permit reviewed main promotion or exactly one signed PG14 backfill route."""
+    run = pkg.get("workflowRun", {})
+    if tag == "v2.10.13-windows.2":
+        return (pkg.get("upstream", {}).get("commit") == "61776b0af7418d3fd593cccea73178e3d93c9ee1"
+                and run.get("ref") == "refs/heads/release/v2.10.13-windows.2"
+                and run.get("event") == "push")
+    return (run.get("ref") == "refs/heads/main" and run.get("event") == "workflow_dispatch")
+
+
 def generate(extension, tag, dest):
     require(extension==EXT and TAG.fullmatch(tag) is not None,"pilot/tag not allowed")
     rel=api("repos/"+REPOSITORY+"/releases/tags/"+tag)
@@ -125,7 +135,7 @@ def generate(extension, tag, dest):
                  if date.fromisoformat(entry["eol"])>=date.today() and int(entry["major"]) in (14,15,16,17,18)}
     require(bool(live_majors), "no maintained PostgreSQL majors")
     reported_majors=sorted({int(match.group(1)) for name in assets
-                            if (match := re.fullmatch(r"plpgsql_check-v[0-9.]+-pg([0-9]+)-windows-x64\\.zip", name))})
+                            if (match := re.fullmatch(r"plpgsql_check-v[0-9.]+-pg([0-9]+)-windows-x64\.zip", name))})
     require(bool(reported_majors) and all(m in live_majors for m in reported_majors)
             and len(assets)==1+3*len(reported_majors), "Release asset count/major mismatch")
     with tempfile.TemporaryDirectory() as temp:
@@ -165,8 +175,7 @@ def generate(extension, tag, dest):
                     and pkg["package"]["name"]==EXT
                     and pkg["upstream"]["repository"]=="okbob/plpgsql_check"
                     and pkg["postgresql"]["major"]==major
-                    and pkg["workflowRun"]["ref"]=="refs/heads/main"
-                    and pkg["workflowRun"]["event"]=="workflow_dispatch",
+                    and valid_build_origin(pkg, tag),
                     "Release package metadata not from one approved main build")
             require(json.loads((folder/(stem+".spdx.json")).read_text(encoding="utf-8-sig"))["spdxVersion"]=="SPDX-2.3",
                     "not an SPDX 2.3 SBOM")
@@ -180,6 +189,10 @@ def generate(extension, tag, dest):
         require(ancestry.get("status") in {"identical","ahead"},
                 "package source commit not in current trusted main ancestry")
         manifest=pinned_json(source_commit,"config/extension.json")
+        require(tag != "v2.10.13-windows.2" or (
+                manifest["upstream"]["commit"] == "61776b0af7418d3fd593cccea73178e3d93c9ee1"
+                and manifest["postgresql"]["majors"] == [14,15,16,17,18]),
+                "PG14 backfill manifest differs from independently audited source")
         tc=pinned_json(source_commit,"config/test-contract.json")
         require(manifest["upstream"]["commit"]==upstream_commit
                 and manifest["upstream"]["version"]==TAG.fullmatch(tag).group(1),
