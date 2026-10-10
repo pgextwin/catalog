@@ -10,6 +10,7 @@
     "pg_partman",
     "pg_qualstats",
     "pg_repack",
+    "pg_stat_monitor",
     "pgaudit",
     "plpgsql_check",
     "set_user",
