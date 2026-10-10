@@ -16,7 +16,11 @@ class LandscapeTests(unittest.TestCase):
         cls.schema = module.load(ROOT / "schema" / "landscape-extension.schema.json")
         cls.validator = module.Draft202012Validator(cls.schema, format_checker=module.FormatChecker())
         cls.impl = module.load(ROOT / "landscape" / "extensions" / "pg_cron.json")
-        cls.candidate = module.load(ROOT / "landscape" / "extensions" / "pg_partman.json")
+        cls.candidate = copy.deepcopy(module.load(ROOT / "landscape" / "extensions" / "pg_partman.json"))
+        cls.candidate["status"]="candidate"
+        cls.candidate.pop("pgextwinCatalogName",None)
+        cls.candidate["candidateRationale"]="Offline fixture candidate"
+        cls.candidate["roadmap"]={"decision":"reserve","decisionDate":"2026-10-08","rationale":"fixture"}
         cls.other = module.load(ROOT / "landscape" / "extensions" / "postgis.json")
     def assertValid(self, record):
         self.assertEqual([], list(self.validator.iter_errors(record)))
@@ -90,7 +94,7 @@ class LandscapeTests(unittest.TestCase):
         self.assertEqual(20, sum(statuses.values()))
         self.assertEqual(6, statuses["not-planned"])
         self.assertEqual(14, statuses["implemented"] + statuses["candidate"])
-        self.assertTrue(9 <= statuses["implemented"] <= 11)
+        self.assertTrue(9 <= statuses["implemented"] <= 14)
         byname = {r["name"]: r for r in records}
         for name in module.INITIAL_EIGHT:
             self.assertEqual("implemented", byname[name]["status"])
@@ -153,7 +157,9 @@ class LandscapeTests(unittest.TestCase):
     def test_missing_roadmap_rationale_rejected(self):
         self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(rationale=""), "rationale")
     def test_reserve_cannot_have_order(self):
-        self.assertRegistryMutationRejected("pg_partman", lambda x: x["roadmap"].update(order=2), "order")
+        self.assertRegistryMutationRejected("pg_partman",
+            lambda x: x.update(roadmap={"decision":"reserve","decisionDate":"2026-10-08","rationale":"illegal","order":2}),
+            "roadmap")
     def test_not_planned_roadmap_rejected(self):
         self.assertRegistryMutationRejected("postgis", lambda x: x.update(roadmap={"decision":"research","decisionDate":"2026-10-08","rationale":"test"}), "roadmap")
     def test_bad_decision_date_rejected(self):

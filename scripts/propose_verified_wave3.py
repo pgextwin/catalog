@@ -240,6 +240,10 @@ def generate(extension, tag, dest):
         if landscape_path.exists():
             landscape=json.loads(landscape_path.read_text(encoding="utf-8"))
             landscape["status"]="implemented"
+            landscape["pgextwinCatalogName"]=EXT
+            landscape.pop("candidateRationale",None)
+            if landscape.get("roadmap",{}).get("decision")!="wave-2":
+                landscape.pop("roadmap",None)
             landscape["lastReviewed"]=date.today().isoformat()
             landscape["knownWindowsBinaryAvailability"]="public"
             landscape["windowsBinarySources"]=[{
