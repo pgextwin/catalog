@@ -11,109 +11,139 @@
   "license": "BSD-style and PostgreSQL License",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.5.3-windows.1",
-    "publishedAt": "2026-10-06T03:29:20Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_repack/releases/tag/v1.5.3-windows.1",
+    "releaseTag": "v1.5.3-windows.2",
+    "publishedAt": "2026-10-10T00:28:51Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_repack/releases/tag/v1.5.3-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
       "asset": "pg_repack-ver_1.5.3-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.1/pg_repack-ver_1.5.3-pg14-windows-x64.zip",
-      "sha256": "ee9650c56fc3b3fdd474da7b686c7a520c6f7982b2ef2a246a99d24401dbfb3e",
+      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg14-windows-x64.zip",
+      "sha256": "068a415077f8859f98f7859cda57ce31025cabeb5d1b06a0828d0ecf25667c82",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg14-windows-x64.spdx.json",
+          "sha256": "dbffb343023da5383c5e47da278530218df7c0c8d9d63bf95dd35e772137496e"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "96370622d80a8fd7a233e6355f1de6d72e6d1b3136d7bf5aa9580b7e2f6a5f16"
         }
       }
     },
     "15": {
       "available": true,
       "asset": "pg_repack-ver_1.5.3-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.1/pg_repack-ver_1.5.3-pg15-windows-x64.zip",
-      "sha256": "787995b868be030c158b0f65847c3c8989079d1182bd8a92a8a5e7c0a3946c39",
+      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg15-windows-x64.zip",
+      "sha256": "92a030e15ac4711085c9d9a4e294eb6151c5110301c720cbc65ea1909d699fd2",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg15-windows-x64.spdx.json",
+          "sha256": "b2e6631131be0f71d7c728cbc9756637b2f0f1c7e56fc04e25fee0ee63a12e61"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "788f4f08fbbd2458839ca63b95f0f173cbee8920c293f7ee6abe851137fcde17"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pg_repack-ver_1.5.3-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.1/pg_repack-ver_1.5.3-pg16-windows-x64.zip",
-      "sha256": "04c0ca2d871c146ed66d65e316dce6cd2ec84c9f0294c8019cc815291ae33ddf",
+      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg16-windows-x64.zip",
+      "sha256": "bbcfa2f29172a4a7fcb95f7ddc9818708c80dacc2d4ac9416bd5f46146893b47",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg16-windows-x64.spdx.json",
+          "sha256": "2727ecee537af9ee156a4b2baffbdf291f44ed157b03c5432c4978e4db8c4617"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "04c89b3d9fbe7a1055bbe153dfcbd9728091720fa1e6de6381d1aa0f3a9eed17"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pg_repack-ver_1.5.3-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.1/pg_repack-ver_1.5.3-pg17-windows-x64.zip",
-      "sha256": "5c14f8e221e78601e641efaa77590a0f051be4271ddbf902f38579d9ab934800",
+      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg17-windows-x64.zip",
+      "sha256": "97c5a42a978d0acaf228891a8a26a33beaf3fe634a248543ff0c134e6d9672bd",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg17-windows-x64.spdx.json",
+          "sha256": "139ba1ac7a00aeaa25b62dbee573b568c2ee42fb92ea8a562e36cc65bcc63c4c"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "9873f7d9af7a9ba3a0555c75f8cb7b6ebebc64927fbf3007cbe3946b3b85d667"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pg_repack-ver_1.5.3-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.1/pg_repack-ver_1.5.3-pg18-windows-x64.zip",
-      "sha256": "da4ded47136e438b876cd2bd55fc0dfe19cb8b2681f51bd5e1e05aac2135b31d",
+      "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg18-windows-x64.zip",
+      "sha256": "94141ebb7e039635c4c762ea4a2a82ceab404e4618a3687484ad6ccf3ae7124c",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg18-windows-x64.spdx.json",
+          "sha256": "5990e1c65ed880038c6e527d08c955d21eb4f9f8f4538585f94a75af2f711736"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_repack-ver_1.5.3-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "2b7ce59046cd263cb8e643891d0f5090f69df74fdd3543012d7727510ed72dec"
         }
       }
     }
