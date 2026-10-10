@@ -1,30 +1,35 @@
 {
   "schemaVersion": 1,
-  "lastReviewed": "2026-10-08",
-  "windowsBinarySources": [],
+  "lastReviewed": "2026-10-10",
+  "windowsBinarySources": [
+    {
+      "provider": "pgextwin",
+      "type": "community",
+      "url": "https://github.com/pgextwin/pg_partman/releases/tag/v5.5.0-windows.1",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "standard-postgresql",
+      "notes": "Independently verified signed Windows x64 PG14-18 release. SQL-only: optional BGW is not included."
+    }
+  ],
   "name": "pg_partman",
   "displayName": "pg_partman",
   "description": "Time-based and ID-based partition maintenance",
   "upstreamRepository": "pgpartman/pg_partman",
-  "status": "candidate",
+  "status": "implemented",
   "license": "PostgreSQL",
   "currentStableVersion": "5.5.0",
   "pg18Support": "supported",
   "pg19Readiness": "under-review",
   "windowsUpstreamSupport": "unknown",
-  "knownWindowsBinaryAvailability": "none-identified",
+  "knownWindowsBinaryAvailability": "public",
   "estimatedWindowsEffort": "very-high",
   "preliminaryPriority": "medium",
-  "candidateRationale": "High demand for partition operations; C background worker and maintenance lifecycle require extra validation.",
   "evidenceUrls": [
     "https://github.com/pgpartman/pg_partman/releases/tag/v5.5.0",
     "https://github.com/pgpartman/pg_partman/blob/v5.5.0/README.md",
     "https://github.com/pgpartman/pg_partman/blob/v5.5.0/CHANGELOG.md",
     "https://github.com/pgpartman/pg_partman/blob/v5.5.0/LICENSE.txt"
   ],
-  "roadmap": {
-    "decision": "reserve",
-    "decisionDate": "2026-10-08",
-    "rationale": "High production value and PG18 support, but SQL-only versus optional background worker packaging, secure maintenance-role setup and broad lifecycle coverage need a dedicated Windows design gate."
-  }
+  "pgextwinCatalogName": "pg_partman"
 }

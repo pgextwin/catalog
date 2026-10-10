@@ -6,6 +6,7 @@
     "pg_cron",
     "pg_hint_plan",
     "pg_ivm",
+    "pg_partman",
     "pg_qualstats",
     "pg_repack",
     "pgaudit",
