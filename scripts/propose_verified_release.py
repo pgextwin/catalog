@@ -124,7 +124,10 @@ def generate(extension, tag, dest):
     live_majors={int(entry["major"]) for entry in lifecycle["postgresql"]
                  if date.fromisoformat(entry["eol"])>=date.today() and int(entry["major"]) in (14,15,16,17,18)}
     require(bool(live_majors), "no maintained PostgreSQL majors")
-    require(len(assets) in {1+3*len(live_majors), 13, 16}, "Release asset count inconsistent with maintained matrix")
+    reported_majors=sorted({int(match.group(1)) for name in assets
+                            if (match := re.fullmatch(r"plpgsql_check-v[0-9.]+-pg([0-9]+)-windows-x64\\.zip", name))})
+    require(bool(reported_majors) and all(m in live_majors for m in reported_majors)
+            and len(assets)==1+3*len(reported_majors), "Release asset count/major mismatch")
     with tempfile.TemporaryDirectory() as temp:
         folder=Path(temp)
         gh("release","download",tag,"--repo",REPOSITORY,"--dir",temp)
@@ -143,7 +146,7 @@ def generate(extension, tag, dest):
         source_commit=None
         upstream_commit=None
         formal_run_id=None
-        for major in sorted(live_majors):
+        for major in reported_majors:
             stem=EXT+"-v"+TAG.fullmatch(tag).group(1)+"-pg"+str(major)+"-windows-x64"
             zip_file=folder/(stem+".zip")
             with ZipFile(zip_file) as z:
@@ -184,7 +187,7 @@ def generate(extension, tag, dest):
         original=json.loads(dest.read_text(encoding="utf-8"))
         configured={int(x) for x in manifest["postgresql"]["majors"]}
         required=sorted(live_majors & configured)
-        require(bool(required) and len(assets)==1+3*len(required), "incomplete Release major matrix")
+        require(bool(required) and reported_majors==required, "incomplete Release major matrix")
         modified=update_record(original,rel,manifest,tc,assets,sums,source_commit,required_majors=required)
         if modified==original:
             print("NO_CHANGE: Catalog already matches verified Release")
