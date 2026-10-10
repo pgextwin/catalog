@@ -67,4 +67,25 @@ class CatalogProposal(unittest.TestCase):
         self.manifest["upstream"]["version"]="2.10.99"
         with self.assertRaises(mod.UnsafeCatalog):self.convert()
 
+
+    def test_publishes_pg14_when_signed_asset_is_present(self):
+        self.manifest["postgresql"]["majors"]=[14,15,16,17,18]
+        stem="plpgsql_check-v2.10.14-pg14-windows-x64"
+        for suffix in (".zip",".spdx.json",".vulnerabilities.json"):
+            name=stem+suffix
+            self.assets[name]={"name":name,"state":"uploaded"}
+            self.sums[name]="f"*64
+        out=mod.update_record(self.old,self.release,self.manifest,self.contract,
+                              self.assets,self.sums,"a"*40,required_majors=[14,15,16,17,18])
+        self.assertEqual(len(out["postgresql"]),5)
+        self.assertIn("pg14",out["postgresql"]["14"]["asset"])
+
+    def test_pg14_expired_keeps_historical_binary_but_requires_only_supported_new_assets(self):
+        self.old["postgresql"]["14"]={"available":True,"asset":"historical-pg14.zip"}
+        self.manifest["postgresql"]["majors"]=[14,15,16,17,18]
+        out=mod.update_record(self.old,self.release,self.manifest,self.contract,
+                              self.assets,self.sums,"a"*40,required_majors=[15,16,17,18])
+        self.assertEqual(out["postgresql"]["14"],{"available":True,"asset":"historical-pg14.zip"})
+        self.assertEqual(len(out["postgresql"]),5)
+
 if __name__=="__main__":unittest.main()
