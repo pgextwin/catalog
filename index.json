@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "extensions": [
     "hypopg",
+    "orafce",
     "pg_bigm",
     "pg_cron",
     "pg_hint_plan",
