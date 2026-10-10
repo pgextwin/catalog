@@ -123,6 +123,22 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
         }
         updated["postgresql"][major]=obj
     updated["runtime"]["requirements"]=tc["runtimeRequirements"]
+    # Backwards-compatible runtime field must reflect the *actual* optional
+    # native package, not the previous SQL-only Release.
+    if EXT == "pg_partman":
+        bgw=tc["runtimeRequirements"]["backgroundWorker"]
+        if bgw:
+            require(tc["runtimeRequirements"]["preload"] == "optional"
+                    and tc["coverage"]["backgroundWorker"] == "covered"
+                    and tc["testSetup"]["backgroundWorker"],
+                    "unverified or mandatory preload claimed for optional BGW")
+            updated["runtime"]["sharedPreloadLibraries"]=["pg_partman_bgw"]
+        else:
+            require(tc["runtimeRequirements"]["preload"] == "none"
+                    and tc["coverage"]["backgroundWorker"] == "not-applicable",
+                    "SQL-only release contract differs")
+            updated["runtime"]["sharedPreloadLibraries"]=[]
+
     updated["capabilities"]={
         "testContractVersion":2,
         "coverage":tc["coverage"],
@@ -185,6 +201,20 @@ def generate(extension, tag, dest):
             with ZipFile(zip_file) as z:
                 require(z.namelist().count("PACKAGE-INFO.json")==1,"missing PACKAGE-INFO")
                 pkg=json.loads(z.read("PACKAGE-INFO.json").decode("utf-8-sig"))
+                if EXT == "pg_partman":
+                    names=z.namelist()
+                    dll="lib/pg_partman_bgw.dll"
+                    if pkg["source"]["packagingCommit"]:
+                        contract=pinned_json(pkg["source"]["packagingCommit"],"config/test-contract.json")
+                        supports_bgw=contract["runtimeRequirements"]["backgroundWorker"]
+                        if supports_bgw:
+                            require(names.count(dll)==1 and
+                                    z.getinfo(dll).file_size>=10000 and
+                                    pkg["toolchain"]["compiler"]=="MSVC",
+                                    "optional BGW claimed without real MSVC DLL")
+                        else:
+                            require(dll not in names,"SQL-only Release unexpectedly includes BGW")
+
             commit=pkg["source"]["packagingCommit"]
             require(COMMIT.fullmatch(commit) is not None,"unpinned package commit")
             source_commit=source_commit or commit
@@ -266,8 +296,10 @@ def generate(extension, tag, dest):
                 "availability":"public","postgresqlDistribution":"standard-postgresql",
                 "compatibility":"standard-postgresql",
                 "notes":"Independently verified signed Windows x64 PG14-18 release. "
-                        + ("SQL-only: optional BGW is not included." if EXT=="pg_partman"
-                           else "See Test Contract for feature and preload requirements.")
+                        + ("BGW is optional and requires explicit shared_preload_libraries configuration."
+                           if EXT=="pg_partman" and tc["runtimeRequirements"]["backgroundWorker"]
+                           else ("SQL-only: optional BGW is not included." if EXT=="pg_partman"
+                                 else "See Test Contract for feature and preload requirements."))
             }]
             landscape_path.write_text(json.dumps(landscape,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
         print(json.dumps({"status":"CATALOG_PR_READY","release":tag,"sourceCommit":source_commit,
