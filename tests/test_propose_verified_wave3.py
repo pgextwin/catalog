@@ -12,7 +12,7 @@ spec.loader.exec_module(mod)
 class Wave3Fixture(unittest.TestCase):
     def setUp(self):
         mod.EXT="pg_partman";mod.REPOSITORY="pgextwin/pg_partman"
-        self.manifest={"name":"pg_partman","upstream":{"repository":"pgpartman/pg_partman","version":"5.5.0"},
+        self.manifest={"name":"pg_partman","upstream":{"repository":"pgpartman/pg_partman","version":"5.5.0","ref":"v5.5.0"},
                        "postgresql":{"majors":[14,15,16,17,18]}}
         self.contract={"contractVersion":2,"extension":"pg_partman",
                        "runtimeRequirements":{"preload":"none"},"coverage":{"upgrade":"not-covered"},
@@ -32,6 +32,22 @@ class Wave3Fixture(unittest.TestCase):
     def record(self,**overrides):
         return mod.update_record(self.old,self.rel,self.manifest,self.contract,
                                  self.assets,self.sums,"a"*40,required_majors=[14,15,16,17,18])
+
+    def test_upstream_asset_reference_conventions(self):
+        for extension,version,ref in [
+            ("pg_partman","5.5.0","v5.5.0"),
+            ("orafce","4.16.13","VERSION_4_16_13"),
+            ("pg_stat_monitor","2.4.0","2.4.0")
+        ]:
+            with self.subTest(extension=extension):
+                mod.EXT=extension
+                self.assertEqual(mod.upstream_ref_for_version(version),ref)
+                self.assertEqual(mod.asset_stem(version,17),f"{extension}-{ref}-pg17-windows-x64")
+        mod.EXT="pg_partman"
+
+    def test_source_ref_mismatch_is_rejected(self):
+        self.manifest["upstream"]["ref"]="v5.4.0"
+        with self.assertRaises(mod.UnsafeCatalog):self.record()
 
     def test_five_major_complete_record(self):
         out=self.record()

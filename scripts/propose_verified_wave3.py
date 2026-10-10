@@ -58,6 +58,19 @@ def digest(p):
         for part in iter(lambda:stream.read(1024*1024),b""):h.update(part)
     return h.hexdigest()
 
+def upstream_ref_for_version(version):
+    """Exact source-tag naming convention of each reviewed Wave 3 upstream."""
+    require(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is not None,
+            "invalid upstream version")
+    return {
+        "pg_partman": "v" + version,
+        "orafce": "VERSION_" + version.replace(".", "_"),
+        "pg_stat_monitor": version
+    }[EXT]
+
+def asset_stem(version, major):
+    return EXT + "-" + upstream_ref_for_version(version) + "-pg" + str(major) + "-windows-x64"
+
 def update_record(existing, release, manifests, contracts, assets, checksums, source_commit, required_majors=None):
     """Pure Catalog v2 transformation for the one explicitly approved pilot extension."""
     ext=manifests
@@ -71,6 +84,7 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
     tag=release["tag_name"]
     match=TAG.fullmatch(tag)
     require(match and match.group(1)==ext["upstream"]["version"],"tag != manifest version")
+    require(ext["upstream"]["ref"]==upstream_ref_for_version(match.group(1)), "tag/upstream release ref mismatch")
     require(not release["draft"] and not release["prerelease"] and release.get("published_at"),
             "Release is not publicly published")
     major_set={str(x) for x in ext["postgresql"]["majors"]}
@@ -79,7 +93,7 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
             "pilot majors changed or missing")
     expected={"SHA256SUMS.txt"}
     for major in required_set:
-        stem=EXT+"-v"+ext["upstream"]["version"]+"-pg"+major+"-windows-x64"
+        stem=asset_stem(ext["upstream"]["version"],major)
         expected.update({stem+".zip",stem+".spdx.json",stem+".vulnerabilities.json"})
     require(set(assets)==expected and set(checksums)==expected-{"SHA256SUMS.txt"},
             "partial/extra Release assets or checksums")
@@ -94,7 +108,7 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
         "checksumsAsset":"SHA256SUMS.txt"
     }
     for major in sorted(required_set):
-        stem=EXT+"-v"+ext["upstream"]["version"]+"-pg"+major+"-windows-x64"
+        stem=asset_stem(ext["upstream"]["version"],major)
         def entry(suffix):
             name=stem+suffix
             return {"available":True,"asset":name,
@@ -144,7 +158,7 @@ def generate(extension, tag, dest):
                  if date.fromisoformat(entry["eol"])>=date.today() and int(entry["major"]) in (14,15,16,17,18)}
     require(bool(live_majors), "no maintained PostgreSQL majors")
     reported_majors=sorted({int(match.group(1)) for name in assets
-                            if (match := re.fullmatch(rf"{re.escape(EXT)}-v[0-9.]+-pg([0-9]+)-windows-x64\.zip", name))})
+                            if (match := re.fullmatch(re.escape(EXT+"-"+upstream_ref_for_version(TAG.fullmatch(tag).group(1)))+r"-pg([0-9]+)-windows-x64\.zip", name))})
     require(bool(reported_majors) and all(m in live_majors for m in reported_majors)
             and len(assets)==1+3*len(reported_majors), "Release asset count/major mismatch")
     with tempfile.TemporaryDirectory() as temp:
@@ -166,7 +180,7 @@ def generate(extension, tag, dest):
         upstream_commit=None
         formal_run_id=None
         for major in reported_majors:
-            stem=EXT+"-v"+TAG.fullmatch(tag).group(1)+"-pg"+str(major)+"-windows-x64"
+            stem=asset_stem(TAG.fullmatch(tag).group(1),major)
             zip_file=folder/(stem+".zip")
             with ZipFile(zip_file) as z:
                 require(z.namelist().count("PACKAGE-INFO.json")==1,"missing PACKAGE-INFO")
