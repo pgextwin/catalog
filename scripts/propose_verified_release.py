@@ -5,6 +5,7 @@ The public Release, signed ZIP attestations, PACKAGE-INFO and Test Contract at t
 trusted packaging commit are authoritative. Never infer missing assets.
 """
 import argparse
+from datetime import date
 import base64
 import hashlib
 import json
@@ -49,7 +50,7 @@ def digest(p):
         for part in iter(lambda:stream.read(1024*1024),b""):h.update(part)
     return h.hexdigest()
 
-def update_record(existing, release, manifests, contracts, assets, checksums, source_commit):
+def update_record(existing, release, manifests, contracts, assets, checksums, source_commit, required_majors=None):
     """Pure Catalog v2 transformation for the one explicitly approved pilot extension."""
     ext=manifests
     tc=contracts
@@ -65,9 +66,11 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
     require(not release["draft"] and not release["prerelease"] and release.get("published_at"),
             "Release is not publicly published")
     major_set={str(x) for x in ext["postgresql"]["majors"]}
-    require(major_set=={"15","16","17","18"},"pilot majors changed or missing")
+    required_set = {str(x) for x in required_majors} if required_majors is not None else major_set
+    require(bool(required_set) and required_set.issubset(major_set) and all(m in {"14","15","16","17","18"} for m in required_set),
+            "pilot majors changed or missing")
     expected={"SHA256SUMS.txt"}
-    for major in major_set:
+    for major in required_set:
         stem=EXT+"-v"+ext["upstream"]["version"]+"-pg"+major+"-windows-x64"
         expected.update({stem+".zip",stem+".spdx.json",stem+".vulnerabilities.json"})
     require(set(assets)==expected and set(checksums)==expected-{"SHA256SUMS.txt"},
@@ -82,7 +85,7 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
         "releaseUrl":"https://github.com/"+REPOSITORY+"/releases/tag/"+tag,
         "checksumsAsset":"SHA256SUMS.txt"
     }
-    for major in sorted(major_set):
+    for major in sorted(required_set):
         stem=EXT+"-v"+ext["upstream"]["version"]+"-pg"+major+"-windows-x64"
         def entry(suffix):
             name=stem+suffix
@@ -114,7 +117,14 @@ def generate(extension, tag, dest):
     require(rel.get("tag_name")==tag and not rel["draft"] and not rel["prerelease"]
             and rel.get("published_at"), "no publicly published immutable Release")
     assets={a["name"]:a for a in rel["assets"]}
-    require(len(assets)==13,"expected exactly 13 Release assets")
+    lifecycle_raw=api("repos/pgextwin/build/contents/metadata/postgresql.json?ref=5756b3c5136a8bf4db710016cfe97555f0a71c6d")
+    require(lifecycle_raw.get("encoding")=="base64", "trusted lifecycle unavailable")
+    lifecycle=json.loads(base64.b64decode(lifecycle_raw["content"]).decode("utf-8"))
+    # Resolve supported majors only from immutable lifecycle and the reviewed source manifest.
+    live_majors={int(entry["major"]) for entry in lifecycle["postgresql"]
+                 if date.fromisoformat(entry["eol"])>=date.today() and int(entry["major"]) in (14,15,16,17,18)}
+    require(bool(live_majors), "no maintained PostgreSQL majors")
+    require(len(assets) in {1+3*len(live_majors), 13, 16}, "Release asset count inconsistent with maintained matrix")
     with tempfile.TemporaryDirectory() as temp:
         folder=Path(temp)
         gh("release","download",tag,"--repo",REPOSITORY,"--dir",temp)
@@ -133,7 +143,7 @@ def generate(extension, tag, dest):
         source_commit=None
         upstream_commit=None
         formal_run_id=None
-        for major in (15,16,17,18):
+        for major in sorted(live_majors):
             stem=EXT+"-v"+TAG.fullmatch(tag).group(1)+"-pg"+str(major)+"-windows-x64"
             zip_file=folder/(stem+".zip")
             with ZipFile(zip_file) as z:
@@ -172,13 +182,16 @@ def generate(extension, tag, dest):
                 and manifest["upstream"]["version"]==TAG.fullmatch(tag).group(1),
                 "upstream manifest changed from release")
         original=json.loads(dest.read_text(encoding="utf-8"))
-        modified=update_record(original,rel,manifest,tc,assets,sums,source_commit)
+        configured={int(x) for x in manifest["postgresql"]["majors"]}
+        required=sorted(live_majors & configured)
+        require(bool(required) and len(assets)==1+3*len(required), "incomplete Release major matrix")
+        modified=update_record(original,rel,manifest,tc,assets,sums,source_commit,required_majors=required)
         if modified==original:
             print("NO_CHANGE: Catalog already matches verified Release")
             return False
         dest.write_text(json.dumps(modified,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
         print(json.dumps({"status":"CATALOG_PR_READY","release":tag,"sourceCommit":source_commit,
-                          "majors":[15,16,17,18]}))
+                          "majors":required}))
         return True
 
 def main():
