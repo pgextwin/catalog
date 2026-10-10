@@ -1,6 +1,7 @@
 {
   "schemaVersion": 2,
   "extensions": [
+    "hypopg",
     "pg_bigm",
     "pg_cron",
     "pg_hint_plan",
