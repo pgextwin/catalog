@@ -32,109 +32,139 @@
   "license": "PostgreSQL License",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v18.0-windows.1",
-    "publishedAt": "2026-10-06T01:18:25Z",
-    "releaseUrl": "https://github.com/pgextwin/pgaudit/releases/tag/v18.0-windows.1",
+    "releaseTag": "v18.0-windows.2",
+    "publishedAt": "2026-10-10T00:30:04Z",
+    "releaseUrl": "https://github.com/pgextwin/pgaudit/releases/tag/v18.0-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
       "asset": "pgaudit-1.6.3-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.1/pgaudit-1.6.3-pg14-windows-x64.zip",
-      "sha256": "5e9dc8cd8809473323d251ffad549fc7395a773ad162e65ce6365410f66cfed0",
+      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-1.6.3-pg14-windows-x64.zip",
+      "sha256": "027aca1abda074acaf5406b66a9c1dae39c8e7b5cae0ac5852d32de8e2320f68",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-1.6.3-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-1.6.3-pg14-windows-x64.spdx.json",
+          "sha256": "a5866628a7c25f88010ece33d529794119b10dc8b925c5d7dc3d68998db9f525"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-1.6.3-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-1.6.3-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "43ac0190675dec8be8ffe3e74cc9fcf8b8cdad6fa3483841142302008fe7a01d"
         }
       }
     },
     "15": {
       "available": true,
       "asset": "pgaudit-1.7.1-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.1/pgaudit-1.7.1-pg15-windows-x64.zip",
-      "sha256": "cfdb561c77f33c90f06e0cedf9b5fcf70eed774f91f6d5326d1278c4f40194f5",
+      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-1.7.1-pg15-windows-x64.zip",
+      "sha256": "ef982531f1c39fcaa7240d045c453c3905cc329cc7e6d0d673a30a2de739cf0b",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-1.7.1-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-1.7.1-pg15-windows-x64.spdx.json",
+          "sha256": "43bd51ad1ce6ed5827413645d706b713bf994bdbf7eb3382a3d9efd7e150458c"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-1.7.1-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-1.7.1-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "a7b874dbe1bee21530c149aaa8f42aad9f382c96c900e620d4eef762c8388d61"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pgaudit-16.1-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.1/pgaudit-16.1-pg16-windows-x64.zip",
-      "sha256": "1dec46f7298dd7eebf82e97a8105645c374cedb12054b6d7298a3a6c4dfcf258",
+      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-16.1-pg16-windows-x64.zip",
+      "sha256": "ec673355b44b68678f14aef6f9f9985c3b0e70094837f410f782dcbafc75fd4b",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-16.1-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-16.1-pg16-windows-x64.spdx.json",
+          "sha256": "d550ac2280b317dd4c506dcd2e1261eb1a6c0301ab3f79ea4fbe598f92cb72e4"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-16.1-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-16.1-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "176d87ea98b183b12470f2d58ac931f33328a80916f983f7e351ba113dfccf24"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pgaudit-17.1-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.1/pgaudit-17.1-pg17-windows-x64.zip",
-      "sha256": "de0f338b89413845e3838791cccfeaa83c5ab92d77bf6937a8a904b362fbdc86",
+      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-17.1-pg17-windows-x64.zip",
+      "sha256": "042412f76be6f7bfce55647100c3e27d44390d922694a0b1570a241acbce4195",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-17.1-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-17.1-pg17-windows-x64.spdx.json",
+          "sha256": "90760c671009311ece9c810c21b8599d684d8495e8425531410df0d20e4e4166"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-17.1-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-17.1-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "928049a2e70837d95148041e45e8320d1fff55b9b0126cd1fdc3b28afdce62bc"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pgaudit-18.0-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.1/pgaudit-18.0-pg18-windows-x64.zip",
-      "sha256": "79e828a921b7c496287197bf6569fdacfb6150c4e6040238a89dd7423a48355b",
+      "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-18.0-pg18-windows-x64.zip",
+      "sha256": "a0aff6be2ef840bfb105eb8143e6338b49476b908d75858fd31e8acdd7926a26",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-18.0-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-18.0-pg18-windows-x64.spdx.json",
+          "sha256": "a329c3411d49c39636a8f2a1535d41b3c37f53d6027442a84c0de17bc01c26a7"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pgaudit-18.0-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pgaudit/releases/download/v18.0-windows.2/pgaudit-18.0-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "4f6715f476973285f9c1ef84de4f5e66052e05eaf6f9059d07338a792e949b27"
         }
       }
     }
