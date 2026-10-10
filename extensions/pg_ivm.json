@@ -11,109 +11,139 @@
   "license": "PostgreSQL-style",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.16-windows.1",
-    "publishedAt": "2026-10-06T08:11:23Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_ivm/releases/tag/v1.16-windows.1",
+    "releaseTag": "v1.16-windows.2",
+    "publishedAt": "2026-10-10T00:33:21Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_ivm/releases/tag/v1.16-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
       "asset": "pg_ivm-v1.16-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.1/pg_ivm-v1.16-pg14-windows-x64.zip",
-      "sha256": "1c804f15ba1a9904c08a4225cfb2d0ef62e666469b630e03067c66fc32f2f900",
+      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg14-windows-x64.zip",
+      "sha256": "201429a65d221cfeb3d972c928152e34e00c7e2e585de7e65e4ad802d203fab6",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg14-windows-x64.spdx.json",
+          "sha256": "84ad6809cb836034197f2ed073e49df1f5b454f7f1e491270b9048aaf4dd7fb3"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "8f8c7a895a7782f4ff4e58e9d13bd55859b33e553752dfcacb3d61012d79349b"
         }
       }
     },
     "15": {
       "available": true,
       "asset": "pg_ivm-v1.16-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.1/pg_ivm-v1.16-pg15-windows-x64.zip",
-      "sha256": "6be1fbfc4b373b15cb9e0a73a82fe0dd3afe1b10a9232cc87e04c1be964c5523",
+      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg15-windows-x64.zip",
+      "sha256": "9e2b327e419158249a5c4b6f33d16db54f8a1e843bc500bcdc0f6574a087f877",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg15-windows-x64.spdx.json",
+          "sha256": "3e3a56be286978ffcefe17ddb4927f098eeb2c7ade8d2bcdd4c76b75c7689f0a"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "235c88f134fa60e1311901054402315a6acf263c48a4f2b300f13c904a915023"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pg_ivm-v1.16-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.1/pg_ivm-v1.16-pg16-windows-x64.zip",
-      "sha256": "002173aaa176ef60373d532ba4ce21a71d759ec2a1b1f02abdf066220ab235a4",
+      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg16-windows-x64.zip",
+      "sha256": "361bf9972a3b9e7ba3ae0d387832236fd5a813a24fa47ad0e4b327feadff08ea",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg16-windows-x64.spdx.json",
+          "sha256": "98fd5b763c5aac3798a8f1bef73848dbc63cf44f30a4d5c22649ea58dadfc2f1"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "ba53d960f9f67b145d1abb21a8198bf5eebc70a43079eb501bccf70fadbec7eb"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pg_ivm-v1.16-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.1/pg_ivm-v1.16-pg17-windows-x64.zip",
-      "sha256": "2f8b408f3e126a8ecae528e39599990da61ceee6ca2a9cc99a0df442b9773366",
+      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg17-windows-x64.zip",
+      "sha256": "4204d44853e1f777676af245f22ef25d293dd383d2b830b6a104bebf3a9f408b",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg17-windows-x64.spdx.json",
+          "sha256": "18d0fa0449b97e51aa31cea8884ac59dd58e6295592f1c03157cd70ccf971c4d"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "284ca6b1c830a3f5305bcfc83ab5312e658b71a18c52ff0a1613f62fd6224920"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pg_ivm-v1.16-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.1/pg_ivm-v1.16-pg18-windows-x64.zip",
-      "sha256": "a103918c0f8cb8d1e379416a0052db3f046780585e7ff099cec5a2c7ba8582d5",
+      "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg18-windows-x64.zip",
+      "sha256": "aada1cc34ede56dd4a6bf2d6261fa6866be40814d3f0806d542a7d233dab017d",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg18-windows-x64.spdx.json",
+          "sha256": "cc7e8bc9b83ffcac27edb9751a46df7babeda1d346926e86ff80dde79c7dc860"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_ivm-v1.16-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_ivm/releases/download/v1.16-windows.2/pg_ivm-v1.16-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "7d8971d9278d60068dcf782998b7ece7f530f66f9f19305a84f7d4ed53196a17"
         }
       }
     }
