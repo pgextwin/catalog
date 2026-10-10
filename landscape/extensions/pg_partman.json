@@ -5,11 +5,11 @@
     {
       "provider": "pgextwin",
       "type": "community",
-      "url": "https://github.com/pgextwin/pg_partman/releases/tag/v5.5.0-windows.1",
+      "url": "https://github.com/pgextwin/pg_partman/releases/tag/v5.5.0-windows.2",
       "availability": "public",
       "postgresqlDistribution": "standard-postgresql",
       "compatibility": "standard-postgresql",
-      "notes": "Independently verified signed Windows x64 PG14-18 release. SQL-only: optional BGW is not included."
+      "notes": "Independently verified signed Windows x64 PG14-18 release. BGW is optional and requires explicit shared_preload_libraries configuration."
     }
   ],
   "name": "pg_partman",
