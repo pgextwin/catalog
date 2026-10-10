@@ -45,6 +45,25 @@ class Wave3Fixture(unittest.TestCase):
                 self.assertEqual(mod.asset_stem(version,17),f"{extension}-{ref}-pg17-windows-x64")
         mod.EXT="pg_partman"
 
+    def test_sql_only_release_does_not_claim_bgw(self):
+        out=self.record()
+        self.assertEqual(out["runtime"]["sharedPreloadLibraries"],[])
+        self.assertFalse(out["runtime"]["requirements"]["backgroundWorker"])
+
+    def test_optin_bgw_release_updates_legacy_preload_field(self):
+        self.contract["runtimeRequirements"]["backgroundWorker"]=True
+        self.contract["runtimeRequirements"]["preload"]="optional"
+        self.contract["testSetup"]={"preload":"shared","backgroundWorker":True,"settings":[]}
+        self.contract["coverage"]["backgroundWorker"]="covered"
+        out=self.record()
+        self.assertEqual(out["runtime"]["sharedPreloadLibraries"],["pg_partman_bgw"])
+        self.assertEqual(out["capabilities"]["coverage"]["backgroundWorker"],"covered")
+
+    def test_unverified_bgw_contract_is_rejected(self):
+        self.contract["runtimeRequirements"]["backgroundWorker"]=True
+        self.contract["runtimeRequirements"]["preload"]="optional"
+        with self.assertRaises(mod.UnsafeCatalog):self.record()
+
     def test_source_ref_mismatch_is_rejected(self):
         self.manifest["upstream"]["ref"]="v5.4.0"
         with self.assertRaises(mod.UnsafeCatalog):self.record()
