@@ -1,30 +1,35 @@
 {
   "schemaVersion": 1,
-  "lastReviewed": "2026-10-08",
-  "windowsBinarySources": [],
+  "lastReviewed": "2026-10-10",
+  "windowsBinarySources": [
+    {
+      "provider": "pgextwin",
+      "type": "community",
+      "url": "https://github.com/pgextwin/pg_stat_monitor/releases/tag/v2.4.0-windows.1",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "standard-postgresql",
+      "notes": "Independently verified signed Windows x64 PG14-18 release. See Test Contract for feature and preload requirements."
+    }
+  ],
   "name": "pg_stat_monitor",
   "displayName": "pg_stat_monitor",
   "description": "Time-bucketed query performance monitoring",
   "upstreamRepository": "percona/pg_stat_monitor",
-  "status": "candidate",
+  "status": "implemented",
   "license": "PostgreSQL",
   "currentStableVersion": "2.4.0",
   "pg18Support": "supported",
   "pg19Readiness": "unknown",
   "windowsUpstreamSupport": "unknown",
-  "knownWindowsBinaryAvailability": "none-identified",
+  "knownWindowsBinaryAvailability": "public",
   "estimatedWindowsEffort": "very-high",
   "preliminaryPriority": "medium",
-  "candidateRationale": "Percona publishes PostgreSQL 14–18 Linux packages; public binaries for ordinary Windows PostgreSQL not confirmed.",
   "evidenceUrls": [
     "https://github.com/percona/pg_stat_monitor/releases/tag/2.4.0",
     "https://github.com/percona/pg_stat_monitor/blob/2.4.0/README.md",
     "https://github.com/percona/pg_stat_monitor/blob/2.4.0/Makefile",
     "https://github.com/percona/pg_stat_monitor/blob/2.4.0/LICENSE"
   ],
-  "roadmap": {
-    "decision": "reserve",
-    "decisionDate": "2026-10-08",
-    "rationale": "Percona actively maintains PG18 observability; mandatory preload, hooks, shared memory and OS assumptions make reliable Windows delivery more complex than selected pilots."
-  }
+  "pgextwinCatalogName": "pg_stat_monitor"
 }
