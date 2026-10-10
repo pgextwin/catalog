@@ -15,7 +15,7 @@ class Wave3Fixture(unittest.TestCase):
         self.manifest={"name":"pg_partman","upstream":{"repository":"pgpartman/pg_partman","version":"5.5.0","ref":"v5.5.0"},
                        "postgresql":{"majors":[14,15,16,17,18]}}
         self.contract={"contractVersion":2,"extension":"pg_partman",
-                       "runtimeRequirements":{"preload":"none"},"coverage":{"upgrade":"not-covered"},
+                       "runtimeRequirements":{"preload":"none","backgroundWorker":False},"testSetup":{"preload":"none","backgroundWorker":False,"settings":[]},"coverage":{"upgrade":"not-covered","backgroundWorker":"not-applicable"},
                        "functionalScenarios":[{"id":"routing","description":"routing","evidence":["sql-result"]}]}
         self.old={"schemaVersion":2,"name":"pg_partman","repository":"pgextwin/pg_partman",
                   "upstream":{"version":"5.5.0"},"latest":{},"postgresql":{},
