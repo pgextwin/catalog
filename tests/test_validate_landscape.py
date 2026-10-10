@@ -116,13 +116,14 @@ class LandscapeTests(unittest.TestCase):
                 shutil.copytree(ROOT / "landscape", base / "landscape")
                 shutil.copytree(ROOT / "schema", base / "schema")
                 index = module.load(ROOT / "index.json")
-                index["extensions"].append(name)
+                if name not in index["extensions"]:
+                    index["extensions"].append(name)
                 (base / "index.json").write_text(json.dumps(index))
                 path = base / "landscape" / "extensions" / (name + ".json")
                 record = json.loads(path.read_text())
                 record["status"] = "implemented"
                 record["pgextwinCatalogName"] = name
-                record.pop("candidateRationale")
+                record.pop("candidateRationale", None)
                 path.write_text(json.dumps(record))
                 self.assertEqual([], module.validate_landscape(base))
 
