@@ -265,6 +265,10 @@ def main():
             if audit["recordChanged"]:
                 output.write_text(json.dumps(mapped, indent=2, ensure_ascii=False) + "\n",
                                   encoding="utf-8")
+        output_file = os.environ.get("GITHUB_OUTPUT")
+        if output_file:
+            with open(output_file, "a", encoding="utf-8") as output:
+                output.write("changed=" + str(audit["recordChanged"]).lower() + "\n")
         print(json.dumps(audit, sort_keys=True))
         return 0
     except (Denied, OSError, ValueError, TypeError, KeyError, IndexError,
