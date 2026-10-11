@@ -3,6 +3,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 path=Path(__file__).resolve().parents[1]/"scripts"/"propose_verified_wave3.py"
 spec=importlib.util.spec_from_file_location("verified_wave3",path)
@@ -88,10 +89,50 @@ class Wave3Fixture(unittest.TestCase):
                               self.assets,self.sums,"a"*40,required_majors=[15,16,17,18])
 
     def test_denies_unsigned_origin(self):
+        tag="v5.5.0-windows.1"
         self.assertFalse(mod.valid_build_origin({"workflowRun":{
-            "ref":"refs/heads/main","event":"workflow_dispatch"},"buildMode":"normal"},"v5.5.0-windows.1"))
+            "ref":"refs/heads/main","event":"workflow_dispatch"},"buildMode":"normal"},tag))
         self.assertTrue(mod.valid_build_origin({"workflowRun":{
             "ref":"refs/heads/release/v5.5.0-windows.1","event":"push"},
-            "buildMode":"release-attested"},"v5.5.0-windows.1"))
+            "buildMode":"release-attested"},tag))
+        self.assertTrue(mod.valid_build_origin({"workflowRun":{
+            "ref":"refs/heads/main","event":"workflow_dispatch","id":9183},
+            "buildMode":"release-attested"},tag))
+        for ref,event,runid in (
+            ("refs/heads/main","push",9183),
+            ("refs/heads/main","workflow_dispatch",None),
+            ("refs/heads/main","workflow_dispatch","9183"),
+            ("refs/heads/other","workflow_dispatch",9183),
+            ("refs/heads/release/v5.5.0-windows.2","push",9183)):
+            with self.subTest(ref=ref,event=event,runid=runid):
+                self.assertFalse(mod.valid_build_origin({
+                    "workflowRun":{"ref":ref,"event":event,"id":runid},
+                    "buildMode":"release-attested"},tag))
+
+    def test_manual_promotion_requires_actual_trusted_workflow(self):
+        mod.EXT="pg_partman"
+        mod.REPOSITORY="pgextwin/pg_partman"
+        source_sha="a"*40
+        valid={"head_sha":source_sha,"head_branch":"main",
+               "event":"workflow_dispatch",
+               "path":"pgextwin/pg_partman/.github/workflows/promote.yml@refs/heads/main",
+               "actor":{"login":"trusted-operator"},
+               "conclusion":"failure"}
+        with patch.object(mod,"api",return_value=valid) as fetch:
+            mod.verify_main_operator_promotion(9183,source_sha)
+            fetch.assert_called_once_with("repos/pgextwin/pg_partman/actions/runs/9183")
+        for bad in (
+            {**valid,"head_sha":"b"*40},
+            {**valid,"head_branch":"auto-candidate/sha"},
+            {**valid,"event":"push"},
+            {**valid,"path":"pgextwin/pg_partman/.github/workflows/windows.yml@refs/heads/main"},
+            {**valid,"actor":{"login":"github-actions[bot]"}},
+            {**valid,"actor":{}}):
+            with self.subTest(bad=bad),patch.object(mod,"api",return_value=bad):
+                with self.assertRaises(mod.UnsafeCatalog):
+                    mod.verify_main_operator_promotion(9183,source_sha)
+        for run_id in (0,"9183",None):
+            with self.subTest(run_id=run_id),self.assertRaises(mod.UnsafeCatalog):
+                mod.verify_main_operator_promotion(run_id,source_sha)
 
 if __name__=="__main__":unittest.main()

@@ -150,11 +150,44 @@ def update_record(existing, release, manifests, contracts, assets, checksums, so
     return updated
 
 def valid_build_origin(pkg, tag):
-    """Only freshly attested release-branch builds from this Repository."""
+    """Allow verified historic branch Releases and operator-only main Promotion.
+
+    This is only the initial package-metadata gate. The main-only path is
+    additionally checked against an actual GitHub promote.yml workflow run
+    before Catalog is allowed to adopt the already-published signed Release.
+    """
     run=pkg.get("workflowRun",{})
-    return (run.get("ref")=="refs/heads/release/"+tag
-            and run.get("event")=="push"
-            and pkg.get("buildMode")=="release-attested")
+    if pkg.get("buildMode")!="release-attested":
+        return False
+    legacy=(run.get("ref")=="refs/heads/release/"+tag
+            and run.get("event")=="push")
+    manual=(run.get("ref")=="refs/heads/main"
+            and run.get("event")=="workflow_dispatch"
+            and type(run.get("id")) is int and run["id"]>0)
+    return legacy or manual
+
+
+def verify_main_operator_promotion(run_id, source_commit):
+    """Fail closed on a claimed manual origin not issued by trusted promote.yml.
+
+    The historic Draft lookup incident demonstrates that a workflow can have a
+    failed final conclusion but still yield fully verified attested artifacts
+    that were manually published by immutable Release ID. Do not equate a
+    FAILED final run with an unsigned build: signed artifacts and their actual
+    hashes are separately verified below.
+    """
+    require(type(run_id) is int and run_id>0 and COMMIT.fullmatch(source_commit),
+            "invalid manual Promotion run identity")
+    run=api("repos/"+REPOSITORY+"/actions/runs/"+str(run_id))
+    path=str(run.get("path") or "").split("@",1)[0]
+    require(run.get("head_sha")==source_commit
+            and run.get("head_branch")=="main"
+            and run.get("event")=="workflow_dispatch"
+            and path==REPOSITORY+"/.github/workflows/promote.yml",
+            "manual Release did not originate in trusted main promote.yml")
+    actor=(run.get("actor") or {}).get("login","")
+    require(isinstance(actor,str) and bool(actor) and not actor.endswith("[bot]"),
+            "manual Release workflow operator identity not confirmed")
 
 
 def generate(extension, tag, dest):
@@ -195,6 +228,7 @@ def generate(extension, tag, dest):
         source_commit=None
         upstream_commit=None
         formal_run_id=None
+        formal_origin=None
         for major in reported_majors:
             stem=asset_stem(TAG.fullmatch(tag).group(1),major)
             zip_file=folder/(stem+".zip")
@@ -220,6 +254,10 @@ def generate(extension, tag, dest):
             source_commit=source_commit or commit
             upstream_commit=upstream_commit or pkg["upstream"]["commit"]
             formal_run_id=formal_run_id or pkg["workflowRun"]["id"]
+            origin=(pkg["workflowRun"].get("ref"),pkg["workflowRun"].get("event"))
+            formal_origin=formal_origin or origin
+            require(formal_origin==origin,
+                    "mixed release-branch and manual-PUBLISH packages are forbidden")
             require(pkg["upstream"]["commit"]==upstream_commit
                     and pkg["workflowRun"]["id"]==formal_run_id
                     and pkg["upstream"]["version"]==TAG.fullmatch(tag).group(1)
@@ -238,6 +276,8 @@ def generate(extension, tag, dest):
             gh("attestation","verify",str(zip_file),"--repo",REPOSITORY,"--signer-workflow",SIGNER)
             gh("attestation","verify",str(zip_file),"--repo",REPOSITORY,"--signer-workflow",SIGNER,
                "--predicate-type","https://spdx.dev/Document/v2.3")
+        if formal_origin==("refs/heads/main","workflow_dispatch"):
+            verify_main_operator_promotion(formal_run_id,source_commit)
         ancestry=api("repos/"+REPOSITORY+"/compare/"+source_commit+"...main")
         require(ancestry.get("status") in {"identical","ahead"},
                 "package source commit not in current trusted main ancestry")
