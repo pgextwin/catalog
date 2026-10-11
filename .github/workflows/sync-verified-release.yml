@@ -65,6 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "base_record_sha=$(git hash-object "extensions/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
           python scripts/verify_signed_fleet_release.py \
             --extension "$EXTENSION" --release-tag "$RELEASE_TAG" \
             --record-output "extensions/$EXTENSION.json" \
@@ -111,6 +112,7 @@ jobs:
           GH_TOKEN: ${{ steps.proposer-token.outputs.token }}
           EXTENSION: ${{ inputs.extension }}
           RELEASE_TAG: ${{ inputs.release_tag }}
+          BASE_RECORD_SHA: ${{ steps.verify.outputs.base_record_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -118,6 +120,10 @@ jobs:
           branch="auto-catalog/$EXTENSION-$RELEASE_TAG"
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
             echo "::error::Catalog proposal branch already exists; do not overwrite or duplicate it."
+            exit 1
+          fi
+          if [[ "$(git hash-object "extensions/$EXTENSION.json")" != "$BASE_RECORD_SHA" ]]; then
+            echo "::error::Catalog main record changed after signed verification; refuse stale overwrite"
             exit 1
           fi
           cp "../extensions/$EXTENSION.json" "extensions/$EXTENSION.json"
