@@ -1,14 +1,19 @@
 {
   "schemaVersion": 2,
   "extensions": [
+    "hypopg",
+    "orafce",
     "pg_bigm",
     "pg_cron",
     "pg_hint_plan",
     "pg_ivm",
+    "pg_partman",
     "pg_qualstats",
     "pg_repack",
+    "pg_stat_monitor",
     "pgaudit",
     "plpgsql_check",
-    "set_user"
+    "set_user",
+    "wal2json"
   ]
 }

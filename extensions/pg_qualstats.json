@@ -11,109 +11,139 @@
   "license": "PostgreSQL-style",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v2.1.4-windows.1",
-    "publishedAt": "2026-10-06T08:51:25Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_qualstats/releases/tag/v2.1.4-windows.1",
+    "releaseTag": "v2.1.4-windows.2",
+    "publishedAt": "2026-10-10T00:30:42Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_qualstats/releases/tag/v2.1.4-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
       "asset": "pg_qualstats-2.1.4-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg14-windows-x64.zip",
-      "sha256": "1e3166fb10a6e7a10a3bfa3b392217f3e0a522f39ca4599f941e6e09c42f50ae",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg14-windows-x64.zip",
+      "sha256": "6d9a85e99cd9cc3e7bfa35778a614c1739b3402773e9ab52c86684f55e14dc69",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg14-windows-x64.spdx.json",
+          "sha256": "7c3cc7883b4b47a1613872d4442b1f03a1b3cdda4cd5337ddf71bb1a6c62a3a9"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "a672b462ca32da89187d8e9cf0eede1921d68270de55d5dbe3330b422790895f"
         }
       }
     },
     "15": {
       "available": true,
       "asset": "pg_qualstats-2.1.4-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg15-windows-x64.zip",
-      "sha256": "959f8a6cbcd62d139b745988f8bd7c97f93b402b4d1c0065e37fe17935adad90",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg15-windows-x64.zip",
+      "sha256": "14dd02ba5b75fa6d25074daabf65be4874362276cbb66fb7006959fc82e0e5b7",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg15-windows-x64.spdx.json",
+          "sha256": "0323bab18a13bb4d9a68cd7404710f65b416f295a501060e8eea5675efecd2e3"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "4ee6f4a027ef1ef198df77c8a8aae6c3d324dd7d8a23dfca817878a334750601"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pg_qualstats-2.1.4-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg16-windows-x64.zip",
-      "sha256": "d12d6233f86d12a3a020a84e4c65d7869205f361b537d253226ceb0c400eeeca",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg16-windows-x64.zip",
+      "sha256": "0c8382e244d723effe82aed59d90d39259f8ca84613a89cb01fe165a3cbcb8c5",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg16-windows-x64.spdx.json",
+          "sha256": "3de27bb4bcd4d14266fce8b436826af2e8b34a82bc390e78c8858cab178c39c5"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "fdb0aa8b2c185d482cddd58050167c4defe5657cc697fc9bba91cdf024343c08"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pg_qualstats-2.1.4-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg17-windows-x64.zip",
-      "sha256": "c72cb07d3cc039fc08bec634898fb8bcd75ff7be338e765af07c8089c44f1c02",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg17-windows-x64.zip",
+      "sha256": "339eaffdfcbf968119be2e03f59098cec30230e86d5db66ec7df9915d5267d70",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg17-windows-x64.spdx.json",
+          "sha256": "af1c7b8975270085c0174ef9717c222acaa11bcf4c35f1dcfa2686422282e958"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "7daf1ea4e2709fc549c55b99994f179492af7b8c195c12492b576bbb7b743975"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pg_qualstats-2.1.4-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.1/pg_qualstats-2.1.4-pg18-windows-x64.zip",
-      "sha256": "89d56bdbef7ef69b1104f40549a1259ced6695018b7af9619d27375d89bb4ac1",
+      "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg18-windows-x64.zip",
+      "sha256": "7a35e1b075f466d6f6a32f10dc337d9b14c6623e44e7e74b2753ac16834dff21",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg18-windows-x64.spdx.json",
+          "sha256": "7354e52414bc1c78f330ae2d865c085d1335d09ae9b84b10ea8f27f6a9f43d39"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_qualstats-2.1.4-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.2/pg_qualstats-2.1.4-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "3a718583043eb8eba06aa7acfed1dc79aea0d2d51d76da3162da2923ded2ef5e"
         }
       }
     }

@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 2,
+  "name": "orafce",
+  "displayName": "orafce",
+  "description": "Oracle-compatible functions and packages for community PostgreSQL.",
+  "upstream": {
+    "repository": "orafce/orafce",
+    "version": "4.16.13"
+  },
+  "repository": "pgextwin/orafce",
+  "license": "0BSD",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v4.16.13-windows.1",
+    "publishedAt": "2026-10-10T15:49:07Z",
+    "releaseUrl": "https://github.com/pgextwin/orafce/releases/tag/v4.16.13-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
+  },
+  "postgresql": {
+    "14": {
+      "available": true,
+      "asset": "orafce-VERSION_4_16_13-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg14-windows-x64.zip",
+      "sha256": "1b49956b4f7b8e3b4f5264344bc0db38928559453ca67ccc184b7cfad9575039",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg14-windows-x64.spdx.json",
+          "sha256": "81710ece3ba65ee9569d7c29f72e7aa2b9cac55291be828456944e19f6a206a8"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "ac60afe58a5eb543e503f892c63ecb0e8171ad36a52abe1f6893333d144acdfa"
+        }
+      }
+    },
+    "15": {
+      "available": true,
+      "asset": "orafce-VERSION_4_16_13-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg15-windows-x64.zip",
+      "sha256": "1b945cf443cf70ab2b0353895613e3a3ee97ed23e37e0144cc113939c292b74a",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg15-windows-x64.spdx.json",
+          "sha256": "6799a37a86f212c8593f55e45013cdab74efa4f961117cd3f765d33fbef7f0ac"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "ac5bdfbe1484d6c5c0bbb06e545c51cada9fc8c1010ed6ec2a1743856c4b7c1a"
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "orafce-VERSION_4_16_13-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg16-windows-x64.zip",
+      "sha256": "a8b6f29b2fd5b7ad2598e74eb952c88e19549742e8c8361d57fdc00e877367e5",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg16-windows-x64.spdx.json",
+          "sha256": "394b89b0d2855bc8bf10f5e34fffe3db2ae04cfb49a979dbd81768ecb124811f"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "dd3907ca76d196fd6090ecea0a85a67e01753796579357eb4f419602150c81ec"
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "orafce-VERSION_4_16_13-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg17-windows-x64.zip",
+      "sha256": "d16077ef8df2a3770bd36cb4ce1eb2bb884f11c6a70adca623583680bd5474aa",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg17-windows-x64.spdx.json",
+          "sha256": "98d0edcd55efc7deb04ef62833af8bffe6b31ef495e1fcb36ce50c84f8966246"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "c81aade03f83ad8547afc106d2cef128270c76a31a5fc35a29093a323da23bb1"
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "orafce-VERSION_4_16_13-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg18-windows-x64.zip",
+      "sha256": "513ebe7bc935528b918c9fc813b9942c27303d79e3df66b1170e1dc2b7dda3cb",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg18-windows-x64.spdx.json",
+          "sha256": "11f6799b3aa1dba427f20f0160420578d7eb15d5e3e26d76dcee52ce319b85a6"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "orafce-VERSION_4_16_13-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.16.13-windows.1/orafce-VERSION_4_16_13-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "4a6d805491dce1a45a85ed1db4a77ae980c0d0bf4b120a32dc05861c3a88d9c5"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "none",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "oracle-compat-last-day",
+        "description": "Validate Oracle last_day leap-year date handling",
+        "evidence": [
+          "sql-result"
+        ]
+      },
+      {
+        "id": "oracle-compat-nvl",
+        "description": "Validate Oracle nvl null substitution",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/orafce",
+    "path": "config/test-contract.json",
+    "commit": "9f10b9039abe8c909df1ed17133481f4d64da1e4"
+  }
+}

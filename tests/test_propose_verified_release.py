@@ -67,4 +67,46 @@ class CatalogProposal(unittest.TestCase):
         self.manifest["upstream"]["version"]="2.10.99"
         with self.assertRaises(mod.UnsafeCatalog):self.convert()
 
+
+    def test_publishes_pg14_when_signed_asset_is_present(self):
+        self.manifest["postgresql"]["majors"]=[14,15,16,17,18]
+        stem="plpgsql_check-v2.10.14-pg14-windows-x64"
+        for suffix in (".zip",".spdx.json",".vulnerabilities.json"):
+            name=stem+suffix
+            self.assets[name]={"name":name,"state":"uploaded"}
+            self.sums[name]="f"*64
+        out=mod.update_record(self.old,self.release,self.manifest,self.contract,
+                              self.assets,self.sums,"a"*40,required_majors=[14,15,16,17,18])
+        self.assertEqual(len(out["postgresql"]),5)
+        self.assertIn("pg14",out["postgresql"]["14"]["asset"])
+
+    def test_pg14_expired_keeps_historical_binary_but_requires_only_supported_new_assets(self):
+        self.old["postgresql"]["14"]={"available":True,"asset":"historical-pg14.zip"}
+        self.manifest["postgresql"]["majors"]=[14,15,16,17,18]
+        out=mod.update_record(self.old,self.release,self.manifest,self.contract,
+                              self.assets,self.sums,"a"*40,required_majors=[15,16,17,18])
+        self.assertEqual(out["postgresql"]["14"],{"available":True,"asset":"historical-pg14.zip"})
+        self.assertEqual(len(out["postgresql"]),5)
+
+    def test_only_one_compatibility_backfill_tag_and_origin_allowed(self):
+        pkg={"upstream":{"commit":"61776b0af7418d3fd593cccea73178e3d93c9ee1"},
+             "workflowRun":{"ref":"refs/heads/release/v2.10.13-windows.2","event":"push"}}
+        self.assertTrue(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.3"))
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.14-windows.2"))
+        pkg["workflowRun"]["ref"]="refs/heads/release/another"
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+        pkg["workflowRun"]["ref"]="refs/heads/release/v2.10.13-windows.2"
+        pkg["upstream"]["commit"]="a"*40
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+        pkg["upstream"]["commit"]="61776b0af7418d3fd593cccea73178e3d93c9ee1"
+        pkg["workflowRun"]["event"]="workflow_dispatch"
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.13-windows.2"))
+
+    def test_existing_manual_main_approval_path_unchanged(self):
+        pkg={"workflowRun":{"ref":"refs/heads/main","event":"workflow_dispatch"}}
+        self.assertTrue(mod.valid_build_origin(pkg,"v2.10.14-windows.1"))
+        pkg["workflowRun"]["ref"]="refs/heads/release/v2.10.14-windows.1"
+        self.assertFalse(mod.valid_build_origin(pkg,"v2.10.14-windows.1"))
+
 if __name__=="__main__":unittest.main()

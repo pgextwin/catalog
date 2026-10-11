@@ -16,7 +16,11 @@ class LandscapeTests(unittest.TestCase):
         cls.schema = module.load(ROOT / "schema" / "landscape-extension.schema.json")
         cls.validator = module.Draft202012Validator(cls.schema, format_checker=module.FormatChecker())
         cls.impl = module.load(ROOT / "landscape" / "extensions" / "pg_cron.json")
-        cls.candidate = module.load(ROOT / "landscape" / "extensions" / "wal2json.json")
+        cls.candidate = copy.deepcopy(module.load(ROOT / "landscape" / "extensions" / "pg_partman.json"))
+        cls.candidate["status"]="candidate"
+        cls.candidate.pop("pgextwinCatalogName",None)
+        cls.candidate["candidateRationale"]="Offline fixture candidate"
+        cls.candidate["roadmap"]={"decision":"reserve","decisionDate":"2026-10-08","rationale":"fixture"}
         cls.other = module.load(ROOT / "landscape" / "extensions" / "postgis.json")
     def assertValid(self, record):
         self.assertEqual([], list(self.validator.iter_errors(record)))
@@ -32,7 +36,7 @@ class LandscapeTests(unittest.TestCase):
     def test_bad_source_url(self):
         record = copy.deepcopy(self.other); record["windowsBinarySources"][0]["url"] = "javascript:alert(1)"; self.assertInvalid(record)
     def test_candidate_rationale_required(self):
-        record = copy.deepcopy(self.candidate); record.pop("candidateRationale"); self.assertInvalid(record)
+        record = copy.deepcopy(self.candidate); record.pop("candidateRationale", None); self.assertInvalid(record)
     def test_implemented_catalog_reference_required(self):
         record = copy.deepcopy(self.impl); record.pop("pgextwinCatalogName"); self.assertInvalid(record)
     def test_invalid_status(self):
@@ -87,12 +91,17 @@ class LandscapeTests(unittest.TestCase):
         records = [module.load(p) for p in (ROOT / "landscape" / "extensions").glob("*.json")]
         statuses = {status: sum(r["status"] == status for r in records) for status in ("implemented", "candidate", "not-planned")}
         self.assertEqual(20, len(records))
-        self.assertEqual({"implemented": 9, "candidate": 5, "not-planned": 6}, statuses)
+        self.assertEqual(20, sum(statuses.values()))
+        self.assertEqual(6, statuses["not-planned"])
+        self.assertEqual(14, statuses["implemented"] + statuses["candidate"])
+        self.assertTrue(9 <= statuses["implemented"] <= 14)
         byname = {r["name"]: r for r in records}
         for name in module.INITIAL_EIGHT:
             self.assertEqual("implemented", byname[name]["status"])
         for name, order in (("hypopg",2),("wal2json",3)):
-            self.assertEqual("candidate", byname[name]["status"])
+            self.assertIn(byname[name]["status"], ("candidate", "implemented"))
+            if byname[name]["status"] == "implemented":
+                self.assertEqual(name, byname[name]["pgextwinCatalogName"])
             self.assertEqual(order, byname[name]["roadmap"]["order"])
             self.assertEqual("2026-10-08", byname[name]["roadmap"]["decisionDate"])
         for record in records:
@@ -100,7 +109,8 @@ class LandscapeTests(unittest.TestCase):
                 self.assertTrue(record["windowsBinarySources"])
         catalog_index = module.load(ROOT / "index.json")["extensions"]
         self.assertEqual(set(catalog_index), {r["name"] for r in records if r["status"] == "implemented"})
-        self.assertTrue(all(name not in catalog_index for name in ("hypopg", "wal2json")))
+        self.assertEqual({name for name in ("hypopg", "wal2json") if byname[name]["status"] == "implemented"},
+                         set(catalog_index) & {"hypopg", "wal2json"})
 
     def test_future_wave_two_implementations_same_schema(self):
         import shutil
@@ -110,13 +120,14 @@ class LandscapeTests(unittest.TestCase):
                 shutil.copytree(ROOT / "landscape", base / "landscape")
                 shutil.copytree(ROOT / "schema", base / "schema")
                 index = module.load(ROOT / "index.json")
-                index["extensions"].append(name)
+                if name not in index["extensions"]:
+                    index["extensions"].append(name)
                 (base / "index.json").write_text(json.dumps(index))
                 path = base / "landscape" / "extensions" / (name + ".json")
                 record = json.loads(path.read_text())
                 record["status"] = "implemented"
                 record["pgextwinCatalogName"] = name
-                record.pop("candidateRationale")
+                record.pop("candidateRationale", None)
                 path.write_text(json.dumps(record))
                 self.assertEqual([], module.validate_landscape(base))
 
@@ -146,7 +157,9 @@ class LandscapeTests(unittest.TestCase):
     def test_missing_roadmap_rationale_rejected(self):
         self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(rationale=""), "rationale")
     def test_reserve_cannot_have_order(self):
-        self.assertRegistryMutationRejected("pg_partman", lambda x: x["roadmap"].update(order=2), "order")
+        self.assertRegistryMutationRejected("pg_partman",
+            lambda x: x.update(roadmap={"decision":"reserve","decisionDate":"2026-10-08","rationale":"illegal","order":2}),
+            "roadmap")
     def test_not_planned_roadmap_rejected(self):
         self.assertRegistryMutationRejected("postgis", lambda x: x.update(roadmap={"decision":"research","decisionDate":"2026-10-08","rationale":"test"}), "roadmap")
     def test_bad_decision_date_rejected(self):

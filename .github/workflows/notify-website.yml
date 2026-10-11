@@ -1,35 +1,17 @@
-name: Trigger live Website audit after Catalog main merge
+name: Verify public Website immediately after Catalog main merge
 
 on:
   push:
     branches: [main]
 
+# Invoke Website's audited reusable workflow directly; no PAT, private key,
+# additional GitHub App or admin setting is needed for public repositories.
 permissions:
   contents: read
 
 jobs:
-  trigger:
-    if: vars.PGEXTWIN_WEBSITE_APP_CLIENT_ID != ''
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create short-lived, Website Actions-only GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          client-id: ${{ vars.PGEXTWIN_WEBSITE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.PGEXTWIN_WEBSITE_APP_PRIVATE_KEY }}
-          owner: pgextwin
-          repositories: website
-          permission-actions: write
-      - name: Dispatch public Release/Catalog/UX acceptance
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh workflow run pages-smoke.yml --repo pgextwin/website --ref main
-
-  pending_config:
-    if: vars.PGEXTWIN_WEBSITE_APP_CLIENT_ID == ''
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo "::warning::Website dispatch requires GitHub App configuration; website daily public audit remains active."
-          echo "WEBSITE_DISPATCH=BLOCKED_APP_CONFIGURATION" >> "$GITHUB_STEP_SUMMARY"
+  live_pages_audit:
+    name: Cross-repository public Catalog, Release and Pages acceptance
+    permissions:
+      contents: read
+    uses: pgextwin/website/.github/workflows/pages-smoke.yml@ecfa8be6dfb6ff98be5be0a0bbf028f39ed1b5f8

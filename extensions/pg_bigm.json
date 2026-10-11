@@ -11,109 +11,139 @@
   "license": "PostgreSQL",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.2-20250903-windows.1",
-    "publishedAt": "2026-10-05T04:44:33Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_bigm/releases/tag/v1.2-20250903-windows.1",
+    "releaseTag": "v1.2-20250903-windows.2",
+    "publishedAt": "2026-10-10T00:23:02Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_bigm/releases/tag/v1.2-20250903-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
       "asset": "pg_bigm-v1.2-20250903-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.1/pg_bigm-v1.2-20250903-pg14-windows-x64.zip",
-      "sha256": "6381d7e38db0644ac1e3366b99a975e96acc5279db265cc67ae36d67ba713a4f",
+      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg14-windows-x64.zip",
+      "sha256": "3cd9f0facca96f185a406e795fd28a75acea60bb45ac531c9e06fcbc32e2277d",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg14-windows-x64.spdx.json",
+          "sha256": "d4d19ae80c2ade6ec4effe0456a91d745055111a01cfb92364306c6e8ed5bdeb"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "de55078da5a1548835cf33c90ad2539d80aa386c0334f98b4e606591edb74e29"
         }
       }
     },
     "15": {
       "available": true,
       "asset": "pg_bigm-v1.2-20250903-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.1/pg_bigm-v1.2-20250903-pg15-windows-x64.zip",
-      "sha256": "06432a506c72286ec19a44416627f35edce0b951b3036b14f812b1ba120057c9",
+      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg15-windows-x64.zip",
+      "sha256": "f6048af35e41734fb67ca477bc735990cfb1616aa6ff2d13d0aad56d223980c8",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg15-windows-x64.spdx.json",
+          "sha256": "06d813881fe9dfc12a1d69ad8025652635bd1e74457e662d2ee9f305d5088e82"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "b7e7ffbe77b905999edfb51d0ad121c8bccff80655f5d1ef64efd4a93a471fee"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pg_bigm-v1.2-20250903-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.1/pg_bigm-v1.2-20250903-pg16-windows-x64.zip",
-      "sha256": "839e729c1b51234beb3cc31c5de0c3cb78a7dbe8eac07bacf075b4faa24cd446",
+      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg16-windows-x64.zip",
+      "sha256": "d46958a4695d72dad5ed414d477b837c34cf3b57e008709d21d4ccd293d7fefc",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg16-windows-x64.spdx.json",
+          "sha256": "604af33aa948149ebdc870267fad4caa14562d5e98dfe081c5a34ba6577c9d47"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "6147aaa2c74ab0bd9f4aad042e3c961d53ed9524172e2ee0f47ac795aa0820bf"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pg_bigm-v1.2-20250903-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.1/pg_bigm-v1.2-20250903-pg17-windows-x64.zip",
-      "sha256": "b8bf6cf74e215f172b2aab2aa4687db332bdd4b26f447be2480b903fcf478bbd",
+      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg17-windows-x64.zip",
+      "sha256": "287dcd73cdf99a55e53b2267bb41e406dcd2f129de5cf1a7963bb1956c0b4765",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg17-windows-x64.spdx.json",
+          "sha256": "3bb22ce9f13c464de7ffe0891f9b85828c4c29c64f5ee58254e39acaff94ed14"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "95016711bc2a89d83a6c29642f73996014949a4998490cc67276df479af5f90e"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pg_bigm-v1.2-20250903-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.1/pg_bigm-v1.2-20250903-pg18-windows-x64.zip",
-      "sha256": "fc0bdecfc190ebfac04d17a57fd257bc17263c074c126383a58a31180467e3ae",
+      "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg18-windows-x64.zip",
+      "sha256": "b9660ca92fb1a42d9ac171bd8801476c451ca6fb04a606746ff3678b5d079a2d",
       "evidence": {
         "buildProvenanceAttestation": {
-          "available": false
+          "available": true
         },
         "sbom": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg18-windows-x64.spdx.json",
+          "sha256": "490759fb03c2bfe1e526a2df369ed463d7385769907f631b2954ae06af8ca7d9"
         },
         "sbomAttestation": {
-          "available": false
+          "available": true
         },
         "vulnerabilityReport": {
-          "available": false
+          "available": true,
+          "asset": "pg_bigm-v1.2-20250903-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_bigm/releases/download/v1.2-20250903-windows.2/pg_bigm-v1.2-20250903-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "16669d52db79534dc3619bcbae07489136c531b244dd1a9e99d9024315c891e3"
         }
       }
     }

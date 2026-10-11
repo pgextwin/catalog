@@ -128,7 +128,7 @@ Attestations are not Release assets, so attestation states do not carry asset fi
 
 For SBOM and vulnerability-report assets, `available: true` requires an asset filename, canonical download URL, and SHA-256. `available: false` must not carry fictional asset metadata.
 
-The initial eight currently published Releases predate the Step 6-10 release path and contain only PostgreSQL 14-18 ZIPs plus `SHA256SUMS.txt`. Their v2 records therefore correctly show Build Provenance Attestation, SBOM asset, SBOM Attestation, and vulnerability report as unavailable. Historical Releases are not modified retroactively.
+The eight historical `.1` Releases from 2026-10-05/06 predate the Step 6-10 attested release path and contain only PostgreSQL 14-18 ZIPs plus `SHA256SUMS.txt`. Their original binary files and historical Release assets are preserved. A successor `.2` Release can be represented as the current distribution only **after** the complete five-major Windows attested build has passed, the complete public Release assets have been verified, and the independently validated Catalog record is merged. Never claim supply-chain evidence for a historical binary on the basis of a newer rebuild.
 
 Future Releases built by the Step 6-10-enabled release path can set the corresponding evidence fields to available when those artifacts/evidence actually exist.
 

@@ -1,31 +1,32 @@
 {
   "schemaVersion": 1,
-  "lastReviewed": "2026-10-08",
+  "lastReviewed": "2026-10-10",
   "windowsBinarySources": [],
   "name": "wal2json",
   "displayName": "wal2json",
   "description": "Logical decoding output plugin emitting JSON",
   "upstreamRepository": "eulerto/wal2json",
-  "status": "candidate",
+  "status": "implemented",
   "license": "BSD-3-Clause",
   "currentStableVersion": "2.6",
-  "pg18Support": "unknown",
+  "pg18Support": "supported",
   "pg19Readiness": "unknown",
   "windowsUpstreamSupport": "build-instructions",
-  "knownWindowsBinaryAvailability": "none-identified",
+  "knownWindowsBinaryAvailability": "public",
   "estimatedWindowsEffort": "low",
   "preliminaryPriority": "high",
-  "candidateRationale": "High-value CDC gap: upstream Visual Studio build exists but the official 2.6 Release has no binary assets; PG18 compile and logical-decoding runtime remain a mandatory pilot gate.",
   "evidenceUrls": [
     "https://github.com/eulerto/wal2json/releases/tag/wal2json_2_6",
     "https://github.com/eulerto/wal2json/blob/wal2json_2_6/README.md",
     "https://github.com/eulerto/wal2json/blob/wal2json_2_6/wal2json.vcxproj",
-    "https://github.com/eulerto/wal2json/blob/wal2json_2_6/LICENSE"
+    "https://github.com/eulerto/wal2json/blob/wal2json_2_6/LICENSE",
+    "https://github.com/pgextwin/wal2json/releases/tag/v2.6-windows.1"
   ],
   "roadmap": {
     "decision": "wave-2",
     "order": 3,
     "decisionDate": "2026-10-08",
     "rationale": "Useful CDC JSON plugin and substantial standard-Windows availability gap, with upstream Visual Studio project and slot-based test. PG18 compile/runtime, output callback ABI and deterministic logical decoding must pass an explicit pilot gate."
-  }
+  },
+  "pgextwinCatalogName": "wal2json"
 }
