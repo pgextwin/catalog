@@ -51,31 +51,43 @@ def unpack_content(raw):
 
 
 def verify_policy(local, central):
-    required = {"schemaVersion", "enabled", "extension", "recordPath",
-                "requiredWorkflow", "expectedRepository",
-                "centralPolicyRepository", "notes"}
-    require(type(local) is dict and set(local) == required and
-            local.get("schemaVersion") == 1 and local.get("enabled") is True,
-            "local Catalog automatic merge is not enabled")
-    require(local["extension"] == EXT and local["recordPath"] == PATH and
-            local["requiredWorkflow"] == "validate.yml" and
-            local["expectedRepository"] == REPO and
-            local["centralPolicyRepository"] == "pgextwin/build",
-            "unsupported repository, record or workflow scope")
-    require(type(central) is dict and central.get("schemaVersion") == 1 and
-            central.get("mode") == "UNATTENDED" and
-            central.get("defaultAction") == "DENY" and
-            central.get("pilotRepository") == "pgextwin/plpgsql_check" and
-            central.get("requiredMajorVersions") == [15, 16, 17, 18],
-            "live central policy does not authorize unattended pilot")
-    controls = central.get("controls")
-    require(type(controls) is dict and controls.get("automaticCatalogMerge") is True
-            and controls.get("automaticFormalRelease") is True
-            and controls.get("requireBuildProvenance") is True
-            and controls.get("requireSbomAttestation") is True
-            and controls.get("requireDedicatedMergeApp") is True
-            and controls.get("quarantineOnAmbiguity") is True,
-            "live central policy lacks the required Catalog safeguards")
+    # Catalog may be automatic only AFTER a separately and manually
+    # published, independently verified signed Release. Formal Release
+    # automation is NEVER authorized by this downstream policy.
+    local_fields={"schemaVersion","enabled","extension","recordPath",
+                  "requiredWorkflow","expectedRepository",
+                  "centralPolicyRepository","notes"}
+    require(type(local) is dict and set(local)==local_fields
+            and local.get("schemaVersion")==1 and local.get("enabled") is True,
+            "local downstream Catalog merge is not explicitly enabled")
+    require(local["extension"]==EXT and local["recordPath"]==PATH
+            and local["requiredWorkflow"]=="validate.yml"
+            and local["expectedRepository"]==REPO
+            and local["centralPolicyRepository"]=="pgextwin/build",
+            "unsupported Catalog record, repository or required CI")
+    central_fields={"schemaVersion","enabled","mode","releasePolicy",
+                    "automaticFormalRelease","automaticCatalogMerge",
+                    "allowedExtensions","requiredCatalogWorkflow",
+                    "requirePublishedPublicRelease","requireBuildProvenanceAttestation",
+                    "requireSbomAttestation","requireExactSHA256",
+                    "requireExactHeadRequiredChecks","requireDedicatedMergeApp",
+                    "denyUnknownOrDuplicate","notes"}
+    require(type(central) is dict and set(central)==central_fields
+            and central.get("schemaVersion")==1
+            and central.get("enabled") is True
+            and central.get("mode")=="POST_MANUAL_RELEASE_ONLY"
+            and central.get("releasePolicy")=="manual-dispatch"
+            and central.get("automaticFormalRelease") is False
+            and central.get("automaticCatalogMerge") is True,
+            "central verified downstream-only manual Release policy not enabled")
+    require(central["allowedExtensions"]==[EXT]
+            and central["requiredCatalogWorkflow"]=="validate.yml"
+            and all(central.get(key) is True for key in (
+                "requirePublishedPublicRelease","requireBuildProvenanceAttestation",
+                "requireSbomAttestation","requireExactSHA256",
+                "requireExactHeadRequiredChecks","requireDedicatedMergeApp",
+                "denyUnknownOrDuplicate")),
+            "central Catalog source, signed publication or CI safeguards incomplete")
 
 
 def inspect_pr(pr, files, commits):
@@ -105,9 +117,12 @@ def inspect_pr(pr, files, commits):
 
 def validate_run(runs, sha, branch):
     require(type(runs) is list and len(runs) < 100, "workflow list inaccessible/truncated")
+    # GitHub's required PR checks must pass on the PR itself. A successful
+    # manual workflow_dispatch does NOT satisfy branch protection when the
+    # bot-created pull_request workflow is action_required.
     matches = [r for r in runs if r.get("head_sha") == sha and
                r.get("head_branch") == branch and
-               r.get("event") in {"workflow_dispatch", "pull_request"}]
+               r.get("event") == "pull_request"]
     require(bool(matches), "no exact-HEAD independent Catalog validation")
     # Latest run is authoritative; never cherry-pick a historical success.
     latest = max(matches, key=lambda r: (r.get("created_at", ""), r.get("id", 0)))
@@ -145,7 +160,7 @@ def perform(config_path, dry_run=False):
             "App token and explicit repository variable required")
     local = json.loads(Path(config_path).read_text(encoding="utf-8"))
     central = unpack_content(api(
-        "repos/pgextwin/build/contents/metadata/unattended-publication.json?ref=main"))
+        "repos/pgextwin/build/contents/metadata/manual-release-downstream.json?ref=main"))
     verify_policy(local, central)
     pulls = api("repos/" + REPO + "/pulls?state=open&per_page=100")
     require(type(pulls) is list and len(pulls) < 100,
