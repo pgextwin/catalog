@@ -21,9 +21,14 @@ import sys
 import tempfile
 from zipfile import ZipFile, BadZipFile
 
-from verified_release_record import (
-    ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
-)
+if __package__:
+    from .verified_release_record import (
+        ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+    )
+else:
+    from verified_release_record import (
+        ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+    )
 
 SIGNER = "pgextwin/build/.github/workflows/build-extension-attested.yml"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -198,6 +203,8 @@ def verify_payload(folder, release, manifest, contract, source_commit, active):
 def generate(extension, tag, record, today=None):
     require(extension in ALLOWED, "extension not on exact 14-repository allowlist")
     repo = "pgextwin/" + extension
+    require(isinstance(tag, str) and re.fullmatch(r"v[A-Za-z0-9._-]+-windows\.[1-9][0-9]*", tag),
+            "invalid formal Release tag")
     require(record.is_file() and record.name == extension + ".json"
             and record.parent.name == "extensions", "Catalog destination identity mismatch")
     release = api("repos/" + repo + "/releases/tags/" + tag)
