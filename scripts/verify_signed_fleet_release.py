@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import argparse
 import base64
-from datetime import date
+from datetime import date, datetime
 import hashlib
 import json
 import os
@@ -200,6 +200,26 @@ def verify_payload(folder, release, manifest, contract, source_commit, active):
     return asset_map, sums, run_id
 
 
+def deny_catalog_rollback(existing, release):
+    """A valid old signature is not permission to replace newer public Catalog state."""
+    current = (existing.get("latest") or {})
+    old = current.get("publishedAt")
+    if not old:
+        return
+    new = release.get("published_at")
+    require(isinstance(new, str), "release lacks publication timestamp")
+    try:
+        old_date = datetime.fromisoformat(old.replace("Z", "+00:00"))
+        new_date = datetime.fromisoformat(new.replace("Z", "+00:00"))
+        require(old_date.tzinfo is not None and new_date.tzinfo is not None,
+                "Catalog publication timestamp missing timezone")
+    except (AttributeError, ValueError) as exc:
+        raise Denied("invalid published timestamp in release/Catalog") from exc
+    require(new_date >= old_date, "refuse to downgrade Catalog to an older Release")
+    require(new_date != old_date or current.get("releaseTag") == release.get("tag_name"),
+            "different Release tag shares same publication timestamp")
+
+
 def generate(extension, tag, record, today=None):
     require(extension in ALLOWED, "extension not on exact 14-repository allowlist")
     repo = "pgextwin/" + extension
@@ -242,6 +262,7 @@ def generate(extension, tag, record, today=None):
                "--signer-workflow", SIGNER,
                "--predicate-type", "https://spdx.dev/Document/v2.3")
     original = json.loads(record.read_text(encoding="utf-8"))
+    deny_catalog_rollback(original, release)
     mapped = map_verified_release(original, release, manifest, contract,
                                 assets, sums, source_commit, active)
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
