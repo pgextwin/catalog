@@ -26,13 +26,16 @@ def good():
 
 
 def policy():
-    return {"schemaVersion": 1, "mode": "UNATTENDED", "defaultAction": "DENY",
-            "pilotRepository": "pgextwin/plpgsql_check",
-            "requiredMajorVersions": [15, 16, 17, 18],
-            "controls": {x: True for x in (
-                "automaticCatalogMerge", "automaticFormalRelease",
-                "requireBuildProvenance", "requireSbomAttestation",
-                "requireDedicatedMergeApp", "quarantineOnAmbiguity")}}
+    return {"schemaVersion": 1, "enabled": True,
+            "mode": "POST_MANUAL_RELEASE_ONLY",
+            "releasePolicy": "manual-dispatch",
+            "automaticFormalRelease": False, "automaticCatalogMerge": True,
+            "allowedExtensions": ["plpgsql_check"], "requiredCatalogWorkflow": "validate.yml",
+            "requirePublishedPublicRelease": True,
+            "requireBuildProvenanceAttestation": True, "requireSbomAttestation": True,
+            "requireExactSHA256": True, "requireExactHeadRequiredChecks": True,
+            "requireDedicatedMergeApp": True, "denyUnknownOrDuplicate": True,
+            "notes": "manual Release downstream test"}
 
 
 class CatalogAutomaticMerge(unittest.TestCase):
@@ -57,9 +60,22 @@ class CatalogAutomaticMerge(unittest.TestCase):
         with self.assertRaises(mod.AutoMergeDenied):
             mod.verify_policy(local, policy())
         p = policy()
-        p["controls"]["automaticFormalRelease"] = False
+        p["automaticFormalRelease"] = True
         with self.assertRaises(mod.AutoMergeDenied):
             mod.verify_policy(self.local(), p)
+        for field, invalid in (
+            ("enabled", False),
+            ("mode", "UNATTENDED"),
+            ("releasePolicy", "automatic"),
+            ("automaticCatalogMerge", False),
+            ("requireSbomAttestation", False),
+            ("requireExactHeadRequiredChecks", False),
+            ("allowedExtensions", ["plpgsql_check", "evil"])):
+            with self.subTest(field=field):
+                q = policy()
+                q[field] = invalid
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.verify_policy(self.local(), q)
 
     def test_owned_exact_record_only_pr(self):
         self.assertEqual(mod.inspect_pr(*good()), (21, SHA, BRANCH, TAG))
@@ -82,18 +98,22 @@ class CatalogAutomaticMerge(unittest.TestCase):
 
     def test_never_cherry_pick_a_stale_ci_success(self):
         runs = [{"head_sha": SHA, "head_branch": BRANCH,
-                 "event": "workflow_dispatch", "status": "completed",
+                 "event": "pull_request", "status": "completed",
                  "conclusion": "success", "created_at": "2026-10-09T01:00:00Z",
                  "id": 1}]
         mod.validate_run(runs, SHA, BRANCH)
         runs.append({"head_sha": SHA, "head_branch": BRANCH,
-                     "event": "workflow_dispatch", "status": "completed",
+                     "event": "pull_request", "status": "completed",
                      "conclusion": "failure", "created_at": "2026-10-09T02:00:00Z",
                      "id": 2})
         with self.assertRaises(mod.AutoMergeDenied):
             mod.validate_run(runs, SHA, BRANCH)
         with self.assertRaises(mod.AutoMergeDenied):
             mod.validate_run([], SHA, BRANCH)
+        # A manually dispatched check on the same SHA cannot bypass a native
+        # pull_request action_required status or satisfy protected branch CI.
+        with self.assertRaises(mod.AutoMergeDenied):
+            mod.validate_run([{**runs[0], "event": "workflow_dispatch"}], SHA, BRANCH)
 
 
 if __name__ == "__main__":
