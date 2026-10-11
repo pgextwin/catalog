@@ -1,0 +1,151 @@
+name: Propose fully verified manual signed Release to Catalog (all 14; opt-in)
+
+on:
+  workflow_dispatch:
+    inputs:
+      extension:
+        description: Exactly one pgextwin extension
+        required: true
+        type: choice
+        options:
+          - pg_bigm
+          - pg_cron
+          - pg_hint_plan
+          - pgaudit
+          - set_user
+          - pg_repack
+          - pg_ivm
+          - pg_qualstats
+          - plpgsql_check
+          - hypopg
+          - wal2json
+          - pg_partman
+          - pg_stat_monitor
+          - orafce
+      release_tag:
+        description: Already public and operator-PUBLISH signed Release tag
+        required: true
+        type: string
+
+concurrency:
+  group: catalog-propose-verified-${{ inputs.extension }}-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    name: Independent exact-asset audit then optional App-owned Catalog record PR
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    steps:
+      - name: Checkout trusted Catalog main without persistent write token
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+      - name: Run offline fail-closed test suite
+        run: python -m unittest discover -s tests -v
+      - name: Rehash all signed assets and independently authorize one Catalog record
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXTENSION: ${{ inputs.extension }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "base_record_sha=$(git hash-object "extensions/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
+          python scripts/verify_signed_fleet_release.py \
+            --extension "$EXTENSION" --release-tag "$RELEASE_TAG" \
+            --record-output "extensions/$EXTENSION.json" \
+            | tee "$RUNNER_TEMP/verified-catalog-record.json"
+      - name: Validate proposed record against Catalog schema and live sources
+        if: steps.verify.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/validate_landscape.py
+          python scripts/validate_catalog.py
+          python scripts/validate_catalog.py --verify-remote
+      - name: Preserve immutable verification evidence (never a Release asset)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-catalog-proposal
+          path: |
+            extensions/${{ inputs.extension }}.json
+            ${{ runner.temp }}/verified-catalog-record.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Create narrow Catalog proposer App token only after verification
+        id: proposer-token
+        if: steps.verify.outputs.changed == 'true' && vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.PGEXTWIN_CATALOG_PROPOSER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PGEXTWIN_CATALOG_PROPOSER_APP_PRIVATE_KEY }}
+          owner: pgextwin
+          repositories: catalog
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Checkout trusted Catalog main with dedicated App (no untrusted PR code)
+        if: steps.proposer-token.outcome == 'success'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: proposed
+          token: ${{ steps.proposer-token.outputs.token }}
+          persist-credentials: true
+      - name: Create immutable one-record PR with native PR CI (never auto-merge)
+        if: steps.proposer-token.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.proposer-token.outputs.token }}
+          EXTENSION: ${{ inputs.extension }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          BASE_RECORD_SHA: ${{ steps.verify.outputs.base_record_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd proposed
+          branch="auto-catalog/$EXTENSION-$RELEASE_TAG"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "::error::Catalog proposal branch already exists; do not overwrite or duplicate it."
+            exit 1
+          fi
+          if [[ "$(git hash-object "extensions/$EXTENSION.json")" != "$BASE_RECORD_SHA" ]]; then
+            echo "::error::Catalog main record changed after signed verification; refuse stale overwrite"
+            exit 1
+          fi
+          cp "../extensions/$EXTENSION.json" "extensions/$EXTENSION.json"
+          git switch -c "$branch"
+          git config user.name "pgextwin-catalog-proposer[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "extensions/$EXTENSION.json"
+          actual="$(git diff --cached --name-only)"
+          if [[ "$actual" != "extensions/$EXTENSION.json" ]]; then
+            echo "::error::Catalog proposed diff must contain exactly one verified extension record"
+            exit 1
+          fi
+          git commit -m "catalog: verified operator release $EXTENSION $RELEASE_TAG"
+          git push -u origin "$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "catalog: verified $EXTENSION $RELEASE_TAG" \
+            --body "Independent public ZIP/SPDX/Grype SHA256 rehash, GitHub attestations, full per-major source SHA pins, main-only operator-PUBLISH workflow and Catalog validators passed. This is a proposal ONLY. Protected native PR validate must pass at exact head before any merge. No auto-Release or auto-merge."
+          echo "Created App-owned signed Catalog PR; pending native protected PR CI and review of verification evidence." >> "$GITHUB_STEP_SUMMARY"
+      - name: Report record unchanged or proposer deliberately disabled
+        if: steps.verify.outputs.changed != 'true' || vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED != 'true'
+        env:
+          CHANGED: ${{ steps.verify.outputs.changed }}
+          ENABLED: ${{ vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED }}
+        run: |
+          echo "Signed Release verification completed. Record changed=$CHANGED; App-based PR proposer enabled=$ENABLED. No Catalog PR was pushed by this run." >> "$GITHUB_STEP_SUMMARY"

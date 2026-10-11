@@ -180,5 +180,22 @@ class SignedEvidenceTests(unittest.TestCase):
                                             "b"*40)
 
 
+    def test_catalog_downgrade_and_same_timestamp_replay_denied(self):
+        existing = {"latest": {"releaseTag": "v2.10.15-windows.1",
+                               "publishedAt": "2026-10-12T12:00:00Z"}}
+        release = {"tag_name": "v2.10.14-windows.1",
+                   "published_at": "2026-10-11T12:00:00Z"}
+        with self.assertRaises(verifier.Denied):
+            verifier.deny_catalog_rollback(existing, release)
+        release["published_at"] = "2026-10-12T12:00:00Z"
+        with self.assertRaises(verifier.Denied):
+            verifier.deny_catalog_rollback(existing, release)
+        release["tag_name"] = "v2.10.15-windows.1"
+        verifier.deny_catalog_rollback(existing, release)
+        release["tag_name"] = "v2.10.16-windows.1"
+        release["published_at"] = "2026-10-13T12:00:00Z"
+        verifier.deny_catalog_rollback(existing, release)
+
+
 if __name__ == "__main__":
     unittest.main()
