@@ -1,0 +1,62 @@
+name: Auto-merge independently verified Catalog Release (opt-in)
+
+on:
+  workflow_run:
+    workflows:
+      - Validate catalog
+    types: [completed]
+  schedule:
+    # 12:00 JST fallback; GitHub cron execution is best effort.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-verified-release-auto-merge
+  cancel-in-progress: false
+
+jobs:
+  merge-record-only-pr:
+    # A dedicated installation token is REQUIRED. Disabled by default.
+    if: >-
+      vars.PGEXTWIN_CATALOG_AUTOMERGE_ENABLED == 'true' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 25
+    steps:
+      - name: Checkout trusted Catalog main (never the PR code)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Verify offline fail-closed controller tests
+        run: python tests/test_auto_merge_verified_release.py
+
+      - name: Create minimal short-lived Catalog merge App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.PGEXTWIN_CATALOG_MERGE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PGEXTWIN_CATALOG_MERGE_APP_PRIVATE_KEY }}
+          owner: pgextwin
+          repositories: catalog
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Match signed Release, exact PR SHA and latest validation before merge
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          PGEXTWIN_CATALOG_AUTOMERGE_ENABLED: ${{ vars.PGEXTWIN_CATALOG_AUTOMERGE_ENABLED }}
+        run: python scripts/auto_merge_verified_release.py --config config/verified-release-auto-merge.json
