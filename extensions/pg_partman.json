@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "name": "pg_partman",
   "displayName": "pg_partman",
-  "description": "Time-based and ID-based partition maintenance; SQL-only (BGW excluded).",
+  "description": "Time-based and ID-based partition maintenance; optional BGW DLL included. SQL features work without preload.",
   "upstream": {
     "repository": "pgpartman/pg_partman",
     "version": "5.5.0"

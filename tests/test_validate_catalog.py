@@ -54,6 +54,18 @@ class CatalogV2ValidationTests(unittest.TestCase):
         self.assertEqual(40, len(record["capabilitiesSource"]["commit"]))
         self.assertTrue(all(metadata["evidence"]["buildProvenanceAttestation"]["available"] and metadata["evidence"]["sbomAttestation"]["available"] for metadata in record["postgresql"].values()))
 
+
+    def test_pg_partman_release_describes_optional_bundled_bgw(self):
+        record = validate_catalog.load_json(
+            ROOT / "extensions" / "pg_partman.json"
+        )
+        self.assertEqual([], self.errors_for(record))
+        self.assertIn("BGW DLL included", record["description"])
+        self.assertNotIn("BGW excluded", record["description"])
+        self.assertTrue(record["runtime"]["requirements"]["backgroundWorker"])
+        self.assertEqual("optional", record["runtime"]["requirements"]["preload"])
+        self.assertEqual("covered", record["capabilities"]["coverage"]["backgroundWorker"])
+
     def test_valid_v2_record(self):
         self.assertEqual([], self.errors_for(copy.deepcopy(self.valid)))
 
