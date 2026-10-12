@@ -79,6 +79,23 @@ def required_majors(manifest, lifecycle, today):
     return active
 
 
+def published_release_day(release):
+    """Use immutable Release publication time, not the later Catalog sync date.
+
+    A pre-EOL PG14 Release can still be synchronized after PG14 becomes
+    historical; its already-published signed PG14 asset is not an extra file.
+    """
+    raw = release.get("published_at")
+    require(isinstance(raw, str), "missing Release publication timestamp")
+    try:
+        published = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise Denied("invalid Release publication timestamp") from exc
+    require(published.tzinfo is not None,
+            "Release publication timestamp missing timezone")
+    return published.date()
+
+
 def check_source_package(pkg, repo, source_commit, major, source):
     """Fail closed on exact per-PG upstream and packaging/run identities."""
     require(type(pkg) is dict and pkg.get("schemaVersion") == 1
@@ -223,7 +240,7 @@ def deny_catalog_rollback(existing, release):
             "different Release tag shares same publication timestamp")
 
 
-def generate(extension, tag, record, today=None):
+def generate(extension, tag, record):
     require(extension in ALLOWED, "extension not on exact 14-repository allowlist")
     repo = "pgextwin/" + extension
     require(isinstance(tag, str) and re.fullmatch(r"v[A-Za-z0-9._-]+-windows\.[1-9][0-9]*", tag),
@@ -246,7 +263,7 @@ def generate(extension, tag, record, today=None):
     lifecycle_raw = api("repos/pgextwin/build/contents/metadata/postgresql.json?ref=main")
     require(lifecycle_raw.get("encoding") == "base64", "PG lifecycle unavailable")
     lifecycle = json.loads(base64.b64decode(lifecycle_raw["content"]).decode("utf-8"))
-    active = required_majors(manifest, lifecycle, today or date.today())
+    active = required_majors(manifest, lifecycle, published_release_day(release))
     require(manifest.get("name") == extension
             and contract.get("extension") == extension
             and contract.get("contractVersion") == 2, "wrong immutable source/contract")
