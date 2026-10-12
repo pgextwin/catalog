@@ -81,6 +81,7 @@ class DriftTests(unittest.TestCase):
             lambda rec, releases: rec["latest"].update(releaseTag="v2.8-windows.1"),
             lambda rec, releases: releases.append(deepcopy(releases[1])),
             lambda rec, releases: releases[1].update(published_at=None),
+            lambda rec, releases: releases[0].update(published_at=releases[1]["published_at"]),
             lambda rec, releases: releases[1].update(target_commitish="not-pinned"),
             lambda rec, releases: releases[1].update(assets=[]),
             lambda rec, releases: releases[1].update(draft=True),
