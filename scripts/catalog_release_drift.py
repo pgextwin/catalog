@@ -16,7 +16,7 @@ import re
 
 from verified_release_record import ALLOWED, Denied, require
 
-TAG = re.compile(r"^v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\\.[1-9][0-9]*$")
+TAG = re.compile(r"^v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\.[1-9][0-9]*$")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 
 
