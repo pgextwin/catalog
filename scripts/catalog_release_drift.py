@@ -71,7 +71,8 @@ def classify(record, releases, *, pending_tags=()):
                 and len(release["assets"]) > 0,
                 "malformed stable Release requires investigation")
         stable.append((published_at(release.get("published_at")), tag))
-    require(stable and len(set(stable)) == len(stable), "no unique published stable Releases")
+    require(stable and len({when for when, _tag in stable}) == len(stable),
+            "ambiguous shared publication timestamps across Release tags")
     matching = [when for when, tag in stable if tag == current["releaseTag"]]
     require(len(matching) == 1 and matching[0] == current_time,
             "Catalog current Release is not independently confirmed by history")
