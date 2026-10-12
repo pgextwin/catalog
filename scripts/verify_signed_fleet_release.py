@@ -109,12 +109,15 @@ def check_source_package(pkg, repo, source_commit, major, source):
 
 def verify_main_run(repo, run_id, source_commit):
     run = api("repos/" + repo + "/actions/runs/" + str(run_id))
-    wf = str(run.get("path") or "").split("@", 1)[0]
+    # GitHub REST Actions runs return ".github/workflows/promote.yml" as
+    # `path` (not "owner/repo/.github/workflows/promote.yml"). Accept the
+    # exact repository-relative workflow, never an arbitrary suffixed path.
+    wf = run.get("path")
     operator = (run.get("actor") or {}).get("login", "")
     require(run.get("head_sha") == source_commit
             and run.get("head_branch") == "main"
             and run.get("event") == "workflow_dispatch"
-            and wf == repo + "/.github/workflows/promote.yml",
+            and wf == ".github/workflows/promote.yml",
             "untrusted formal Promotion workflow/SHA/event")
     require(isinstance(operator, str) and operator and not operator.endswith("[bot]"),
             "no identified human operator for PUBLISH")

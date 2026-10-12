@@ -143,14 +143,16 @@ class SignedEvidenceTests(unittest.TestCase):
     def test_manual_run_must_be_main_operator_and_success(self):
         run = {"head_sha": "c"*40, "head_branch": "main",
                "event": "workflow_dispatch",
-               "path": "pgextwin/orafce/.github/workflows/promote.yml@refs/heads/main",
+               "path": ".github/workflows/promote.yml",
                "actor": {"login": "trusted-operator"},
                "status": "completed", "conclusion": "success"}
         with patch.object(verifier, "api", return_value=run):
             verifier.verify_main_run("pgextwin/orafce", 902, "c"*40)
         for key, wrong in (("head_sha", "a"*40), ("event", "push"),
                            ("conclusion", "failure"),
-                           ("path", "pgextwin/orafce/.github/workflows/windows.yml")):
+                           ("path", "pgextwin/orafce/.github/workflows/promote.yml"),
+                           ("path", ".github/workflows/windows.yml"),
+                           ("path", ".github/workflows/promote.yml@refs/heads/main")):
             bad = copy.deepcopy(run)
             bad[key] = wrong
             with patch.object(verifier, "api", return_value=bad):
