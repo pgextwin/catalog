@@ -173,6 +173,33 @@ class SignedEvidenceTests(unittest.TestCase):
         self.assertEqual(verifier.required_majors(
             manifest, lifecycle, date(2026, 11, 13)), [15, 16, 17, 18])
 
+    def test_release_major_matrix_uses_publication_day_not_sync_day(self):
+        manifest = {"postgresql": {"majors": [14, 15, 16, 17, 18]}}
+        lifecycle = {"postgresql": [
+            {"major": m, "eol": "2026-11-12" if m == 14 else "2030-11-14"}
+            for m in range(14, 19)
+        ]}
+        pre_eol_release = {"published_at": "2026-11-12T23:59:00Z"}
+        post_eol_release = {"published_at": "2026-11-13T00:01:00Z"}
+        self.assertEqual(
+            verifier.required_majors(
+                manifest, lifecycle, verifier.published_release_day(pre_eol_release)),
+            [14, 15, 16, 17, 18])
+        self.assertEqual(
+            verifier.required_majors(
+                manifest, lifecycle, verifier.published_release_day(post_eol_release)),
+            [15, 16, 17, 18])
+        # Even if the Catalog proposal happens days later, the signed
+        # Release's actual PG14 payload remains valid historical evidence.
+        self.assertEqual(
+            verifier.published_release_day(pre_eol_release), date(2026, 11, 12))
+
+    def test_release_publication_timestamp_must_have_timezone(self):
+        for stamp in ("invalid", "2026-11-12T23:59:00"):
+            with self.subTest(stamp=stamp):
+                with self.assertRaises(verifier.Denied):
+                    verifier.published_release_day({"published_at": stamp})
+
     def test_denies_replayed_or_unknown_tag_commit(self):
         with patch.object(verifier, "api", return_value={
             "object": {"type": "commit", "sha": "a"*40}
