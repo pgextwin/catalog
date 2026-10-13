@@ -119,14 +119,18 @@ class SnapshotTests(TestCase):
                 response = io.BytesIO(b"[]")
                 response.status = 200
                 response.headers = {"Link": link}
-                with mock.patch.object(live, "urlopen", return_value=response) as request:
+                with mock.patch.object(live, "build_opener") as factory:
+                    factory.return_value.open.return_value = response
                     api = live.GitHubReadOnly("test-read-token")
                     if denied:
                         with self.assertRaises(live.Denied):
                             api.get(EXT, "releases?per_page=100&page=1")
                     else:
                         self.assertEqual(api.get(EXT, "releases?per_page=100&page=1"), [])
+                    request = factory.return_value.open
                     self.assertEqual(request.call_args.args[0].get_method(), "GET")
+                    self.assertTrue(any(isinstance(x, live.DenyRedirect)
+                                        for x in factory.call_args.args))
 
 
 if __name__ == "__main__":
