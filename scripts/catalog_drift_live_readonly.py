@@ -59,12 +59,12 @@ class GitHubReadOnly:
                 "invalid GitHub read-only REST path")
         if repo == "pgextwin/catalog":
             if path == "branches/main" or (
-                re.fullmatch(r"contents/extensions/([a-z][a-z0-9_]*)\\.json\\?ref=[0-9a-f]{40}", path)
+                re.fullmatch(r"contents/extensions/([a-z][a-z0-9_]*)\.json\?ref=[0-9a-f]{40}", path)
                 and path.split("/")[2].split(".json")[0] in ALLOWED
             ):
                 return
             if path == "pulls?state=open&base=main&per_page=100" or (
-                re.fullmatch(r"pulls/[1-9][0-9]*/files\\?per_page=100", path)
+                re.fullmatch(r"pulls/[1-9][0-9]*/files\?per_page=100", path)
             ):
                 return
         if repo in {"pgextwin/" + name for name in ALLOWED}:
@@ -86,7 +86,7 @@ class GitHubReadOnly:
                 # Page-one inventory is never accepted if any next page exists.
                 link = response.headers.get("Link", "")
                 require(type(link) is str and re.search(
-                    r'\\brel\\s*=\\s*"?next"?', link, re.I
+                    r'\brel\s*=\s*"?next"?', link, re.I
                 ) is None, "incomplete GitHub pagination")
                 body = response.read(MAX_RESPONSE_BYTES + 1)
                 require(len(body) <= MAX_RESPONSE_BYTES, "GitHub response too large")
