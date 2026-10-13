@@ -23,11 +23,11 @@ ALLOWED = frozenset({
 })
 
 
-def audited_snapshot(api):
-    result = inspect(api, EXTENSION)
+def audited_snapshot(api, extension=EXTENSION):
+    result = inspect(api, extension)
     require(type(result) is dict
             and result.get("source") == "authenticated-github-readonly"
-            and result.get("repository") == "pgextwin/wal2json"
+            and result.get("repository") == "pgextwin/" + extension
             and result.get("status") in ALLOWED
             and result.get("gitHubCollectionsComplete") is True
             and result.get("candidateArtifactsAndAttestation") == "NOT_VERIFIED"
@@ -58,13 +58,13 @@ def audited_snapshot(api):
     return result
 
 
-def audit(api):
-    first = audited_snapshot(api)
-    second = audited_snapshot(api)
+def audit(api, extension=EXTENSION):
+    first = audited_snapshot(api, extension)
+    second = audited_snapshot(api, extension)
     require(first == second, "GitHub Catalog/Release/open PR evidence raced")
     return {
         "status": first["status"],
-        "extension": EXTENSION,
+        "extension": extension,
         "catalogTag": first["catalogTag"],
         "candidateTag": first["candidateTag"],
         "catalogMainSha": first["catalogMainSha"],
