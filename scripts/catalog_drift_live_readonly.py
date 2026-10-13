@@ -15,7 +15,14 @@ import json
 import os
 import re
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, HTTPRedirectHandler
+
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+
+
+class DenyRedirect(HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
+        return None
 
 from catalog_release_drift import classify
 from verified_release_record import ALLOWED, Denied, require
@@ -43,13 +50,30 @@ class GitHubReadOnly:
     def __init__(self, token):
         require(type(token) is str and bool(token), "authenticated read token missing")
         self.token = token
+        # Refuse to forward bearer tokens via HTTP redirects.
+        self._open = build_opener(DenyRedirect()).open
+
+    @staticmethod
+    def allowlisted(repo, path):
+        require(type(path) is str and path and len(path) <= 210,
+                "invalid GitHub read-only REST path")
+        if repo == "pgextwin/catalog":
+            if path == "branches/main" or (
+                re.fullmatch(r"contents/extensions/([a-z][a-z0-9_]*)\\.json\\?ref=[0-9a-f]{40}", path)
+                and path.split("/")[2].split(".json")[0] in ALLOWED
+            ):
+                return
+            if path == "pulls?state=open&base=main&per_page=100" or (
+                re.fullmatch(r"pulls/[1-9][0-9]*/files\\?per_page=100", path)
+            ):
+                return
+        if repo in {"pgextwin/" + name for name in ALLOWED}:
+            if path == "releases?per_page=100&page=1":
+                return
+        raise Denied("GitHub GET path not on Catalog read-only allowlist")
 
     def get(self, repo, path):
-        require(repo == "pgextwin/catalog" or repo in
-                {"pgextwin/" + name for name in ALLOWED}, "repository not allowlisted")
-        require(type(path) is str and path and
-                not any(part in ("..", ".") for part in path.split("/")),
-                "unsafe GitHub REST path")
+        self.allowlisted(repo, path)
         url = "https://api.github.com/repos/" + repo + "/" + path
         request = Request(url, method="GET", headers={
             "Authorization": "Bearer " + self.token,
@@ -57,18 +81,23 @@ class GitHubReadOnly:
             "X-GitHub-Api-Version": "2022-11-28",
         })
         try:
-            with urlopen(request, timeout=20) as response:
+            with self._open(request, timeout=20) as response:
                 require(response.status == 200, "unexpected GitHub HTTP status")
-                # Do not infer absence of other public Releases/open PRs from
-                # page 1 when an API collection is actually paginated.
+                # Page-one inventory is never accepted if any next page exists.
                 link = response.headers.get("Link", "")
-                require(re.search(r'\brel\s*=\s*"?next"?', link, re.I) is None,
-                        "incomplete GitHub pagination")
-                return json.load(response)
-        except HTTPError as exc:
-            raise Denied("GitHub read refused (HTTP " + str(exc.code) + ")") from exc
-        except (URLError, ValueError) as exc:
-            raise Denied("GitHub read unavailable or malformed") from exc
+                require(type(link) is str and re.search(
+                    r'\\brel\\s*=\\s*"?next"?', link, re.I
+                ) is None, "incomplete GitHub pagination")
+                body = response.read(MAX_RESPONSE_BYTES + 1)
+                require(len(body) <= MAX_RESPONSE_BYTES, "GitHub response too large")
+        except HTTPError:
+            raise Denied("GitHub read refused or redirected") from None
+        except (URLError, ValueError, TypeError, OSError, TimeoutError):
+            raise Denied("GitHub read unavailable or malformed") from None
+        try:
+            return json.loads(body.decode("utf-8"), object_pairs_hook=unique_json_pairs)
+        except (UnicodeError, ValueError, TypeError):
+            raise Denied("GitHub JSON malformed or duplicated") from None
 
 
 def inspect(api, extension):
