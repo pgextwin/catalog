@@ -1,0 +1,53 @@
+name: Catalog wal2json read-only Release drift audit (Issue 75)
+
+# Protected main only. This scheduled audit deliberately cannot propose,
+# merge, release, dispatch, change tags or promote any signed artifact.
+# 00:30 UTC = 09:30 JST, after the existing 09:00 JST update watch.
+on:
+  schedule:
+    - cron: '30 0 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/catalog-drift-readonly.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-issue-75-drift-readonly-main
+  cancel-in-progress: false
+
+jobs:
+  drift-readonly:
+    name: Catalog wal2json public metadata drift (inert)
+    if: ${{ github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'push') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout protected Catalog main at exact triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+
+      - name: Reject unsafe workflow and API changes in offline tests
+        run: |
+          python -m unittest tests.test_catalog_drift_live_readonly tests.test_catalog_scheduled_readonly -v
+
+      - name: Compare two real GitHub snapshots without permissions to write
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/catalog_scheduled_readonly.py
+
+      - name: Confirm read-only audit never authorizes anything
+        if: ${{ success() }}
+        run: echo 'DRY_RUN_CATALOG_DRIFT_ONLY; no signed-Release approval, PR, merge, Dispatch, tag, or publication'
