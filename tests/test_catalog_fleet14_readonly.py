@@ -168,7 +168,7 @@ class Fleet14Tests(TestCase):
             {"GITHUB_TOKEN": ""},
         ):
             with mock.patch.dict(os.environ, dict(env, **changes), clear=True):
-                with self.assertRaises(AssertionError) if False else mock.patch.object(
+                with mock.patch.object(
                         fleet, "GitHubReadOnly", side_effect=lambda token:
                         (fleet.require(bool(token), "missing token"), FakeAPI())[1]):
                     self.assertEqual(fleet.main(), 2)
