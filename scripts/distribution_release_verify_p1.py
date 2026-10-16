@@ -135,6 +135,17 @@ def release_assets(record, release, expected_release_id, expected_repo_id):
     return result
 
 
+
+def require_asset_id_pins(assets, expected_ids):
+    """Pin all immutable numeric Release asset identities out of band."""
+    require(type(expected_ids) is dict and set(expected_ids) == set(assets)
+            and all(type(value) is int and value > 0 for value in expected_ids.values()),
+            "missing/extra externally pinned Release asset IDs")
+    require(all(assets[name]["id"] == asset_id for name, asset_id in expected_ids.items()),
+            "substituted original Release Asset ID")
+    return True
+
+
 def parse_sums(data):
     try:
         lines = data.decode("ascii").splitlines()
@@ -343,5 +354,5 @@ def fleet_counts(records, decisions):
         else:
             totals["blocked"] += 1
             totals["reasons"]["/".join(pair)] = d.get("reason", "verification failed")
-    totals["complete"] = totals["signatureVerified"] == totals["expected"]
+    totals["complete"] = bool(expected) and totals["signatureVerified"] == totals["expected"]
     return totals
