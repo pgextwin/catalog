@@ -252,6 +252,43 @@ class GenuineBatchHostileTests(unittest.TestCase):
             with self.assertRaises(Denied):
                 batch.fetch_jobs("plpgsql_check", 123, "15")
 
+    def test_wal2json_proven_real_publish_job_name_requires_success(self):
+        jobs = [
+            {"id": 114748851643, "name":
+             "Rebuild signed Windows x64 binary and SBOM from verified current main / PostgreSQL 15 / Windows x64",
+             "conclusion": "success"},
+            {"id": 114753316427,
+             "name": "Check signatures, exact SHA256 and create-only Release ID",
+             "conclusion": "success"}
+        ]
+        p = type("Proc", (), {"returncode": 0,
+                              "stdout": json.dumps({"jobs": jobs, "total_count": 2}).encode()})()
+        with patch.object(batch.subprocess, "run", return_value=p):
+            a = batch.fetch_jobs("wal2json", 38230537748, "15")
+            self.assertEqual(a["publicationJobId"], 114753316427)
+            self.assertEqual(a["buildJobId"], 114748851643)
+        jobs[1]["conclusion"] = "failure"
+        p.stdout = json.dumps({"jobs": jobs, "total_count": 2}).encode()
+        with patch.object(batch.subprocess, "run", return_value=p):
+            with self.assertRaises(Denied):
+                batch.fetch_jobs("wal2json", 38230537748, "15")
+        jobs[1]["conclusion"] = "success"
+        jobs[1]["name"] = "Any other publisher success"
+        p.stdout = json.dumps({"jobs": jobs, "total_count": 2}).encode()
+        with patch.object(batch.subprocess, "run", return_value=p):
+            with self.assertRaises(Denied):
+                batch.fetch_jobs("wal2json", 38230537748, "15")
+
+    def test_successor_builder_full_sha_is_explicit_not_automatic(self):
+        root = Path(__file__).resolve().parents[1]
+        policy = json.loads((root / "config/issue112-p1-fleet-pins-20261017.json").read_text())
+        self.assertEqual(
+            set(policy["trustedSignerShas"]),
+            {"8246f4d3415a48b1ad4af13f421277057886b58f",
+             "5756b3c5136a8bf4db710016cfe97555f0a71c6d"})
+        self.assertEqual(policy["signerEvidence"]["wal2jsonSourceCommit"],
+                         "1198ff30137ee3fd01a9e168647a7167324bb713")
+
     def test_root_swap_or_tuf_error_not_signature_verified(self):
         with tempfile.TemporaryDirectory() as d:
             p = type("P", (), {"returncode": 0, "stdout": b"not-matching-root"})()
