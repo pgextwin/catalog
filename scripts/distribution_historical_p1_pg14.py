@@ -171,7 +171,7 @@ def parse_original_historical_sums(data):
     normalized = []
     seen = set()
     for line in lines:
-        match = re.fullmatch(r"([a-f0-9]{64})  \\./([A-Za-z0-9][A-Za-z0-9_.-]*)",
+        match = re.fullmatch(r"([a-f0-9]{64})  \./([A-Za-z0-9][A-Za-z0-9_.-]*)",
                              line)
         require(match is not None, "invalid historical checksum path")
         name = safe_component(match[2])
@@ -181,7 +181,7 @@ def parse_original_historical_sums(data):
         normalized.append(match[1] + "  " + name)
     # Reuse ordinary P1 parsing and duplicate-digest checks with canonical
     # basenames, but do not loosen the ordinary P1 parser itself.
-    return parse_sums(("\\n".join(normalized) + "\\n").encode("ascii"))
+    return parse_sums(("\n".join(normalized) + "\n").encode("ascii"))
 
 
 def validate_row_bytes(root, record, row, assets):
