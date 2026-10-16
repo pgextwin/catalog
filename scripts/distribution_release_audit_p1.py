@@ -92,12 +92,14 @@ def policy_load(path):
     """User must authenticate the digest and origin of THIS policy externally."""
     p = strict_json(path.read_bytes())
     require(type(p) is dict and p.get("schemaVersion") == "pgextwin-p1-readonly-policy/v1"
+            and p.get("signerRepositoryId") == 1405931353
             and type(p.get("catalogCommitSha")) is str
             and HEX40.fullmatch(p["catalogCommitSha"])
             and type(p.get("catalogDigests")) is dict
             and type(p.get("repoIds")) is dict
             and type(p.get("releaseIds")) is dict
             and type(p.get("assetIds")) is dict
+            and type(p.get("pgEol")) is dict
             and type(p.get("trustedSignerShas")) is list
             and p["trustedSignerShas"]
             and all(type(s) is str and HEX40.fullmatch(s) for s in p["trustedSignerShas"])
@@ -129,6 +131,10 @@ def validate_run_pair(root, name, run_id):
 def materialize_online(root, policy):
     """Explicit GET-only capture; downloaded bytes never automatically trusted."""
     commit = policy["catalogCommitSha"]
+    signer_meta = api_json("build")
+    require(signer_meta.get("full_name") == "pgextwin/build"
+            and signer_meta.get("id") == policy["signerRepositoryId"],
+            "reusable signer numeric GitHub repository ID changed")
     index = pinned_content("catalog", "index.json", commit)
     parsed = strict_json(index)
     names = parsed.get("extensions") or []
@@ -206,6 +212,8 @@ def read_snapshot(root, policy):
              for n in names}
     records = verified_catalog(ib, blobs, policy["catalogDigests"],
                                policy["catalogCommitSha"])
+    require(set(policy["pgEol"]) == {str(m) for m in policy["approvedMajors"]},
+            "incomplete independent PG lifecycle registry")
     require(set(policy["repoIds"]) == set(records)
             and set(policy["releaseIds"]) == set(records)
             and set(policy["assetIds"]) == set(records),
