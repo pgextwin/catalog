@@ -121,6 +121,17 @@ def release_assets(record, release, expected_release_id, expected_repo_id):
         result[name] = a
         ids.add(a["id"])
     require(result and "SHA256SUMS.txt" in result, "missing Release checksum asset")
+    for major, row in record["postgresql"].items():
+        if row.get("available") is not True:
+            continue
+        require(row.get("asset") in result
+                and result[row["asset"]]["digest"] == "sha256:" + row.get("sha256", ""),
+                "Release ZIP digest differs from Catalog: PG" + major)
+        for field in ("sbom", "vulnerabilityReport"):
+            e = (row.get("evidence") or {}).get(field) or {}
+            require(e.get("available") is True and e.get("asset") in result
+                    and result[e["asset"]]["digest"] == "sha256:" + e.get("sha256", ""),
+                    "Release evidence digest differs from Catalog: PG" + major)
     return result
 
 
