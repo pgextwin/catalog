@@ -25,7 +25,7 @@ from distribution_release_audit_p1 import (
 )
 from distribution_release_verify_p1 import (
     PROVENANCE, SPDX, sha, verified_catalog, release_assets, require_asset_id_pins,
-    rehash_release, immutable_source, inspect_package, signed_run,
+    rehash_release, immutable_source, inspect_package, signed_run, parse_sums,
     verify_sigstore_offline, MAX_RELEASE,
 )
 from distribution_historical_p1_pg14 import (
@@ -33,7 +33,7 @@ from distribution_historical_p1_pg14 import (
 )
 
 SCHEMA = "pgextwin-p1-genuine-fleet-batch/v1"
-VERIFIER = "batch-v1;distribution_release_verify_p1.py"
+VERIFIER = "batch-v2-strict-original-checksum;distribution_release_verify_p1.py"
 BASELINE = ("pg_bigm", "14", 1405047175, 408449466, 626562095)
 NAMES = ("hypopg", "orafce", "pg_bigm", "pg_cron", "pg_hint_plan", "pg_ivm",
          "pg_partman", "pg_qualstats", "pg_repack", "pg_stat_monitor",
@@ -55,46 +55,93 @@ def original_profile(name, release):
     return "main-promotion/v1"
 
 
-def rehash_common_original(directory, assets, record, name, release):
-    """Only the single previously evidenced original Release admits ./basename."""
-    profile = original_profile(name, release)
-    if profile == "main-promotion/v1":
-        return rehash_release(directory, assets, record)
-    require(assets["SHA256SUMS.txt"]["id"] == HISTORICAL_PG14_PIN["sumsAssetId"]
-            and assets["SHA256SUMS.txt"]["digest"] ==
-                "sha256:" + HISTORICAL_PG14_PIN["sumsSha256"],
-            "historical original checksum asset not independently pinned")
+def parse_pinned_original_sums(data, expected_names):
+    """Exact original spelling observed from real, full-SHA-pinned Release bytes.
+
+    Parse only homogeneous 15-row canonical basenames or homogeneous literal
+    ./basenames; no ambiguous aliases, traversal, mixed forms or duplicates.
+    This is solely Release transport syntax, NOT a workflow/signature profile.
+    """
+    require(type(data) is bytes and 0 < len(data) <= 8192
+            and type(expected_names) is set and len(expected_names) == 15,
+            "invalid original checksum shape")
+    try:
+        lines = data.decode("ascii").splitlines()
+    except UnicodeDecodeError as exc:
+        raise Denied("original checksum non-ASCII") from exc
+    require(len(lines) == 15, "missing/extra original checksum lines")
+    canonical = [re.fullmatch(r"([a-f0-9]{64})  ([A-Za-z0-9][A-Za-z0-9_.-]*)", line)
+                 for line in lines]
+    dot = [re.fullmatch(r"([a-f0-9]{64})  \./([A-Za-z0-9][A-Za-z0-9_.-]*)", line)
+           for line in lines]
+    if all(canonical):
+        sums = parse_sums(data)
+    else:
+        require(all(dot), "mixed/unsafe original checksum aliases")
+        require(len({m[2].casefold() for m in dot}) == 15,
+                "duplicate/case-colliding dot-prefixed aliases")
+        sums = parse_sums(("\n".join(m[1] + "  " + m[2] for m in dot) +
+                           "\n").encode("ascii"))
+    require(set(sums) == expected_names and
+            len({n.casefold() for n in sums}) == len(sums),
+            "original checksum names differ from complete pinned Release")
+    return sums
+
+
+def rehash_dot_pinned_original(directory, assets, record, *, historical=False):
+    """Recheck all original bytes against numeric-pinned metadata and Catalog."""
     require(directory.is_dir() and not directory.is_symlink()
-            and len(assets) == 16
-            and sum(a["size"] for a in assets.values()) <= MAX_RELEASE,
-            "historical original Release 16-Asset shape mismatch")
+            and len(assets) == 16 and sum(a["size"] for a in assets.values()) <= MAX_RELEASE,
+            "pinned Release 16-Asset shape mismatch")
     entries = list(directory.iterdir())
     require(len(entries) == len(assets) and {p.name for p in entries} == set(assets)
             and all(p.is_file() and not p.is_symlink() for p in entries),
-            "historical Release missing/extra/linked payload")
+            "Release missing/extra/linked payload")
     hashes = {}
     for filename, asset in assets.items():
         path = directory / filename
-        require(path.stat().st_size == asset["size"],
-                "historical original Asset size mismatch")
+        require(path.stat().st_size == asset["size"], "original Asset size mismatch")
         hashes[filename] = sha(path)
         require(asset["digest"] == "sha256:" + hashes[filename],
-                "historical original Asset real-byte SHA mismatch")
-    sums = parse_original_historical_sums(
-        (directory / "SHA256SUMS.txt").read_bytes(),
-        set(assets) - {"SHA256SUMS.txt"})
+                "original Asset real-byte SHA mismatch")
+    raw = (directory / "SHA256SUMS.txt").read_bytes()
+    sums = (parse_original_historical_sums(raw, set(assets) - {"SHA256SUMS.txt"})
+            if historical else parse_pinned_original_sums(
+                raw, set(assets) - {"SHA256SUMS.txt"}))
     require(all(hashes[n] == digest for n, digest in sums.items()),
-            "historical original 15 checksums disagree with actual bytes")
+            "15 original checksums disagree with actual Asset bytes")
     for major, row in record["postgresql"].items():
         if row.get("available") is not True:
             continue
         require(hashes[row["asset"]] == row["sha256"],
-                "historical Catalog ZIP digest mismatch " + major)
+                "Catalog ZIP real-byte SHA mismatch " + major)
         for field in ("sbom", "vulnerabilityReport"):
             evidence = row["evidence"][field]
             require(hashes[evidence["asset"]] == evidence["sha256"],
-                    "historical Catalog evidence digest mismatch " + major)
+                    "Catalog SBOM/Grype real-byte SHA mismatch " + major)
     return hashes
+
+
+def rehash_common_original(directory, assets, record, name, release):
+    """Strict ordinary P1 first; original syntax fallback only for pinned IDs.
+
+    The original immutable SHA256SUMS and all 15 other assets are SHA256-matched
+    before alias parsing. This does not change promotion/source/run/crypto policy.
+    """
+    if original_profile(name, release) != "main-promotion/v1":
+        require(assets["SHA256SUMS.txt"]["id"] == HISTORICAL_PG14_PIN["sumsAssetId"]
+                and assets["SHA256SUMS.txt"]["digest"] ==
+                    "sha256:" + HISTORICAL_PG14_PIN["sumsSha256"],
+                "historical checksum numeric ID/SHA pin differs")
+        return rehash_dot_pinned_original(directory, assets, record, historical=True)
+    try:
+        return rehash_release(directory, assets, record)
+    except Denied as exc:
+        require(str(exc) == "invalid/duplicate checksum",
+                "original P1 real-byte verification rejected: " + str(exc))
+    # Reached only for already authenticated 14-Release/224-Asset numeric ID
+    # candidate Policy, unchanged SHA of the ORIGINAL checksum Asset and bytes.
+    return rehash_dot_pinned_original(directory, assets, record)
 
 
 def identity(policy, name, release):
