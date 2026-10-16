@@ -28,6 +28,9 @@ from distribution_release_verify_p1 import (
     rehash_release, immutable_source, inspect_package, signed_run,
     verify_sigstore_offline, MAX_RELEASE,
 )
+from distribution_historical_p1_pg14 import (
+    PIN as HISTORICAL_PG14_PIN, parse_original_historical_sums,
+)
 
 SCHEMA = "pgextwin-p1-genuine-fleet-batch/v1"
 VERIFIER = "batch-v1;distribution_release_verify_p1.py"
@@ -43,6 +46,57 @@ def json_bytes(value):
     return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
+def original_profile(name, release):
+    if name == "pg_bigm" and release.get("id") == HISTORICAL_PG14_PIN["releaseId"]:
+        require(release.get("tag_name") == HISTORICAL_PG14_PIN["tag"]
+                and release.get("target_commitish") == HISTORICAL_PG14_PIN["packaging"],
+                "historical Release source identity changed")
+        return "historical-pg_bigm-original-checksums/v1"
+    return "main-promotion/v1"
+
+
+def rehash_common_original(directory, assets, record, name, release):
+    """Only the single previously evidenced original Release admits ./basename."""
+    profile = original_profile(name, release)
+    if profile == "main-promotion/v1":
+        return rehash_release(directory, assets, record)
+    require(assets["SHA256SUMS.txt"]["id"] == HISTORICAL_PG14_PIN["sumsAssetId"]
+            and assets["SHA256SUMS.txt"]["digest"] ==
+                "sha256:" + HISTORICAL_PG14_PIN["sumsSha256"],
+            "historical original checksum asset not independently pinned")
+    require(directory.is_dir() and not directory.is_symlink()
+            and len(assets) == 16
+            and sum(a["size"] for a in assets.values()) <= MAX_RELEASE,
+            "historical original Release 16-Asset shape mismatch")
+    entries = list(directory.iterdir())
+    require(len(entries) == len(assets) and {p.name for p in entries} == set(assets)
+            and all(p.is_file() and not p.is_symlink() for p in entries),
+            "historical Release missing/extra/linked payload")
+    hashes = {}
+    for filename, asset in assets.items():
+        path = directory / filename
+        require(path.stat().st_size == asset["size"],
+                "historical original Asset size mismatch")
+        hashes[filename] = sha(path)
+        require(asset["digest"] == "sha256:" + hashes[filename],
+                "historical original Asset real-byte SHA mismatch")
+    sums = parse_original_historical_sums(
+        (directory / "SHA256SUMS.txt").read_bytes(),
+        set(assets) - {"SHA256SUMS.txt"})
+    require(all(hashes[n] == digest for n, digest in sums.items()),
+            "historical original 15 checksums disagree with actual bytes")
+    for major, row in record["postgresql"].items():
+        if row.get("available") is not True:
+            continue
+        require(hashes[row["asset"]] == row["sha256"],
+                "historical Catalog ZIP digest mismatch " + major)
+        for field in ("sbom", "vulnerabilityReport"):
+            evidence = row["evidence"][field]
+            require(hashes[evidence["asset"]] == evidence["sha256"],
+                    "historical Catalog evidence digest mismatch " + major)
+    return hashes
+
+
 def identity(policy, name, release):
     assets = release.get("assets") or []
     return hashlib.sha256(json_bytes({
@@ -51,7 +105,7 @@ def identity(policy, name, release):
         "source": release["target_commitish"],
         "assets": sorted((a.get("id"), a.get("name"), a.get("size"), a.get("digest"))
                          for a in assets),
-        "verifier": VERIFIER, "profile": "main-promotion/v1",
+        "verifier": VERIFIER, "profile": original_profile(name, release),
         "trustedRoot": policy["rootSha256"],
     })).hexdigest()
 
@@ -225,12 +279,12 @@ def handle_release(name, rec, policy, cache, root, measured):
     with tempfile.TemporaryDirectory(prefix="p1-release-") as tmp:
         folder = Path(tmp)
         obtain_assets(cache, folder, assets, repo, release["tag_name"])
-        hashes = rehash_release(folder, assets, rec)
+        hashes = rehash_common_original(folder, assets, rec, name, release)
         common = {"schema": SCHEMA, "type": "release",
                   "extension": name, "releaseId": release["id"],
                   "repositoryId": policy["repoIds"][name],
                   "releaseIdentitySha256": key, "catalogCommit": policy["catalogCommitSha"],
-                  "verifier": VERIFIER, "profile": "shared-release-original-bytes/v1",
+                  "verifier": VERIFIER, "profile": original_profile(name, release),
                   "assetIds": {n: a["id"] for n, a in sorted(assets.items())},
                   "assetSha256": hashes, "allAssetsRehashed": len(hashes) == len(assets),
                   "decision": "PASS", "publicationAuthorized": False,
