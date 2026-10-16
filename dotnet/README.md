@@ -56,3 +56,35 @@ This library is deliberately NOT exposed as a CLI command or production Bundle
 creator. No real Release ZIP can be accepted by this fixture harness under
 its explicit synthetic marker contract. Real fleet ZIP work remains blocked
 by the independent P1 policy/Trusted Root and 70/70 genuine verification gates.
+
+## PR-4: independently approved P1 report handoff (not a signature verdict)
+
+`PgExtWin.Trust.P1Handoff` is a **pure, offline, read-only integration
+boundary**, not a Sigstore verifier or P1 execution engine. Its input is a
+detached ECDSA-P256/SHA256-signature-bearing *report claim* whose public
+key, P1 verifier script SHA256, authenticated P1 policy SHA256 and Trusted
+Root SHA256 are all supplied **independently** of the report (and NOT read
+from any archive or GitHub API response). The canonical UTF-8 payload
+identifies exactly one original package ZIP through Repo/Release/Asset
+numeric IDs, PG major, Catalog full commit and ZIP hash, and asserts full
+fleet counts and nonpublishing-only decision. The independent authority
+must review all original P1 evidence and signer identity before issuing
+its signed handoff; that external act is NOT performed here.
+
+For all inputs, including correctly signed synthetic reports asserting
+`signatureVerified=70`, this API returns only
+`P1_REPORT_AUTHENTICATED_ONLY / UNVERIFIED` with
+`SignatureVerified=false, PublicationAuthorized=false, MayInstall=false,
+MayBuildRealBundle=false`. **A signature authenticates the source of the
+assertion, not the truth of the underlying Sigstore proof.** Production
+cryptographic acceptance still requires re-running existing P1
+`distribution_release_audit_p1.py` with independently authenticated
+policy/root and original bytes, then separately validating its run evidence.
+The PR intentionally does not create a CLI command or trust-granting
+method, run Python or `gh attestation verify`, fetch Release ZIPs, create
+Bundle ZIPs, or change `PkgExtWin.Bundles`.
+
+CI uses an ephemeral test-only ECDSA key in memory to exercise signature,
+pin, JSON, identity, replay, counts and publication-denial cases.
+No genuine P1 policy/Root approval, 70/70 audit, real signing or public
+release is claimed. P1 BLOCKED; P2 NO-GO; formal distribution DENY.
