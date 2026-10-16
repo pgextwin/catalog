@@ -42,7 +42,7 @@ class ReadOnlyP1Tests(unittest.TestCase):
                 self.assertEqual(call.args[0][0:2], ("gh", "api"))
                 self.assertFalse(call.kwargs["check"])
 
-    def test_policy_requires_external_root_numeric_ids(self):
+    def test_policy_requires_pinned_root_numeric_ids(self):
         policy = {
             "schemaVersion": "pgextwin-p1-readonly-policy/v1",
             "catalogCommitSha": "a"*40, "catalogDigests": {"index.json": "b"*64},
@@ -62,6 +62,35 @@ class ReadOnlyP1Tests(unittest.TestCase):
                 damaged.pop(key)
                 path.write_text(json.dumps(damaged))
                 with self.subTest(missing=key), self.assertRaises(Denied):
+                    audit.policy_load(path)
+
+    def test_no_administrator_proof_required_but_all_pins_still_mandatory(self):
+        # Policy shape does not require a second administrator's signature.
+        # Actual Release signatures and the TUF root are checked elsewhere.
+        policy = {
+            "schemaVersion": "pgextwin-p1-readonly-policy/v1",
+            "catalogCommitSha": "a"*40,
+            "catalogDigests": {"index.json": "b"*64},
+            "repoIds": {"example": 8001},
+            "releaseIds": {"example": 9001},
+            "assetIds": {"example": {"SHA256SUMS.txt": 10001}},
+            "signerRepositoryId": 1405931353,
+            "trustedSignerShas": ["c"*40],
+            "approvedMajors": [14],
+            "pgEol": {"14": "2026-11-12"},
+            "rootSha256": "d"*64,
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/"policy.json"
+            path.write_text(json.dumps(policy))
+            self.assertEqual(audit.policy_load(path), policy)
+            for missing in ("catalogCommitSha", "catalogDigests", "repoIds",
+                            "releaseIds", "assetIds", "trustedSignerShas",
+                            "rootSha256"):
+                altered = dict(policy)
+                altered.pop(missing)
+                path.write_text(json.dumps(altered))
+                with self.subTest(missing=missing), self.assertRaises(Denied):
                     audit.policy_load(path)
 
     def test_offline_audit_must_never_contact_gh_when_root_missing(self):
