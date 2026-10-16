@@ -17,12 +17,13 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from zipfile import ZipFile
 
 from distribution_manifest_v1 import Denied, require, strict_json, safe_component
 from distribution_release_verify_p1 import (
     PROVENANCE, SPDX, fleet_counts, sha, release_assets, rehash_release,
     verified_catalog, immutable_source, inspect_package, signed_run,
-    verify_sigstore_offline,
+    verify_sigstore_offline, parse_sums,
 )
 
 HEX40 = re.compile(r"[a-f0-9]{40}\Z")
@@ -30,7 +31,7 @@ HEX64 = re.compile(r"[a-f0-9]{64}\Z")
 MAX_API_BYTES = 8 * 1024 * 1024
 
 
-def gh_read(*args):
+def gh_read(*args, cwd=None):
     """Allowlisted GitHub CLI GET/download only, no shell or write endpoint."""
     require(args and (
         (args[0] == "api" and len(args) == 2 and
@@ -47,7 +48,7 @@ def gh_read(*args):
     ), "unallowlisted non-GET GitHub CLI operation")
     try:
         result = subprocess.run(("gh",) + args, capture_output=True, text=True,
-                                timeout=300, check=False,
+                                timeout=300, check=False, cwd=cwd,
                                 env={**os.environ, "GH_NO_UPDATE_NOTIFIER": "1",
                                      "GH_PROMPT_DISABLED": "1"})
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -69,7 +70,7 @@ def pinned_content(repo, path, commit):
             "immutable GitHub content not base64")
     try:
         return base64.b64decode(data["content"], validate=False)
-    except ValueError as exc:
+    except (ValueError, UnicodeError) as exc:
         raise Denied("invalid immutable GitHub content") from exc
 
 
@@ -158,8 +159,37 @@ def materialize_online(root, policy):
         folder.mkdir(parents=True, exist_ok=True)
         gh_read("release", "download", release["tag_name"], "--repo", repo, "--dir", str(folder))
         (root/"runs").mkdir(parents=True, exist_ok=True)
-        # Reads only metadata. No processing of unverified ZIPs as executable code.
-        # Run is read per extension AFTER ZIP inspection during the offline pass.
+        verified_hashes = rehash_release(folder, release_assets(
+            record, release, policy["releaseIds"][name], policy["repoIds"][name]), record)
+        run_ids = set()
+        for pg, info in record["postgresql"].items():
+            if info.get("available") is not True:
+                continue
+            zip_file = folder/info["asset"]
+            with ZipFile(zip_file) as archive:
+                matches = [i for i in archive.infolist() if i.filename == "PACKAGE-INFO.json"]
+                require(len(matches) == 1 and matches[0].file_size <= 262144,
+                        "untrusted binary package metadata")
+                pkg = strict_json(archive.read("PACKAGE-INFO.json"))
+            run = (pkg.get("workflowRun") or {}).get("id")
+            require(type(run) is int and run > 0, "missing formal Promotion run")
+            run_ids.add(run)
+            attest_dir = root/"attestations"/name
+            attest_dir.mkdir(parents=True, exist_ok=True)
+            gh_read("attestation", "download", str(zip_file.resolve()),
+                    "--repo", repo, cwd=attest_dir)
+            digest = verified_hashes[info["asset"]]
+            candidates = [attest_dir/("sha256:"+digest+".jsonl"),
+                          attest_dir/("sha256-"+digest+".jsonl")]
+            present = [p for p in candidates if p.is_file() and not p.is_symlink()]
+            require(len(present) == 1, "missing/ambiguous downloaded attestation bundle")
+            present[0].rename(attest_dir/(info["asset"]+".jsonl"))
+        require(len(run_ids) == 1, "mixed original Release run IDs")
+        run_id = next(iter(run_ids))
+        a = api_json(name + "/actions/runs/" + str(run_id))
+        b = api_json(name + "/actions/runs/" + str(run_id))
+        require(a == b, "run metadata changed between GETs")
+        (root/"runs"/(name+".json")).write_text(json.dumps(a),encoding="utf-8")
     return names
 
 
