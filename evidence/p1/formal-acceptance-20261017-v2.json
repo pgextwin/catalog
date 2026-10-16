@@ -1,0 +1,29 @@
+{
+  "schema": "pgextwin-p1-formal-acceptance/v2",
+  "createdAt": "2026-10-17",
+  "catalogBaselineCommit": "fca5900e41d1727d3a03f63e4eead90cf58db372",
+  "priorAdmissionSource": "https://github.com/pgextwin/build/issues/112#issuecomment-6220371461",
+  "acceptedRows": [
+    {
+      "extension": "pg_bigm",
+      "pgMajor": 14,
+      "repositoryId": 1405047175,
+      "releaseId": 408449466,
+      "assetId": 626562095,
+      "profile": "historical-pg_bigm-pg14/1",
+      "sealSource": "https://github.com/pgextwin/build/issues/112#issuecomment-6220371461",
+      "verifierCommit": "e372e2c6a95adcf8227ea82d6253df3792b6f029"
+    }
+  ],
+  "historicalSourceAcceptedRows": [],
+  "formalP1Accepted": 1,
+  "formalP1Total": 70,
+  "historicalSourceAccepted": 0,
+  "historicalSourceTotal": 40,
+  "fleetComplete": false,
+  "p1": "BLOCKED",
+  "p2": "NO-GO",
+  "publicationAuthorized": false,
+  "distributionAuthorized": false,
+  "nextUnadmittedMustProvide": "genuine main-run original-byte and 2 Sigstore predicate receipts; no mock/Action artifact-only admission"
+}

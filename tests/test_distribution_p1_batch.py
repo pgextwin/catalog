@@ -104,6 +104,24 @@ class GenuineBatchHostileTests(unittest.TestCase):
             with self.assertRaises(Denied):
                 batch.original_profile("pg_bigm", dict(p, **mutation))
 
+    def test_original_pinned_checksum_spellings_are_strict_and_signed_profile_unchanged(self):
+        pinned = {f"asset-{i}.zip" for i in range(15)}
+        d = "a" * 64
+        canonical = ("".join(d + "  " + n + "\n" for n in sorted(pinned))).encode()
+        dotted = ("".join(d + "  ./" + n + "\n" for n in sorted(pinned))).encode()
+        self.assertEqual(set(batch.parse_pinned_original_sums(canonical, pinned)), pinned)
+        self.assertEqual(set(batch.parse_pinned_original_sums(dotted, pinned)), pinned)
+        for bad in (
+            dotted.replace(b"./", b"", 1),
+            dotted.replace(b"./", b"../", 1),
+            dotted.replace(b"./", b".//", 1),
+            dotted.replace(b"asset-0", b"asset-1", 1),
+            dotted.replace(b"asset-0", b"ASSET-0", 1),
+            dotted[:-10],
+        ):
+            with self.subTest(bad=bad[:80]), self.assertRaises(Denied):
+                batch.parse_pinned_original_sums(bad, pinned)
+
     def test_historical_sums_alias_rejects_wrong_layout(self):
         pinned = {f"sample-{i}.zip" for i in range(15)}
         digest = "a" * 64
