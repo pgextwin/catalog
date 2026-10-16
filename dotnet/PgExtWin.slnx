@@ -2,6 +2,7 @@
   <Project Path="src/PgExtWin.Core/PgExtWin.Core.csproj" />
   <Project Path="src/PgExtWin.Catalog/PgExtWin.Catalog.csproj" />
   <Project Path="src/PgExtWin.Releases/PgExtWin.Releases.csproj" />
+  <Project Path="src/PgExtWin.Bundles/PgExtWin.Bundles.csproj" />
   <Project Path="src/PgExtWin.Cli/PgExtWin.Cli.csproj" />
   <Project Path="tests/PgExtWin.Contract.Tests/PgExtWin.Contract.Tests.csproj" />
 </Solution>

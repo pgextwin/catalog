@@ -82,4 +82,5 @@ if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
     Check(records.All(r => r.Versions.Count == 5), "local Catalog has 5 available majors each");
 }
 await ReleaseHttpTests.RunAsync(Check);
+SyntheticBundleTests.Run(Check);
 Console.WriteLine($"PASS: {cases} local read-only contract checks. SIGNATURE_VERIFIED=0 PUBLISH=DENY");
