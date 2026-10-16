@@ -337,7 +337,7 @@ class ManifestV1Tests(unittest.TestCase):
 
     def test_zip_safe(self):
         with zip_of([("PACKAGE-INFO.json", b"{}"),
-                     ("lib/ext.dll", b"x"*10000)]) as z:
+                     ("lib/ext.dll", bytes(range(256)) * 40)]) as z:
             self.assertEqual(verify_archive_members(z), 2)
 
     def test_zip_traversal_absolute_and_windows_path(self):
