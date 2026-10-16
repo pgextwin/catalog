@@ -111,6 +111,52 @@ origin/version, TUF verification and trusted-root bytes/digest in an
 amend existing GitHub Release/Catalog or report a fixture as real Sigstore.
 No root certificate/private key is requested from an independent administrator.
 
+## Historical original SHA256SUMS spelling (Issue #112 GET-only follow-up)
+
+The 2026-10-16 Work run independently fetched the original four pg_bigm
+PG14 Release payloads, checked their numeric IDs/size/SHA256 **4/4**,
+and compared all **15** original SHA256SUMS entries against Release
+metadata. Genuine TUF verification and SLSA v1 / SPDX 2.3 official
+`gh attestation verify` each independently returned exit 0.
+However, the **merged historical verifier itself returned exit 2** before
+CRC/source/gh verification: the untouched original 1,780-byte
+`SHA256SUMS.txt` spells each name as `./basename`, which the ordinary
+P1 `parse_sums()` intentionally rejects. Its
+`invalid/duplicate checksum` diagnostic is **not evidence of a
+duplicated digest or filename**.
+
+This profile alone now parses precisely **15** lines of
+`<64 lowercase hex SHA256><two spaces>./<safe basename>`. It accepts
+exactly one literal `./` and otherwise retains the ordinary
+basename constraints. It rejects bare/mixed spelling, nested paths,
+`../`, `.//`, `././`, absolute or drive paths, backslashes,
+unknown/case-colliding filenames and duplicate normalized entries,
+extra/missing lines and non-ASCII/oversized checksums. Only in memory,
+it passes the normalized basenames to the **unchanged**
+`distribution_release_verify_p1.parse_sums()`, then requires the
+exact 15 original Release Asset names. Each digest is still compared to
+the original Release metadata. Original signed/raw checksum
+**bytes remain untouched**, and the already pinned checksum Asset ID
+and full SHA256 must match.
+
+The Work report and private evidence seal are named:
+`pgextwin-issue112-pgbigm-pg14-row-audit-20261016.md` and
+`pgextwin-issue112-pgbigm-pg14-evidence-seal-20261016.json`.
+Original evidence archive:
+`pgextwin-issue112-pgbigm-pg14-evidence-20261016.tar.gz`
+(SHA256 `559b0c49b59188b4464c347dde5ea96c5b55f512e6c19f2b7b87437281682ca2`;
+88-file manifest SHA256 `5e1ead038bebbdad1e81022aa4dac82c65b3792139dc57131a8ef79d403f6ba7`).
+Hash seals are tamper-evidence comparisons, not a separate trusted
+signature or timestamp.
+
+**After** a protected PR, mandatory CI and safe merge, Work must rerun
+the **same original PG14-only row** with the patched verifier against
+the untouched 4 Release assets and original SLSA/SPDX bundles.
+The earlier independent `gh` success does **not** count as full
+historical-verifier row success. Until rerun, rowEvidenceComplete is
+false, historical source formally accepted **0/40** and fleet P1
+complete **0/70**. No fleet expansion, P2 or public distribution.
+
 ## Negative cases and stop conditions
 
 Hostile fixtures cover malformed/duplicate wrappers and predicates,

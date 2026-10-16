@@ -20,7 +20,8 @@ import subprocess
 import tempfile
 from zipfile import ZipFile, BadZipFile
 
-from distribution_manifest_v1 import Denied, require, strict_json, canonical, verify_archive_members
+from distribution_manifest_v1 import (Denied, require, strict_json, canonical,
+                                      verify_archive_members, safe_component)
 from distribution_release_verify_p1 import (
     PROVENANCE, SPDX, PREDICATES, SIGNER, ISSUER, parse_sums, sha,
 )
@@ -151,6 +152,45 @@ def validate_original_metadata(record, release):
     return by_name
 
 
+
+def parse_original_historical_sums(data, expected_names):
+    """Exact original pg_bigm checksum convention, not a general P1 relaxation.
+
+    This one pinned historical Release uses precisely fifteen entries of the
+    form 'SHA256  ./basename'. Remove only this literal transport spelling,
+    reject collisions/ambiguous paths, then delegate digest parsing to the
+    unchanged strict P1 parse_sums(). The signed original file is not changed.
+    """
+    require(type(expected_names) is set and len(expected_names) == 15
+            and all(type(name) is str and name == safe_component(name)
+                    for name in expected_names),
+            "invalid original Release checksum name allowlist")
+    require(type(data) is bytes and 0 < len(data) <= 8192,
+            "invalid historical checksum byte size")
+    try:
+        lines = data.decode("ascii").splitlines()
+    except UnicodeError as exc:
+        raise Denied("historical SHA256SUMS non-ASCII") from exc
+    require(len(lines) == 15, "historical Release must contain 15 checksums")
+    normalized = []
+    seen = set()
+    for line in lines:
+        match = re.fullmatch(r"([a-f0-9]{64})  \./([A-Za-z0-9][A-Za-z0-9_.-]*)",
+                             line)
+        require(match is not None, "invalid historical checksum path")
+        name = safe_component(match[2])
+        folded = name.casefold()
+        require(folded not in seen, "duplicate/case-colliding historical checksum")
+        seen.add(folded)
+        normalized.append(match[1] + "  " + name)
+    # Reuse ordinary P1 parsing and duplicate-digest checks with canonical
+    # basenames, but do not loosen the ordinary P1 parser itself.
+    sums = parse_sums(("\n".join(normalized) + "\n").encode("ascii"))
+    require(set(sums) == expected_names,
+            "historical checksum names differ from original Release")
+    return sums
+
+
 def validate_row_bytes(root, record, row, assets):
     folder = root / "assets"
     require(folder.is_dir() and not folder.is_symlink(), "invalid asset directory")
@@ -165,7 +205,9 @@ def validate_row_bytes(root, record, row, assets):
         _same(len(blob), meta["size"], "asset size differs: " + name)
         _same(hashlib.sha256(blob).hexdigest(), meta["digest"][7:],
               "asset bytes differ: " + name)
-    sums = parse_sums(_original_file(folder, "SHA256SUMS.txt"))
+    sums = parse_original_historical_sums(
+        _original_file(folder, "SHA256SUMS.txt"),
+        set(assets) - {"SHA256SUMS.txt"})
     _same(set(sums), set(assets) - {"SHA256SUMS.txt"},
           "external SHA256SUMS not complete original 15 entries")
     for name, digest in sums.items():

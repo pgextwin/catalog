@@ -95,6 +95,84 @@ class HistoricalP1Tests(unittest.TestCase):
         with self.assertRaises(Denied):
             callback(*args, **kwargs)
 
+
+    def test_original_dot_slash_sha256sums_15_entries_are_normalized(self):
+        rec = json.loads((Path(__file__).resolve().parents[1] /
+                          "extensions" / "pg_bigm.json").read_text(encoding="utf-8"))
+        expected = {}
+        for major, row in rec["postgresql"].items():
+            if not row["available"]:
+                continue
+            expected[row["asset"]] = row["sha256"]
+            for kind in ("sbom", "vulnerabilityReport"):
+                e = row["evidence"][kind]
+                expected[e["asset"]] = e["sha256"]
+        self.assertEqual(len(expected), 15)
+        original_spelling = "".join(
+            digest + "  ./" + name + "\n" for name, digest in sorted(expected.items())
+        ).encode("ascii")
+        self.assertEqual(h.parse_original_historical_sums(
+            original_spelling, set(expected)), expected)
+        # All legacy names use exactly one leading './'. Ordinary parser
+        # remains strict: this is not a global parser change.
+        self.deny(ordinary.parse_sums, original_spelling)
+        self.assertNotIn(b"../", original_spelling.replace(b"./", b""))
+
+    def test_original_historical_checksum_path_hostile_cases(self):
+        expected = {"pkg-%02d.zip" % i for i in range(15)}
+        def file_lines(names):
+            return ("".join(
+                "%064x  %s\n" % (i + 1, name) for i, name in enumerate(names)
+            )).encode("ascii")
+        valid = ["./pkg-%02d.zip" % i for i in range(15)]
+        self.assertEqual(
+            set(h.parse_original_historical_sums(file_lines(valid), expected)),
+            expected)
+        wrong_names = [
+            "pkg-00.zip",         # bare basename; fail this exact original spelling
+            "../pkg-00.zip",      # traversal
+            "./../pkg-00.zip",
+            "././pkg-00.zip",     # double dot directory
+            ".//pkg-00.zip",      # duplicate slash
+            "./dir/pkg-00.zip",   # hidden subdirectory
+            "/pkg-00.zip",        # absolute path
+            "//pkg-00.zip",
+            "C:\\pkg-00.zip",     # Windows-style drive/backslash
+            "./pkg-00.zip/..",
+            "./pkg-00.zip/",      # trailing slash
+            ".\\pkg-00.zip",
+            "./pkg-00.zip?x",
+            "./pkg 00.zip",
+            "./%2e%2e%2fpkg.zip", # encoded path ambiguity
+            "./some-other.zip",  # not pinned to original 15 names
+            "./con",             # Windows reserved base
+        ]
+        for item in wrong_names:
+            with self.subTest(name=item):
+                bad = valid[:]
+                bad[0] = item
+                self.deny(h.parse_original_historical_sums,
+                          file_lines(bad), expected)
+        # Exact duplicate and case-fold collisions after removing './'.
+        for item in ("./pkg-00.zip", "./PKG-00.ZIP"):
+            bad = valid[:]
+            bad[1] = item
+            self.deny(h.parse_original_historical_sums, file_lines(bad), expected)
+        for bad in (
+            file_lines(valid[:-1]),             # missing asset
+            file_lines(valid + ["./extra"]),    # excess asset
+            file_lines(valid) + b"\n",        # extra blank line
+            file_lines(valid).replace(b"000000000000000000000000", b"ZZZZZZZZZZZZZZZZZZZZZZZZ"),
+            file_lines(valid).replace(b"  ./", b" *./", 1),
+            file_lines(valid).replace(b"\n", b"\x80\n", 1),
+        ):
+            self.deny(h.parse_original_historical_sums, bad, expected)
+        self.deny(h.parse_original_historical_sums, file_lines(valid), set())
+        self.deny(h.parse_original_historical_sums, file_lines(valid),
+                  expected - {"pkg-00.zip"})
+        self.deny(h.parse_original_historical_sums,
+                  b"x" * 8193, expected)
+
     def test_two_raw_bundles_object_preserved_not_cryptographic(self):
         orig = listing()
         result, receipt = h.normalize_jsonl(orig, name=P["asset"], digest=P["zipSha256"])
