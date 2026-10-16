@@ -301,6 +301,7 @@ def row_receipt(name, major, policy, release, key, measured, result, *, origin="
         "reason": result.get("reason", ""),
         "runId": result.get("runId"), "runAttempt": result.get("runAttempt"),
         "signatureProof": result.get("signatureProof"),
+        "observedUnsignedPackage": result.get("observedUnsignedPackage"),
         "publicationAuthorized": False, "distributionAuthorized": False,
         "formalAcceptedByThisRun": False,
         "workIndividualAuditRequired": result["decision"] != "PASS_CANDIDATE",
@@ -345,6 +346,7 @@ def handle_release(name, rec, policy, cache, root, measured):
                 rows[major] = row_receipt(name, major, policy, release, key, measured, {
                     "decision": "ALREADY_ACCEPTED", "reason": "2026-10-17 sealed PG14 bridge; not recounted"}, origin="prior-formal-bridge")
                 continue
+            observed = None
             try:
                 src = immutable_source(config, int(major), rec)
                 zp = folder / row["asset"]
@@ -353,14 +355,16 @@ def handle_release(name, rec, policy, cache, root, measured):
                 pkg = inspect_package(zp, sbom, grype, repository=repo, major=int(major),
                                       immutable_packaging_sha=release["target_commitish"],
                                       source=src)
-                require(pkg["signerSha"] in policy["trustedSignerShas"],
-                        "unapproved signer workflow SHA")
+                observed = {"signerSha": pkg["signerSha"],
+                            "runId": pkg["runId"], "runAttempt": pkg["runAttempt"]}
                 run_id, attempt = pkg["runId"], pkg["runAttempt"]
                 run = api_json(name + "/actions/runs/" + str(run_id))
                 signed_run(run, repo=repo, repo_id=policy["repoIds"][name],
                            packaging_sha=release["target_commitish"],
                            run_id=run_id, attempt=attempt)
                 jobs = fetch_jobs(name, run_id, major)
+                require(pkg["signerSha"] in policy["trustedSignerShas"],
+                        "unapproved signer workflow SHA")
                 require(root is not None and measured.get("binarySha256"),
                         "BLOCKED: official gh/TUF trust bootstrap unavailable")
                 attestdir = folder / ("attest-" + major)
@@ -383,13 +387,15 @@ def handle_release(name, rec, policy, cache, root, measured):
                     "decision": "PASS_CANDIDATE", "integrityVerified": True,
                     "signatureVerified": proof["signatureVerified"],
                     "runId": run_id, "runAttempt": attempt,
+                    "observedUnsignedPackage": observed,
                     "signatureProof": {"bundleSha256": bundle_hash,
                                        "signerSha": pkg["signerSha"], **jobs}})
             except (Denied, OSError, KeyError, TypeError, ValueError) as exc:
                 why = str(exc)[:240]
                 rows[major] = row_receipt(name, major, policy, release, key, measured, {
                     "decision": "BLOCKED" if why.startswith("BLOCKED:") else "DENY",
-                    "integrityVerified": True, "reason": why})
+                    "integrityVerified": True, "reason": why,
+                    "observedUnsignedPackage": observed})
         return common, rows
 
 
