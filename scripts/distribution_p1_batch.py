@@ -363,8 +363,8 @@ def main(argv=None):
         policy = policy_load(args.policy)
         result = run(policy, args.cache, args.output)
         print(json.dumps(result, sort_keys=True))
-        return 0 if result["batchDecisions"]["BLOCKED"] == 0 and
-                    result["batchDecisions"]["DENY"] == 0 else 2
+        return (0 if result["batchDecisions"]["BLOCKED"] == 0 and
+                result["batchDecisions"]["DENY"] == 0 else 2)
     except (Denied, OSError, KeyError, TypeError, ValueError) as exc:
         print(json.dumps({"decision": "DENY", "publicationAuthorized": False,
                           "reason": str(exc)[:240]}), file=sys.stderr)
