@@ -1,13 +1,9 @@
-# pgextwin CLI — Issue #112 PR-1 (nonpublishing)
+# pgextwin CLI — Issue #112 (nonpublishing, PR-2)
 
-Inert .NET 10 CLI prototype. Not an installer, signer, download agent, release producer or trusted verification engine.
-
-- Core: strict JSON, Python P0-compatible canonical JSON/SHA256 golden vectors, P0 manifest envelope **structure only**.
-- Catalog: **untrusted local** Catalog v2 reader, per-PG upstream versions and preload metadata.
-- Cli: `list` and `search`, requiring `--catalog-dir PATH`, always displays `UNVERIFIED` and makes no HTTP requests.
-- Contract.Tests: local synthetic/hostile test console with no external NuGet dependencies.
-
-Run from repository root with .NET 10 SDK:
+.NET 10 local-only `list/search` and explicit **single-asset** GET-only `download`.
+This is not an installer, a signer, a fleet/bundle generator, a Publisher or a trusted
+Sigstore verification engine. The Python P0 Manifest v1 builder/Schema and P1
+Release/Sigstore verification remain the authoritative independent acceptance path.
 
 ```bash
 dotnet build dotnet/PgExtWin.slnx --configuration Release
@@ -16,6 +12,25 @@ dotnet run --project dotnet/src/PgExtWin.Cli -- list --catalog-dir . --pg 18
 dotnet run --project dotnet/src/PgExtWin.Cli -- search cron --catalog-dir .
 ```
 
-SDK `global.json` stays within the .NET 10 feature bands (`latestFeature`).
+A **separately administrator-authenticated** P1 policy and SHA256 are mandatory for
+a real download. The hash must arrive by an independently authenticated channel,
+not merely by copy/pasting it from the same Catalog, GitHub API or snapshot.
+The output directory must already exist, be link-free and not contain a colliding
+filename. This command is NOT executed in CI and does not authenticate signatures:
 
-The existing Python P0 JSON Schema + Manifest builder and P1 authenticated Release/Sigstore verifier are unchanged and remain authoritative. Structural/golden tests never imply real signatures. No genuine 70 ZIP audit has occurred. P1 BLOCKED, P2 NO-GO, publication DENY, `publicationAuthorized=false`.
+```bash
+dotnet run --project dotnet/src/PgExtWin.Cli -- download pg_cron --pg 18 \
+  --catalog-dir /trusted/catalog-snapshot --policy /independently/approved/policy.json \
+  --policy-sha256 OUT_OF_BAND_64_HEX_DIGEST --output /private/staging
+```
+
+It checks all pinned Catalog raw SHA256s, numeric Repo/Release/asset ID inventories,
+release/tag/asset metadata and 1 original ZIP's streamed actual bytes with a 64MiB
+cap, and writes to a collision-free private staging filename before no-overwrite
+rename. Explicit HTTPS GET only; auto-redirect disabled, bounded manually to
+approved GitHub asset transport hosts. All evidence stays **INTEGRITY_ONLY**:
+`SIGNATURE_VERIFIED=0` / `PUBLISH=DENY`, including when the digest matches.
+
+Tests use synthetic P1 policy, in-memory ZIP and a fake HTTP transport with
+no external network/credentials. No real 70 ZIP rehash or Sigstore run has occurred.
+P1 BLOCKED, P2 NO-GO, formal publication DENY, `publicationAuthorized=false`.
