@@ -7,6 +7,7 @@ against an independently authenticated trusted-root digest.
 """
 from __future__ import annotations
 import hashlib
+from datetime import date
 import json
 from pathlib import Path
 import re
@@ -121,17 +122,22 @@ def release_assets(record, release, expected_release_id, expected_repo_id):
         result[name] = a
         ids.add(a["id"])
     require(result and "SHA256SUMS.txt" in result, "missing Release checksum asset")
+    expected_assets = {"SHA256SUMS.txt"}
     for major, row in record["postgresql"].items():
         if row.get("available") is not True:
             continue
         require(row.get("asset") in result
                 and result[row["asset"]]["digest"] == "sha256:" + row.get("sha256", ""),
                 "Release ZIP digest differs from Catalog: PG" + major)
+        expected_assets.add(row["asset"])
         for field in ("sbom", "vulnerabilityReport"):
             e = (row.get("evidence") or {}).get(field) or {}
             require(e.get("available") is True and e.get("asset") in result
                     and result[e["asset"]]["digest"] == "sha256:" + e.get("sha256", ""),
                     "Release evidence digest differs from Catalog: PG" + major)
+            expected_assets.add(e["asset"])
+    require(set(result) == expected_assets,
+            "extra/unregistered formal Release assets must not be packaged")
     return result
 
 
@@ -330,6 +336,27 @@ def verify_sigstore_offline(zip_path, sbom, *, repo, repo_id, packaging_sha,
             "trustedRootSha256": root_sha, "bundleSha256": proofs,
             "publicationAuthorized": False}
 
+
+
+def lifecycle_status(major, *, as_of_utc, eol_by_major, approved_majors):
+    """External PG lifecycle policy: availability does not imply maintenance."""
+    require(type(major) is int and major > 0
+            and type(approved_majors) is (list)
+            and all(type(x) is int and x > 0 for x in approved_majors)
+            and len(set(approved_majors)) == len(approved_majors)
+            and type(eol_by_major) is dict, "untrusted PG lifecycle policy")
+    if major not in approved_majors:
+        return "unsupported"
+    eol = eol_by_major.get(str(major))
+    require(isinstance(eol, str), "missing approved PG EOL date")
+    try:
+        end = date.fromisoformat(eol)
+        today = date.fromisoformat(as_of_utc)
+    except (TypeError, ValueError) as exc:
+        raise Denied("invalid external PG EOL/date") from exc
+    require(end.isoformat() == eol and today.isoformat() == as_of_utc,
+            "noncanonical PG lifecycle dates")
+    return "historical" if today > end else "maintained"
 
 def fleet_counts(records, decisions):
     """Dynamic fleet; unsigned, unsupported and missing rows cannot count as PASS."""
