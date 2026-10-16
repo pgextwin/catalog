@@ -215,22 +215,43 @@ def historical_upstream(name, major, config, pkg, *, cache):
 
 
 def checkout_log_corrob(name, major, pin, source):
-    """GET original PG job checkout log; corroboration, NOT Sigstore proof."""
+    """GET public original job log without a foreign-repository-scoped token.
+
+    GitHub's official REST public job-log endpoint supports unauthenticated
+    GET and returns a one-minute signed 302 redirect. GitHub Actions GITHUB_TOKEN
+    is repository-scoped to Catalog and can 404 on foreign repo logs; it must
+    NOT be treated as proof that public original logs do not exist.
+    Source bytes are checked on every call and NEVER used as signature proof.
+    """
+    import urllib.request
+    import urllib.error
+    from urllib.parse import urlsplit
     job_id = pin["pgBuildJobIds"][major]
-    target = ("repos/pgextwin/" + name + "/actions/jobs/" +
-              str(job_id) + "/logs")
-    require(re.fullmatch(
-        r"repos/pgextwin/[a-z][a-z0-9_]*/actions/jobs/[1-9][0-9]*/logs",
-        target), "unsafe original job log target")
+    require(type(job_id) is int and job_id > 0
+            and re.fullmatch(r"[a-z][a-z0-9_]*", name),
+            "unsafe immutable original Job target")
+    url = ("https://api.github.com/repos/pgextwin/" + name +
+           "/actions/jobs/" + str(job_id) + "/logs")
+    request = urllib.request.Request(
+        url, headers={"Accept": "application/vnd.github+json",
+                      "User-Agent": "pgextwin-p1-readonly-original-log/1"},
+        method="GET")
     try:
-        p = subprocess.run(("gh", "api", target), capture_output=True,
-                           timeout=120, env={**os.environ, "GH_PROMPT_DISABLED": "1",
-                                             "GH_NO_UPDATE_NOTIFIER": "1"})
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise Denied("BLOCKED: original checkout log unavailable") from exc
-    require(p.returncode == 0 and 0 < len(p.stdout) <= 16 * 1024 * 1024,
+        with urllib.request.urlopen(request, timeout=90) as response:
+            final = urlsplit(response.geturl())
+            require(final.scheme == "https" and final.hostname is not None
+                    and (final.hostname in ("api.github.com", "github.com")
+                         or final.hostname.endswith(".actions.githubusercontent.com")
+                         or final.hostname.endswith(".blob.core.windows.net")
+                         or final.hostname.endswith(".githubusercontent.com")),
+                    "unsafe GitHub signed log redirect")
+            require(response.status == 200, "original job log GET not HTTP 200")
+            data = response.read(16 * 1024 * 1024 + 1)
+    except (OSError, urllib.error.URLError, TimeoutError) as exc:
+        raise Denied("BLOCKED: unauthenticated public original Job log GET unavailable") from exc
+    require(0 < len(data) <= 16 * 1024 * 1024,
             "BLOCKED: original checkout Job log unavailable/oversized")
-    log = p.stdout.decode("utf-8-sig", "replace")
+    log = data.decode("utf-8-sig", "replace")
     expected_job = "Complete job name: release_build / PostgreSQL " + major + " / Windows x64"
     require(expected_job in log and
             "repository: " + source["upstreamRepository"] in log and
@@ -238,7 +259,7 @@ def checkout_log_corrob(name, major, pin, source):
             ("ref: " + source["upstreamCommit"] in log or
              "ref: " + source["upstreamRef"] in log),
             "original checkout Job log does not corroborate actual immutable source")
-    return {"originalCheckoutLogSha256": hashlib.sha256(p.stdout).hexdigest(),
+    return {"originalCheckoutLogSha256": hashlib.sha256(data).hexdigest(),
             "originalCheckoutJobId": job_id}
 
 
