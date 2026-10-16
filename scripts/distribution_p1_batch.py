@@ -311,8 +311,11 @@ def fetch_jobs(name, run_id, major):
     matches = [j for j in jobs if needle in j.get("name", "")]
     require(len(matches) == 1 and matches[0].get("conclusion") == "success",
             "original PG-specific build job missing/failed")
-    publishes = [j for j in jobs if
-                 j.get("name") == "Verify signatures and SHA; create-only formal publication"]
+    exact_publish_jobs = {
+        "Verify signatures and SHA; create-only formal publication",
+        "Check signatures, exact SHA256 and create-only Release ID",
+    }
+    publishes = [j for j in jobs if j.get("name") in exact_publish_jobs]
     require(len(publishes) == 1 and publishes[0].get("conclusion") == "success",
             "original formal promotion publication job not successful")
     return {"buildJobId": matches[0]["id"], "publicationJobId": publishes[0]["id"]}

@@ -306,7 +306,8 @@
   },
   "signerRepositoryId": 1405931353,
   "trustedSignerShas": [
-    "8246f4d3415a48b1ad4af13f421277057886b58f"
+    "8246f4d3415a48b1ad4af13f421277057886b58f",
+    "5756b3c5136a8bf4db710016cfe97555f0a71c6d"
   ],
   "approvedMajors": [
     14,
@@ -325,5 +326,11 @@
   "rootSha256": "65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c",
   "officialGhSha256": [
     "7469124f706944133d6a169691dd1c6c3511b12e85878d255e044e2948df4c9b"
-  ]
+  ],
+  "signerEvidence": {
+    "pgextwinBuildMainAncestry": "https://github.com/pgextwin/build/compare/5756b3c5136a8bf4db710016cfe97555f0a71c6d...main",
+    "wal2jsonPinnedPromoteBlob": "6a3ea8404ef944a02769c0e4d9010f8e0acc8a9f",
+    "wal2jsonSourceCommit": "1198ff30137ee3fd01a9e168647a7167324bb713",
+    "builderWorkflowBlob": "93a0a7641253735cf5adb845c768981c79f75b46"
+  }
 }
