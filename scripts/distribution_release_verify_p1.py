@@ -283,7 +283,11 @@ def signed_certificate(results, *, predicate, name, digest, sbom, repository,
                 and cert.get("subjectAlternativeName") == signer
                 and cert.get("buildSignerDigest") == signer_sha
                 and cert.get("githubWorkflowSHA") == packaging_sha
-                and cert.get("githubWorkflowRef") == "refs/heads/main",
+                and cert.get("githubWorkflowRef") == "refs/heads/main"
+                and cert.get("buildConfigURI") ==
+                    "https://github.com/" + repository +
+                    "/.github/workflows/promote.yml@refs/heads/main"
+                and cert.get("buildConfigDigest") == packaging_sha,
                 "certified issuer/repo ID/workflow/source/attempt mismatch")
         pred = st.get("predicate")
         require(type(pred) is dict, "missing signed predicate")
@@ -291,8 +295,12 @@ def signed_certificate(results, *, predicate, name, digest, sbom, repository,
             require(pred == sbom and pred.get("spdxVersion") == "SPDX-2.3",
                     "signed SBOM does not match Release bytes")
         else:
-            require(((pred.get("runDetails") or {}).get("metadata") or {})
-                    .get("invocationId") == invocation, "SLSA run attempt mismatch")
+            details = pred.get("runDetails") or {}
+            require((details.get("metadata") or {}).get("invocationId") == invocation
+                    and type(details.get("builder")) is dict
+                    and bool(details["builder"].get("id"))
+                    and type(pred.get("buildDefinition")) is dict,
+                    "SLSA build definition / run attempt mismatch")
         hits += 1
     require(hits == 1, "absent/duplicate exact signer subject")
 
