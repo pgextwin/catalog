@@ -1,0 +1,65 @@
+name: Issue 112 genuine P1 fleet batch (read-only)
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Sunday 09:00 JST
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-p1-fleet-readonly.yml
+      - scripts/distribution_p1_batch.py
+      - config/issue112-p1-fleet-pins-20261017.json
+permissions:
+  contents: read
+concurrency:
+  group: issue112-p1-genuine-fleet-readonly
+  cancel-in-progress: false
+jobs:
+  genuine-p1:
+    if: ${{ github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'push') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact protected main without write token
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Python 3.13
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Offline hostile regression (does not count toward acceptance)
+        run: python -m unittest discover -s tests -p 'test_distribution_p1_batch.py' -v
+      - name: Record installed gh origin and digest
+        run: |
+          command -v gh
+          gh --version
+          sha256sum "$(command -v gh)"
+      - name: Run all 70 original Release/PG checks; fail closed per row
+        id: actual
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/distribution_p1_batch.py \
+            --policy config/issue112-p1-fleet-pins-20261017.json \
+            --cache "$RUNNER_TEMP/issue112-p1-content-addressed" \
+            --output "$RUNNER_TEMP/issue112-p1-receipts"
+      - name: Preserve machine-readable receipts (not original Release proof)
+        if: ${{ always() && steps.actual.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: issue112-p1-readonly-receipts-${{ github.sha }}
+          path: ${{ runner.temp }}/issue112-p1-receipts/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Declare incomplete fleet not successful
+        if: ${{ steps.actual.outcome != 'success' }}
+        run: |
+          echo 'P1 BLOCKED: inspect row receipts; CI artifact is not original Release evidence.'
+          exit 1
+      - name: No acceptance without separate receipt review
+        if: ${{ steps.actual.outcome == 'success' }}
+        run: echo 'Genuine candidates only; 1/70 formal baseline unchanged.'
