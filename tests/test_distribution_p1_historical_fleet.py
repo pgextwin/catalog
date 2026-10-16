@@ -91,17 +91,20 @@ class HistoricalFleetHostile(unittest.TestCase):
     def test_jobs_failure_duplicate_or_cross_attempt_deny(self):
         p = self.pins["hypopg"]
         base = [
-            {"id": 1, "name": "release_build / PostgreSQL 15 / Windows x64",
+            {"id": p["pgBuildJobIds"]["15"], "name": "release_build / PostgreSQL 15 / Windows x64",
              "conclusion": "success", "head_sha": p["packagingSha"], "run_attempt": 1},
-            {"id": 2, "name": "release / Publish GitHub Release",
+            {"id": p["publishJobId"], "name": "release / Publish GitHub Release",
              "conclusion": "success", "head_sha": p["packagingSha"], "run_attempt": 1},
         ]
+        base += [{"id": 100 + n, "name": "ancillary-" + str(n),
+                  "conclusion": "skipped", "head_sha": p["packagingSha"],
+                  "run_attempt": 1} for n in range(p["observedJobCount"] - 2)]
         def verify(jobs):
             proc = type("Proc", (), {"returncode": 0,
                     "stdout": json.dumps({"jobs": jobs, "total_count": len(jobs)}).encode()})()
             with patch.object(history.subprocess, "run", return_value=proc):
                 return history.historical_jobs("hypopg", "15", p)
-        self.assertEqual(verify(base)["publicationJobId"], 2)
+        self.assertEqual(verify(base)["publicationJobId"], p["publishJobId"])
         for bad in (
             [dict(base[0], conclusion="failure"), base[1]],
             [dict(base[0], run_attempt=2), base[1]],
@@ -109,9 +112,32 @@ class HistoricalFleetHostile(unittest.TestCase):
             [base[0], dict(base[1], conclusion="skipped")],
             [base[0], dict(base[1], name="Any publisher")],
             base+[dict(base[1], id=3)],
+            [dict(base[0], id=999), *base[1:]],
         ):
             with self.subTest(bad=bad), self.assertRaises(Denied):
                 verify(bad)
+
+    def test_checkout_log_corroboration_required_and_job_id_pinned(self):
+        p = self.pins["hypopg"]
+        source = {"upstreamRepository": "HypoPG/hypopg",
+                  "upstreamRef": "1.4.3",
+                  "upstreamCommit": "21d5461ad1868434cc47d9aa656d7afc2b24c464"}
+        original = (
+            "Complete job name: release_build / PostgreSQL 15 / Windows x64\\n"
+            "  repository: HypoPG/hypopg\\n"
+            "  ref: 21d5461ad1868434cc47d9aa656d7afc2b24c464\\n"
+            "21d5461ad1868434cc47d9aa656d7afc2b24c464\\n").replace("\\\\n", "\\n").encode()
+        good = type("P", (), {"returncode": 0, "stdout": original})()
+        with patch.object(history.subprocess, "run", return_value=good):
+            proof = history.checkout_log_corrob("hypopg", "15", p, source)
+            self.assertEqual(proof["originalCheckoutJobId"], p["pgBuildJobIds"]["15"])
+        for malicious in (original.replace(b"HypoPG/hypopg", b"other/repo"),
+                          original.replace(source["upstreamCommit"].encode(), b"0"*40),
+                          b"unrelated checkout evidence"):
+            proc = type("P", (), {"returncode": 0, "stdout": malicious})()
+            with patch.object(history.subprocess, "run", return_value=proc):
+                with self.assertRaises(Denied):
+                    history.checkout_log_corrob("hypopg", "15", p, source)
 
     def test_external_upstream_resolution_is_mandatory_not_pkg_self_assertion(self):
         upstream = {"repository":"sampleowner/samplerepo", "ref":"v1.2", "version":"1.2"}
