@@ -244,6 +244,11 @@ def audit_snapshot(root, policy, trust_root, *, allow_sigstore):
                                     policy["repoIds"][name])
             require_asset_id_pins(assets, policy["assetIds"][name])
             hashes = rehash_release(asset_directory(root, name), assets, rec)
+            for major, entry in rec["postgresql"].items():
+                if entry.get("available") is True:
+                    outcomes[(name, major)] = {"integrityVerified": True,
+                                               "signatureVerified": False,
+                                               "reason": "real signed proof not yet verified"}
             config = strict_json(source_path(root, name).read_bytes())
         except (Denied, OSError, KeyError, ValueError) as exc:
             for pair in supported:
