@@ -270,6 +270,32 @@ class P1Tests(unittest.TestCase):
                           root_sha="0"*64, bundles={})
                 run.assert_not_called()
 
+    def test_offline_gh_preserves_windows_path_and_system_environment(self):
+        import os
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            root = base/"root.jsonl"; root.write_bytes(b"authenticated fixture root")
+            zip_file = base/"example.zip"; zip_file.write_bytes(b"fixture original bytes")
+            bundle = base/"bundle.jsonl"; bundle.write_bytes(b"synthetic fixture")
+            with patch.object(p1.subprocess, "run") as proc:
+                proc.return_value = type("Result", (), {
+                    "returncode": 2, "stdout": "", "stderr": "signature not valid"})()
+                self.deny(p1.verify_sigstore_offline, zip_file, {},
+                    repo="pgextwin/example", repo_id=7001,
+                    packaging_sha="a"*40, signer_sha="b"*40,
+                    run_id=567, attempt=1, root_path=root, root_sha=p1.sha(root),
+                    bundles={p1.PROVENANCE: (bundle, p1.sha(bundle)),
+                             p1.SPDX: (bundle, p1.sha(bundle))})
+                proc.assert_called_once()
+                kwargs = proc.call_args.kwargs
+                self.assertEqual(kwargs["env"]["GH_PROMPT_DISABLED"], "1")
+                self.assertEqual(kwargs["env"]["GH_NO_UPDATE_NOTIFIER"], "1")
+                for variable in ("PATH", "SystemRoot"):
+                    if variable in os.environ:
+                        self.assertEqual(kwargs["env"][variable], os.environ[variable])
+                self.assertIn("--bundle", proc.call_args.args[0])
+                self.assertIn("--custom-trusted-root", proc.call_args.args[0])
+
     def test_sigstore_requires_both_real_bundles(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
