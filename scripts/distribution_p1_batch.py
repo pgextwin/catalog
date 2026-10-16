@@ -18,8 +18,9 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
+from zipfile import ZipFile, BadZipFile
 
-from distribution_manifest_v1 import Denied, require, strict_json
+from distribution_manifest_v1 import Denied, require, strict_json, verify_archive_members
 from distribution_release_audit_p1 import (
     api_json, pinned_content, policy_load, resolve_tag, gh_read,
 )
@@ -33,7 +34,7 @@ from distribution_historical_p1_pg14 import (
 )
 
 SCHEMA = "pgextwin-p1-genuine-fleet-batch/v1"
-VERIFIER = "batch-v2-strict-original-checksum;distribution_release_verify_p1.py"
+VERIFIER = "batch-v3-full-zip-structure-and-observed-run;distribution_release_verify_p1.py"
 BASELINE = ("pg_bigm", "14", 1405047175, 408449466, 626562095)
 NAMES = ("hypopg", "orafce", "pg_bigm", "pg_cron", "pg_hint_plan", "pg_ivm",
          "pg_partman", "pg_qualstats", "pg_repack", "pg_stat_monitor",
@@ -142,6 +143,84 @@ def rehash_common_original(directory, assets, record, name, release):
     # Reached only for already authenticated 14-Release/224-Asset numeric ID
     # candidate Policy, unchanged SHA of the ORIGINAL checksum Asset and bytes.
     return rehash_dot_pinned_original(directory, assets, record)
+
+
+def inspect_release_structure(directory, record, name, release):
+    """Genuine original ZIP CRC/SPDX/Grype validation before profile decisions.
+
+    Observed package/Run metadata is diagnostic, UNTRUSTED until the per-PG
+    exact source/Run and two real Sigstore checks succeed. No generalization
+    of the sole formally accepted historical PG14 cryptographic profile.
+    """
+    details = {}
+    for major, row in record["postgresql"].items():
+        if row.get("available") is not True:
+            continue
+        try:
+            path = directory / row["asset"]
+            with ZipFile(path) as zf:
+                verify_archive_members(zf)
+                matches = [m for m in zf.infolist() if m.filename == "PACKAGE-INFO.json"]
+                require(len(matches) == 1 and matches[0].file_size <= 262144,
+                        "missing/ambiguous/oversized package metadata")
+                for member in zf.infolist():
+                    if member.is_dir():
+                        continue
+                    with zf.open(member) as stream:
+                        while stream.read(1024 * 1024):
+                            pass  # Exercise each member CRC with bounded reads.
+                pkg = strict_json(zf.read("PACKAGE-INFO.json").decode("utf-8-sig"))
+            sbom_file = directory / row["evidence"]["sbom"]["asset"]
+            grype_file = directory / row["evidence"]["vulnerabilityReport"]["asset"]
+            require(sbom_file.stat().st_size <= 8 * 1024 * 1024
+                    and grype_file.stat().st_size <= 8 * 1024 * 1024,
+                    "oversized signed SPDX/Grype inspection input")
+            spdx = strict_json(sbom_file.read_bytes())
+            grype = strict_json(grype_file.read_bytes())
+        except (BadZipFile, OSError, RuntimeError, UnicodeError, KeyError, ValueError) as exc:
+            raise Denied("original PG" + major + " ZIP/CRC/SPDX/Grype invalid") from exc
+        require(type(pkg) is dict and pkg.get("schemaVersion") == 1
+                and (pkg.get("package") or {}).get("name") == name
+                and (pkg.get("package") or {}).get("platform") == "windows"
+                and (pkg.get("package") or {}).get("architecture") == "x64"
+                and (pkg.get("postgresql") or {}).get("major") == int(major),
+                "original PG" + major + " PACKAGE-INFO identity invalid")
+        require(spdx.get("spdxVersion") == "SPDX-2.3"
+                and type(grype.get("matches")) is list,
+                "original PG" + major + " SPDX/Grype structure invalid")
+        workflow = pkg.get("workflowRun") or {}
+        upstream = pkg.get("upstream") or {}
+        package_source = pkg.get("source") or {}
+        infrastructure = pkg.get("buildInfrastructure") or {}
+        require(all(type(o) is dict for o in
+                    (workflow, upstream, package_source, infrastructure)),
+                "non-object original diagnostic structure")
+        run_id = workflow.get("id")
+        observed = {
+            "packageEvent": workflow.get("event"),
+            "packageRef": workflow.get("ref"),
+            "packageRunId": run_id,
+            "packageRunAttempt": workflow.get("attempt"),
+            "packagePackagingSha": package_source.get("packagingCommit"),
+            "packageUpstreamRef": upstream.get("ref"),
+            "packageUpstreamSha": upstream.get("commit"),
+            "packageSignerSha": infrastructure.get("commit"),
+            "profileStatus": "UNVERIFIED_OBSERVATION_ONLY",
+        }
+        if type(run_id) is int and run_id > 0:
+            try:
+                run = api_json(name + "/actions/runs/" + str(run_id))
+                observed["githubRun"] = {
+                    "id": run.get("id"), "runAttempt": run.get("run_attempt"),
+                    "workflow": run.get("path"), "event": run.get("event"),
+                    "headBranch": run.get("head_branch"), "headSha": run.get("head_sha"),
+                    "conclusion": run.get("conclusion"), "status": run.get("status"),
+                    "repositoryId": (run.get("repository") or {}).get("id"),
+                }
+            except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
+                observed["githubRunLookupBlocked"] = str(exc)[:160]
+        details[major] = observed
+    return details
 
 
 def identity(policy, name, release):
@@ -328,6 +407,7 @@ def handle_release(name, rec, policy, cache, root, measured):
         folder = Path(tmp)
         obtain_assets(cache, folder, assets, repo, release["tag_name"])
         hashes = rehash_common_original(folder, assets, rec, name, release)
+        structural = inspect_release_structure(folder, rec, name, release)
         common = {"schema": SCHEMA, "type": "release",
                   "extension": name, "releaseId": release["id"],
                   "repositoryId": policy["repoIds"][name],
@@ -335,6 +415,9 @@ def handle_release(name, rec, policy, cache, root, measured):
                   "verifier": VERIFIER, "profile": original_profile(name, release),
                   "assetIds": {n: a["id"] for n, a in sorted(assets.items())},
                   "assetSha256": hashes, "allAssetsRehashed": len(hashes) == len(assets),
+                  "allPgZipCrcVerified": len(structural) == 5,
+                  "allPgSpdxGrypeStructured": len(structural) == 5,
+                  "observedUntrustedProfiles": structural,
                   "decision": "PASS", "publicationAuthorized": False,
                   "distributionAuthorized": False}
         rows = {}
