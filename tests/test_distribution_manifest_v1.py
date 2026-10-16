@@ -35,7 +35,8 @@ def fixtures():
                        "eol": "2026-11-12" if m == "14" else "2030-11-14"}
                       for m in MAJORS],
         "approved_majors": MAJORS, "releases": {}, "pins": {}, "receipts": {},
-        "independently_verify": lambda *args: True, "schema": SCHEMA,
+        "independently_verify": lambda *args: {"integrityVerified": True,
+                                                "signatureVerified": True}, "schema": SCHEMA,
     }
     for idx, name in enumerate(sorted(ALLOWED)):
         tag = "v1.0-windows.1"
@@ -172,11 +173,13 @@ class ManifestV1Tests(unittest.TestCase):
         d = fixtures()
         d["independently_verify"] = None
         self.assert_denied(d)
-        d["independently_verify"] = lambda *args: False
+        d["independently_verify"] = lambda *args: {"integrityVerified": False,
+                                                     "signatureVerified": False}
         b = build_manifest(**d)
         self.assertFalse(b["complete"])
         self.assertEqual(len(b["packages"]), 0)
         self.assertTrue(all(x["status"] == "blocked" for x in b["coverage"]))
+        self.assertTrue(all(x["verificationLevel"] == "UNVERIFIED" for x in b["coverage"]))
 
     def test_missing_verified_major_is_blocked_not_complete(self):
         d = fixtures()
@@ -185,6 +188,7 @@ class ManifestV1Tests(unittest.TestCase):
         self.assertEqual(len(b["packages"]), 69)
         self.assertFalse(b["complete"])
         self.assertIn({"extension": "pgaudit", "pgMajor": "14", "status": "blocked",
+                       "verificationLevel": "UNVERIFIED",
                        "reason": "independent signature and source pin required"},
                       b["coverage"])
 
@@ -192,6 +196,27 @@ class ManifestV1Tests(unittest.TestCase):
         d = fixtures()
         d["receipts"].pop(("pg_cron", "18"))
         self.assertEqual(len(build_manifest(**d)["packages"]), 69)
+
+    def test_integrity_only_is_blocked_not_signature_verified(self):
+        d = fixtures()
+        d["independently_verify"] = lambda *args: {
+            "integrityVerified": True, "signatureVerified": False,
+        }
+        m = build_manifest(**d)
+        self.assertFalse(m["complete"])
+        self.assertEqual(len(m["packages"]), 0)
+        self.assertEqual(set(c["verificationLevel"] for c in m["coverage"]),
+                         {"INTEGRITY_ONLY"})
+        self.assertEqual(set(c["status"] for c in m["coverage"]), {"blocked"})
+
+    def test_verifier_must_not_claim_signature_without_bytes(self):
+        d = fixtures()
+        for decision in (True, {"signatureVerified": True,
+                                "integrityVerified": False},
+                         {"signatureVerified": True}):
+            d["independently_verify"] = lambda *args, decision=decision: decision
+            with self.subTest(decision=decision):
+                self.assert_denied(d)
 
     def test_strict_duplicate_json_keys(self):
         with self.assertRaises(Denied):
