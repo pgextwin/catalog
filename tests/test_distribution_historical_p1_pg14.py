@@ -126,10 +126,9 @@ class HistoricalP1Tests(unittest.TestCase):
                   name=P["asset"], digest=P["zipSha256"])
         mutated = bundle(h.SPDX)
         mutated["verificationMaterial"]["unknown"] = "ignored by gh"
-        # Material is untrusted; real verification must still run.
-        raw, _ = h.normalize_jsonl(listing([bundle(h.PROVENANCE), mutated]),
-                                   name=P["asset"], digest=P["zipSha256"])
-        self.assertEqual(set(raw), set(h.PREDICATES))
+        # Unknown verification-material fields are rejected before real gh.
+        self.deny(h.normalize_jsonl, listing([bundle(h.PROVENANCE), mutated]),
+                  name=P["asset"], digest=P["zipSha256"])
 
     def test_subject_and_bundle_forgery(self):
         cases = [
