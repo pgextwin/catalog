@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""Hostile offline contract tests. Never claim to verify a real Sigstore signature."""
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import distribution_p1_batch as batch
+from distribution_manifest_v1 import Denied
+
+
+class GenuineBatchHostileTests(unittest.TestCase):
+    def setUp(self):
+        self.policy = {
+            "catalogCommitSha": "a" * 40, "rootSha256": "b" * 64,
+            "repoIds": {"plpgsql_check": 123, "pg_bigm": 1405047175},
+            "releaseIds": {"plpgsql_check": 456, "pg_bigm": 408449466},
+            "assetIds": {}, "approvedMajors": [14, 15, 16, 17, 18],
+            "officialGhSha256": ["c" * 64],
+        }
+        self.release = {"target_commitish": "d" * 40, "assets": [
+            {"id": 3, "name": "plpgsql_check-test-pg15-windows-x64.zip",
+             "size": 4, "digest": "sha256:" + "e" * 64}
+        ]}
+
+    def test_release_identity_not_reusable_for_other_ids_sources_profiles_roots(self):
+        original = batch.identity(self.policy, "plpgsql_check", self.release)
+        for change in ("asset", "assetid", "release", "repo", "source", "root",
+                       "catalog", "verifier"):
+            p = dict(self.policy)
+            r = json.loads(json.dumps(self.release))
+            if change == "asset":
+                r["assets"][0]["digest"] = "sha256:" + "0" * 64
+            elif change == "assetid":
+                r["assets"][0]["id"] = 777
+            elif change == "release":
+                p["releaseIds"] = dict(p["releaseIds"], plpgsql_check=999)
+            elif change == "repo":
+                p["repoIds"] = dict(p["repoIds"], plpgsql_check=999)
+            elif change == "source":
+                r["target_commitish"] = "f" * 40
+            elif change == "root":
+                p["rootSha256"] = "f" * 64
+            elif change == "catalog":
+                p["catalogCommitSha"] = "0" * 40
+            else:
+                with patch.object(batch, "VERIFIER", "altered-verifier"):
+                    self.assertNotEqual(batch.identity(p, "plpgsql_check", r), original)
+                continue
+            self.assertNotEqual(batch.identity(p, "plpgsql_check", r), original)
+
+    def test_cache_rejects_altered_bytes_wrong_size_and_symlink(self):
+        with tempfile.TemporaryDirectory() as d:
+            cache = Path(d)
+            path = cache / "object"
+            path.write_bytes(b"valid")
+            digest = batch.sha(path)
+            a = {"size": 5}
+            batch.save_object(cache, path, a, digest)
+            path.write_bytes(b"evil!")
+            with self.assertRaises(Denied):
+                batch.save_object(cache, path, a, digest)
+            path.write_bytes(b"valid")
+            with self.assertRaises(Denied):
+                batch.save_object(cache, path, {"size": 4}, digest)
+            cache_file = cache / "sha256" / digest
+            cache_file.unlink()
+            cache_file.symlink_to(path)
+            with self.assertRaises(Denied):
+                batch.save_object(cache, path, a, digest)
+
+    def test_no_unknown_pg_or_missing_policy(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(Denied):
+                batch.run(self.policy, Path(d) / "cache", Path(d) / "report")
+            self.assertNotIn("19", batch.MAJORS)
+            self.assertEqual(len(batch.NAMES) * len(batch.MAJORS), 70)
+
+    def test_previous_pg14_row_does_not_count_twice(self):
+        p = dict(self.policy)
+        p["assetIds"] = {"pg_bigm": {}}
+        release = {"target_commitish": "d" * 40, "assets": [
+            {"id": 626562095,
+             "name": "pg_bigm-v1.2-pg14-windows-x64.zip", "size": 1,
+             "digest": "sha256:" + "a" * 64}
+        ]}
+        key = batch.identity(p, "pg_bigm", release)
+        result = batch.row_receipt("pg_bigm", "14", p, release, key, {}, {
+            "decision": "ALREADY_ACCEPTED", "reason": "sealed previously"})
+        self.assertIs(result["formalAcceptedByThisRun"], False)
+        self.assertIs(result["signatureVerified"], False)
+        self.assertIs(result["publicationAuthorized"], False)
+        self.assertNotEqual(result["decision"], "PASS_CANDIDATE")
+
+    def test_fail_closed_bad_run_jobs_without_running_online(self):
+        example = {"jobs": [
+            {"name": "Build / PostgreSQL 15 / Windows x64", "conclusion": "failure", "id": 1},
+            {"name": "Verify signatures and SHA; create-only formal publication",
+             "conclusion": "success", "id": 2}
+        ], "total_count": 2}
+        proc = type("P", (), {"returncode": 0, "stdout": json.dumps(example).encode()})()
+        with patch.object(batch.subprocess, "run", return_value=proc):
+            with self.assertRaises(Denied):
+                batch.fetch_jobs("plpgsql_check", 38128142145, "15")
+            with self.assertRaises(Denied):
+                batch.fetch_jobs("plpgsql_check", 38128142145, "18")
+            with self.assertRaises(Denied):
+                batch.fetch_jobs("../evil", 1, "15")
+        example["jobs"][0]["conclusion"] = "success"
+        example["total_count"] = 3
+        proc.stdout = json.dumps(example).encode()
+        with patch.object(batch.subprocess, "run", return_value=proc):
+            with self.assertRaises(Denied):
+                batch.fetch_jobs("plpgsql_check", 123, "15")
+
+    def test_root_swap_or_tuf_error_not_signature_verified(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = type("P", (), {"returncode": 0, "stdout": b"not-matching-root"})()
+            with patch.object(batch.subprocess, "run", return_value=p):
+                with self.assertRaises(Denied):
+                    batch.fresh_root(self.policy, Path(d) / "root")
+            p.returncode = 1
+            with patch.object(batch.subprocess, "run", return_value=p):
+                with self.assertRaises(Denied):
+                    batch.fresh_root(self.policy, Path(d) / "root")
+
+    def test_no_gh_provenance_is_denied(self):
+        with patch.object(batch.shutil, "which", return_value=None):
+            with self.assertRaises(Denied):
+                batch.require_gh(self.policy)
+
+    def test_readonly_runner_disallows_publisher_and_status_escalation(self):
+        source = Path(batch.__file__).read_text()
+        for forbidden in ("gh release create", "gh workflow run", "workflow_dispatch(",
+                          "publicationAuthorized\": True", "distributionAuthorized\": True",
+                          "create_release(", "merge_pull_request("):
+            self.assertNotIn(forbidden, source)
+
+
+if __name__ == "__main__":
+    unittest.main()
