@@ -102,6 +102,15 @@ public sealed class ReleaseReader : IDisposable
         }
 
         var output = Path.GetFullPath(outputDirectory);
+        // Reject preexisting ancestor symlinks before even creating a child directory.
+        var nearestExisting = output;
+        while (!Directory.Exists(nearestExisting))
+        {
+            var parent = Path.GetDirectoryName(nearestExisting);
+            Require(parent is not null && parent != nearestExisting, "Unsafe output root");
+            nearestExisting = parent;
+        }
+        CheckDirectoryChain(nearestExisting);
         Directory.CreateDirectory(output);
         CheckDirectoryChain(output);
         var destination = Path.Combine(output, pin.AssetName);
