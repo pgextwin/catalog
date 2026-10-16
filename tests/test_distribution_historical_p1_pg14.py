@@ -249,6 +249,98 @@ class HistoricalP1Tests(unittest.TestCase):
         self.assertIn("head_branch", ordinary.signed_run.__code__.co_consts)
         self.assertNotEqual(h.PIN["sourceRef"], "refs/heads/main")
 
+
+    def test_historical_release_numeric_ids_checksum_spdx_grype_pins(self):
+        record = json.loads((Path(__file__).resolve().parents[1]
+                             / "extensions" / "pg_bigm.json").read_text(encoding="utf-8"))
+        r = {"id": P["releaseId"], "tag_name": P["tag"],
+             "target_commitish": P["packaging"], "draft": False,
+             "prerelease": False,
+             "html_url": record["latest"]["releaseUrl"],
+             "published_at": record["latest"]["publishedAt"], "assets": []}
+        entries = [("SHA256SUMS.txt", P["sumsSha256"], P["sumsAssetId"])]
+        for pg, row in record["postgresql"].items():
+            entries.append((row["asset"], row["sha256"],
+                            P["assetId"] if pg == "14" else 90000 + int(pg)))
+            for kind, key, offset in (("sbom", "sbomAssetId", 100),
+                                       ("vulnerabilityReport", "grypeAssetId", 200)):
+                e = row["evidence"][kind]
+                ident = P[key] if pg == "14" else 90000 + offset + int(pg)
+                entries.append((e["asset"], e["sha256"], ident))
+        for name, digest, ident in entries:
+            r["assets"].append({
+                "name": name, "id": ident, "size": P["assetSize"] if name == P["asset"] else 100,
+                "digest": "sha256:" + digest, "state": "uploaded",
+                "browser_download_url": "https://github.com/" + P["repo"]
+                                        + "/releases/download/" + P["tag"] + "/" + name})
+        h.validate_original_metadata(record, r)
+        def corrupt_asset(name, field, value):
+            bad = copy.deepcopy(r)
+            asset = next(a for a in bad["assets"] if a["name"] == name)
+            asset[field] = value
+            self.deny(h.validate_original_metadata, record, bad)
+        row = record["postgresql"]["14"]
+        corrupt_asset(P["asset"], "id", 123456)
+        corrupt_asset(row["evidence"]["sbom"]["asset"], "id", 123456)
+        corrupt_asset(row["evidence"]["vulnerabilityReport"]["asset"], "id", 123456)
+        corrupt_asset("SHA256SUMS.txt", "id", 123456)
+        corrupt_asset("SHA256SUMS.txt", "digest", "sha256:" + "a"*64)
+        corrupt_asset(row["evidence"]["sbom"]["asset"], "digest", "sha256:" + "a"*64)
+        corrupt_asset(row["evidence"]["vulnerabilityReport"]["asset"],
+                      "digest", "sha256:" + "a"*64)
+        for field, value in (("id", 777), ("tag_name", "unrelated"),
+                             ("target_commitish", "f"*40)):
+            bad = copy.deepcopy(r)
+            bad[field] = value
+            self.deny(h.validate_original_metadata, record, bad)
+
+    def test_original_package_unsigned_or_upstream_sha_changed(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root/"windows.yml").write_text(
+                'push:\\n  branches: ["release/**"]\\nrelease_build:\\n'
+                + "uses: " + h.SIGNER + "@" + P["signerSha"]
+                + "\\nrelease:\\nneeds: release_build", encoding="utf-8")
+            (root/"extension.json").write_text(json.dumps({
+                "name": "pg_bigm",
+                "upstream": {"repository": P["upstreamRepo"], "ref": P["upstreamRef"],
+                             "version": P["upstreamVersion"]},
+                "postgresql": {"minMajor":14,"maxMajor":18}}), encoding="utf-8")
+            pkg = {
+                "schemaVersion":1,"buildMode":"release-attested",
+                "package":{"name":"pg_bigm","platform":"windows","architecture":"x64"},
+                "postgresql":{"major":14},
+                "source":{"packagingRepository":P["repo"],
+                          "packagingCommit":P["packaging"]},
+                "upstream":{"repository":P["upstreamRepo"],"ref":P["upstreamRef"],
+                            "version":P["upstreamVersion"],"commit":P["upstreamSha"]},
+                "workflowRun":{"id":P["runId"],"attempt":1,"ref":P["sourceRef"],
+                               "event":"push", "url":f"https://github.com/{P['repo']}/actions/runs/{P['runId']}"},
+                "buildInfrastructure":{"repository":"pgextwin/build",
+                                       "workflow":".github/workflows/build-extension-attested.yml",
+                                       "commit":P["signerSha"]},
+            }
+            # The two local files are synthetic: stub *only* their Git blob checks
+            # to exercise package policy, never to assert cryptographic proof.
+            with patch.object(h, "_blob_sha",
+                              side_effect=lambda b: (P["workflowBlob"] if b.startswith(b"push:")
+                                                     else P["configBlob"])):
+                h.validate_package_and_origin(root, pkg)
+                for path, key, value in (
+                    (("upstream",), "commit", "a"*40),
+                    (("workflowRun",), "attempt", 2),
+                    (("workflowRun",), "ref", "refs/heads/main"),
+                    (("workflowRun",), "event", "workflow_dispatch"),
+                    (("buildInfrastructure",), "commit", "b"*40),
+                    ((), "buildMode", "unsigned"),
+                    (("postgresql",), "major", 15)):
+                    bad = copy.deepcopy(pkg)
+                    obj = bad
+                    for segment in path:
+                        obj = obj[segment]
+                    obj[key] = value
+                    self.deny(h.validate_package_and_origin, root, bad)
+
     def test_real_gh_does_not_start_with_missing_trusted_root(self):
         with tempfile.TemporaryDirectory() as d:
             with patch.object(h.subprocess, "run", side_effect=AssertionError("forbidden")):
