@@ -22,6 +22,7 @@ from zipfile import ZipFile
 from distribution_manifest_v1 import Denied, require, strict_json, safe_component
 from distribution_release_verify_p1 import (
     PROVENANCE, SPDX, fleet_counts, sha, release_assets, rehash_release,
+    require_asset_id_pins,
     verified_catalog, immutable_source, inspect_package, signed_run,
     verify_sigstore_offline, parse_sums,
 )
@@ -96,6 +97,7 @@ def policy_load(path):
             and type(p.get("catalogDigests")) is dict
             and type(p.get("repoIds")) is dict
             and type(p.get("releaseIds")) is dict
+            and type(p.get("assetIds")) is dict
             and type(p.get("trustedSignerShas")) is list
             and p["trustedSignerShas"]
             and all(type(s) is str and HEX40.fullmatch(s) for s in p["trustedSignerShas"])
@@ -149,7 +151,9 @@ def materialize_online(root, policy):
                 "formal Release numeric ID mismatch")
         require(resolve_tag(name, release["tag_name"]) == release["target_commitish"],
                 "formal Release tag no longer resolves to source SHA")
-        release_assets(record, release, policy["releaseIds"][name], policy["repoIds"][name])
+        require_asset_id_pins(release_assets(record, release, policy["releaseIds"][name],
+                                                 policy["repoIds"][name]),
+                              policy["assetIds"][name])
         (root/"releases"/name).mkdir(parents=True, exist_ok=True)
         (root/"releases"/name/"release.json").write_text(json.dumps(release),encoding="utf-8")
         (root/"sources").mkdir(parents=True, exist_ok=True)
@@ -159,8 +163,10 @@ def materialize_online(root, policy):
         folder.mkdir(parents=True, exist_ok=True)
         gh_read("release", "download", release["tag_name"], "--repo", repo, "--dir", str(folder))
         (root/"runs").mkdir(parents=True, exist_ok=True)
-        verified_hashes = rehash_release(folder, release_assets(
-            record, release, policy["releaseIds"][name], policy["repoIds"][name]), record)
+        downloaded_assets = release_assets(record, release, policy["releaseIds"][name],
+                                           policy["repoIds"][name])
+        require_asset_id_pins(downloaded_assets, policy["assetIds"][name])
+        verified_hashes = rehash_release(folder, downloaded_assets, record)
         run_ids = set()
         for pg, info in record["postgresql"].items():
             if info.get("available") is not True:
@@ -201,7 +207,8 @@ def read_snapshot(root, policy):
     records = verified_catalog(ib, blobs, policy["catalogDigests"],
                                policy["catalogCommitSha"])
     require(set(policy["repoIds"]) == set(records)
-            and set(policy["releaseIds"]) == set(records),
+            and set(policy["releaseIds"]) == set(records)
+            and set(policy["assetIds"]) == set(records),
             "incomplete numeric identity policy")
     return records
 
@@ -217,6 +224,7 @@ def audit_snapshot(root, policy, trust_root, *, allow_sigstore):
             release = strict_json((root/"releases"/name/"release.json").read_bytes())
             assets = release_assets(rec, release, policy["releaseIds"][name],
                                     policy["repoIds"][name])
+            require_asset_id_pins(assets, policy["assetIds"][name])
             hashes = rehash_release(asset_directory(root, name), assets, rec)
             config = strict_json(source_path(root, name).read_bytes())
         except (Denied, OSError, KeyError, ValueError) as exc:
