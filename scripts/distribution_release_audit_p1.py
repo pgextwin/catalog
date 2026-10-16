@@ -8,6 +8,7 @@ snapshot is staging DATA, not a self-authenticating offline trust anchor.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import base64
 from datetime import date
 import hashlib
@@ -22,6 +23,7 @@ from zipfile import ZipFile
 from distribution_manifest_v1 import Denied, require, strict_json, safe_component
 from distribution_release_verify_p1 import (
     PROVENANCE, SPDX, fleet_counts, sha, release_assets, rehash_release,
+    lifecycle_status,
     require_asset_id_pins, MAX_RELEASE,
     verified_catalog, immutable_source, inspect_package, signed_run,
     verify_sigstore_offline, parse_sums,
@@ -36,7 +38,7 @@ def gh_read(*args, cwd=None):
     """Allowlisted GitHub CLI GET/download only, no shell or write endpoint."""
     require(args and (
         (args[0] == "api" and len(args) == 2 and
-         re.fullmatch(r"repos/pgextwin/[a-z][a-z0-9_]*/(?:contents/(?:index\.json|extensions/[a-z][a-z0-9_]*\.json|config/extension\.json)\?ref=[a-f0-9]{40}|releases/tags/[A-Za-z0-9_.-]+|git/ref/tags/[A-Za-z0-9_.-]+|git/tags/[a-f0-9]{40}|actions/runs/[1-9][0-9]*)", args[1]))
+         re.fullmatch(r"repos/pgextwin/[a-z][a-z0-9_]*/(?:compare/[a-f0-9]{40}\.\.\.main|contents/(?:index\.json|extensions/[a-z][a-z0-9_]*\.json|config/extension\.json)\?ref=[a-f0-9]{40}|releases/tags/[A-Za-z0-9_.-]+|git/ref/tags/[A-Za-z0-9_.-]+|git/tags/[a-f0-9]{40}|actions/runs/[1-9][0-9]*)", args[1]))
         or (args[0] == "api" and len(args) == 2 and
             re.fullmatch(r"repos/pgextwin/[a-z][a-z0-9_]*", args[1]))
         or (args[:2] == ("release", "download") and len(args) == 7 and
@@ -135,6 +137,9 @@ def materialize_online(root, policy):
     require(signer_meta.get("full_name") == "pgextwin/build"
             and signer_meta.get("id") == policy["signerRepositoryId"],
             "reusable signer numeric GitHub repository ID changed")
+    relation = api_json("catalog/compare/" + commit + "...main")
+    require(relation.get("status") in ("identical", "ahead"),
+            "pinned Catalog commit not on protected main ancestry")
     index = pinned_content("catalog", "index.json", commit)
     parsed = strict_json(index)
     names = parsed.get("extensions") or []
@@ -157,6 +162,9 @@ def materialize_online(root, policy):
                 "formal Release numeric ID mismatch")
         require(resolve_tag(name, release["tag_name"]) == release["target_commitish"],
                 "formal Release tag no longer resolves to source SHA")
+        ancestry = api_json(name + "/compare/" + release["target_commitish"] + "...main")
+        require(ancestry.get("status") in ("identical", "ahead"),
+                "formal Release packaging SHA not on main ancestry")
         meta_assets = release_assets(record, release, policy["releaseIds"][name],
                                      policy["repoIds"][name])
         require_asset_id_pins(meta_assets, policy["assetIds"][name])
@@ -287,7 +295,16 @@ def audit_snapshot(root, policy, trust_root, *, allow_sigstore):
                 outcomes[pair] = {"integrityVerified": previous.get("integrityVerified") is True,
                                   "signatureVerified": False,
                                   "reason": str(exc)[:180]}
-    return fleet_counts(records, outcomes)
+    report = fleet_counts(records, outcomes)
+    today = datetime.now(timezone.utc).date().isoformat()
+    status_counts = {"maintained": 0, "historical": 0, "unsupported": 0}
+    for name, rec in records.items():
+        for major, row in rec["postgresql"].items():
+            status = lifecycle_status(int(major), as_of_utc=today,
+                eol_by_major=policy["pgEol"], approved_majors=policy["approvedMajors"])
+            status_counts[status] += 1
+    report["lifecycleCoverage"] = status_counts
+    return report
 
 
 def main(argv=None):
