@@ -72,6 +72,25 @@ class GenuineBatchHostileTests(unittest.TestCase):
             with self.assertRaises(Denied):
                 batch.save_object(cache, path, a, digest)
 
+    def test_unpinned_gh_must_not_contact_github_or_touch_token(self):
+        policy = dict(self.policy)
+        policy["repoIds"] = {name: i + 100 for i, name in enumerate(batch.NAMES)}
+        policy["releaseIds"] = {name: i + 200 for i, name in enumerate(batch.NAMES)}
+        policy["assetIds"] = {name: {} for name in batch.NAMES}
+        with tempfile.TemporaryDirectory() as d:
+            with patch.object(batch, "require_gh", side_effect=Denied("bad executable")), \
+                 patch.object(batch, "get_catalog") as get_catalog, \
+                 patch.object(batch, "api_json") as api_json:
+                report = batch.run(policy, Path(d) / "objects", Path(d) / "rows")
+            get_catalog.assert_not_called()
+            api_json.assert_not_called()
+            self.assertEqual(report["formalP1Accepted"], 1)
+            self.assertEqual(report["batchDecisions"]["BLOCKED"], 69)
+            self.assertEqual(report["batchDecisions"]["ALREADY_ACCEPTED"], 1)
+            self.assertEqual(report["batchDecisions"]["PASS_CANDIDATE"], 0)
+            self.assertFalse(report["publicationAuthorized"])
+            self.assertTrue((Path(d) / "rows" / "summary.json").is_file())
+
     def test_no_unknown_pg_or_missing_policy(self):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaises(Denied):
