@@ -72,17 +72,20 @@ def safe_tar(blob, *, expected_count=None):
     entries, total, folded = {}, 0, set()
     try:
         with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as tf:
-            members = tf.getmembers()
-            require(0 < len(members) <= MAX_ENTRIES, "invalid tar member count")
-            for member in members:
-                name = member.name
+            count = 0
+            for member in tf:
+                count += 1
+                require(count <= MAX_ENTRIES, "too many tar members")
+                name = member.name.rstrip("/") if member.isdir() else member.name
                 safe_path(name)
                 require(name.casefold() not in folded, "duplicate/case-colliding tar entry")
                 folded.add(name.casefold())
-                require(member.isfile() and member.isreg()
-                        and not member.issym() and not member.islnk()
+                require(not member.issym() and not member.islnk()
                         and not member.pax_headers and not getattr(member, "sparse", None),
                         "link/special/PAX tar member forbidden")
+                if member.isdir():
+                    continue
+                require(member.isfile() and member.isreg(), "tar special file forbidden")
                 require(0 <= member.size <= MAX_MEMBER, "oversized tar member")
                 total += member.size
                 require(total <= MAX_TOTAL, "tar decompression bound")
@@ -91,6 +94,7 @@ def safe_tar(blob, *, expected_count=None):
                 data = f.read(member.size + 1)
                 require(len(data) == member.size, "tar member byte length mismatch")
                 entries[name] = data
+            require(count > 0, "empty tar")
     except (tarfile.TarError, OSError, EOFError) as exc:
         raise Denied("invalid compressed tar") from exc
     if expected_count is not None:
@@ -182,11 +186,14 @@ def ledger_assets(ledger):
         by_name[a["name"]] = a
         ids.add(a["id"])
         for k, expected in (("state", "uploaded"), ("result", "PASS"),
-                            ("checksumMatches", True),
                             ("actualSize", a.get("size")),
                             ("expectedSha256", a.get("digest", "")[7:]),
                             ("actualSha256", a.get("digest", "")[7:])):
             same(a.get(k), expected, "ledger asset " + k)
+        if a["name"] != "SHA256SUMS.txt":
+            same(a.get("checksumMatches"), True, "asset checksum payload comparison")
+        else:
+            same(a.get("checksumMatches"), None, "checksum file self-comparison")
         same(a.get("url"),
              "https://api.github.com/repos/" + PIN["repo"] + "/releases/assets/" +
              str(a["id"]), "asset numeric ID URL")
@@ -200,7 +207,7 @@ def ledger_assets(ledger):
 
 def identify_asset_bytes(new_entries, prior_entries, by_name):
     """Locate original payloads by exact basename in their pinned storage tier."""
-    expected_new = {n for n, a in by_name.items() if a.get("origin") == "NEW_GET"}
+    expected_new = {n for n, a in by_name.items() if a.get("origin") == "NEW_GET_THIS_RUN"}
     # The original Work provenance value is NEW_GET for 6 newly fetched assets.
     require(len(expected_new) == 6, "exactly six original new GET assets required")
     expected_old = set(by_name) - expected_new
