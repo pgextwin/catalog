@@ -30,6 +30,8 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.13'
+      - name: Install the existing strict manifest-validator dependency
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4,<5"
       - name: Offline hostile regression (does not count toward acceptance)
         run: python -m unittest discover -s tests -p 'test_distribution_p1_batch.py' -v
       - name: Install exact verified official gh 2.102.0 for original TUF/Sigstore
