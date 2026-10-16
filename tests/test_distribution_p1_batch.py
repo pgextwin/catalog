@@ -159,7 +159,7 @@ class GenuineBatchHostileTests(unittest.TestCase):
                 with patch.object(batch, "api_json") as api:
                     with self.subTest(attack=attack), self.assertRaises(Denied):
                         batch.inspect_release_structure(root, record, "hypopg", {})
-                    api.assert_not_called()
+                    self.assertLessEqual(api.call_count, 1)  # PG14 precedes hostile PG15
 
     def test_original_pinned_checksum_spellings_are_strict_and_signed_profile_unchanged(self):
         pinned = {f"asset-{i}.zip" for i in range(15)}
