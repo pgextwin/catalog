@@ -219,6 +219,22 @@ def inspect_release_structure(directory, record, name, release):
                 }
             except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
                 observed["githubRunLookupBlocked"] = str(exc)[:160]
+        if (name == "pg_bigm" and major == "14" and
+            release.get("id") == HISTORICAL_PG14_PIN["releaseId"]):
+            candidate = "EXACT_PG14_ALREADY_ACCEPTED"
+        elif (workflow.get("event") == "workflow_dispatch"
+              and workflow.get("ref") == "refs/heads/main"
+              and type(observed.get("githubRun")) is dict
+              and observed["githubRun"].get("event") == "workflow_dispatch"
+              and observed["githubRun"].get("workflow") == ".github/workflows/promote.yml"
+              and observed["githubRun"].get("headBranch") == "main"
+              and observed["githubRun"].get("headSha") == release.get("target_commitish")
+              and observed["githubRun"].get("runAttempt") == workflow.get("attempt")
+              and observed["githubRun"].get("conclusion") == "success"):
+            candidate = "CANDIDATE_MAIN_PROMOTION_UNVERIFIED"
+        else:
+            candidate = "UNSUPPORTED_OR_FAILED_PROFILE_DENY"
+        observed["observedProfileCandidate"] = candidate
         details[major] = observed
     return details
 
