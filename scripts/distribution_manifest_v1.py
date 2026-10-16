@@ -190,12 +190,18 @@ def validate_manifest(manifest, schema):
     coverage = [(c["extension"], major_key(c["pgMajor"])) for c in manifest["coverage"]]
     require(coverage == sorted(set(coverage)), "duplicate/unsorted coverage")
     pset = set(pairs)
+    expected = {(n, major_key(m)) for n in ALLOWED
+                for m in manifest["selectionPolicy"]["pgMajors"]}
+    require(set(coverage) == expected, "incomplete fleet coverage")
     require(pset == {k for k, c in zip(coverage, manifest["coverage"])
                      if c["status"] in ("included", "historical")},
             "package/coverage relationship invalid")
     require(all(p["evidence"]["status"] == "SIGNATURE_VERIFIED" for p in manifest["packages"]),
             "package without independently verified signing proof")
     for p in manifest["packages"]:
+        require(p["assetName"].startswith(p["extension"] + "-")
+                and p["assetName"].endswith("-pg" + p["pgMajor"] + "-windows-x64.zip"),
+                "wrong PG binary filename")
         require(p["bundleRelativePath"] == archive_path(p["extension"], p["pgMajor"],
                 p["packageVersion"], p["assetName"]), "package destination mismatch")
         require(p["sourceRepository"]["name"] == "pgextwin/" + p["extension"],
@@ -301,11 +307,18 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
                     row["status"] = "blocked"
                 coverage.append(row)
                 continue
+            require(info["asset"].startswith(name + "-")
+                    and info["asset"].endswith("-pg" + major + "-windows-x64.zip"),
+                    "wrong PG binary asset name")
             asset = checksummed_asset(assets, info["asset"], info["sha256"])
             require(info["downloadUrl"] == asset.get("browser_download_url"),
                     "Catalog/Release URL mismatch")
             for ev in ("sbom", "vulnerabilityReport"):
                 q = info["evidence"][ev]
+                suffix = ".spdx.json" if ev == "sbom" else ".vulnerabilities.json"
+                require(q["asset"].startswith(name + "-")
+                        and q["asset"].endswith("-pg" + major + "-windows-x64" + suffix),
+                        "wrong PG SPDX/Grype filename")
                 require(q.get("available") is True, "missing SPDX/Grype declaration")
                 checksummed_asset(assets, q["asset"], q["sha256"])
                 require(q["downloadUrl"] == assets[q["asset"]].get("browser_download_url"),
