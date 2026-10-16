@@ -13,6 +13,7 @@ import hashlib
 import io
 import json
 import os
+import shutil
 from pathlib import Path
 import sys
 import tarfile
@@ -38,6 +39,7 @@ PG14_ARCHIVE_SIZE = 533654
 PRIOR_ARCHIVE_NAME = "pgextwin-issue112-pgbigm-release16-audit-20261016-evidence.tar.gz"
 PRIOR_ARCHIVE_SHA = "738ca743532922330c7bfad620d90d2e893a75aad02650f9d3dbe8b8407da491"
 PRIOR_ARCHIVE_SIZE = 1740900
+OFFICIAL_GH_SHA = "7469124f706944133d6a169691dd1c6c3511b12e85878d255e044e2948df4c9b"
 MAX_TAR_BYTES = 4 * 1024 * 1024
 MAX_MEMBER = 4 * 1024 * 1024
 MAX_TOTAL = 24 * 1024 * 1024
@@ -256,8 +258,21 @@ def find_original_snapshot(entries):
             if name.startswith(prefix)}
 
 
+def verify_official_gh():
+    """Require the independently Work-pinned genuine gh 2.102.0 executable bytes."""
+    executable = shutil.which("gh")
+    require(executable is not None, "verified official gh unavailable")
+    path = Path(executable)
+    require(path.is_file() and not path.is_symlink(), "gh executable link rejected")
+    with path.open("rb") as stream:
+        digest = hashlib.sha256()
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    same(digest.hexdigest(), OFFICIAL_GH_SHA, "independently pinned official gh")
+
+
 def gate(release_archive, manifest_file, ledger_file, seal_file,
-         prior_pg14_archive, receipt_file, trusted_root, *, crypto=real_pg14_audit):
+         prior_pg14_archive, receipt_file, trusted_root):
     """The sole admission boundary. NOT callable through P2/Publisher paths."""
     manifest_bytes, manifest = sealed_json(manifest_file, MANIFEST_SHA, 16384)
     ledger_bytes, ledger = sealed_json(ledger_file, LEDGER_SHA, 65536)
@@ -268,6 +283,21 @@ def gate(release_archive, manifest_file, ledger_file, seal_file,
     validate_manifest(entries, manifest)
     same(entries["resume6/ledger.json"], ledger_bytes, "archived ledger byte identity")
     by_name = ledger_assets(ledger)
+    original_release = strict_json(entries["resume6/current/release.json"])
+    original_repository = strict_json(entries["resume6/current/repository.json"])
+    for key, expect in (("id", PIN["releaseId"]), ("tag_name", PIN["tag"]),
+                        ("target_commitish", PIN["packaging"]),
+                        ("draft", False), ("prerelease", False)):
+        same(original_release.get(key), expect, "original Release metadata " + key)
+    same(original_repository.get("id"), PIN["repoId"], "original numeric repository ID")
+    observed = original_release.get("assets")
+    require(type(observed) is list and len(observed) == 16, "original Release 16 assets missing")
+    observed_by_name = {x.get("name"): x for x in observed if type(x) is dict}
+    same(set(observed_by_name), set(by_name), "original Release names")
+    for name, actual in by_name.items():
+        for field in ("id", "name", "size", "digest", "state", "browser_download_url"):
+            same(actual.get(field), observed_by_name[name].get(field),
+                 "original Release Asset numeric identity " + field)
     prior_blob = entries["preserved-previous-run/" + PRIOR_ARCHIVE_NAME]
     same(len(prior_blob), PRIOR_ARCHIVE_SIZE, "nested prior archive size")
     same(hashlib.sha256(prior_blob).hexdigest(), PRIOR_ARCHIVE_SHA,
@@ -291,6 +321,7 @@ def gate(release_archive, manifest_file, ledger_file, seal_file,
             and hashlib.sha256(trusted_root.read_bytes()).hexdigest() == PIN["rootSha256"],
             "untrusted original TUF Root")
     # No caller-provided status or mocked receipt is accepted as a verification.
+    verify_official_gh()
     with tempfile.TemporaryDirectory(prefix="pgextwin-issue112-bridge-") as folder:
         root = Path(folder)
         for name, blob in snapshot.items():
@@ -304,7 +335,7 @@ def gate(release_archive, manifest_file, ledger_file, seal_file,
             md = metadata[name]
             for field in ("id", "size", "digest", "name"):
                 same(item.get(field), md.get(field), "immutable Release asset " + field)
-        verified = crypto(root, trusted_root, PIN["catalog"])
+        verified = real_pg14_audit(root, trusted_root, PIN["catalog"])
     same(verified, receipt, "reexecuted genuine PG14 Sigstore result vs original receipt")
     require(verified.get("signatureVerified") is True
             and verified.get("rowEvidenceComplete") is True
