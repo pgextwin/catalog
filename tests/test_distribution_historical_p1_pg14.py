@@ -180,7 +180,7 @@ class HistoricalP1Tests(unittest.TestCase):
         out[0]["verificationResult"]["verifiedTimestamps"] = []
         self.deny(h._certified, out, predicate=h.SPDX, sbom=sbom)
         out = verified_output()
-        out[0]["verificationResult"]["subject"] = []
+        out[0]["verificationResult"]["statement"]["subject"] = []
         self.deny(h._certified, out, predicate=h.SPDX, sbom=sbom)
 
     def test_wrong_run_event_ref_attempt_job_or_publish(self):
