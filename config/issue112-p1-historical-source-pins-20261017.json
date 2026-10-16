@@ -16,7 +16,15 @@
       "repositoryId": 1412861605,
       "releaseId": 408798350,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v1.4.3-windows.1"
+      "sourceRef": "refs/heads/release/v1.4.3-windows.1",
+      "pgBuildJobIds": {
+        "14": 114166216098,
+        "15": 114166216067,
+        "16": 114166216050,
+        "17": 114166216112,
+        "18": 114166216087
+      },
+      "publishJobId": 114169852530
     },
     {
       "name": "orafce",
@@ -29,7 +37,15 @@
       "repositoryId": 1413246504,
       "releaseId": 409043426,
       "runAttempt": 2,
-      "sourceRef": "refs/heads/release/v4.16.13-windows.1"
+      "sourceRef": "refs/heads/release/v4.16.13-windows.1",
+      "pgBuildJobIds": {
+        "14": 114248033194,
+        "15": 114248010109,
+        "16": 114248009350,
+        "17": 114248009874,
+        "18": 114248008555
+      },
+      "publishJobId": 114251123808
     },
     {
       "name": "pg_bigm",
@@ -42,7 +58,15 @@
       "repositoryId": 1405047175,
       "releaseId": 408449466,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v1.2-20250903-windows.2"
+      "sourceRef": "refs/heads/release/v1.2-20250903-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079409058,
+        "15": 114079409006,
+        "16": 114079409008,
+        "17": 114079409039,
+        "18": 114079409021
+      },
+      "publishJobId": 114082606852
     },
     {
       "name": "pg_cron",
@@ -55,7 +79,15 @@
       "repositoryId": 1406140967,
       "releaseId": 408447762,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v1.6.8-windows.2"
+      "sourceRef": "refs/heads/release/v1.6.8-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079545954,
+        "15": 114079545964,
+        "16": 114079545908,
+        "17": 114079545885,
+        "18": 114079545888
+      },
+      "publishJobId": 114082554641
     },
     {
       "name": "pg_hint_plan",
@@ -68,7 +100,15 @@
       "repositoryId": 1406484427,
       "releaseId": 408447843,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v1.8.0-windows.2"
+      "sourceRef": "refs/heads/release/v1.8.0-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079542533,
+        "15": 114079542493,
+        "16": 114079542546,
+        "17": 114079542511,
+        "18": 114079542548
+      },
+      "publishJobId": 114082794709
     },
     {
       "name": "pg_ivm",
@@ -81,7 +121,15 @@
       "repositoryId": 1406488805,
       "releaseId": 408456115,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v1.16-windows.2"
+      "sourceRef": "refs/heads/release/v1.16-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079576753,
+        "15": 114079576780,
+        "16": 114079576737,
+        "17": 114079576724,
+        "18": 114079576758
+      },
+      "publishJobId": 114086108433
     },
     {
       "name": "pg_partman",
@@ -94,7 +142,15 @@
       "repositoryId": 1413245197,
       "releaseId": 409245095,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v5.5.0-windows.2"
+      "sourceRef": "refs/heads/release/v5.5.0-windows.2",
+      "pgBuildJobIds": {
+        "14": 114327006624,
+        "15": 114327006682,
+        "16": 114327006588,
+        "17": 114327006629,
+        "18": 114327006660
+      },
+      "publishJobId": 114329374810
     },
     {
       "name": "pg_qualstats",
@@ -107,7 +163,15 @@
       "repositoryId": 1406489233,
       "releaseId": 408453847,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v2.1.4-windows.2"
+      "sourceRef": "refs/heads/release/v2.1.4-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079595464,
+        "15": 114079595503,
+        "16": 114079595461,
+        "17": 114079595472,
+        "18": 114079595452
+      },
+      "publishJobId": 114085493044
     },
     {
       "name": "pg_repack",
@@ -120,7 +184,15 @@
       "repositoryId": 1406488287,
       "releaseId": 408452263,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v1.5.3-windows.2"
+      "sourceRef": "refs/heads/release/v1.5.3-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079564832,
+        "15": 114079564866,
+        "16": 114079564869,
+        "17": 114079564904,
+        "18": 114079564839
+      },
+      "publishJobId": 114085052515
     },
     {
       "name": "pg_stat_monitor",
@@ -133,7 +205,15 @@
       "repositoryId": 1413245977,
       "releaseId": 409069791,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v2.4.0-windows.1"
+      "sourceRef": "refs/heads/release/v2.4.0-windows.1",
+      "pgBuildJobIds": {
+        "14": 114257206362,
+        "15": 114257206459,
+        "16": 114257206403,
+        "17": 114257206424,
+        "18": 114257206427
+      },
+      "publishJobId": 114260941846
     },
     {
       "name": "pgaudit",
@@ -146,7 +226,15 @@
       "repositoryId": 1406486768,
       "releaseId": 408453283,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v18.0-windows.2"
+      "sourceRef": "refs/heads/release/v18.0-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079687570,
+        "15": 114079687569,
+        "16": 114079687565,
+        "17": 114079687604,
+        "18": 114079687521
+      },
+      "publishJobId": 114085335329
     },
     {
       "name": "set_user",
@@ -159,7 +247,15 @@
       "repositoryId": 1406487415,
       "releaseId": 408453245,
       "runAttempt": 1,
-      "sourceRef": "refs/heads/release/v4.2.0-windows.2"
+      "sourceRef": "refs/heads/release/v4.2.0-windows.2",
+      "pgBuildJobIds": {
+        "14": 114079572174,
+        "15": 114079572215,
+        "16": 114079572185,
+        "17": 114079572342,
+        "18": 114079572191
+      },
+      "publishJobId": 114085315814
     }
   ]
 }
