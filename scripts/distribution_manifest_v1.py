@@ -196,6 +196,8 @@ def validate_manifest(manifest, schema):
     require(pset == {k for k, c in zip(coverage, manifest["coverage"])
                      if c["status"] in ("included", "historical")},
             "package/coverage relationship invalid")
+    require(all(manifest["coverage"][coverage.index(k)]["verificationLevel"] == "SIGNATURE_VERIFIED"
+                for k in pset), "coverage claims unsigned included package")
     require(all(p["evidence"]["status"] == "SIGNATURE_VERIFIED" for p in manifest["packages"]),
             "package without independently verified signing proof")
     for p in manifest["packages"]:
@@ -298,6 +300,7 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
             eol = majors[major]
             state = "historical" if today > eol else "included"
             row = {"extension": name, "pgMajor": major, "status": "blocked",
+                   "verificationLevel": "UNVERIFIED",
                    "reason": "independent signature and source pin required"}
             if info.get("available") is not True:
                 row.update(status="missing" if today <= eol else "historical",
@@ -359,7 +362,17 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
             iso_utc(receipt.get("verifiedAtUtc"))
             # Critical boundary: caller-injected verifier must not trust the
             # receipt or manifest's own signatureVerified flag.
-            if independently_verify(name, major, release, asset, source, receipt) is not True:
+            verdict = independently_verify(name, major, release, asset, source, receipt)
+            require(type(verdict) is dict
+                    and set(verdict) == {"integrityVerified", "signatureVerified"}
+                    and all(type(value) is bool for value in verdict.values()),
+                    "verifier must return exact typed byte/signature decision")
+            require(not verdict["signatureVerified"] or verdict["integrityVerified"],
+                    "signature decision without independently verified bytes")
+            if not verdict["signatureVerified"]:
+                if verdict["integrityVerified"]:
+                    row["verificationLevel"] = "INTEGRITY_ONLY"
+                    row["reason"] = "bytes rehashed; signature not verified; not distributable"
                 coverage.append(row)
                 continue
             bundle_path = archive_path(name, major, source["version"], info["asset"])
@@ -406,7 +419,8 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
                 },
             }
             packages.append(p)
-            row.update(status=state, reason="independent byte and signature verification")
+            row.update(status=state, verificationLevel="SIGNATURE_VERIFIED",
+                       reason="independent byte and signature verification")
             coverage.append(row)
     packages.sort(key=lambda p: (p["extension"], int(p["pgMajor"])))
     coverage.sort(key=lambda c: (c["extension"], int(c["pgMajor"])))
