@@ -91,7 +91,12 @@ def resolve_tag(repo, tag):
 
 
 def policy_load(path):
-    """User must authenticate the digest and origin of THIS policy externally."""
+    """Validate candidate policy shape, not separate administrator authorization.
+
+    The candidate must be reconciled with official immutable GitHub identities,
+    policy pins, and a TUF-validated trusted root. This loader alone neither
+    authenticates a policy issuer nor validates the TUF update chain.
+    """
     p = strict_json(path.read_bytes())
     require(type(p) is dict and p.get("schemaVersion") == "pgextwin-p1-readonly-policy/v1"
             and p.get("signerRepositoryId") == 1405931353
@@ -109,7 +114,7 @@ def policy_load(path):
             and p["approvedMajors"] == sorted(set(p["approvedMajors"]), key=int)
             and all(type(v) is int and v > 0 for v in p["approvedMajors"])
             and type(p.get("rootSha256")) is str and HEX64.fullmatch(p["rootSha256"]),
-            "incomplete separately authenticated policy")
+            "incomplete pinned P1 policy")
     return p
 
 
@@ -122,7 +127,7 @@ def asset_directory(root, name):
 
 
 def validate_run_pair(root, name, run_id):
-    """A local snapshot needs independently authenticated provenance for trust."""
+    """Run snapshot is untrusted until checked against signed provenance."""
     path = root / "runs" / (safe_component(name) + ".json")
     require(path.is_file(), "no immutable run snapshot")
     run = strict_json(path.read_bytes())
@@ -223,7 +228,7 @@ def read_snapshot(root, policy):
     records = verified_catalog(ib, blobs, policy["catalogDigests"],
                                policy["catalogCommitSha"])
     require(set(policy["pgEol"]) == {str(m) for m in policy["approvedMajors"]},
-            "incomplete independent PG lifecycle registry")
+            "incomplete pinned PG lifecycle registry")
     require(set(policy["repoIds"]) == set(records)
             and set(policy["releaseIds"]) == set(records)
             and set(policy["assetIds"]) == set(records),
@@ -263,7 +268,7 @@ def audit_snapshot(root, policy, trust_root, *, allow_sigstore):
             pair = (name, pg)
             try:
                 require(int(pg) in policy["approvedMajors"],
-                        "PG major not independently authorized")
+                        "PG major absent from pinned policy")
                 source = immutable_source(config, int(pg), rec)
                 zip_file = asset_directory(root, name)/info["asset"]
                 sbom = asset_directory(root, name)/info["evidence"]["sbom"]["asset"]
@@ -272,7 +277,7 @@ def audit_snapshot(root, policy, trust_root, *, allow_sigstore):
                                       major=int(pg), immutable_packaging_sha=release["target_commitish"],
                                       source=source)
                 require(pkg["signerSha"] in policy["trustedSignerShas"],
-                        "unknown independently approved signer commit")
+                        "signer SHA absent from pinned build workflow allowlist")
                 attempt_by_release.add((pkg["runId"], pkg["runAttempt"]))
                 require(len(attempt_by_release) == 1, "mixed Release run IDs/attempts")
                 run = validate_run_pair(root, name, pkg["runId"])
@@ -284,7 +289,7 @@ def audit_snapshot(root, policy, trust_root, *, allow_sigstore):
                 if not allow_sigstore:
                     continue
                 # Deliberately no discovery of trusted roots inside the snapshot.
-                # P1 must use independently pinned trusted-root material.
+                # P1 must use TUF-validated trusted-root material, SHA-pinned by policy.
                 bundle = root/"attestations"/name/(info["asset"]+".jsonl")
                 require(bundle.is_file(), "missing downloaded SLSA/SPDX proof bundle")
                 pair_bundle = (bundle, sha(bundle))
@@ -315,11 +320,11 @@ def audit_snapshot(root, policy, trust_root, *, allow_sigstore):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="nonpublishing read-only P1 audit")
     parser.add_argument("--policy", type=Path, required=True,
-                        help="separately authenticated immutable SHA/Repo/Release/trust-root policy")
+                        help="candidate Policy: pinned SHA/Repo/Release/root; no separate administrator approval")
     parser.add_argument("--snapshot", type=Path, required=True,
                         help="private local directory, NOT a publishable bundle")
     parser.add_argument("--trusted-root", type=Path,
-                        help="trusted root received and authenticated independently")
+                        help="TUF-validated trusted_root.jsonl (Policy SHA256 must match)")
     parser.add_argument("--online-get", action="store_true",
                         help="explicitly fetch GitHub metadata/assets, never modify GitHub")
     args = parser.parse_args(argv)
