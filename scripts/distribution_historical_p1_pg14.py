@@ -32,6 +32,9 @@ PIN = {
     "catalogIndexBlob": "05ee514aa26fbd11009ff35e228b6a326e871b06",
     "repo": "pgextwin/pg_bigm", "repoId": 1405047175,
     "releaseId": 408449466, "assetId": 626562095,
+    "sbomAssetId": 626562100, "grypeAssetId": 626562124,
+    "sumsAssetId": 626562146,
+    "sumsSha256": "e94beee9258f8137d6161f102d8bac0e8045a17fa58e79eb7285fcbfdf3fad0a",
     "assetSize": 29490,
     "asset": "pg_bigm-v1.2-20250903-pg14-windows-x64.zip",
     "zipSha256": "3cd9f0facca96f185a406e795fd28a75acea60bb45ac531c9e06fcbc32e2277d",
@@ -110,9 +113,25 @@ def validate_original_metadata(record, release):
         if row.get("available") is not True:
             continue
         required.add(row["asset"])
+        require(row["asset"] in by_name, "missing original PG ZIP")
+        _same(by_name[row["asset"]]["digest"], "sha256:" + row["sha256"],
+              "original ZIP digest disagrees with pinned Catalog")
         for kind in ("sbom", "vulnerabilityReport"):
-            required.add(row["evidence"][kind]["asset"])
+            e = row["evidence"][kind]
+            require(e.get("available") is True and e["asset"] in by_name,
+                    "missing Catalog evidence asset")
+            _same(by_name[e["asset"]]["digest"], "sha256:" + e["sha256"],
+                  "original SPDX/Grype digest disagrees with pinned Catalog")
+            required.add(e["asset"])
     _same(set(by_name), required, "incomplete/mixed 16 Release assets")
+    _same(by_name["SHA256SUMS.txt"]["digest"], "sha256:" + PIN["sumsSha256"],
+          "external original SHA256SUMS digest mismatch")
+    for name, key in (("SHA256SUMS.txt", "sumsAssetId"),
+                      (record["postgresql"]["14"]["evidence"]["sbom"]["asset"],
+                       "sbomAssetId"),
+                      (record["postgresql"]["14"]["evidence"]["vulnerabilityReport"]["asset"],
+                       "grypeAssetId")):
+        _same(by_name[name]["id"], PIN[key], "wrong original evidence Asset ID")
     for a in assets:
         name = a["name"]
         require(type(a.get("id")) is int and a["id"] > 0
@@ -281,7 +300,7 @@ def normalize_jsonl(data, *, name, digest):
         bundle = wrapped["bundle"]
         require(type(bundle) is dict
                 and set(bundle) == {"mediaType", "dsseEnvelope", "verificationMaterial"}
-                and isinstance(bundle["mediaType"], str)
+                and bundle["mediaType"] == "application/vnd.dev.sigstore.bundle.v0.3+json"
                 and type(bundle["verificationMaterial"]) is dict,
                 "unknown/missing Sigstore bundle fields")
         env = bundle["dsseEnvelope"]
@@ -301,7 +320,8 @@ def normalize_jsonl(data, *, name, digest):
             raise Denied("invalid DSSE base64") from exc
         require(len(payload) <= MAX_BUNDLE, "oversized DSSE statement")
         st = strict_json(payload)
-        require(type(st) is dict and st.get("_type") ==
+        require(type(st) is dict and set(st) == {"_type", "subject", "predicateType", "predicate"}
+                and st.get("_type") ==
                 "https://in-toto.io/Statement/v1", "not in-toto v1 statement")
         predicate = st.get("predicateType")
         require(predicate in PREDICATES and predicate not in raw,
@@ -321,9 +341,14 @@ def normalize_jsonl(data, *, name, digest):
                     type(st["predicate"].get("runDetails")) is dict,
                     "wrong SLSA provenance structure")
         material = bundle["verificationMaterial"]
-        require(bool(material.get("tlogEntries"))
-                and (material.get("certificate") or material.get("x509CertificateChain")),
-                "missing transparency/certificate material")
+        require(set(material) <= {"certificate", "x509CertificateChain",
+                                   "tlogEntries", "timestampVerificationData",
+                                   "publicKeyIdentifier"}
+                and type(material.get("tlogEntries")) is list
+                and bool(material["tlogEntries"])
+                and (type(material.get("certificate")) is dict
+                     or type(material.get("x509CertificateChain")) is dict),
+                "unknown/missing transparency/certificate material")
         bytes_out = canonical(bundle).rstrip(b"\n")
         require(strict_json(bytes_out) == bundle, "bundle serialization changed object")
         raw[predicate] = bytes_out
