@@ -118,7 +118,9 @@ def zip_of(entries):
     """Tuple entry=(filename, payload, optional ZipInfo)."""
     stream = io.BytesIO()
     with ZipFile(stream, "w", ZIP_DEFLATED) as archive:
-        for filename, payload, info in entries:
+        for entry in entries:
+            filename, payload = entry[:2]
+            info = entry[2] if len(entry) == 3 else None
             archive.writestr(info or filename, payload)
     stream.seek(0)
     return ZipFile(stream)
