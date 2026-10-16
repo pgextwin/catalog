@@ -81,4 +81,129 @@ if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
     Check(records.Count == 14, "actual local Catalog contains 14 records (untrusted)");
     Check(records.All(r => r.Versions.Count == 5), "local Catalog has 5 available majors each");
 }
+
+
+// PR-2 fake HTTP responses. Every payload, pin and "Release" here is synthetic;
+// no request leaves the process, and hashes do NOT prove Sigstore provenance.
+{
+    var zip = new byte[] { 0x50, 0x4b, 0x03, 0x04, 2, 4, 6, 8, 10, 12 };
+    var digest = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(zip));
+    var pin = new PgExtWin.Releases.ReleasePin(
+        "pg_cron", "v1.6.8-windows.2", new string('a', 40),
+        1001, 2001, 3001, "pg_cron-v1.6.8-pg18-windows-x64.zip", digest, zip.Length);
+    var destinationRoot = Path.Combine(Path.GetTempPath(), "pgextwin-pr2-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(destinationRoot);
+    HttpResponseMessage Mock(Uri uri, string scenario, List<string> seen)
+    {
+        seen.Add(uri.ToString());
+        if (uri.Host == "api.github.com" && uri.AbsolutePath == "/repos/pgextwin/pg_cron")
+        {
+            var repoId = scenario == "wrongRepo" ? 9999 : 1001;
+            return new(System.Net.HttpStatusCode.OK)
+            { Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(
+                new { id = repoId, full_name = "pgextwin/pg_cron" })) };
+        }
+        if (uri.Host == "api.github.com" && uri.AbsolutePath.EndsWith("/releases/tags/v1.6.8-windows.2", StringComparison.Ordinal))
+        {
+            var assetId = scenario == "wrongAsset" ? 3002 : 3001;
+            var assetDigest = scenario == "wrongDigest" ? new string('0', 64) : digest;
+            var releaseId = scenario == "wrongRelease" ? 2002 : 2001;
+            var assetName = scenario == "wrongAssetName" ? "evil.zip" : pin.AssetName;
+            var size = scenario == "wrongMetadataSize" ? pin.ExpectedSize + 1 : pin.ExpectedSize;
+            var assets = new List<object>
+            {
+                new { id = assetId, name = assetName, state = "uploaded",
+                    size, digest = "sha256:" + assetDigest,
+                    browser_download_url = $"https://github.com/pgextwin/pg_cron/releases/download/{pin.Tag}/{pin.AssetName}" }
+            };
+            if (scenario == "duplicateAsset")
+                assets.Add(new { id = 9999, name = assetName.ToUpperInvariant(), state = "uploaded",
+                    size, digest = "sha256:" + assetDigest, browser_download_url = "https://invalid.invalid/bad" });
+            return new(System.Net.HttpStatusCode.OK)
+            { Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(new
+              { id = releaseId, tag_name = pin.Tag, target_commitish = pin.PackagingSha,
+                draft = scenario == "draft", prerelease = false, assets })) };
+        }
+        if (uri.Host == "github.com" && uri.AbsolutePath.StartsWith("/pgextwin/pg_cron/releases/download/", StringComparison.Ordinal))
+        {
+            if (scenario is "maliciousRedirect" or "safeRedirect")
+            {
+                var r = new HttpResponseMessage(System.Net.HttpStatusCode.Redirect);
+                r.Headers.Location = new Uri(scenario == "maliciousRedirect"
+                    ? "https://evil.example/steal" : "https://release-assets.githubusercontent.com/synthetic");
+                return r;
+            }
+            if (scenario == "serverFailure") return new(System.Net.HttpStatusCode.ServiceUnavailable);
+            return new(System.Net.HttpStatusCode.OK)
+            { Content = new ByteArrayContent(scenario == "alteredBody"
+                ? new byte[] { 0x50, 0x4b, 0, 0, 2, 4, 6, 8, 10, 12 }
+                : scenario == "truncatedBody" ? zip[..^1] : zip) };
+        }
+        if (uri.Host == "release-assets.githubusercontent.com" && scenario == "safeRedirect")
+            return new(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(zip) };
+        throw new InvalidDataException("Unexpected attempted outbound URL: " + uri);
+    }
+    async Task RunSuccess(string scenario)
+    {
+        var seen = new List<string>();
+        using var reader = new PgExtWin.Releases.ReleaseReader(new FixtureHandler(u => Mock(u, scenario, seen)));
+        var dir = Path.Combine(destinationRoot, scenario);
+        var receipt = await reader.DownloadAsync(pin, dir);
+        Check(receipt.VerificationLevel == "INTEGRITY_ONLY" &&
+            !receipt.SignatureVerified && !receipt.PublicationAuthorized, "Never self-authorize Sigstore proof");
+        Check(File.ReadAllBytes(receipt.Path).SequenceEqual(zip), "Original bytes staged and saved unmodified");
+        Check(receipt.Sha256 == digest && receipt.Size == zip.Length, "Exact SHA256/size receipt");
+        Check(seen.Count == (scenario == "safeRedirect" ? 4 : 3), "GET-only exact bounded request sequence");
+        Check(seen.All(u => Uri.TryCreate(u, UriKind.Absolute, out var x) && x.Scheme == "https"), "Only HTTPS GET routes");
+        if (scenario == "good")
+        {
+            await Rejects(async () => { await reader.DownloadAsync(pin, dir); }, "Refuse to overwrite original ZIP");
+        }
+    }
+    async Task RunFailure(string scenario)
+    {
+        var seen = new List<string>();
+        using var reader = new PgExtWin.Releases.ReleaseReader(new FixtureHandler(u => Mock(u, scenario, seen)));
+        var dir = Path.Combine(destinationRoot, scenario);
+        await Rejects(async () => { await reader.DownloadAsync(pin, dir); }, scenario + " fail-closed");
+        Check(!Directory.Exists(dir) || !Directory.EnumerateFileSystemEntries(dir).Any(),
+            scenario + " cannot leave a partial/success file");
+    }
+    async Task Rejects(Func<Task> action, string name)
+    {
+        var denied = false;
+        try { await action(); }
+        catch (InvalidDataException) { denied = true; }
+        Check(denied, name);
+    }
+    try
+    {
+        await RunSuccess("good");
+        await RunSuccess("safeRedirect");
+        foreach (var scenario in new[] { "wrongRepo", "wrongRelease", "wrongAsset",
+            "wrongDigest", "wrongAssetName", "wrongMetadataSize", "duplicateAsset",
+            "draft", "serverFailure", "alteredBody", "truncatedBody", "maliciousRedirect" })
+            await RunFailure(scenario);
+        using var reader = new PgExtWin.Releases.ReleaseReader(new FixtureHandler(
+            _ => throw new InvalidDataException("Invalid pin reached HTTP")));
+        var badName = pin with { AssetName = "../escape.zip" };
+        await Rejects(async () => { await reader.DownloadAsync(badName, destinationRoot); },
+            "Reject path traversal before HTTP");
+        var huge = pin with { ExpectedSize = 1024L * 1024 * 1024 };
+        await Rejects(async () => { await reader.DownloadAsync(huge, destinationRoot); },
+            "Reject oversized pin before HTTP");
+    }
+    finally { Directory.Delete(destinationRoot, recursive: true); }
+}
+
 Console.WriteLine($"PASS: {cases} local read-only contract checks. SIGNATURE_VERIFIED=0 PUBLISH=DENY");
+
+sealed class FixtureHandler(Func<Uri, HttpResponseMessage> response) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        if (request.Method != HttpMethod.Get || request.RequestUri is null)
+            throw new InvalidDataException("Only mocked GET requests allowed");
+        return Task.FromResult(response(request.RequestUri));
+    }
+}
