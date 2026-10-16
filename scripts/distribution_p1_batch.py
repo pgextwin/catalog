@@ -303,19 +303,27 @@ def run(policy, cache, output):
     measured = {}
     root = None
     with tempfile.TemporaryDirectory(prefix="p1-trust-") as td:
-        # Public GET transport may continue even when the cryptographic
-        # executable/TUF bootstrap is unavailable. Such rows remain BLOCKED.
+        # Never pass an Actions token to unpinned gh. Only a SHA-pinned,
+        # previously authenticated executable can GET or verify material.
         try:
             measured = require_gh(policy)
-            root = fresh_root(policy, Path(td) / "trusted_root.jsonl")
         except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
             measured = {"bootstrapBlocker": str(exc)[:240]}
-            root = None
-        try:
-            records = get_catalog(policy)
-        except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
+        if not measured.get("binarySha256"):
             records = None
-            global_reason = str(exc)[:240]
+            global_reason = measured["bootstrapBlocker"]
+        else:
+            try:
+                root = fresh_root(policy, Path(td) / "trusted_root.jsonl")
+            except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
+                measured["bootstrapBlocker"] = str(exc)[:240]
+            # A trusted gh may safely acquire original public bytes even if
+            # the external TUF root gate cannot be established.
+            try:
+                records = get_catalog(policy)
+            except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
+                records = None
+                global_reason = str(exc)[:240]
         receipts = {}
         candidates = []
         for name in NAMES:
