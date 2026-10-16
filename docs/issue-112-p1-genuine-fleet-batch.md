@@ -20,3 +20,13 @@ The dedicated workflow runs on relevant protected main pushes and weekly Sundays
 ## Remaining gates
 
 This first engineering slice does not add 69 rows or historical source 40. To accept any new row, inspect a real main-run receipt and original release identities, resolve an actual unsupported historical profile only on its own fully proven original evidence, and add a new versioned idempotent formal P1/source ledger + Issue #112 record. An Actions Artifact or mocked unittest alone never counts. #75 GO A/GO B/G4/G5 remain NO-GO. Future per-PG offline ZIP creation belongs exclusively to a local CLI; existing individual Release/Website downloads are unchanged.
+
+## Real protected-main measurement and strictly scoped follow-up
+
+First real batch: [Run 38977438979](https://github.com/pgextwin/catalog/actions/runs/38977438979), exact main fca5900e41d1727d3a03f63e4eead90cf58db372, exit 2 by intentional incomplete-fleet guard; attached 74-file diagnostic receipt Artifact ID 12079861029 with ZIP SHA256 634d1042284d04c59f90e12a2b020944b849ee04e17210ee57a86eaffd742617. The snapshot contains 70 row receipts: already formally accepted 1 (pg_bigm PG14), 55 BLOCKED, 14 DENY, 0 new cryptographic PASS. Never count CI Artifact as an original Release proof.
+
+Initial common Release verification: pg_bigm, plpgsql_check, wal2json all 16/16 Asset SHA256 checks passed, but 11 Releases stopped after their asset rehash because ordinary checksum filename parser rejected original literal ./basename. The new runner version preserves the existing strict ordinary P1 parser, adds a bounded original-byte-only checksum-transport parser for fully original-numeric-pinned Releases, rejects mixed/aliased/duplicate/traversal lines and still independently rehashes all 16 original Assets and 15 checksums. This changes NO promotion, signer, trusted root or Sigstore condition. The previous pg_bigm PG14 exceptional profile remains exactly pinned and is never generalized.
+
+First-run row-denials remain binding until verified: pg_bigm PG15–18 upstream ref/version/full SHA mismatch (4 DENY), plpgsql_check and wal2json unapproved signer SHA (5 + 5 DENY). New diagnostics may record observed untrusted PACKAGE-INFO signer/run fields but do not add them to the trusted allowlist. The historical plpgsql_check failed Run 38128142145 attempt 1 remains DENY. No automatic Formal P1/source admission follows from this syntax fix.
+
+Formal baseline is independently preserved in evidence/p1/formal-acceptance-20261017-v2.json; the read-only verifier deliberately rejects all synthetic new admissions or publication flag changes until a separate genuine main-run receipt and verifiable official evidence are available. Old Work receipts/ledgers remain unmodified.
