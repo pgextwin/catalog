@@ -111,7 +111,7 @@ class P1Tests(unittest.TestCase):
             f(*args, **kwargs)
 
     def test_dynamic_15th_extension_catalog(self):
-        names = ["extra" + str(i) for i in range(15)]
+        names = sorted("extra" + str(i) for i in range(15))
         blobs = {n: canonical(record(n)) for n in names}
         ib = canonical({"schemaVersion": 2, "extensions": names})
         pins = {"index.json": digest(ib)}
