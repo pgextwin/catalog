@@ -8,7 +8,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import distribution_historical_p1_bridge as b
@@ -83,7 +83,8 @@ class HistoricalBridgeHostile(unittest.TestCase):
     def test_tar_corrupt_and_missing_evidence(self):
         for bad in (b"", b"abc", gzip.compress(b"not tar")):
             self.deny(b.safe_tar, bad)
-        self.deny(b.safe_tar, tar_blob([("one", b"1", "file")]), 31)
+        with self.assertRaises(Denied):
+            b.safe_tar(tar_blob([("one", b"1", "file")]), expected_count=31)
 
     def test_exact_31_manifest_matching(self):
         entries = {f"resume6/file-{i}": bytes([i]) for i in range(31)}
@@ -152,10 +153,10 @@ class HistoricalBridgeHostile(unittest.TestCase):
             p = Path(td)
             fake = p / "self-reported.json"
             fake.write_text(json.dumps({"signatureVerified": True, "all16AssetsRehashed": True}))
-            spy = Mock(side_effect=AssertionError("cryptography called before asset gate"))
-            for args in ((fake,) * 7, (p / "missing",) * 7):
-                self.deny(b.gate, *args, spy)
-            spy.assert_not_called()
+            with patch.object(b, "real_pg14_audit", side_effect=AssertionError("premature crypto")) as spy:
+                for args in ((fake,) * 7, (p / "missing",) * 7):
+                    self.deny(b.gate, *args)
+                spy.assert_not_called()
 
     def test_pg14_verifier_preserves_real_only_gate(self):
         self.deny(pg14.audit, Path("/definitely/missing/original"),
