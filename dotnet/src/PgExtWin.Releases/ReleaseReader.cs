@@ -192,7 +192,7 @@ public sealed class ReleaseReader : IDisposable
             Require(hop < 3 && location is not null &&
                 location.IsAbsoluteUri && IsAllowedAssetRedirect(location),
                 "Untrusted or excessive Release redirect");
-            uri = location;
+            uri = location!; // Require above rejects null; keep compiler flow analysis strict.
         }
         throw new InvalidDataException("Redirect exhaustion");
     }
