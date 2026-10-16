@@ -7,6 +7,7 @@ against an independently authenticated trusted-root digest.
 """
 from __future__ import annotations
 import hashlib
+import os
 from datetime import date
 import json
 from pathlib import Path
@@ -329,7 +330,8 @@ def verify_sigstore_offline(zip_path, sbom, *, repo, repo_id, packaging_sha,
                "--format", "json")
         try:
             proc = subprocess.run(cmd, text=True, capture_output=True, timeout=180,
-                                  check=False, env={"GH_NO_UPDATE_NOTIFIER": "1",
+                                  check=False, env={**os.environ,
+                                                    "GH_NO_UPDATE_NOTIFIER": "1",
                                                     "GH_PROMPT_DISABLED": "1"})
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise Denied("gh Sigstore verifier unavailable") from exc
