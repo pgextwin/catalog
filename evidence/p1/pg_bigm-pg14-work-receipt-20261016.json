@@ -1,0 +1,40 @@
+{
+  "all16AssetsRehashed": false,
+  "assetId": 626562095,
+  "assetSha256": "3cd9f0facca96f185a406e795fd28a75acea60bb45ac531c9e06fcbc32e2277d",
+  "attempt": 1,
+  "bundleNormalization": {
+    "normalized": {
+      "https://slsa.dev/provenance/v1": {
+        "objectSha256": "3a2651f2a50339a9be3b379fea984cb8ef318904033c2a99597c04892b7377d5",
+        "rawBundleSha256": "1f2776671748ff575be3c05063e2f37c73313439ffdf755a882ab6a67c17b739",
+        "sourceLineSha256": "5b4a7d9ef994cc5e34821140d7c1c4290f92a922b5e9e2e9fd1b72b2c7ca24ae"
+      },
+      "https://spdx.dev/Document/v2.3": {
+        "objectSha256": "3d847b104576e8159bf1eed888fe52fae96de23f1ccb1668c1ca958fafbd83b3",
+        "rawBundleSha256": "e1083bbccbb20577414d1d1e949eeb71044c38799a542c363af4c7ff394de7c5",
+        "sourceLineSha256": "3cd40196c24063dbfa5ef49dcc04112efc5d4ef1c1a86d1d81f4e9f313658d1d"
+      }
+    },
+    "wrapperSha256": "9c41e9a4bbb5e79b63e88990e8767dedbb61f9afdd508d6651af4edfe3b3defe"
+  },
+  "catalogCommit": "2e850bb5e5a3441edaa887fa5f7c378d22aea4c6",
+  "distributionAuthorized": false,
+  "fleetComplete": false,
+  "integrityVerified": true,
+  "originalRootSha256": "65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c",
+  "packagingSha": "cfbb52f8caf41b2c393a1a34f6011157979af2bb",
+  "profile": "historical-pg_bigm-pg14/1",
+  "publicationAuthorized": false,
+  "releaseId": 408449466,
+  "repoId": 1405047175,
+  "rowEvidenceComplete": true,
+  "runId": 38007421492,
+  "signatureVerified": true,
+  "signerSha": "8246f4d3415a48b1ad4af13f421277057886b58f",
+  "upstreamCommit": "735dceba0ecdd8ac1aaaaa207226a7102b6bbd71",
+  "verifiedBundleSha256": {
+    "https://slsa.dev/provenance/v1": "1f2776671748ff575be3c05063e2f37c73313439ffdf755a882ab6a67c17b739",
+    "https://spdx.dev/Document/v2.3": "e1083bbccbb20577414d1d1e949eeb71044c38799a542c363af4c7ff394de7c5"
+  }
+}
