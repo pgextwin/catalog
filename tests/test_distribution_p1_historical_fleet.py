@@ -127,17 +127,35 @@ class HistoricalFleetHostile(unittest.TestCase):
             "  repository: HypoPG/hypopg\\n"
             "  ref: 21d5461ad1868434cc47d9aa656d7afc2b24c464\\n"
             "21d5461ad1868434cc47d9aa656d7afc2b24c464\\n").replace("\\\\n", "\\n").encode()
-        good = type("P", (), {"returncode": 0, "stdout": original})()
-        with patch.object(history.subprocess, "run", return_value=good):
+        import io
+        import hashlib
+        class Resp(io.BytesIO):
+            status = 200
+            url = "https://api.github.com/repos/pgextwin/hypopg/actions/jobs/123/logs"
+            def geturl(self):
+                return self.url
+        with patch("urllib.request.urlopen", return_value=Resp(original)) as get:
             proof = history.checkout_log_corrob("hypopg", "15", p, source)
             self.assertEqual(proof["originalCheckoutJobId"], p["pgBuildJobIds"]["15"])
+            self.assertEqual(proof["originalCheckoutLogSha256"],
+                             hashlib.sha256(original).hexdigest())
+            request = get.call_args.args[0]
+            self.assertEqual(request.get_method(), "GET")
+            self.assertNotIn("Authorization", request.headers)
         for malicious in (original.replace(b"HypoPG/hypopg", b"other/repo"),
                           original.replace(source["upstreamCommit"].encode(), b"0"*40),
                           b"unrelated checkout evidence"):
-            proc = type("P", (), {"returncode": 0, "stdout": malicious})()
-            with patch.object(history.subprocess, "run", return_value=proc):
+            with patch("urllib.request.urlopen", return_value=Resp(malicious)):
                 with self.assertRaises(Denied):
                     history.checkout_log_corrob("hypopg", "15", p, source)
+        hostile = Resp(original)
+        hostile.url = "http://evil.example/download"
+        with patch("urllib.request.urlopen", return_value=hostile):
+            with self.assertRaises(Denied):
+                history.checkout_log_corrob("hypopg", "15", p, source)
+        with patch("urllib.request.urlopen", side_effect=OSError("public logs unavailable")):
+            with self.assertRaisesRegex(Denied, "BLOCKED"):
+                history.checkout_log_corrob("hypopg", "15", p, source)
 
     def test_external_upstream_resolution_is_mandatory_not_pkg_self_assertion(self):
         upstream = {"repository":"sampleowner/samplerepo", "ref":"v1.2", "version":"1.2"}
