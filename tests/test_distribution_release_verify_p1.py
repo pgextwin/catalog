@@ -90,6 +90,8 @@ def cert_fixture(repo="pgextwin/example", rid=7001, attempt=1):
         "buildTrigger": "workflow_dispatch", "buildSignerURI": signer,
         "subjectAlternativeName": signer, "buildSignerDigest": signer_sha,
         "githubWorkflowSHA": "a"*40, "githubWorkflowRef": "refs/heads/main",
+        "buildConfigURI": "https://github.com/" + repo + "/.github/workflows/promote.yml@refs/heads/main",
+        "buildConfigDigest": "a"*40,
     }
     result = [{
         "verificationResult": {
