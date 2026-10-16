@@ -104,6 +104,63 @@ class GenuineBatchHostileTests(unittest.TestCase):
             with self.assertRaises(Denied):
                 batch.original_profile("pg_bigm", dict(p, **mutation))
 
+    def test_genuine_original_zip_crc_and_untrusted_profile_observation(self):
+        import zipfile
+        def fixtures(directory, attack=None):
+            rows = {}
+            for major in range(14, 19):
+                stem = f"test-pg{major}"
+                zname = stem + ".zip"
+                spdx = stem + ".spdx.json"
+                grype = stem + ".vulnerabilities.json"
+                info = {
+                    "schemaVersion": 1,
+                    "package": {"name": "hypopg", "platform": "windows", "architecture": "x64"},
+                    "postgresql": {"major": major},
+                    "workflowRun": {"id": 123, "attempt": 1, "event": "push",
+                                    "ref": "refs/heads/release/legacy"},
+                    "upstream": {"ref": "v1", "commit": "a" * 40},
+                    "source": {"packagingCommit": "b" * 40},
+                    "buildInfrastructure": {"commit": "c" * 40},
+                }
+                if attack == "wrong-pg" and major == 15:
+                    info["postgresql"]["major"] = 18
+                with zipfile.ZipFile(directory / zname, "w") as zf:
+                    zf.writestr("PACKAGE-INFO.json", json.dumps(info))
+                    zf.writestr("../escape" if attack == "zip-slip" and major == 15
+                                else "lib/test.dll", b"data")
+                (directory / spdx).write_text(
+                    json.dumps({"spdxVersion": "SPDX-2.3" if attack != "spdx" or major != 15
+                                else "BAD"}))
+                (directory / grype).write_text(json.dumps({"matches": []}))
+                rows[str(major)] = {
+                    "available": True, "asset": zname,
+                    "evidence": {"sbom": {"asset": spdx},
+                                 "vulnerabilityReport": {"asset": grype}},
+                }
+            return {"postgresql": rows}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            record = fixtures(root)
+            run = {"id": 123, "run_attempt": 1, "path": ".github/workflows/windows.yml",
+                   "event": "push", "head_branch": "release/legacy",
+                   "head_sha": "b" * 40, "conclusion": "success", "status": "completed",
+                   "repository": {"id": 123}}
+            with patch.object(batch, "api_json", return_value=run):
+                output = batch.inspect_release_structure(root, record, "hypopg", {})
+            self.assertEqual(len(output), 5)
+            self.assertEqual(output["15"]["githubRun"]["workflow"],
+                             ".github/workflows/windows.yml")
+            self.assertEqual(output["15"]["profileStatus"], "UNVERIFIED_OBSERVATION_ONLY")
+        for attack in ("wrong-pg", "zip-slip", "spdx"):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                record = fixtures(root, attack)
+                with patch.object(batch, "api_json") as api:
+                    with self.subTest(attack=attack), self.assertRaises(Denied):
+                        batch.inspect_release_structure(root, record, "hypopg", {})
+                    api.assert_not_called()
+
     def test_original_pinned_checksum_spellings_are_strict_and_signed_profile_unchanged(self):
         pinned = {f"asset-{i}.zip" for i in range(15)}
         d = "a" * 64
