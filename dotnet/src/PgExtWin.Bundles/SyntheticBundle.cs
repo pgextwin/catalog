@@ -90,7 +90,7 @@ public static class SyntheticBundle
 
     public static FixtureBundleResult Verify(ReadOnlySpan<byte> content)
     {
-        Require(content.Length is > 0 and <= MaxOuterBytes, "Invalid fixture outer ZIP size");
+        Require(content.Length > 0 && (long)content.Length <= MaxOuterBytes, "Invalid fixture outer ZIP size");
         using var archive = new ZipArchive(new MemoryStream(content.ToArray(), writable: false),
             ZipArchiveMode.Read, leaveOpen: false);
         var actual = Inspect(archive);
@@ -118,7 +118,7 @@ public static class SyntheticBundle
         var previousMajor = 0;
         foreach (var package in document.Packages)
         {
-            Require(package is not null, "Null manifest package");
+            if (package is null) throw new InvalidDataException("Null manifest package");
             var name = ExpectedPath(package.Extension, package.PgMajor,
                 package.PackageVersion, package.AssetName);
             Require(package.BundleRelativePath == name && listed.Add(name),
@@ -165,7 +165,7 @@ public static class SyntheticBundle
         {
             var name = SafePath(entry.FullName);
             var mode = (entry.ExternalAttributes >> 16) & 0xF000;
-            Require(mode is 0 or 0x8000 &&
+            Require((mode == 0 || mode == 0x8000) &&
                 (entry.ExternalAttributes & 0x400) == 0, "Symlink or special ZIP member");
             Require(entry.Length >= 0 && entry.Length <= MaxMemberBytes,
                 "Oversized ZIP member");
@@ -226,9 +226,10 @@ public static class SyntheticBundle
 
     private static int Major(string value)
     {
-        Require(!string.IsNullOrEmpty(value) &&
-            Regex.IsMatch(value, @"\A[1-9][0-9]*\z", RegexOptions.CultureInvariant) &&
-            int.TryParse(value, out var parsed), "Invalid PG major");
+        if (string.IsNullOrEmpty(value) ||
+            !Regex.IsMatch(value, @"\A[1-9][0-9]*\z", RegexOptions.CultureInvariant) ||
+            !int.TryParse(value, out var parsed))
+            throw new InvalidDataException("Invalid PG major");
         return parsed;
     }
 
