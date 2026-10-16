@@ -111,6 +111,22 @@ class HistoricalBridgeHostile(unittest.TestCase):
             mutant[key] = value
             self.deny(b.validate_manifest, entries, mutant)
 
+    def test_prior_nested_archive_rechecks_59_actual_members(self):
+        entries = {f"prior/item{i}": bytes([i]) for i in range(59)}
+        manifest = sample_manifest(entries)
+        b.validate_nested_prior_manifest(entries, manifest)
+        mutated = copy.deepcopy(manifest)
+        mutated["files"][0]["size"] = 100
+        self.deny(b.validate_nested_prior_manifest, entries, mutated)
+        mutated = copy.deepcopy(manifest)
+        mutated["files"][0]["sha256"] = "0" * 64
+        self.deny(b.validate_nested_prior_manifest, entries, mutated)
+        mutated = copy.deepcopy(manifest)
+        mutated["files"][1]["path"] = mutated["files"][0]["path"]
+        self.deny(b.validate_nested_prior_manifest, entries, mutated)
+        self.deny(b.validate_nested_prior_manifest,
+                  dict(list(entries.items())[:-1]), manifest)
+
     def test_prior_source_and_release_16_enforced(self):
         records = {}
         for i in range(16):
