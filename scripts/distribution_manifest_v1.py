@@ -72,7 +72,10 @@ def canonical(data):
 
 def safe_component(s):
     require(isinstance(s, str) and bool(COMPONENT.fullmatch(s))
-            and s not in (".", "..") and len(s) <= 160,
+            and s not in (".", "..") and not s.endswith(".") and len(s) <= 160
+            and s.split(".")[0].upper() not in
+            {"CON", "PRN", "AUX", "NUL", *(("COM" + str(i)) for i in range(1, 10)),
+             *(("LPT" + str(i)) for i in range(1, 10))},
             "unsafe path component")
     return s
 
@@ -212,7 +215,8 @@ def validate_manifest(manifest, schema):
 
 
 def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
-                   lifecycle, releases, pins, receipts, independently_verify, schema):
+                   lifecycle, approved_majors, releases, pins, receipts,
+                   independently_verify, schema):
     """Construct snapshot from authenticated inputs, no external IO.
 
     independently_verify is mandatory and must be an implementation that
@@ -242,10 +246,15 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
         except (KeyError, TypeError, ValueError) as exc:
             raise Denied("invalid PG EOL") from exc
         majors[str(m)] = eol
-    # PG19 RC is not formally onboarded; the lifecycle allowlist is
-    # authoritative and must be deliberately changed after GA.
-    require(set(majors) == {"14", "15", "16", "17", "18"},
-            "unknown PG major or unapproved PG19")
+    # Approved majors must come from an independently authenticated policy,
+    # not the self-reported Catalog or untrusted manifest. This allows a
+    # later, separately authorized PG19 GA onboarding without code changes.
+    require(isinstance(approved_majors, (tuple, list))
+            and bool(approved_majors)
+            and all(isinstance(m, str) and MAJOR.fullmatch(m) for m in approved_majors)
+            and list(approved_majors) == sorted(set(approved_majors), key=int)
+            and set(majors) == set(approved_majors),
+            "unknown PG major or unauthorized major policy")
     today = iso_utc(generated_at).date()
     packages, coverage, dests = [], [], set()
     for name in index["extensions"]:
@@ -269,9 +278,15 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
                 "unpublished/stale/substituted Release")
         tag = safe_component(release["tag_name"])
         assets = unique_names(release.get("assets", []))
-        checksums = checksummed_asset(assets, r["latest"]["checksumsAsset"],
-                                      release["checksumsSha256"]) if "checksumsSha256" in release else None
-        require(checksums is not None, "independent SHA256SUMS digest required")
+        require(r["latest"]["checksumsAsset"] == "SHA256SUMS.txt",
+                "unexpected checksum asset name")
+        checksums = assets.get("SHA256SUMS.txt")
+        require(isinstance(checksums, dict) and checksums.get("state") == "uploaded"
+                and type(checksums.get("id")) is int and checksums["id"] > 0
+                and isinstance(checksums.get("digest"), str)
+                and re.fullmatch(r"sha256:[0-9a-f]{64}", checksums["digest"]),
+                "missing genuine GitHub checksum asset metadata")
+        checksum_sha = checksums["digest"][7:]
         for major in sorted(majors, key=int):
             info = r["postgresql"][major]
             eol = majors[major]
@@ -316,10 +331,17 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
                     "pgextwin/build/.github/workflows/build-extension-attested.yml"
                     and HEX64.fullmatch(receipt.get("trustedRootSha256", ""))
                     and type(receipt.get("signerRepositoryId")) is int
-                    and receipt["signerRepositoryId"] > 0
+                    and receipt["signerRepositoryId"] == 1405931353
                     and receipt.get("sourceRef") == "refs/heads/main"
                     and receipt.get("predicateTypes") ==
-                    ["https://slsa.dev/provenance/v1", "https://spdx.dev/Document/v2.3"],
+                    ["https://slsa.dev/provenance/v1", "https://spdx.dev/Document/v2.3"]
+                    and all(isinstance(receipt.get(field), str)
+                            and HEX64.fullmatch(receipt[field])
+                            for field in ("attestationBundleSha256",
+                                          "sbomAttestationBundleSha256"))
+                    and all(isinstance(receipt.get(field), str)
+                            for field in ("attestationBundleName",
+                                          "sbomAttestationBundleName")),
                     "untrusted or incomplete attestation receipt")
             iso_utc(receipt.get("verifiedAtUtc"))
             # Critical boundary: caller-injected verifier must not trust the
@@ -345,12 +367,19 @@ def build_manifest(*, index_blob, record_blobs, catalog_commit, generated_at,
                 "assetUrl": asset["browser_download_url"],
                 "releaseAssetSha256": info["sha256"],
                 "checksumsAsset": r["latest"]["checksumsAsset"],
-                "checksumsSha256": release["checksumsSha256"],
+                "checksumsSha256": checksum_sha,
                 "catalogRecordSha256": sha256(record_blobs[name]),
                 "bundleRelativePath": bundle_path, "pgEol": eol.isoformat(),
-                "license": r["license"], "runtime": r["runtime"]["requirements"],
+                "license": r["license"],
+                "licenseNotice": {"state": "UNVERIFIED", "path": None},
+                "runtime": r["runtime"]["requirements"],
                 "evidence": {
                     "status": "SIGNATURE_VERIFIED",
+                    "evidencePresent": True, "cryptographicallyVerified": True,
+                    "attestationBundleName": safe_component(receipt["attestationBundleName"]),
+                    "attestationBundleSha256": receipt["attestationBundleSha256"],
+                    "sbomAttestationBundleName": safe_component(receipt["sbomAttestationBundleName"]),
+                    "sbomAttestationBundleSha256": receipt["sbomAttestationBundleSha256"],
                     "spdxAsset": info["evidence"]["sbom"]["asset"],
                     "spdxSha256": info["evidence"]["sbom"]["sha256"],
                     "grypeAsset": info["evidence"]["vulnerabilityReport"]["asset"],
