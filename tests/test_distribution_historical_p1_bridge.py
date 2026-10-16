@@ -123,6 +123,10 @@ class HistoricalBridgeHostile(unittest.TestCase):
         self.deny(b.identify_asset_bytes, {}, {}, records)
 
     def test_unknown_pg_and_other_extension_receipt_rejected(self):
+        original = {**b.RECEIPT_FIELDS,
+                    "verifiedBundleSha256": {"https://slsa.dev/provenance/v1": "1" * 64,
+                                             "https://spdx.dev/Document/v2.3": "2" * 64}}
+        b.validate_receipt_pins(original)
         for key, wrong in (("profile", "historical-plpgsql_check-pg14/1"),
                            ("assetId", 12345),
                            ("runId", 38128142145),
@@ -133,9 +137,16 @@ class HistoricalBridgeHostile(unittest.TestCase):
                            ("upstreamCommit", "0" * 40),
                            ("publicationAuthorized", True),
                            ("distributionAuthorized", True)):
-            mutant = dict(b.RECEIPT_FIELDS)
+            mutant = copy.deepcopy(original)
             mutant[key] = wrong
-            self.assertNotEqual(mutant[key], b.RECEIPT_FIELDS[key])
+            with self.subTest(field=key):
+                self.deny(b.validate_receipt_pins, mutant)
+        for bundles in ({}, {"https://slsa.dev/provenance/v1": "1" * 64},
+                        {"https://slsa.dev/provenance/v1": "1" * 64,
+                         "https://spdx.dev/Document/v2.3": "NOT_VERIFIED"}):
+            mutant = copy.deepcopy(original)
+            mutant["verifiedBundleSha256"] = bundles
+            self.deny(b.validate_receipt_pins, mutant)
 
     def test_status_forgery_rejected(self):
         ledger = {"schema": "pgextwin-issue112-resume6-release-byte-audit/v1"}
