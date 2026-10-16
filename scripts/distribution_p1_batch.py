@@ -536,7 +536,12 @@ def run(policy, cache, output):
     cache.mkdir(parents=True, exist_ok=True)
     pins_path = (Path(__file__).resolve().parents[1] /
                  "config/issue112-p1-historical-source-pins-20261017.json")
-    historical_pins = historical_pins_load(pins_path.read_bytes(), policy)
+    try:
+        historical_pins = historical_pins_load(pins_path.read_bytes(), policy)
+        pins_blocker = None
+    except (Denied, OSError, TypeError, KeyError, ValueError) as exc:
+        historical_pins = {}
+        pins_blocker = "BLOCKED: immutable historical registry invalid: " + str(exc)[:180]
     upstream_cache = {}
     measured = {}
     root = None
@@ -544,6 +549,7 @@ def run(policy, cache, output):
         # Never pass an Actions token to unpinned gh. Only a SHA-pinned,
         # previously authenticated executable can GET or verify material.
         try:
+            require(pins_blocker is None, pins_blocker or "")
             measured = require_gh(policy)
         except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
             measured = {"bootstrapBlocker": str(exc)[:240]}
