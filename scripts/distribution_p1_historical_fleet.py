@@ -26,6 +26,7 @@ HEX40 = re.compile(r"[a-f0-9]{40}\Z")
 REF = re.compile(r"refs/heads/release/[A-Za-z0-9_.-]+\Z")
 UPSTREAM = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 UPSTREAM_REF = re.compile(r"[A-Za-z0-9_.-]+\Z")
+PINNED_SOURCE_REGISTRY_BLOB = "c04a8c34688265cfd598fe99c399aa032321ed61"
 OLD_SIGNERS = frozenset({
     "8246f4d3415a48b1ad4af13f421277057886b58f",
     "43993b864e59bd35870e15c410ac13c85def8531",
@@ -39,6 +40,8 @@ def blob_sha(raw):
 
 
 def pins_load(raw, policy):
+    require(blob_sha(raw) == PINNED_SOURCE_REGISTRY_BLOB,
+            "historical registry full Git Blob SHA changed")
     p = strict_json(raw)
     require(type(p) is dict and p.get("schema") ==
             "pgextwin-p1-historical-evidence-pins/v1"
