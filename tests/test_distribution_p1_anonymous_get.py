@@ -40,7 +40,7 @@ def fake_api(path):
         return {"attestations": [{"repository_id": 123,
                    "bundle": {"dsseEnvelope": {"payload": "fixture"},
                               "verificationMaterial": {"fixture": True}}}]}
-    raise AssertionError("unexpected URL: " + path)
+    raise Denied("unavailable synthetic GET: " + path)
 
 
 def fake_fetch(url, *, kind, accept, limit, expected_size=None):
