@@ -32,9 +32,12 @@ from distribution_release_verify_p1 import (
 from distribution_historical_p1_pg14 import (
     PIN as HISTORICAL_PG14_PIN, parse_original_historical_sums,
 )
+from distribution_p1_historical_fleet import (
+    pins_load as historical_pins_load, verify_historical_row,
+)
 
 SCHEMA = "pgextwin-p1-genuine-fleet-batch/v1"
-VERIFIER = "batch-v3-full-zip-structure-and-observed-run;distribution_release_verify_p1.py"
+VERIFIER = "batch-v4-original-historical-crypto;distribution_release_verify_p1.py"
 BASELINE = ("pg_bigm", "14", 1405047175, 408449466, 626562095)
 NAMES = ("hypopg", "orafce", "pg_bigm", "pg_cron", "pg_hint_plan", "pg_ivm",
          "pg_partman", "pg_qualstats", "pg_repack", "pg_stat_monitor",
@@ -402,6 +405,7 @@ def row_receipt(name, major, policy, release, key, measured, result, *, origin="
         "reason": result.get("reason", ""),
         "runId": result.get("runId"), "runAttempt": result.get("runAttempt"),
         "signatureProof": result.get("signatureProof"),
+        "verificationProfile": result.get("verificationProfile"),
         "observedUnsignedPackage": result.get("observedUnsignedPackage"),
         "publicationAuthorized": False, "distributionAuthorized": False,
         "formalAcceptedByThisRun": False,
@@ -409,7 +413,7 @@ def row_receipt(name, major, policy, release, key, measured, result, *, origin="
     }
 
 
-def handle_release(name, rec, policy, cache, root, measured):
+def handle_release(name, rec, policy, cache, root, measured, historical_pins, upstream_cache):
     repo = "pgextwin/" + name
     release = api_json(name + "/releases/tags/" + rec["latest"]["releaseTag"])
     assets = release_assets(rec, release, policy["releaseIds"][name], policy["repoIds"][name])
@@ -451,8 +455,26 @@ def handle_release(name, rec, policy, cache, root, measured):
                 rows[major] = row_receipt(name, major, policy, release, key, measured, {
                     "decision": "ALREADY_ACCEPTED", "reason": "2026-10-17 sealed PG14 bridge; not recounted"}, origin="prior-formal-bridge")
                 continue
+            if name == "wal2json":
+                rows[major] = row_receipt(name, major, policy, release, key, measured, {
+                    "decision": "ALREADY_ACCEPTED",
+                    "reason": "sealed formal v3: five real main-Promotion Sigstore receipts, no recount",
+                    "verificationProfile": "main/promote.yml/workflow_dispatch"
+                }, origin="prior-formal-v3")
+                continue
             observed = None
             try:
+                if name in historical_pins:
+                    pinned = historical_pins[name]
+                    crypto = verify_historical_row(
+                        name=name, major=major, pin=pinned, release=release,
+                        config=config, row=row, folder=folder, assets=assets,
+                        hashes=hashes, trusted_root=root,
+                        root_sha=policy["rootSha256"], cache=upstream_cache)
+                    crypto["verificationProfile"] = "historical/windows.yml/push/v1"
+                    rows[major] = row_receipt(name, major, policy, release, key,
+                                              measured, crypto)
+                    continue
                 src = immutable_source(config, int(major), rec)
                 zp = folder / row["asset"]
                 sbom = folder / row["evidence"]["sbom"]["asset"]
@@ -512,12 +534,22 @@ def run(policy, cache, output):
             "incomplete/unsupported immutable fleet policy")
     output.mkdir(parents=True, exist_ok=True)
     cache.mkdir(parents=True, exist_ok=True)
+    pins_path = (Path(__file__).resolve().parents[1] /
+                 "config/issue112-p1-historical-source-pins-20261017.json")
+    try:
+        historical_pins = historical_pins_load(pins_path.read_bytes(), policy)
+        pins_blocker = None
+    except (Denied, OSError, TypeError, KeyError, ValueError) as exc:
+        historical_pins = {}
+        pins_blocker = "BLOCKED: immutable historical registry invalid: " + str(exc)[:180]
+    upstream_cache = {}
     measured = {}
     root = None
     with tempfile.TemporaryDirectory(prefix="p1-trust-") as td:
         # Never pass an Actions token to unpinned gh. Only a SHA-pinned,
         # previously authenticated executable can GET or verify material.
         try:
+            require(pins_blocker is None, pins_blocker or "")
             measured = require_gh(policy)
         except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
             measured = {"bootstrapBlocker": str(exc)[:240]}
@@ -541,7 +573,9 @@ def run(policy, cache, output):
         for name in NAMES:
             try:
                 require(records is not None, global_reason if records is None else "")
-                common, rows = handle_release(name, records[name], policy, cache, root, measured)
+                common, rows = handle_release(
+                    name, records[name], policy, cache, root, measured,
+                    historical_pins, upstream_cache)
                 (output / (name + "-release.json")).write_bytes(json_bytes(common))
             except (Denied, OSError, KeyError, TypeError, ValueError) as exc:
                 rows = {major: {
@@ -554,6 +588,10 @@ def run(policy, cache, output):
                 if name == "pg_bigm":
                     rows["14"]["decision"] = "ALREADY_ACCEPTED"
                     rows["14"]["reason"] = "previous exact sealed bridge accepted; no new inspection"
+                if name == "wal2json":
+                    for m in MAJORS:
+                        rows[m]["decision"] = "ALREADY_ACCEPTED"
+                        rows[m]["reason"] = "previous genuine main-Promotion v3 acceptance, no new proof"
             for major, receipt in rows.items():
                 (output / (name + "-pg" + major + ".json")).write_bytes(json_bytes(receipt))
                 receipts[(name, major)] = receipt
@@ -567,8 +605,9 @@ def run(policy, cache, output):
             "verifiedCandidatesNotFormallyAdmitted": candidates,
             "formalAcceptedBaseline": [dict(extension="pg_bigm", pgMajor=14,
                                             repoId=BASELINE[2], releaseId=BASELINE[3],
-                                            assetId=BASELINE[4])],
-            "formalP1Accepted": 1, "formalP1Total": 70,
+                                            assetId=BASELINE[4])] +
+                [dict(extension="wal2json", pgMajor=int(m)) for m in MAJORS],
+            "formalP1Accepted": 6, "formalP1Total": 70,
             "historicalSourceAccepted": 0, "historicalSourceTotal": 40,
             "batchDecisions": {x: sum(r["decision"] == x for r in receipts.values())
                                for x in ("ALREADY_ACCEPTED", "PASS_CANDIDATE",

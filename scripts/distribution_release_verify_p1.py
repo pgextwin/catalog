@@ -254,7 +254,9 @@ def signed_run(run, *, repo, repo_id, packaging_sha, run_id, attempt):
 
 
 def signed_certificate(results, *, predicate, name, digest, sbom, repository,
-                       repository_id, packaging_sha, signer_sha, run_id, attempt):
+                       repository_id, packaging_sha, signer_sha, run_id, attempt,
+                       source_ref="refs/heads/main", build_trigger="workflow_dispatch",
+                       workflow_path="promote.yml"):
     """Policy on genuine gh-verified result. Calling this alone is NOT verification."""
     require(type(results) is list and bool(results), "no verified Sigstore result")
     invocation = "https://github.com/" + repository + "/actions/runs/" + str(run_id) + "/attempts/" + str(attempt)
@@ -277,17 +279,17 @@ def signed_certificate(results, *, predicate, name, digest, sbom, repository,
                 and cert.get("sourceRepositoryURI") == "https://github.com/" + repository
                 and str(cert.get("sourceRepositoryIdentifier")) == str(repository_id)
                 and cert.get("sourceRepositoryDigest") == packaging_sha
-                and cert.get("sourceRepositoryRef") == "refs/heads/main"
+                and cert.get("sourceRepositoryRef") == source_ref
                 and cert.get("runInvocationURI") == invocation
-                and cert.get("buildTrigger") == "workflow_dispatch"
+                and cert.get("buildTrigger") == build_trigger
                 and cert.get("buildSignerURI") == signer
                 and cert.get("subjectAlternativeName") == signer
                 and cert.get("buildSignerDigest") == signer_sha
                 and cert.get("githubWorkflowSHA") == packaging_sha
-                and cert.get("githubWorkflowRef") == "refs/heads/main"
+                and cert.get("githubWorkflowRef") == source_ref
                 and cert.get("buildConfigURI") ==
                     "https://github.com/" + repository +
-                    "/.github/workflows/promote.yml@refs/heads/main"
+                    "/.github/workflows/" + workflow_path + "@" + source_ref
                 and cert.get("buildConfigDigest") == packaging_sha,
                 "certified issuer/repo ID/workflow/source/attempt mismatch")
         pred = st.get("predicate")
@@ -308,8 +310,18 @@ def signed_certificate(results, *, predicate, name, digest, sbom, repository,
 
 def verify_sigstore_offline(zip_path, sbom, *, repo, repo_id, packaging_sha,
                             signer_sha, run_id, attempt, root_path, root_sha,
-                            bundles):
+                            bundles, source_ref="refs/heads/main", build_trigger="workflow_dispatch",
+                            workflow_path="promote.yml"):
     """Only real gh attestation verify, local bundles and externally pinned root."""
+    require(build_trigger in ("workflow_dispatch", "push")
+            and ((workflow_path == "promote.yml"
+                  and build_trigger == "workflow_dispatch"
+                  and source_ref == "refs/heads/main")
+                 or (workflow_path == "windows.yml"
+                     and build_trigger == "push"
+                     and type(source_ref) is str
+                     and re.fullmatch(r"refs/heads/release/[A-Za-z0-9_.-]+", source_ref))),
+            "unapproved workflow/event/ref contract")
     require(root_path.is_file() and not root_path.is_symlink()
             and isinstance(root_sha, str) and HEX64.fullmatch(root_sha)
             and sha(root_path) == root_sha, "unauthenticated/rotated trusted root")
@@ -325,7 +337,7 @@ def verify_sigstore_offline(zip_path, sbom, *, repo, repo_id, packaging_sha,
         cmd = ("gh", "attestation", "verify", str(zip_path), "--repo", repo,
                "--bundle", str(bundle), "--custom-trusted-root", str(root_path),
                "--signer-workflow", SIGNER, "--signer-digest", signer_sha,
-               "--source-ref", "refs/heads/main", "--source-digest", packaging_sha,
+               "--source-ref", source_ref, "--source-digest", packaging_sha,
                "--cert-oidc-issuer", ISSUER, "--predicate-type", predicate,
                "--format", "json")
         try:
@@ -340,7 +352,9 @@ def verify_sigstore_offline(zip_path, sbom, *, repo, repo_id, packaging_sha,
         signed_certificate(result, predicate=predicate, name=zip_path.name,
                            digest=sha(zip_path), sbom=sbom, repository=repo,
                            repository_id=repo_id, packaging_sha=packaging_sha,
-                           signer_sha=signer_sha, run_id=run_id, attempt=attempt)
+                           signer_sha=signer_sha, run_id=run_id, attempt=attempt,
+                           source_ref=source_ref, build_trigger=build_trigger,
+                           workflow_path=workflow_path)
         proofs[predicate] = expected_hash
     return {"integrityVerified": True, "signatureVerified": True,
             "trustedRootSha256": root_sha, "bundleSha256": proofs,

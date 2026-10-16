@@ -38,7 +38,7 @@ def gh_read(*args, cwd=None):
     """Allowlisted GitHub CLI GET/download only, no shell or write endpoint."""
     require(args and (
         (args[0] == "api" and len(args) == 2 and
-         re.fullmatch(r"repos/pgextwin/[a-z][a-z0-9_]*/(?:compare/[a-f0-9]{40}\.\.\.main|contents/(?:index\.json|extensions/[a-z][a-z0-9_]*\.json|config/extension\.json)\?ref=[a-f0-9]{40}|releases/tags/[A-Za-z0-9_.-]+|git/ref/tags/[A-Za-z0-9_.-]+|git/tags/[a-f0-9]{40}|actions/runs/[1-9][0-9]*)", args[1]))
+         re.fullmatch(r"repos/pgextwin/[a-z][a-z0-9_]*/(?:compare/[a-f0-9]{40}\.\.\.main|contents/(?:index\.json|extensions/[a-z][a-z0-9_]*\.json|config/extension\.json|\.github/workflows/windows\.yml)\?ref=[a-f0-9]{40}|releases/tags/[A-Za-z0-9_.-]+|git/ref/tags/[A-Za-z0-9_.-]+|git/tags/[a-f0-9]{40}|actions/runs/[1-9][0-9]*)", args[1]))
         or (args[0] == "api" and len(args) == 2 and
             re.fullmatch(r"repos/pgextwin/[a-z][a-z0-9_]*", args[1]))
         or (args[:2] == ("release", "download") and len(args) == 7 and
