@@ -130,6 +130,28 @@ def validate_manifest(entries, manifest):
     same(set(entries), names, "extra archived members")
 
 
+def validate_nested_prior_manifest(entries, manifest):
+    """Independently inspect all 59 files of the previously sealed 10-Asset archive."""
+    require(type(manifest) is dict and type(manifest.get("files")) is list
+            and len(manifest["files"]) == 59, "old 59-file manifest missing")
+    recorded = {}
+    for item in manifest["files"]:
+        require(type(item) is dict and
+                {"path", "size", "sha256"}.issubset(item),
+                "old manifest member malformed")
+        name = safe_path(item["path"])
+        require(name not in recorded and type(item["size"]) is int
+                and type(item["sha256"]) is str
+                and len(item["sha256"]) == 64 and set(item["sha256"]) <= HEX,
+                "old manifest duplicate or invalid entry")
+        recorded[name] = item
+    same(set(entries), set(recorded), "old 59 archived members")
+    for name, item in recorded.items():
+        same(len(entries[name]), item["size"], "old manifest entry size")
+        same(hashlib.sha256(entries[name]).hexdigest(), item["sha256"],
+             "old manifest entry SHA256")
+
+
 def check_seal(seal, ledger_bytes, manifest_bytes):
     require(type(seal) is dict and
             seal.get("schema") == "pgextwin-issue112-resume6-seal/v1",
@@ -317,6 +339,10 @@ def gate(release_archive, manifest_file, ledger_file, seal_file,
     same(hashlib.sha256(prior_blob).hexdigest(), PRIOR_ARCHIVE_SHA,
          "nested prior archive SHA256")
     prior_entries = safe_tar(prior_blob)
+    nested_manifest_name = ("preserved-previous-run/"
+                            "pgextwin-issue112-pgbigm-release16-audit-20261016-manifest.json")
+    validate_nested_prior_manifest(prior_entries,
+                                   strict_json(entries[nested_manifest_name]))
     # Gate 1: exact 16 ORIGINAL payloads, 15 original checksum payload comparisons.
     original = identify_asset_bytes(entries, prior_entries, by_name)
     # Gate 2: exact old PG14 original archive, old receipt, and real gh reexecution.
