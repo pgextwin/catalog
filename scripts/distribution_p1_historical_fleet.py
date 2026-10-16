@@ -63,8 +63,16 @@ def pins_load(raw, policy):
                 and type(x.get("runId")) is int and x["runId"] > 0
                 and type(x.get("runAttempt")) is int and x["runAttempt"] in (1, 2)
                 and type(x.get("sourceRef")) is str
-                and REF.fullmatch(x["sourceRef"]),
-                "unsupported source/signer/release/Run pin")
+                and REF.fullmatch(x["sourceRef"])
+                and type(x.get("observedJobCount")) is int
+                and x["observedJobCount"] in (8, 9)
+                and type(x.get("publishJobId")) is int and x["publishJobId"] > 0
+                and type(x.get("pgBuildJobIds")) is dict
+                and set(x["pgBuildJobIds"]) == {"14", "15", "16", "17", "18"}
+                and all(type(v) is int and v > 0
+                        for v in x["pgBuildJobIds"].values())
+                and len(set(x["pgBuildJobIds"].values()) | {x["publishJobId"]}) == 6,
+                "unsupported source/signer/release/Run/Jobs pin")
         out[name] = x
     return out
 
@@ -140,7 +148,7 @@ def historical_jobs(name, major, pin):
     result = strict_json(p.stdout)
     jobs = result.get("jobs")
     require(type(jobs) is list and len(jobs) == result.get("total_count")
-            and 0 < len(jobs) <= 100
+            and len(jobs) == pin["observedJobCount"] and len(jobs) <= 100
             and len({j.get("id") for j in jobs if type(j) is dict}) == len(jobs),
             "historical jobs missing/duplicated/paginated")
     expected = ("release_build / PostgreSQL " + major + " / Windows x64",
@@ -154,6 +162,8 @@ def historical_jobs(name, major, pin):
                 and candidates[0].get("head_sha") == pin["packagingSha"],
                 "historical original named PG/publication job failed or changed")
         ids.append(candidates[0]["id"])
+    require(ids == [pin["pgBuildJobIds"][major], pin["publishJobId"]],
+            "changed or spoofed exact historical numeric PG/publication Job ID")
     return {"buildJobId": ids[0], "publicationJobId": ids[1]}
 
 
@@ -203,6 +213,35 @@ def historical_upstream(name, major, config, pkg, *, cache):
             "upstreamCommit": commit}
 
 
+
+def checkout_log_corrob(name, major, pin, source):
+    """GET original PG job checkout log; corroboration, NOT Sigstore proof."""
+    job_id = pin["pgBuildJobIds"][major]
+    target = ("repos/pgextwin/" + name + "/actions/jobs/" +
+              str(job_id) + "/logs")
+    require(re.fullmatch(
+        r"repos/pgextwin/[a-z][a-z0-9_]*/actions/jobs/[1-9][0-9]*/logs",
+        target), "unsafe original job log target")
+    try:
+        p = subprocess.run(("gh", "api", target), capture_output=True,
+                           timeout=120, env={**os.environ, "GH_PROMPT_DISABLED": "1",
+                                             "GH_NO_UPDATE_NOTIFIER": "1"})
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise Denied("BLOCKED: original checkout log unavailable") from exc
+    require(p.returncode == 0 and 0 < len(p.stdout) <= 16 * 1024 * 1024,
+            "BLOCKED: original checkout Job log unavailable/oversized")
+    log = p.stdout.decode("utf-8-sig", "replace")
+    expected_job = "Complete job name: release_build / PostgreSQL " + major + " / Windows x64"
+    require(expected_job in log and
+            "repository: " + source["upstreamRepository"] in log and
+            source["upstreamCommit"] in log and
+            ("ref: " + source["upstreamCommit"] in log or
+             "ref: " + source["upstreamRef"] in log),
+            "original checkout Job log does not corroborate actual immutable source")
+    return {"originalCheckoutLogSha256": hashlib.sha256(p.stdout).hexdigest(),
+            "originalCheckoutJobId": job_id}
+
+
 def verify_historical_row(*, name, major, pin, release, config, row,
                           folder, assets, hashes, trusted_root, root_sha, cache):
     # This function is only called after original Release 16-asset SHA256,
@@ -214,6 +253,7 @@ def verify_historical_row(*, name, major, pin, release, config, row,
     history = historical_run(name, pin, pkg)
     jobs = historical_jobs(name, major, pin)
     source = historical_upstream(name, major, config, pkg, cache=cache)
+    checkout = checkout_log_corrob(name, major, pin, source)
     spdx = strict_json((folder / row["evidence"]["sbom"]["asset"]).read_bytes())
     require(trusted_root is not None, "BLOCKED: authenticated TUF root unavailable")
     attestdir = folder / ("historical-attest-" + major)
@@ -240,5 +280,5 @@ def verify_historical_row(*, name, major, pin, release, config, row,
             "runAttempt": pin["runAttempt"],
             "signatureProof": {"bundleSha256": bundle_hash,
                                "signerSha": pin["signerSha"], **jobs,
-                               **source, **fixed},
+                               **source, **checkout, **fixed},
             "publicationAuthorized": False, "distributionAuthorized": False}
