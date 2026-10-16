@@ -239,6 +239,20 @@ def identify_asset_bytes(new_entries, prior_entries, by_name):
     return original
 
 
+def validate_receipt_pins(receipt):
+    require(type(receipt) is dict and set(RECEIPT_FIELDS).issubset(receipt),
+            "historical PG14 receipt incomplete")
+    for key, value in RECEIPT_FIELDS.items():
+        same(receipt.get(key), value, "old PG14 receipt identity " + key)
+    bundles = receipt.get("verifiedBundleSha256")
+    require(type(bundles) is dict and
+            set(bundles) == {"https://slsa.dev/provenance/v1",
+                             "https://spdx.dev/Document/v2.3"}
+            and all(type(x) is str and len(x) == 64 and set(x) <= HEX
+                    for x in bundles.values()),
+            "old receipt missing both cryptographically verified predicates")
+
+
 def find_original_snapshot(entries):
     """Find one unambiguous original verifier input tree; never trust a receipt path."""
     suffixes = {"index.json", "pg_bigm.json", "release.json",
@@ -311,8 +325,7 @@ def gate(release_archive, manifest_file, ledger_file, seal_file,
     snapshot = find_original_snapshot(old_entries)
     receipt_data = pinned_bytes(receipt_file, 1856, RECEIPT_SHA)
     receipt = strict_json(receipt_data)
-    for key, value in RECEIPT_FIELDS.items():
-        same(receipt.get(key), value, "old PG14 receipt identity " + key)
+    validate_receipt_pins(receipt)
     # Signed PG14 original bytes must be the identical bytes authenticated in Gate 1.
     for name in (PIN["asset"], "SHA256SUMS.txt"):
         same(snapshot["assets/" + name], original[name],
