@@ -107,7 +107,7 @@ class GenuineBatchHostileTests(unittest.TestCase):
     def test_historical_sums_alias_rejects_wrong_layout(self):
         pinned = {f"sample-{i}.zip" for i in range(15)}
         digest = "a" * 64
-        original = ("".join(digest + "  ./" + n + "\\n"
+        original = ("".join(digest + "  ./" + n + "\n"
                             for n in sorted(pinned))).encode("ascii")
         self.assertEqual(
             set(batch.parse_original_historical_sums(original, pinned)), pinned)
