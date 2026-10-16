@@ -1,0 +1,475 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pgextwin.github.io/catalog/schema/distribution-manifest-v1.schema.json",
+  "title": "pgextwin distribution manifest v1 (NONPUBLISHING P0)",
+  "description": "Projection of authenticated immutable Catalog and independently verified formal Releases; schema validation is not cryptographic verification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotId",
+    "generatedAtUtc",
+    "catalogCommitSha",
+    "catalogSchemaVersion",
+    "catalogIndexSha256",
+    "generatorVersion",
+    "selectionPolicy",
+    "trust",
+    "packages",
+    "coverage",
+    "complete",
+    "publicationAuthorized"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "pgextwin-distribution-manifest/v1"
+    },
+    "snapshotId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "generatedAtUtc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "catalogCommitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "catalogSchemaVersion": {
+      "const": 2
+    },
+    "catalogIndexSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "generatorVersion": {
+      "const": "pgextwin-manifest-p0/1"
+    },
+    "selectionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "architecture",
+        "pgMajors",
+        "releaseSource"
+      ],
+      "properties": {
+        "platform": {
+          "const": "windows"
+        },
+        "architecture": {
+          "const": "x64"
+        },
+        "pgMajors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          }
+        },
+        "releaseSource": {
+          "const": "published-github-release-only"
+        }
+      }
+    },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offlineTrustRoot",
+        "outerArchiveSigned",
+        "scope"
+      ],
+      "properties": {
+        "offlineTrustRoot": {
+          "const": "EXTERNAL_REQUIRED"
+        },
+        "outerArchiveSigned": {
+          "const": false
+        },
+        "scope": {
+          "const": "NONPUBLISHING_P0"
+        }
+      }
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "extension",
+          "pgMajor",
+          "architecture",
+          "packageVersion",
+          "upstreamRef",
+          "upstreamCommitSha",
+          "packagingCommitSha",
+          "sourceRepository",
+          "releaseTag",
+          "releaseId",
+          "assetName",
+          "assetId",
+          "assetUrl",
+          "releaseAssetSha256",
+          "checksumsAsset",
+          "checksumsSha256",
+          "catalogRecordSha256",
+          "bundleRelativePath",
+          "pgEol",
+          "license",
+          "licenseNotice",
+          "runtime",
+          "evidence"
+        ],
+        "properties": {
+          "extension": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "pgMajor": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "architecture": {
+            "const": "x64"
+          },
+          "packageVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "upstreamRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "upstreamCommitSha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "packagingCommitSha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "sourceRepository": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "id"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^pgextwin/[A-Za-z0-9_-]+$"
+              },
+              "id": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "releaseTag": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "releaseId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "assetName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "assetId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "assetUrl": {
+            "type": "string",
+            "pattern": "^https://github\\.com/pgextwin/[A-Za-z0-9_-]+/releases/download/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+          },
+          "releaseAssetSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "checksumsAsset": {
+            "const": "SHA256SUMS.txt"
+          },
+          "checksumsSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "catalogRecordSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bundleRelativePath": {
+            "type": "string",
+            "maxLength": 768,
+            "pattern": "^packages/pg[1-9][0-9]*/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+          },
+          "pgEol": {
+            "type": "string",
+            "format": "date"
+          },
+          "license": {
+            "type": "string",
+            "minLength": 1
+          },
+          "licenseNotice": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "path"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "UNVERIFIED",
+                  "VERIFIED"
+                ]
+              },
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 768
+              }
+            }
+          },
+          "runtime": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "extensionCreation",
+              "preload",
+              "backgroundWorker",
+              "clientExecutable"
+            ],
+            "properties": {
+              "extensionCreation": {
+                "type": "string",
+                "enum": [
+                  "required",
+                  "optional",
+                  "not-required"
+                ]
+              },
+              "preload": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "shared",
+                  "optional",
+                  "either"
+                ]
+              },
+              "backgroundWorker": {
+                "type": "boolean"
+              },
+              "clientExecutable": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "required",
+                  "packagePaths"
+                ],
+                "properties": {
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "packagePaths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 260
+                    },
+                    "uniqueItems": true
+                  }
+                }
+              }
+            }
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "evidencePresent",
+              "cryptographicallyVerified",
+              "spdxAsset",
+              "spdxSha256",
+              "grypeAsset",
+              "grypeSha256",
+              "attestationBundleName",
+              "attestationBundleSha256",
+              "sbomAttestationBundleName",
+              "sbomAttestationBundleSha256",
+              "subjectSha256",
+              "signerWorkflow",
+              "signerRepositoryId",
+              "trustedRootSha256",
+              "predicateTypes",
+              "verifiedAtUtc"
+            ],
+            "properties": {
+              "status": {
+                "const": "SIGNATURE_VERIFIED"
+              },
+              "evidencePresent": {
+                "const": true
+              },
+              "cryptographicallyVerified": {
+                "const": true
+              },
+              "spdxAsset": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+              },
+              "spdxSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "grypeAsset": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+              },
+              "grypeSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "attestationBundleName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+              },
+              "attestationBundleSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "sbomAttestationBundleName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+              },
+              "sbomAttestationBundleSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "subjectSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "signerWorkflow": {
+                "const": "pgextwin/build/.github/workflows/build-extension-attested.yml"
+              },
+              "signerRepositoryId": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "trustedRootSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "predicateTypes": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "const": "https://slsa.dev/provenance/v1"
+                  },
+                  {
+                    "const": "https://spdx.dev/Document/v2.3"
+                  }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "verifiedAtUtc": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "extension",
+          "pgMajor",
+          "status",
+          "reason",
+          "verificationLevel"
+        ],
+        "properties": {
+          "extension": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "pgMajor": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "status": {
+            "enum": [
+              "included",
+              "unsupported",
+              "historical",
+              "missing",
+              "blocked"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "verificationLevel": {
+            "type": "string",
+            "enum": [
+              "UNVERIFIED",
+              "INTEGRITY_ONLY",
+              "SIGNATURE_VERIFIED"
+            ]
+          }
+        }
+      }
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "publicationAuthorized": {
+      "const": false
+    }
+  }
+}
