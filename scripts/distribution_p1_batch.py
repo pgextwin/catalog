@@ -179,13 +179,16 @@ def inspect_release_structure(directory, record, name, release):
             grype = strict_json(grype_file.read_bytes())
         except (BadZipFile, OSError, RuntimeError, UnicodeError, KeyError, ValueError) as exc:
             raise Denied("original PG" + major + " ZIP/CRC/SPDX/Grype invalid") from exc
+        package = pkg.get("package") if type(pkg) is dict else None
+        pg_ident = pkg.get("postgresql") if type(pkg) is dict else None
         require(type(pkg) is dict and pkg.get("schemaVersion") == 1
-                and (pkg.get("package") or {}).get("name") == name
-                and (pkg.get("package") or {}).get("platform") == "windows"
-                and (pkg.get("package") or {}).get("architecture") == "x64"
-                and (pkg.get("postgresql") or {}).get("major") == int(major),
+                and type(package) is dict and package.get("name") == name
+                and package.get("platform") == "windows"
+                and package.get("architecture") == "x64"
+                and type(pg_ident) is dict and pg_ident.get("major") == int(major),
                 "original PG" + major + " PACKAGE-INFO identity invalid")
-        require(spdx.get("spdxVersion") == "SPDX-2.3"
+        require(type(spdx) is dict and type(grype) is dict
+                and spdx.get("spdxVersion") == "SPDX-2.3"
                 and type(grype.get("matches")) is list,
                 "original PG" + major + " SPDX/Grype structure invalid")
         workflow = pkg.get("workflowRun") or {}
