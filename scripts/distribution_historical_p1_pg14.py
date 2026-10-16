@@ -153,7 +153,7 @@ def validate_original_metadata(record, release):
 
 
 
-def parse_original_historical_sums(data):
+def parse_original_historical_sums(data, expected_names):
     """Exact original pg_bigm checksum convention, not a general P1 relaxation.
 
     This one pinned historical Release uses precisely fifteen entries of the
@@ -161,6 +161,10 @@ def parse_original_historical_sums(data):
     reject collisions/ambiguous paths, then delegate digest parsing to the
     unchanged strict P1 parse_sums(). The signed original file is not changed.
     """
+    require(type(expected_names) is set and len(expected_names) == 15
+            and all(type(name) is str and name == safe_component(name)
+                    for name in expected_names),
+            "invalid original Release checksum name allowlist")
     require(type(data) is bytes and 0 < len(data) <= 8192,
             "invalid historical checksum byte size")
     try:
@@ -181,7 +185,10 @@ def parse_original_historical_sums(data):
         normalized.append(match[1] + "  " + name)
     # Reuse ordinary P1 parsing and duplicate-digest checks with canonical
     # basenames, but do not loosen the ordinary P1 parser itself.
-    return parse_sums(("\n".join(normalized) + "\n").encode("ascii"))
+    sums = parse_sums(("\n".join(normalized) + "\n").encode("ascii"))
+    require(set(sums) == expected_names,
+            "historical checksum names differ from original Release")
+    return sums
 
 
 def validate_row_bytes(root, record, row, assets):
@@ -198,7 +205,9 @@ def validate_row_bytes(root, record, row, assets):
         _same(len(blob), meta["size"], "asset size differs: " + name)
         _same(hashlib.sha256(blob).hexdigest(), meta["digest"][7:],
               "asset bytes differ: " + name)
-    sums = parse_original_historical_sums(_original_file(folder, "SHA256SUMS.txt"))
+    sums = parse_original_historical_sums(
+        _original_file(folder, "SHA256SUMS.txt"),
+        set(assets) - {"SHA256SUMS.txt"})
     _same(set(sums), set(assets) - {"SHA256SUMS.txt"},
           "external SHA256SUMS not complete original 15 entries")
     for name, digest in sums.items():
