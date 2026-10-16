@@ -6,8 +6,5 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="../PgExtWin.Catalog/PgExtWin.Catalog.csproj" />
-    <ProjectReference Include="../PgExtWin.Releases/PgExtWin.Releases.csproj" />
-  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../PgExtWin.Catalog/PgExtWin.Catalog.csproj" /></ItemGroup>
 </Project>

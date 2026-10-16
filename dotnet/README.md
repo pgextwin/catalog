@@ -34,3 +34,25 @@ approved GitHub asset transport hosts. All evidence stays **INTEGRITY_ONLY**:
 Tests use synthetic P1 policy, in-memory ZIP and a fake HTTP transport with
 no external network/credentials. No real 70 ZIP rehash or Sigstore run has occurred.
 P1 BLOCKED, P2 NO-GO, formal publication DENY, `publicationAuthorized=false`.
+
+## PR-3: synthetic-only offline ZIP fixture laboratory
+
+`PgExtWin.Bundles.SyntheticBundle` accepts only in-memory synthetic ZIPs with an exact
+`SYNTHETIC-FIXTURE.txt` proof marker and rejects real `PACKAGE-INFO.json`.
+It never touches the live `download` command, filesystem, network, GitHub Releases,
+Sigstore or P1 verifier. The outer test ZIP is deterministic and has
+`fixture-manifest.json` (NOT `manifest.json`), a mandatory visible
+`SYNTHETIC-DO-NOT-DISTRIBUTE.txt` banner and bytes under
+`packages/pg<major>/<extension>/<version>/<filename>.zip`.
+The manifest has a distinct `pgextwin-synthetic-bundle-fixture/v1` identity,
+`UNVERIFIED`, `publicationAuthorized=false` and `outerArchiveSigned=false`.
+Its canonical JSON and deterministic snapshot hash reuse the PR-1 P0-style
+`StrictJson` implementation; this is NOT P0 Manifest v1 schema validation
+and not P1 SLSA/SPDX cryptographic signature validation.
+
+The fixture library and hostile tests are compiled/run in the existing
+App15368 `validate` job with no new workflow and no Actions Artifact.
+This library is deliberately NOT exposed as a CLI command or production Bundle
+creator. No real Release ZIP can be accepted by this fixture harness under
+its explicit synthetic marker contract. Real fleet ZIP work remains blocked
+by the independent P1 policy/Trusted Root and 70/70 genuine verification gates.
