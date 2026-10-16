@@ -1,0 +1,38 @@
+{
+  "schema": "pgextwin-p1-historical-evidence-intake/v1",
+  "row": {
+    "extension": "pg_bigm",
+    "pgMajor": 14,
+    "catalogSnapshot": "2e850bb5e5a3441edaa887fa5f7c378d22aea4c6",
+    "repoId": 1405047175,
+    "releaseId": 408449466,
+    "zipAssetId": 626562095,
+    "zipSha256": "3cd9f0facca96f185a406e795fd28a75acea60bb45ac531c9e06fcbc32e2277d",
+    "runId": 38007421492,
+    "runAttempt": 1,
+    "historicalEvent": "push",
+    "packagingSha": "cfbb52f8caf41b2c393a1a34f6011157979af2bb",
+    "upstreamSha": "735dceba0ecdd8ac1aaaaa207226a7102b6bbd71"
+  },
+  "evidence": {
+    "source": "Work GET-only; real verifier exit 0 reported on 2026-10-16",
+    "issueComment": "https://github.com/pgextwin/build/issues/112#issuecomment-6215234245",
+    "verifierCommit": "40dcac693773c710d2b65fa5fe797bfca17ffb82",
+    "receiptFile": "evidence/p1/pg_bigm-pg14-work-receipt-20261016.json",
+    "receiptSha256": "010dbff810264bf46e8d0b62e88f787d72756ced7d5dba7118359161404dd294",
+    "archiveName": "pgextwin-issue112-pgbigm-pg14-reaudit-evidence-20261016.tar.gz",
+    "archiveSha256": "4e126798ea4fa84b50c441143ff3294d675831843c3b2bb3e57ff8a2f30e9ba3",
+    "archiveSize": 533654
+  },
+  "states": {
+    "workReportedTechnicalPass": true,
+    "rehashAssets": 4,
+    "releaseAssetCount": 16,
+    "releaseAllAssetsRehashed": false,
+    "historicalSourceFormallyAccepted": false,
+    "formalP1RowAccepted": false,
+    "fleetComplete": false,
+    "publicationAuthorized": false,
+    "distributionAuthorized": false
+  }
+}
