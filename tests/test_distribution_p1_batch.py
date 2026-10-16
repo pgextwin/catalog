@@ -118,6 +118,21 @@ class GenuineBatchHostileTests(unittest.TestCase):
             with self.assertRaises(Denied):
                 batch.parse_original_historical_sums(attack, pinned)
 
+    def test_immutable_catalog_pins_match_exact_repository_files(self):
+        root = Path(__file__).resolve().parents[1]
+        policy = json.loads((root / "config" / "issue112-p1-fleet-pins-20261017.json").read_text())
+        self.assertEqual(policy["catalogCommitSha"],
+                         "e372e2c6a95adcf8227ea82d6253df3792b6f029")
+        self.assertEqual(set(policy["repoIds"]), set(batch.NAMES))
+        self.assertEqual(set(policy["releaseIds"]), set(batch.NAMES))
+        self.assertEqual(set(policy["assetIds"]), set(batch.NAMES))
+        self.assertEqual(sum(map(len, policy["assetIds"].values())), 224)
+        import hashlib
+        for name, expected_hash in policy["catalogDigests"].items():
+            with self.subTest(path=name):
+                self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(),
+                                 expected_hash)
+
     def test_no_unknown_pg_or_missing_policy(self):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaises(Denied):
