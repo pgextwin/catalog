@@ -91,6 +91,33 @@ class GenuineBatchHostileTests(unittest.TestCase):
             self.assertFalse(report["publicationAuthorized"])
             self.assertTrue((Path(d) / "rows" / "summary.json").is_file())
 
+    def test_historical_checksum_profile_is_exact_identity_only(self):
+        p = {"id": 408449466, "tag_name": "v1.2-20250903-windows.2",
+             "target_commitish": batch.HISTORICAL_PG14_PIN["packaging"]}
+        self.assertEqual(batch.original_profile("pg_bigm", p),
+                         "historical-pg_bigm-original-checksums/v1")
+        self.assertEqual(batch.original_profile("orafce", p), "main-promotion/v1")
+        self.assertEqual(batch.original_profile("pg_bigm", dict(p, id=999)),
+                         "main-promotion/v1")
+        for mutation in ({"tag_name": "different"},
+                         {"target_commitish": "a" * 40}):
+            with self.assertRaises(Denied):
+                batch.original_profile("pg_bigm", dict(p, **mutation))
+
+    def test_historical_sums_alias_rejects_wrong_layout(self):
+        pinned = {f"sample-{i}.zip" for i in range(15)}
+        digest = "a" * 64
+        original = ("".join(digest + "  ./" + n + "\\n"
+                            for n in sorted(pinned))).encode("ascii")
+        self.assertEqual(
+            set(batch.parse_original_historical_sums(original, pinned)), pinned)
+        for attack in (original.replace(b"./", b"../", 1),
+                       original.replace(b"./", b"", 1),
+                       original.replace(b"./", b".//", 1),
+                       original.replace(b"sample-0", b"sample-1", 1)):
+            with self.assertRaises(Denied):
+                batch.parse_original_historical_sums(attack, pinned)
+
     def test_no_unknown_pg_or_missing_policy(self):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaises(Denied):
