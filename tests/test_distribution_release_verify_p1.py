@@ -280,6 +280,43 @@ class P1Tests(unittest.TestCase):
                     root_path=root, root_sha=p1.sha(root), bundles={})
                 called.assert_not_called()
 
+    def test_numeric_asset_pin_substitution_and_extra(self):
+        r, release, _ = make_release()
+        assets = p1.release_assets(r, release, 4001, 7001)
+        ids = {name: obj["id"] for name, obj in assets.items()}
+        self.assertTrue(p1.require_asset_id_pins(assets, ids))
+        ids[next(iter(ids))] = 999999
+        self.deny(p1.require_asset_id_pins, assets, ids)
+        ids = {name: obj["id"] for name, obj in assets.items()}
+        ids["attacker.zip"] = 42
+        self.deny(p1.require_asset_id_pins, assets, ids)
+
+    def test_unregistered_release_asset_denied(self):
+        r, release, _ = make_release()
+        release["assets"].append({
+            "id": 99, "name": "unknown.exe", "state": "uploaded",
+            "size": 99, "digest": "sha256:"+"a"*64,
+            "browser_download_url": "https://github.com/pgextwin/example/releases/download/v3-windows.1/unknown.exe"})
+        self.deny(p1.release_assets, r, release, 4001, 7001)
+
+    def test_pg14_last_supported_day_and_historical(self):
+        eol = {"14": "2026-11-12", "15": "2027-11-11",
+               "19": "2031-11-01"}
+        approved = [14, 15, 19]
+        self.assertEqual(p1.lifecycle_status(14, as_of_utc="2026-11-12",
+            eol_by_major=eol, approved_majors=approved), "maintained")
+        self.assertEqual(p1.lifecycle_status(14, as_of_utc="2026-11-13",
+            eol_by_major=eol, approved_majors=approved), "historical")
+        self.assertEqual(p1.lifecycle_status(19, as_of_utc="2026-10-16",
+            eol_by_major=eol, approved_majors=approved), "maintained")
+        self.assertEqual(p1.lifecycle_status(20, as_of_utc="2026-10-16",
+            eol_by_major=eol, approved_majors=approved), "unsupported")
+        self.deny(p1.lifecycle_status, 15, as_of_utc="2026-10-16",
+            eol_by_major={}, approved_majors=approved)
+
+    def test_empty_fleet_can_never_be_complete(self):
+        self.assertFalse(p1.fleet_counts({}, {})["complete"])
+
     def test_fleet_partial_fail_closed_historical(self):
         records = {"name": {"postgresql": {"14": {"available": True},
                                           "19": {"available": False}}},
