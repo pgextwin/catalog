@@ -22,7 +22,7 @@ from zipfile import ZipFile
 from distribution_manifest_v1 import Denied, require, strict_json, safe_component
 from distribution_release_verify_p1 import (
     PROVENANCE, SPDX, fleet_counts, sha, release_assets, rehash_release,
-    require_asset_id_pins,
+    require_asset_id_pins, MAX_RELEASE,
     verified_catalog, immutable_source, inspect_package, signed_run,
     verify_sigstore_offline, parse_sums,
 )
@@ -157,9 +157,11 @@ def materialize_online(root, policy):
                 "formal Release numeric ID mismatch")
         require(resolve_tag(name, release["tag_name"]) == release["target_commitish"],
                 "formal Release tag no longer resolves to source SHA")
-        require_asset_id_pins(release_assets(record, release, policy["releaseIds"][name],
-                                                 policy["repoIds"][name]),
-                              policy["assetIds"][name])
+        meta_assets = release_assets(record, release, policy["releaseIds"][name],
+                                     policy["repoIds"][name])
+        require_asset_id_pins(meta_assets, policy["assetIds"][name])
+        require(sum(asset["size"] for asset in meta_assets.values()) <= MAX_RELEASE,
+                "Release would exceed maximum download budget")
         (root/"releases"/name).mkdir(parents=True, exist_ok=True)
         (root/"releases"/name/"release.json").write_text(json.dumps(release),encoding="utf-8")
         (root/"sources").mkdir(parents=True, exist_ok=True)
