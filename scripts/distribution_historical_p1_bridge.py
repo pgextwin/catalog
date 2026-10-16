@@ -13,13 +13,15 @@ import hashlib
 import io
 import json
 import os
+import re
+from decimal import Decimal, InvalidOperation
 import shutil
 from pathlib import Path
 import sys
 import tarfile
 import tempfile
 
-from distribution_manifest_v1 import Denied, require, safe_path, strict_json
+from distribution_manifest_v1 import Denied, require, safe_path, safe_component, strict_json
 from distribution_historical_p1_pg14 import (
     PIN, audit as real_pg14_audit, parse_original_historical_sums,
     validate_fixed_catalog, validate_original_metadata,
@@ -52,7 +54,7 @@ def same(actual, expected, label):
 
 
 def pinned_bytes(path, size, digest):
-    require(type(path) is Path and path.is_file() and not path.is_symlink(),
+    require(isinstance(path, Path) and path.is_file() and not path.is_symlink(),
             "missing, symlink or nonfile original")
     require(path.stat().st_size == size, "external evidence size mismatch")
     data = path.read_bytes()
@@ -68,8 +70,26 @@ def sealed_json(path, digest, limit):
     return data, strict_json(data)
 
 
-def safe_tar(blob, *, expected_count=None):
-    """Bounded in-memory reading ONLY, no tar extraction, links or special files."""
+PG14_CACHE_PREFIX = "release-408449466-reaudit/cli-cache/gh/.sigstore/"
+PG14_PREFIX = "release-408449466-reaudit/"
+SELF_MANIFEST = "EVIDENCE-MANIFEST.json"
+PRIOR_MANIFEST_SHA = "c4bf357c26836cf27587c45a8c18298955666af53d8e703d058437df13769cc6"
+
+
+def historical_tar_path(name, *, allow_pg14_cache=False):
+    """Tar-only cache exception; NEVER relax general ZIP or Catalog path rules."""
+    if allow_pg14_cache and name.startswith(PG14_CACHE_PREFIX):
+        remain = name[len(PG14_CACHE_PREFIX):]
+        require(remain and not any(x in (".", "..", "") for x in remain.split("/")),
+                "unsafe historical Sigstore cache path")
+        for component in remain.split("/"):
+            safe_component(component)
+        return name
+    return safe_path(name)
+
+
+def safe_tar(blob, *, expected_count=None, allow_pg14_cache=False):
+    """Read only bounded original files; PAX permits numeric mtime and exact long path."""
     require(type(blob) is bytes and 0 < len(blob) <= MAX_TAR_BYTES, "tar too large")
     entries, total, folded = {}, 0, set()
     try:
@@ -78,16 +98,33 @@ def safe_tar(blob, *, expected_count=None):
             for member in tf:
                 count += 1
                 require(count <= MAX_ENTRIES, "too many tar members")
+                require((member.isfile() or member.isdir()) and not member.issym()
+                        and not member.islnk() and not getattr(member, "sparse", None),
+                        "link/special tar member forbidden")
                 name = member.name.rstrip("/") if member.isdir() else member.name
-                safe_path(name)
-                require(name.casefold() not in folded, "duplicate/case-colliding tar entry")
-                folded.add(name.casefold())
-                require(not member.issym() and not member.islnk()
-                        and not member.pax_headers and not getattr(member, "sparse", None),
-                        "link/special/PAX tar member forbidden")
+                historical_tar_path(name, allow_pg14_cache=allow_pg14_cache)
+                pax = member.pax_headers
+                require(type(pax) is dict and set(pax) <= {"mtime", "path"},
+                        "unknown/dangerous PAX header")
+                if "mtime" in pax:
+                    raw = pax["mtime"]
+                    require(type(raw) is str and re.fullmatch(r"[0-9]{9,12}\.[0-9]{1,9}", raw),
+                            "invalid PAX mtime")
+                    try:
+                        require(0 < Decimal(raw) < Decimal("4102444800"), "PAX mtime out of bounds")
+                    except InvalidOperation as exc:
+                        raise Denied("invalid PAX mtime") from exc
+                if "path" in pax:
+                    require(type(pax["path"]) is str and pax["path"] == name
+                            and len(name.encode("utf-8")) > 100
+                            and allow_pg14_cache and name.startswith(PG14_PREFIX),
+                            "PAX path override not allowed")
+                folded_name = name.casefold()
+                require(folded_name not in folded, "duplicate/case-colliding tar entry")
+                folded.add(folded_name)
                 if member.isdir():
+                    require(member.size == 0, "nonempty tar directory")
                     continue
-                require(member.isfile() and member.isreg(), "tar special file forbidden")
                 require(0 <= member.size <= MAX_MEMBER, "oversized tar member")
                 total += member.size
                 require(total <= MAX_TOTAL, "tar decompression bound")
@@ -102,6 +139,16 @@ def safe_tar(blob, *, expected_count=None):
     if expected_count is not None:
         same(len(entries), expected_count, "archived member count")
     return entries
+
+
+def check_self_manifest(entries, *, original, original_sha, count):
+    """Exactly count data members plus one byte-exact self-manifest; no extras."""
+    require(SELF_MANIFEST in entries, "missing inner self-manifest")
+    same(hashlib.sha256(entries[SELF_MANIFEST]).hexdigest(), original_sha,
+         "self-manifest external SHA256")
+    same(entries[SELF_MANIFEST], original, "inner/outer manifest byte identity")
+    same(len(entries), count + 1, "manifest+payload total entry count")
+    return {k: v for k, v in entries.items() if k != SELF_MANIFEST}
 
 
 def validate_manifest(entries, manifest):
@@ -150,6 +197,39 @@ def validate_nested_prior_manifest(entries, manifest):
         same(len(entries[name]), item["size"], "old manifest entry size")
         same(hashlib.sha256(entries[name]).hexdigest(), item["sha256"],
              "old manifest entry SHA256")
+
+
+def validate_pg14_manifest(pg14_outer):
+    """PG14-specific embedded 69+1 archive layout, not general tar allowance."""
+    pg14_manifest_key = PG14_PREFIX + SELF_MANIFEST
+    require(pg14_manifest_key in pg14_outer, "missing PG14 self-manifest")
+    pg14_manifest = strict_json(pg14_outer[pg14_manifest_key])
+    require(type(pg14_manifest) is dict
+            and pg14_manifest.get("schema") == "pgextwin-issue112-reaudit-sha256-manifest/v1"
+            and pg14_manifest.get("releaseId") == PIN["releaseId"]
+            and pg14_manifest.get("catalogSnapshotCommit") == PIN["catalog"]
+            and pg14_manifest.get("publicationAuthorized") is False
+            and type(pg14_manifest.get("files")) is list
+            and len(pg14_manifest["files"]) == 69, "incorrect PG14 self-manifest")
+    entries = {name: data for name, data in pg14_outer.items() if name != pg14_manifest_key}
+    recorded = {}
+    for item in pg14_manifest["files"]:
+        require(type(item) is dict and set(item) == {"path", "size", "sha256"},
+                "invalid PG14 manifest member")
+        rel = item["path"]
+        name = PG14_PREFIX + rel
+        historical_tar_path(name, allow_pg14_cache=True)
+        require(name not in recorded and type(item["size"]) is int
+                and item["size"] >= 0 and type(item["sha256"]) is str
+                and len(item["sha256"]) == 64 and set(item["sha256"]) <= HEX,
+                "invalid PG14 manifest entry")
+        recorded[name] = item
+    same(set(entries), set(recorded), "PG14 69-file manifest membership")
+    for name, item in recorded.items():
+        same(len(entries[name]), item["size"], "PG14 original member size")
+        same(hashlib.sha256(entries[name]).hexdigest(), item["sha256"],
+             "PG14 original member SHA256")
+    return entries
 
 
 def check_seal(seal, ledger_bytes, manifest_bytes):
@@ -229,36 +309,40 @@ def ledger_assets(ledger):
     return by_name
 
 
-def identify_asset_bytes(new_entries, prior_entries, by_name):
-    """Locate original payloads by exact basename in their pinned storage tier."""
-    expected_new = {n for n, a in by_name.items() if a.get("origin") == "NEW_GET_THIS_RUN"}
-    # The original Work provenance value is NEW_GET for 6 newly fetched assets.
-    require(len(expected_new) == 6, "exactly six original new GET assets required")
-    expected_old = set(by_name) - expected_new
-    require(len(expected_old) == 10, "exactly ten preserved original assets required")
-    original = {}
-    for want, entries, label in (
-        (expected_new, new_entries, "new"), (expected_old, prior_entries, "preserved")
-    ):
-        for name in want:
-            matches = [data for path, data in entries.items()
-                       if path.rsplit("/", 1)[-1] == name]
-            require(len(matches) == 1, "missing/duplicated " + label + " original bytes: " + name)
-            blob = matches[0]
-            same(len(blob), by_name[name]["size"], "original payload byte size")
-            same(hashlib.sha256(blob).hexdigest(), by_name[name]["digest"][7:],
-                 "original payload SHA256")
-            original[name] = blob
-    same(set(original), set(by_name), "16 original payload inventory")
-    checksums = parse_original_historical_sums(
-        original["SHA256SUMS.txt"], set(original) - {"SHA256SUMS.txt"})
-    same(len(original["SHA256SUMS.txt"]), 1780, "historical checksum size")
-    same(hashlib.sha256(original["SHA256SUMS.txt"]).hexdigest(), PIN["sumsSha256"],
-         "historical checksum SHA256")
-    for name, digest in checksums.items():
-        same(digest, hashlib.sha256(original[name]).hexdigest(),
-             "15 checksum entries vs original raw payloads")
-    return original
+def identify_asset_bytes(new_entries, prior_entries, pg14_entries, by_name):
+    """Use only the three immutable, externally pinned archive storage locations."""
+    pg14 = {PIN["asset"], "SHA256SUMS.txt",
+            "pg_bigm-v1.2-20250903-pg14-windows-x64.spdx.json",
+            "pg_bigm-v1.2-20250903-pg14-windows-x64.vulnerabilities.json"}
+    newly = {n for n, a in by_name.items() if a.get("origin") == "NEW_GET_THIS_RUN"}
+    old = set(by_name) - newly
+    require(len(newly) == 6 and len(old) == 10 and pg14 <= old,
+            "PG14/15/16 preserved and PG17/18 newly fetched matrix mismatch")
+    actual = {}
+    for name in by_name:
+        if name in pg14:
+            path = PG14_PREFIX + "snapshot/assets/" + name
+            source = pg14_entries
+        elif name in newly:
+            require("-pg17-" in name or "-pg18-" in name, "new Asset PG-major mismatch")
+            path, source = "resume6/new-assets/" + name, new_entries
+        else:
+            require("-pg15-" in name or "-pg16-" in name, "preserved PG-major mismatch")
+            path, source = "audit/new-assets/" + name, prior_entries
+        require(path in source, "missing original Release payload at exact path: " + path)
+        blob = source[path]
+        same(len(blob), by_name[name]["size"], "original Asset byte size")
+        same(hashlib.sha256(blob).hexdigest(), by_name[name]["digest"][7:],
+             "original Asset SHA256")
+        actual[name] = blob
+    same(set(actual), set(by_name), "16 original payloads")
+    sums = actual["SHA256SUMS.txt"]
+    same(len(sums), 1780, "historical checksum size")
+    same(hashlib.sha256(sums).hexdigest(), PIN["sumsSha256"], "historical checksum SHA256")
+    for name, digest in parse_original_historical_sums(sums, set(actual) - {"SHA256SUMS.txt"}).items():
+        same(digest, hashlib.sha256(actual[name]).hexdigest(),
+             "15 checksum rows against real payload")
+    return actual
 
 
 def validate_receipt_pins(receipt):
@@ -290,6 +374,7 @@ def find_original_snapshot(entries):
                 prefix_candidates.append(prefix)
     require(len(prefix_candidates) == 1, "unique original PG14 verifier snapshot unavailable")
     prefix = prefix_candidates[0]
+    require(prefix == PG14_PREFIX + "snapshot/", "PG14 snapshot prefix mismatch")
     return {name[len(prefix):]: blob for name, blob in entries.items()
             if name.startswith(prefix)}
 
@@ -315,7 +400,9 @@ def gate(release_archive, manifest_file, ledger_file, seal_file,
     _, seal = sealed_json(seal_file, SEAL_SHA, 4096)
     check_seal(seal, ledger_bytes, manifest_bytes)
     release = pinned_bytes(release_archive, ARCHIVE_SIZE, ARCHIVE_SHA)
-    entries = safe_tar(release, expected_count=31)
+    outer_entries = safe_tar(release, expected_count=32)
+    entries = check_self_manifest(outer_entries, original=manifest_bytes,
+                                  original_sha=MANIFEST_SHA, count=31)
     validate_manifest(entries, manifest)
     same(entries["resume6/ledger.json"], ledger_bytes, "archived ledger byte identity")
     by_name = ledger_assets(ledger)
@@ -338,16 +425,23 @@ def gate(release_archive, manifest_file, ledger_file, seal_file,
     same(len(prior_blob), PRIOR_ARCHIVE_SIZE, "nested prior archive size")
     same(hashlib.sha256(prior_blob).hexdigest(), PRIOR_ARCHIVE_SHA,
          "nested prior archive SHA256")
-    prior_entries = safe_tar(prior_blob)
+    prior_outer = safe_tar(prior_blob, expected_count=60)
     nested_manifest_name = ("preserved-previous-run/"
                             "pgextwin-issue112-pgbigm-release16-audit-20261016-manifest.json")
-    validate_nested_prior_manifest(prior_entries,
-                                   strict_json(entries[nested_manifest_name]))
-    # Gate 1: exact 16 ORIGINAL payloads, 15 original checksum payload comparisons.
-    original = identify_asset_bytes(entries, prior_entries, by_name)
-    # Gate 2: exact old PG14 original archive, old receipt, and real gh reexecution.
+    prior_manifest_bytes = entries[nested_manifest_name]
+    same(hashlib.sha256(prior_manifest_bytes).hexdigest(), PRIOR_MANIFEST_SHA,
+         "externally pinned prior manifest")
+    prior_entries = check_self_manifest(prior_outer, original=prior_manifest_bytes,
+                                        original_sha=PRIOR_MANIFEST_SHA, count=59)
+    validate_nested_prior_manifest(prior_entries, strict_json(prior_manifest_bytes))
     old_blob = pinned_bytes(prior_pg14_archive, PG14_ARCHIVE_SIZE, PG14_ARCHIVE_SHA)
-    old_entries = safe_tar(old_blob)
+    same(prior_entries["preserved-original/pgextwin-issue112-pgbigm-pg14-reaudit-evidence-20261016.tar.gz"],
+         old_blob, "nested PG14 original archive byte identity")
+    pg14_outer = safe_tar(old_blob, expected_count=70, allow_pg14_cache=True)
+    old_entries = validate_pg14_manifest(pg14_outer)
+    # Gate 1: complete original Release payload checks precede all cryptographic checks.
+    original = identify_asset_bytes(entries, prior_entries, old_entries, by_name)
+    # Gate 2: original historical receipt, root and real gh cryptography.
     snapshot = find_original_snapshot(old_entries)
     receipt_data = pinned_bytes(receipt_file, 1856, RECEIPT_SHA)
     receipt = strict_json(receipt_data)
