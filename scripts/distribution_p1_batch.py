@@ -260,6 +260,8 @@ def handle_release(name, rec, policy, cache, root, measured):
                            packaging_sha=release["target_commitish"],
                            run_id=run_id, attempt=attempt)
                 jobs = fetch_jobs(name, run_id, major)
+                require(root is not None and measured.get("binarySha256"),
+                        "BLOCKED: official gh/TUF trust bootstrap unavailable")
                 attestdir = folder / ("attest-" + major)
                 attestdir.mkdir()
                 gh_read("attestation", "download", str(zp.resolve()), "--repo", repo,
@@ -283,9 +285,10 @@ def handle_release(name, rec, policy, cache, root, measured):
                     "signatureProof": {"bundleSha256": bundle_hash,
                                        "signerSha": pkg["signerSha"], **jobs}})
             except (Denied, OSError, KeyError, TypeError, ValueError) as exc:
+                why = str(exc)[:240]
                 rows[major] = row_receipt(name, major, policy, release, key, measured, {
-                    "decision": "DENY", "integrityVerified": True,
-                    "reason": str(exc)[:240]})
+                    "decision": "BLOCKED" if why.startswith("BLOCKED:") else "DENY",
+                    "integrityVerified": True, "reason": why})
         return common, rows
 
 
@@ -300,12 +303,17 @@ def run(policy, cache, output):
     measured = {}
     root = None
     with tempfile.TemporaryDirectory(prefix="p1-trust-") as td:
+        # Public GET transport may continue even when the cryptographic
+        # executable/TUF bootstrap is unavailable. Such rows remain BLOCKED.
         try:
             measured = require_gh(policy)
             root = fresh_root(policy, Path(td) / "trusted_root.jsonl")
+        except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
+            measured = {"bootstrapBlocker": str(exc)[:240]}
+            root = None
+        try:
             records = get_catalog(policy)
         except (Denied, OSError, TypeError, ValueError, KeyError) as exc:
-            # Even environment failures are represented per row, without a false PASS.
             records = None
             global_reason = str(exc)[:240]
         receipts = {}
