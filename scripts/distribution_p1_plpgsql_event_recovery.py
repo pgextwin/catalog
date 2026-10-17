@@ -367,15 +367,35 @@ def original_json_archive(path, name):
 
 
 def validate_recovery_artifacts(approval, recovery):
-    """Do not infer later PATCH authorization from an earlier PUBLISH input."""
+    """Validated manual dispatch: receipt omits original literal PUBLISH input.
+
+    The original successful authorize Job and immutable source verify the
+    original gate. The receipt cannot authenticate any later Release PATCH.
+    """
     require(type(approval) is dict and type(recovery) is dict
+            and approval.get("schemaVersion") == 1
+            and approval.get("status") == "VERIFIED_MANUAL_DISPATCH"
+            and approval.get("authorizationMode") == "manual-dispatch"
+            and approval.get("operator") == "ShutenOishi"
+            and approval.get("repository") == REPO
+            and approval.get("extension") == "plpgsql_check"
+            and approval.get("trustedCommit") == PACKAGING
+            and approval.get("releaseTag") == TAG
+            and approval.get("upstreamCommit") ==
+                "ccdbcce9de51f01e1138c270aeb9fe4e26c6e911"
+            and approval.get("upstreamRef") == "v2.10.14"
+            and approval.get("version") == "2.10.14"
+            and approval.get("majors") == [14, 15, 16, 17, 18]
+            and approval.get("candidatePr") == 12
+            and approval.get("candidateRunId") == 38120999663
+            and approval.get("decisionRunId") == 38027456001
+            and approval.get("candidateId") == "94cdd9afb80af57282f5"
+            and recovery.get("schemaVersion") == 1
             and recovery.get("state") == "DRAFT_STAGED"
             and recovery.get("runId") == RUN_ID
             and recovery.get("tag") == TAG
-            and recovery.get("commit") == PACKAGING
-            and "PUBLISH" in canonical(approval).decode("utf-8")
-            and "VERIFIED_MANUAL_DISPATCH" in canonical(approval).decode("utf-8"),
-            "original PUBLISH approval or DRAFT_STAGED recovery mismatch")
+            and recovery.get("commit") == PACKAGING,
+            "original PUBLISH-gated manual-dispatch receipt or recovery mismatch")
     return True
 
 
