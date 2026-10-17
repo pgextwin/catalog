@@ -40,7 +40,7 @@ class SourceOriginalTests(unittest.TestCase):
                 "verificationProfile":"historical/windows.yml/push/v1",
                 "signatureVerified":True,"integrityVerified":True,
                 "runId":identity["originalRunId"],"runAttempt":identity["originalRunAttempt"],
-                "officialGhSha256":self.fleet["officialGhSha256"],
+                "officialGhSha256":self.fleet["officialGhSha256"][0],
                 "trustedRootSha256":self.fleet["rootSha256"],
                 "signatureProof":{
                     "buildJobId":identity["originalBuildJobId"],
@@ -58,7 +58,7 @@ class SourceOriginalTests(unittest.TestCase):
     def observe(self, identity, release=None, p1=None):
         return source_receipt(identity, release if release is not None else self.release(identity),
                               p1 if p1 is not None else self.p1(identity),
-                              official_gh_sha=self.fleet["officialGhSha256"],
+                              official_gh_sha=self.fleet["officialGhSha256"][0],
                               trusted_root_sha=self.fleet["rootSha256"])
     def test_complete_fixed_metadata_40(self):
         self.assertEqual(len(self.identity), 40)
