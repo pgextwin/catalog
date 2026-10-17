@@ -33,6 +33,30 @@ class HistoricalFleetHostile(unittest.TestCase):
         self.assertNotIn("plpgsql_check", self.pins)
         self.assertEqual(sum(x["name"] != "pg_bigm" for x in self.pins.values()) * 5 + 4, 59)
 
+    def test_all_twelve_immutable_full_original_job_archives(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(set(history.LOG_BLOBS), set(self.pins))
+        for name, pin in self.pins.items():
+            with self.subTest(repo=name):
+                data = (root / "evidence/p1/historical-original-jobs" /
+                        (name + ".json")).read_bytes()
+                self.assertEqual(history.blob_sha(data), history.LOG_BLOBS[name])
+                doc = json.loads(data)
+                self.assertEqual(doc["originalRunId"], pin["runId"])
+                self.assertEqual(doc["packagingSha"], pin["packagingSha"])
+                self.assertEqual(doc["repo"], "pgextwin/" + name)
+                self.assertEqual(len(doc["logs"]), 5)
+                self.assertEqual({i["pg"] for i in doc["logs"]},
+                                 {"14", "15", "16", "17", "18"})
+                for item in doc["logs"]:
+                    self.assertIn("Complete job name: release_build / PostgreSQL " +
+                                  item["pg"] + " / Windows x64", item["content"])
+                    if name != "orafce" or item["pg"] == "18":
+                        self.assertEqual(item["id"], pin["pgBuildJobIds"][item["pg"]])
+                        self.assertEqual(item["attempt"], pin["runAttempt"])
+                    else:
+                        self.assertEqual(item["attempt"], 1)
+
     def test_unpinned_signer_source_profile_or_future_pg_deny(self):
         for field, bad in (
             ("signerSha", "0"*40), ("runId", 38128142145),
@@ -117,45 +141,35 @@ class HistoricalFleetHostile(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(Denied):
                 verify(bad)
 
-    def test_checkout_log_corroboration_required_and_job_id_pinned(self):
+    def test_archived_original_checkout_log_source_and_sha_pins(self):
         p = self.pins["hypopg"]
         source = {"upstreamRepository": "HypoPG/hypopg",
                   "upstreamRef": "1.4.3",
                   "upstreamCommit": "21d5461ad1868434cc47d9aa656d7afc2b24c464"}
-        original = (
-            "Complete job name: release_build / PostgreSQL 15 / Windows x64\\n"
-            "  repository: HypoPG/hypopg\\n"
-            "  ref: 21d5461ad1868434cc47d9aa656d7afc2b24c464\\n"
-            "21d5461ad1868434cc47d9aa656d7afc2b24c464\\n").replace("\\\\n", "\\n").encode()
-        import io
-        import hashlib
-        class Resp(io.BytesIO):
-            status = 200
-            url = "https://api.github.com/repos/pgextwin/hypopg/actions/jobs/123/logs"
-            def geturl(self):
-                return self.url
-        with patch("urllib.request.urlopen", return_value=Resp(original)) as get:
-            proof = history.checkout_log_corrob("hypopg", "15", p, source)
-            self.assertEqual(proof["originalCheckoutJobId"], p["pgBuildJobIds"]["15"])
-            self.assertEqual(proof["originalCheckoutLogSha256"],
-                             hashlib.sha256(original).hexdigest())
-            request = get.call_args.args[0]
-            self.assertEqual(request.get_method(), "GET")
-            self.assertNotIn("Authorization", request.headers)
-        for malicious in (original.replace(b"HypoPG/hypopg", b"other/repo"),
-                          original.replace(source["upstreamCommit"].encode(), b"0"*40),
-                          b"unrelated checkout evidence"):
-            with patch("urllib.request.urlopen", return_value=Resp(malicious)):
-                with self.assertRaises(Denied):
-                    history.checkout_log_corrob("hypopg", "15", p, source)
-        hostile = Resp(original)
-        hostile.url = "http://evil.example/download"
-        with patch("urllib.request.urlopen", return_value=hostile):
+        proof = history.checkout_log_corrob("hypopg", "15", p, source)
+        self.assertEqual(proof["originalCheckoutJobId"], p["pgBuildJobIds"]["15"])
+        self.assertEqual(proof["originalCheckoutArchiveBlob"], history.LOG_BLOBS["hypopg"])
+        self.assertEqual(len(proof["originalCheckoutLogSha256"]), 64)
+        for key, altered in (
+            ("upstreamRepository", "other/attacker"),
+            # Historical checkout may use a full SHA instead of the tag;
+            # ref/version are separately bound by historical_upstream().
+            ("upstreamCommit", "f"*40),
+        ):
+            wrong = dict(source, **{key: altered})
+            with self.subTest(key=key), self.assertRaises(Denied):
+                history.checkout_log_corrob("hypopg", "15", p, wrong)
+        with patch.dict(history.LOG_BLOBS, {"hypopg": "0"*40}):
             with self.assertRaises(Denied):
                 history.checkout_log_corrob("hypopg", "15", p, source)
-        with patch("urllib.request.urlopen", side_effect=OSError("public logs unavailable")):
-            with self.assertRaisesRegex(Denied, "BLOCKED"):
-                history.checkout_log_corrob("hypopg", "15", p, source)
+        wrong_id = copy.deepcopy(p)
+        wrong_id["pgBuildJobIds"]["15"] += 10
+        with self.assertRaises(Denied):
+            history.checkout_log_corrob("hypopg", "15", wrong_id, source)
+        # Attempt-mixed orafce PG14–17 remains DENY; PG18 has exact attempt-2 archive.
+        orafce = self.pins["orafce"]
+        with self.assertRaises(Denied):
+            history.checkout_log_corrob("orafce", "14", orafce, source)
 
     def test_external_upstream_resolution_is_mandatory_not_pkg_self_assertion(self):
         upstream = {"repository":"sampleowner/samplerepo", "ref":"v1.2", "version":"1.2"}
