@@ -21,6 +21,7 @@ from distribution_p1_formal_ledger_v3 import validate as previous_validate
 ROOT = Path(__file__).resolve().parents[1]
 V4 = ROOT / "evidence/p1/formal-acceptance-20261017-v4.json"
 V3 = ROOT / "evidence/p1/formal-acceptance-20261017-v3.json"
+V2 = ROOT / "evidence/p1/formal-acceptance-20261017-v2.json"
 PINS = ROOT / "config/issue112-p1-historical-source-pins-20261017.json"
 FLEET = ROOT / "config/issue112-p1-fleet-pins-20261017.json"
 
@@ -47,7 +48,7 @@ def validate(raw: bytes, previous: bytes, pins_raw: bytes, fleet_raw: bytes) -> 
             and git_blob(previous) == V3_GIT_BLOB
             and git_blob(pins_raw) == PINS_GIT_BLOB,
             "v4/v3/immutable historical evidence Git Blob changed")
-    previous_validate(previous)
+    previous_validate(previous, V2.read_bytes())
     d, v3, pins, fleet = (strict_json(x) for x in
                           (raw, previous, pins_raw, fleet_raw))
     require(type(d) is dict and type(v3) is dict and type(pins) is dict
