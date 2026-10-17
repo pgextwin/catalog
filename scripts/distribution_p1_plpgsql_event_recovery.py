@@ -173,7 +173,7 @@ def validate_original_run(run, jobs):
     return True
 
 
-def validate_original_release(release, asset_ids):
+def validate_original_release(release, asset_ids, expected_digests):
     require(type(release) is dict and release.get("id") == RELEASE_ID
             and release.get("tag_name") == TAG
             and release.get("target_commitish") == PACKAGING
@@ -183,7 +183,8 @@ def validate_original_release(release, asset_ids):
             "wrong public release")
     assets = release.get("assets")
     require(type(assets) is list and len(assets) == 16
-            and type(asset_ids) is dict and len(asset_ids) == 16,
+            and type(asset_ids) is dict and len(asset_ids) == 16
+            and type(expected_digests) is dict and len(expected_digests) == 16,
             "incomplete public 16-asset set")
     observed = {}
     for asset in assets:
@@ -194,9 +195,12 @@ def validate_original_release(release, asset_ids):
                 and re.fullmatch(r"sha256:[a-f0-9]{64}", asset["digest"])
                 and asset["name"] not in observed, "bad public asset")
         observed[asset["name"]] = asset
-    require(set(observed) == set(asset_ids)
-            and all(observed[n]["id"] == v for n,v in asset_ids.items()),
-            "public asset ID missing/replaced")
+    require(set(observed) == set(asset_ids) == set(expected_digests)
+            and all(observed[n]["id"] == v for n,v in asset_ids.items())
+            and all(observed[n]["digest"] == "sha256:" + digest
+                    and type(digest) is str and HEX64.fullmatch(digest)
+                    for n, digest in expected_digests.items()),
+            "public original Asset ID/digest missing/replaced")
     for pg, digest in PG_ZIPS.items():
         names = [n for n in observed if n.endswith(f"-pg{pg}-windows-x64.zip")]
         require(len(names) == 1
@@ -261,10 +265,9 @@ def require_causal_bridge(anchor):
             and type(anchor.get("causalBridgeEvidenceSha256")) is str
             and HEX64.fullmatch(anchor["causalBridgeEvidenceSha256"]),
             "BLOCKED: no independently fixed publication-to-PUBLISH causal bridge")
-    # Merely claiming that a bridge is verified in JSON is insufficient:
-    # protected formal ledger admission must independently recheck actual
-    # authenticated original and this claimed bridge evidence, by SHA and type.
-    return True
+    # This profile deliberately has no accepted authenticated causal bridge
+    # record yet. Self-asserted flags and digests can NEVER authorize release.
+    raise Denied("BLOCKED: missing independent authenticated causal audit validator")
 
 
 def verify_original_pg_sigstore(*, pg, zip_path, sbom_path, bundle_path,
