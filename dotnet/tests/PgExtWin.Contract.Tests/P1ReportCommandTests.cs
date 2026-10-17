@@ -120,8 +120,8 @@ internal static class P1ReportCommandTests
             string[] Replaced(string flag, string value)
             {
                 var args = Inputs();
-                var index = Array.IndexOf(args, flag);
-                args[index + 1] = value;
+                var position = Array.IndexOf(args, flag);
+                args[position + 1] = value;
                 return args;
             }
 
