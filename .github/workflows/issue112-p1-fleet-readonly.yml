@@ -20,6 +20,7 @@ on:
       - scripts/distribution_p1_plpgsql_event_recovery.py
       - scripts/distribution_p1_plpgsql_genuine_audit.py
       - tests/test_distribution_p1_plpgsql_event_recovery.py
+      - tests/test_distribution_p1_plpgsql_genuine_audit.py
       - evidence/p1/plpgsql-published-event-recovery-pending-v1.json
       - config/issue112-p1-fleet-pins-20261017.json
       - config/issue112-p1-historical-source-pins-20261017.json
@@ -55,6 +56,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_distribution_p1_orafce_cross_attempt.py' -v
           python -m unittest discover -s tests -p 'test_distribution_p1_formal_ledger_v5.py' -v
           python -m unittest discover -s tests -p 'test_distribution_p1_plpgsql_event_recovery.py' -v
+          python -m unittest discover -s tests -p 'test_distribution_p1_plpgsql_genuine_audit.py' -v
       - name: Install exact verified official gh 2.102.0 for original TUF/Sigstore
         shell: bash
         run: |
