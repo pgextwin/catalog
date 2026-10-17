@@ -1,0 +1,15 @@
+{
+  "schema": "pgextwin-historical-source-formal-acceptance/v1",
+  "previousP1LedgerGitBlob": "d82e3f375b1e0836d52b7f6a8942497cedc9881b",
+  "inventoryGitBlob": "db528c079135ebfb653d844f5683672f0730a8f4",
+  "acceptedRows": [],
+  "sourceFormalAccepted": 0,
+  "sourceFormalTotal": 40,
+  "p1FormalAccepted": 65,
+  "p1FormalTotal": 70,
+  "p1": "BLOCKED",
+  "p2": "NO-GO",
+  "publicationAuthorized": false,
+  "distributionAuthorized": false,
+  "formalDistribution": "DENY"
+}
