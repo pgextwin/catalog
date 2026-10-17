@@ -1,0 +1,17 @@
+# Issue #112 — Authenticated historical checkout-log archive v1
+
+## Root cause and unchanged trust requirements
+
+Genuine protected-main original Release byte audit Run [38983173815](https://github.com/pgextwin/catalog/actions/runs/38983173815) completed 14/14 Release common SHA256 and all 5 PG ZIP CRC/SPDX/Grype inspections, but blocked **55** row checks on GitHub Actions `contents:read` token access to *other repositories'* original job-log endpoint. It did NOT mark any new row as Sigstore PASS. It kept **4 orafce PG14–17 DENY** for original PackageInfo attempt-1 mismatching latest Run attempt-2 and **5 plpgsql_check DENY** for failed original promotion. Formal baseline remains **6/70**, source **0/40**, P1 BLOCKED, P2 NO-GO, distribution DENY.
+
+## Original evidence importer
+
+The normal Chat's authenticated GitHub connector retrieved the public **full original PG-specific job-log text** for all **12 historical Releases × 5 PG majors = 60 logs** from exact original GitHub numeric Job IDs. No Work item-by-item hand-off or GitHub Workflow Dispatch/Re-run was required. These are saved append-only under `evidence/p1/historical-original-jobs/<extension>.json` on a protected feature branch. Each file fixes original GitHub repo, Run ID, packaging full SHA, Job numeric ID, PG major, attempt and original full text. A second, independently pinned `LOG_BLOBS` mapping in `scripts/distribution_p1_historical_fleet.py` stores all **12 exact Git Blob hashes** from original archive import, so an archive substitution, file omission, symlink, extra PG, altered Run/Job ID, wrong SHA or modified original checkout ref is fail-closed.
+
+The runtime common verifier calls `checkout_log_corrob` and checks the original saved full text bytes (SHA256 included in each real row receipt) against exact original Git Blob hash, PG Job ID/attempt, repository/ref/full upstream commit and original PG Job name. This is source corroboration, NOT Sigstore proof. Release **all 16 assets, original checksums, safe ZIP CRC/SPDX/Grype, immutable original workflow/config Git Blob, original Run/jobs and two real official-gh/TUF/SLSA-v1/SPDX-2.3 signatures** remain mandatory. Existing historical `pg_bigm PG14` sealed formal bridge is not generalized. Main Promotion contract is unmodified.
+
+**orafce** history: PG14–17 original successful build jobs were in attempt 1, while PG18 and final Release publication were attempt 2. Four attempted mixed rows remain DENY until a separately proven exact cross-attempt publication contract is designed. The archive preserves the real attempt-1 PG14–17 logs but does NOT automatically accept them using attempt-2 source credentials; the helper explicitly enforces correct per-PG attempts. No failed plpgsql_check attempt is waived.
+
+## Safety
+
+Workflow remains protected-main-only, `contents:read`, no extra GitHub token scope, new Secrets, signing, publication, Release, Tag, P2, installation or workflow Dispatch. Original 60 logs were fetched via normal Chat GitHub connection exactly once and rehashed on subsequent main audit. Real Sigstore/TUF is still performed per row. Mock/offline hostile tests cover all 12 pinned archives and tampered bytes/identity/source/job attempts, but never grant formal acceptance. Only real row receipts from trusted-main run may support an **additional new versioned formal ledger** and Issue #112 record. Existing v2/v3/PG14 sealed receipts and old original archives remain intact.
