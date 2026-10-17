@@ -36,6 +36,12 @@ from distribution_p1_historical_fleet import (
     pins_load as historical_pins_load, verify_historical_row,
 )
 from distribution_p1_orafce_cross_attempt import probe_original_cross_attempt
+from distribution_p1_historical_source import (
+    INVENTORY as SOURCE_INVENTORY, LEDGER as SOURCE_LEDGER,
+    TARGETS as SOURCE_TARGETS, MAJORS as SOURCE_MAJORS,
+    load_inventory as source_load_inventory, source_receipt,
+    source_summary, validate_formal_v1 as source_validate_formal_v1,
+)
 from distribution_p1_formal_ledger_v5 import (
     validate as formal_v5_validate, V5 as FORMAL_V5, V4 as FORMAL_V4,
     PINS as FORMAL_PINS, FLEET as FORMAL_FLEET, V5_GIT_BLOB,
@@ -558,6 +564,9 @@ def run(policy, cache, output):
             and admission["publicationAuthorized"] is False
             and admission["distributionAuthorized"] is False,
             "unsafe formal baseline v5")
+    # Source is an independent formal counter. The immutable zero baseline
+    # cannot be incremented by P1 65/70 or a self-reported row receipt.
+    source_validate_formal_v1(SOURCE_LEDGER.read_bytes())
     old_rows = [dict(extension="pg_bigm", pgMajor=14,
                      repoId=BASELINE[2], releaseId=BASELINE[3],
                      assetId=BASELINE[4])] + [
@@ -582,6 +591,14 @@ def run(policy, cache, output):
     except (Denied, OSError, TypeError, KeyError, ValueError) as exc:
         historical_pins = {}
         pins_blocker = "BLOCKED: immutable historical registry invalid: " + str(exc)[:180]
+    from distribution_p1_historical_fleet import pins_load as exact_source_pins
+    try:
+        source_inventory = source_load_inventory(
+            SOURCE_INVENTORY.read_bytes(), historical_pins, policy)
+        source_inventory_blocker = None
+    except (Denied, OSError, TypeError, KeyError, ValueError) as exc:
+        source_inventory = {}
+        source_inventory_blocker = "BLOCKED: source inventory untrusted: " + str(exc)[:180]
     upstream_cache = {}
     measured = {}
     root = None
@@ -610,7 +627,9 @@ def run(policy, cache, output):
                 global_reason = str(exc)[:240]
         receipts = {}
         candidates = []
+        source_observations = []
         for name in NAMES:
+            common = None
             try:
                 require(records is not None, global_reason if records is None else "")
                 common, rows = handle_release(
@@ -632,14 +651,36 @@ def run(policy, cache, output):
                     for m in MAJORS:
                         rows[m]["decision"] = "ALREADY_ACCEPTED"
                         rows[m]["reason"] = "previous genuine main-Promotion v3 acceptance, no new proof"
+            if name in SOURCE_TARGETS:
+                for source_major in SOURCE_MAJORS:
+                    identity = source_inventory.get((name, source_major))
+                    if identity is not None:
+                        sr = source_receipt(
+                            identity, common, rows.get(str(source_major)),
+                            official_gh_sha=measured.get("binarySha256", ""),
+                            trusted_root_sha=policy["rootSha256"])
+                    else:
+                        sr = {
+                            "schema": "pgextwin-historical-source-row/v1",
+                            "extension": name, "pgMajor": source_major,
+                            "decision": "BLOCKED", "reason": source_inventory_blocker or
+                            "BLOCKED: exact source inventory row missing",
+                            "publicationAuthorized": False,
+                            "distributionAuthorized": False,
+                            "formalSourceAccepted": False}
+                    (output / (name + "-pg" + str(source_major) + "-source.json")).write_bytes(json_bytes(sr))
+                    source_observations.append(sr)
             for major, receipt in rows.items():
                 (output / (name + "-pg" + major + ".json")).write_bytes(json_bytes(receipt))
                 receipts[(name, major)] = receipt
                 if receipt["decision"] == "PASS_CANDIDATE":
                     candidates.append([name, int(major)])
         require(len(receipts) == 70, "incomplete 70-row receipt inventory")
+        source_report = source_summary(source_observations)
+        (output / "source-summary.json").write_bytes(json_bytes(source_report))
         report = {
             "schema": SCHEMA, "type": "summary",
+            "independentHistoricalSourceObservation": source_report,
             "asOf": datetime.now(timezone.utc).isoformat(), "catalogCommit": policy["catalogCommitSha"],
             "verificationMode": "original-release-real-bytes-and-genuine-cryptography",
             "verifiedCandidatesNotFormallyAdmitted": [
