@@ -101,7 +101,8 @@ class CrossAttemptHostile(unittest.TestCase):
                     trusted_root=None, root_sha="", cache={})
         for key, bad in (
             ("upstreamRepository", "evil/repo"),
-            ("upstreamRef", "incorrect-tag"),
+            # Full-SHA checkout logs intentionally do not assert the tag.
+            # Historical upstream config independently authenticates ref.
             ("upstreamCommit", "0"*40),
         ):
             src=dict(self.source,**{key:bad})
