@@ -17,6 +17,9 @@ on:
       - evidence/p1/orafce-cross-attempt-observed-v1.json
       - evidence/p1/orafce-attempt2-original-publication-log-v1.json
       - scripts/distribution_release_verify_p1.py
+      - scripts/distribution_p1_plpgsql_event_recovery.py
+      - tests/test_distribution_p1_plpgsql_event_recovery.py
+      - evidence/p1/plpgsql-published-event-recovery-pending-v1.json
       - config/issue112-p1-fleet-pins-20261017.json
       - config/issue112-p1-historical-source-pins-20261017.json
 permissions:
@@ -50,6 +53,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_distribution_p1_historical_source.py' -v
           python -m unittest discover -s tests -p 'test_distribution_p1_orafce_cross_attempt.py' -v
           python -m unittest discover -s tests -p 'test_distribution_p1_formal_ledger_v5.py' -v
+          python -m unittest discover -s tests -p 'test_distribution_p1_plpgsql_event_recovery.py' -v
       - name: Install exact verified official gh 2.102.0 for original TUF/Sigstore
         shell: bash
         run: |
@@ -65,6 +69,23 @@ jobs:
           chmod 755 "$RUNNER_TEMP/issue112-gh/bin/gh"
           "$RUNNER_TEMP/issue112-gh/bin/gh" --version
           echo "$RUNNER_TEMP/issue112-gh/bin" >> "$GITHUB_PATH"
+      - name: GET-only capture of exact ReleaseEvent candidate (not a trust decision)
+        id: plpgsql_event
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/distribution_p1_plpgsql_event_recovery.py \
+            --capture-event \
+            --output "$RUNNER_TEMP/issue112-plpgsql-event-canonical.json"
+      - name: Preserve candidate Event canonical snapshot only
+        if: ${{ steps.plpgsql_event.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: issue112-plpgsql-event-observation-${{ github.sha }}
+          path: ${{ runner.temp }}/issue112-plpgsql-event-canonical.json
+          retention-days: 14
+          if-no-files-found: error
       - name: Run all 70 original Release/PG checks; fail closed per row
         id: actual
         continue-on-error: true
