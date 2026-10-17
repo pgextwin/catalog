@@ -120,3 +120,33 @@ JSON uses `pgextwin-cli-local-catalog/v1` and carries
 Its rows are local Catalog metadata **only**, not an authenticated manifest
 or verified Release claim. `download --format json` is rejected, and unknown
 formats fail closed with exit 2. This output is not a trust upgrade.
+
+## R2a: CLI authentication of an externally signed P1 *report claim*
+
+`pgextwin verify-report` authenticates a detached, canonical ECDSA-P256/SHA256
+P1 report using an **independently approved** SHA256 digest of the public key,
+an independently pinned P1 policy, Trusted Root digest, and P1 verifier digest.
+It checks the Catalog's raw digests and the **exact** PG-major, repository ID,
+release ID, asset ID and original ZIP digest against the signed report. It runs
+offline, reads bounded local files, and never changes any filesystem content.
+
+```powershell
+pgextwin.exe verify-report pg_cron --pg 18 --catalog-dir C:\\approved\\catalog `
+  --policy C:\\approved\\policy.json --policy-sha256 OUT_OF_BAND_POLICY_SHA256 `
+  --trusted-root-sha256 OUT_OF_BAND_ROOT_SHA256 `
+  --p1-verifier-sha256 OUT_OF_BAND_VERIFIER_SHA256 `
+  --report C:\\approved\\p1-report.json --signature C:\\approved\\p1-report.sig `
+  --authority-key C:\\approved\\authority.pem --authority-key-sha256 OUT_OF_BAND_KEY_SHA256
+```
+
+The output is `P1_REPORT_AUTHENTICATED_ONLY` and explicitly
+`TRUST=UNVERIFIED SIGSTORE_SIGNATURE_VERIFIED=false ORIGINAL_BYTES_VERIFIED=false PUBLISH=DENY`.
+The report's issuer is authenticated, but the CLI **does not independently
+check a genuine Sigstore SLSA/SPDX proof, trusted-root contents, original Release
+bytes, revocation status, or whether an independently approved P1 auditor really
+produced the report**. Status 0 means *report signature and pins matched*, never
+release or distribution verification. R2 genuine online/offline Sigstore
+verification, R3 bundles and R7 publication remain gated.
+
+Only synthetic ephemeral signing keys and synthetic files are used in CI.
+The CLI public binary and any real extension Release are not published.

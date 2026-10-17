@@ -11,6 +11,7 @@
     <ProjectReference Include="../../src/PgExtWin.Catalog/PgExtWin.Catalog.csproj" />
     <ProjectReference Include="../../src/PgExtWin.Releases/PgExtWin.Releases.csproj" />
     <ProjectReference Include="../../src/PgExtWin.Trust/PgExtWin.Trust.csproj" />
+    <ProjectReference Include="../../src/PgExtWin.Cli/PgExtWin.Cli.csproj" />
     <ProjectReference Include="../../src/PgExtWin.Bundles/PgExtWin.Bundles.csproj" />
   </ItemGroup>
 </Project>

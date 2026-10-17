@@ -115,6 +115,11 @@ jobs:
           if ($LASTEXITCODE -ne 2 -or $invalidFormat -notmatch 'DENY:') { throw 'Unknown output format was accepted' }
           $downloadJson = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE --format json 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $downloadJson -notmatch 'DENY:') { throw 'JSON output incorrectly allowed on download' }
+          $reportDenial = & $exe verify-report pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $reportDenial -notmatch 'DENY:') { throw 'Unauthenticated report was not rejected' }
+          $unsupportedVerify = & $exe verify pg_cron --pg 18 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $unsupportedVerify -notmatch 'DENY:') { throw 'Unsupported Sigstore verify was accepted' }
+          Write-Output 'CLI_R2A_NO_TRUST_ELEVATION_NEGATIVE_SMOKE=PASS'
           Write-Output 'CLI_WIN_X64_PRIVATE_SMOKE=PASS VERSION_JSON_LIST_14_SEARCH_DENY_UNTRUSTED_NO_RELEASE'
           # Negative tests intentionally exit 2; clear the native process code only after all assertions pass.
           $global:LASTEXITCODE = 0

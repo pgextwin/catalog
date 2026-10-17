@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Net;
 using PgExtWin.Catalog;
 using PgExtWin.Releases;
+using PgExtWin.Cli;
 
 return await RunAsync(args);
 
@@ -10,6 +11,8 @@ static async Task<int> RunAsync(string[] args)
 {
     try
     {
+        if (args.Length > 0 && args[0] == "verify-report")
+            return AuthenticatedReportCommand.Run(args);
         if (args.Length == 1 && args[0] is "--version" or "-V")
         {
             var info = Assembly.GetExecutingAssembly()
@@ -146,6 +149,9 @@ static async Task<int> RunAsync(string[] args)
 static void Usage()
 {
     Console.Error.WriteLine("pgextwin --version");
+    Console.Error.WriteLine("pgextwin verify-report EXTENSION --pg MAJOR --catalog-dir PATH --policy FILE");
+    Console.Error.WriteLine("  --policy-sha256 HEX --trusted-root-sha256 HEX --p1-verifier-sha256 HEX");
+    Console.Error.WriteLine("  --report FILE --signature FILE --authority-key PEM --authority-key-sha256 HEX");
     Console.Error.WriteLine("pgextwin list --catalog-dir PATH [--pg MAJOR] [--format text|json]");
     Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json]");
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");

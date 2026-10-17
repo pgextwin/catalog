@@ -11,5 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="../PgExtWin.Catalog/PgExtWin.Catalog.csproj" />
     <ProjectReference Include="../PgExtWin.Releases/PgExtWin.Releases.csproj" />
+    <ProjectReference Include="../PgExtWin.Trust/PgExtWin.Trust.csproj" />
   </ItemGroup>
 </Project>
