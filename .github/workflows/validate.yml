@@ -88,11 +88,22 @@ jobs:
           $exe = Join-Path $env:RUNNER_TEMP 'pgextwin-cli-preview/pgextwin.exe'
           $helpText = & $exe --help 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'pgextwin list') { throw 'Help smoke failed' }
+          $version = & $exe --version 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '0.1.0-preview.1') { throw 'CLI preview version smoke failed' }
           $listing = @(& $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1)
           if ($LASTEXITCODE -ne 0) { throw 'List smoke failed' }
           if ($listing[0] -ne 'SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY') { throw 'Trust banner missing' }
           $rows = @($listing | Where-Object { $_ -match '^\w+\tPG18\t' })
           if ($rows.Count -ne 14) { throw "Expected 14 PG18 rows; got $($rows.Count)" }
+          $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'JSON list CLI failed' }
+          $json = $jsonText | ConvertFrom-Json
+          if ($json.schemaVersion -ne 'pgextwin-cli-local-catalog/v1' -or
+              $json.source -ne 'LOCAL_UNAUTHENTICATED' -or $json.trust -ne 'UNVERIFIED' -or
+              $json.catalogAuthenticated -ne $false -or $json.signatureVerified -ne $false -or
+              $json.publicationAuthorized -ne $false -or $json.distributionAuthorized -ne $false -or
+              $json.count -ne 14 -or @($json.records).Count -ne 14) { throw 'JSON trust envelope or coverage mismatch' }
+          if (@($json.records | Where-Object { $_.pgMajor -ne '18' -or $_.trust -ne 'UNVERIFIED' }).Count -ne 0) { throw 'JSON row trust/major mismatch' }
           $found = @(& $exe search cron --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1)
           if ($LASTEXITCODE -ne 0 -or (($found | Out-String) -notmatch 'pg_cron')) { throw 'Search smoke failed' }
           $missing = Join-Path $env:RUNNER_TEMP 'pgextwin-no-catalog-here'
@@ -100,6 +111,10 @@ jobs:
           if ($LASTEXITCODE -ne 2 -or $denial -notmatch 'DENY:') { throw 'Malformed Catalog was not fail-closed' }
           $downloadDenial = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $downloadDenial -notmatch 'DENY:') { throw 'Download missing independent policy did not fail closed' }
-          Write-Output 'CLI_WIN_X64_PRIVATE_SMOKE=PASS LIST_14_SEARCH_DENY_UNTRUSTED_NO_RELEASE'
+          $invalidFormat = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --format yaml 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $invalidFormat -notmatch 'DENY:') { throw 'Unknown output format was accepted' }
+          $downloadJson = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE --format json 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $downloadJson -notmatch 'DENY:') { throw 'JSON output incorrectly allowed on download' }
+          Write-Output 'CLI_WIN_X64_PRIVATE_SMOKE=PASS VERSION_JSON_LIST_14_SEARCH_DENY_UNTRUSTED_NO_RELEASE'
           # Negative tests intentionally exit 2; clear the native process code only after all assertions pass.
           $global:LASTEXITCODE = 0
