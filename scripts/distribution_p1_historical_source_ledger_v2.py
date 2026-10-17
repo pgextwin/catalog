@@ -13,6 +13,7 @@ import io
 import json
 from pathlib import Path
 import zipfile
+import zlib
 
 from distribution_manifest_v1 import Denied, require, strict_json
 from distribution_p1_historical_fleet import blob_sha, pins_load
@@ -110,15 +111,17 @@ def validate_artifact(zip_bytes: bytes, ledger_raw: bytes | None = None) -> dict
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
         names = archive.namelist()
         expected = {f"{n}-pg{pg}.json" for n in
-                    ("hypopg", "orafce", *TARGETS, "plpgsql_check", "wal2json")
+                    ("hypopg", "orafce", "pg_partman", "pg_stat_monitor",
+                     *TARGETS, "plpgsql_check", "wal2json")
                     for pg in MAJORS}
         expected |= {f"{n}-release.json" for n in
-                     ("hypopg", "orafce", *TARGETS, "plpgsql_check", "wal2json")}
+                     ("hypopg", "orafce", "pg_partman", "pg_stat_monitor",
+                     *TARGETS, "plpgsql_check", "wal2json")}
         expected |= {f"{n}-pg{pg}-source.json" for n in TARGETS for pg in MAJORS}
         expected |= {"summary.json", "source-summary.json"}
         require(len(names) == 126 and len(set(names)) == 126 and set(names) == expected,
                 "audit files missing, duplicated or unexpectedly added")
-        require(all(info.CRC == ( __import__("zlib").crc32(archive.read(info)) & 0xffffffff)
+        require(all(info.CRC == ( zlib.crc32(archive.read(info)) & 0xffffffff)
                     for info in archive.infolist()),
                 "audit ZIP CRC mismatch")
         def read_obj(name):
