@@ -35,6 +35,7 @@ from distribution_historical_p1_pg14 import (
 from distribution_p1_historical_fleet import (
     pins_load as historical_pins_load, verify_historical_row,
 )
+from distribution_p1_orafce_cross_attempt import probe_original_cross_attempt
 from distribution_p1_formal_ledger_v4 import (
     validate as formal_v4_validate, V4 as FORMAL_V4,
     V3 as FORMAL_V3, PINS as FORMAL_PINS,
@@ -42,7 +43,7 @@ from distribution_p1_formal_ledger_v4 import (
 )
 
 SCHEMA = "pgextwin-p1-genuine-fleet-batch/v1"
-VERIFIER = "batch-v4-original-historical-crypto;distribution_release_verify_p1.py"
+VERIFIER = "batch-v5-exact-orafce-cross-attempt;distribution_release_verify_p1.py"
 BASELINE = ("pg_bigm", "14", 1405047175, 408449466, 626562095)
 NAMES = ("hypopg", "orafce", "pg_bigm", "pg_cron", "pg_hint_plan", "pg_ivm",
          "pg_partman", "pg_qualstats", "pg_repack", "pg_stat_monitor",
@@ -469,6 +470,17 @@ def handle_release(name, rec, policy, cache, root, measured, historical_pins, up
                 continue
             observed = None
             try:
+                if name == "orafce" and major in ("14", "15", "16", "17"):
+                    require(name in historical_pins,
+                            "cross-attempt original immutable profile missing")
+                    crypto = probe_original_cross_attempt(
+                        name=name, major=major, pin=historical_pins[name],
+                        release=release, config=config, row=row, folder=folder,
+                        hashes=hashes, trusted_root=root,
+                        root_sha=policy["rootSha256"], cache=upstream_cache)
+                    rows[major] = row_receipt(name, major, policy, release, key,
+                                              measured, crypto)
+                    continue
                 if name in historical_pins:
                     pinned = historical_pins[name]
                     crypto = verify_historical_row(
