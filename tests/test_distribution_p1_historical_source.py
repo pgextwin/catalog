@@ -67,6 +67,9 @@ class SourceOriginalTests(unittest.TestCase):
     def test_zero_formal_source_ledger_chain(self):
         self.assertEqual(validate_formal_v1(LEDGER.read_bytes())["sourceFormalAccepted"],0)
         self.assertEqual(json.loads(V5.read_bytes())["formalP1Accepted"],65)
+    def test_byte_sealed_source_ledger_rejects_whitespace_replay(self):
+        with self.assertRaises(Denied):
+            validate_formal_v1(LEDGER.read_bytes() + b"\\n")
     def test_fake_formal_acceptance_rejected(self):
         data=json.loads(LEDGER.read_bytes())
         for change in [
