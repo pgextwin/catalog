@@ -101,3 +101,22 @@ Release, public download, installer or bundle.
 This is compile/runtime evidence only. No trusted online/offline `verify`,
 bundle creation, `install`, source Sigstore acceptance or public CLI signing is
 implied. Existing `PUBLISH=DENY` and P1 65/70 + five DENY remain unchanged.
+
+## Machine-readable local Catalog output
+
+The CLI preview version is `0.1.0-preview.1` (`pgextwin --version`).
+`list` and `search` accept `--format json` in addition to their default
+text format:
+
+```powershell
+pgextwin.exe list --catalog-dir C:\\path\\to\\catalog --pg 18 --format json
+pgextwin.exe search cron --catalog-dir C:\\path\\to\\catalog --format json
+```
+
+JSON uses `pgextwin-cli-local-catalog/v1` and carries
+`source=LOCAL_UNAUTHENTICATED`, `trust=UNVERIFIED`, and
+`catalogAuthenticated=false`, `signatureVerified=false`,
+`publicationAuthorized=false`, `distributionAuthorized=false`.
+Its rows are local Catalog metadata **only**, not an authenticated manifest
+or verified Release claim. `download --format json` is rejected, and unknown
+formats fail closed with exit 2. This output is not a trust upgrade.
