@@ -1,0 +1,23 @@
+# Issue #112 — 40 historical upstream sources: independent admission pilot v1
+
+This change is **read-only and nonpublishing**. Formal P1 remains **65/70** as sealed in `evidence/p1/formal-acceptance-20261017-v5.json`. Independent historical source formal acceptance remains **0/40** in `evidence/source/formal-historical-source-v1.json`. Neither total implies the other. P1 BLOCKED, P2 NO-GO, publicationAuthorized=false, distributionAuthorized=false, DENY.
+
+## Exact original identities (40/40)
+
+`config/issue112-historical-source-original-40-v1.json` pins the eight original Windows release repositories × PG14–18. These values are reconciled directly using public numeric GitHub Release REST identities, original `config/extension.json` Git Blob at the pinned packaging commit, the original source-pins registry and P1 fleet numeric Asset IDs. Per row: repository/release/asset numeric IDs, original ZIP name/size/SHA256 from GitHub metadata, packaging SHA, original workflow/config Git Blob, upstream repository/ref/version, original source ref, Run/attempt, PG Build/Publish Job ID and signer SHA. This pinned metadata is **not** independent source acceptance.
+
+## Main runner evidence and limitation
+
+A single run of the already-existing nonpublishing genuine P1 batch checks exact original Release bytes, all assets/checksums/ZIP CRC, original PACKAGE-INFO, SPDX/Grype, original Git blobs, Run/Jobs and successful outcome, original checkout Job logs, independent upstream resolution, and both genuine TUF-backed SLSA v1 and SPDX 2.3 Sigstore predicates. The added `distribution_p1_historical_source.py` only constructs 40 **candidate** source receipts in that same run, binding release original byte digests to the original P1 per-PG genuine verifier result and historical upstream/source evidence. Every observation preserves `formalSourceAccepted=false`, `publicationAuthorized=false`, and `distributionAuthorized=false`. `source-summary.json` always reports the original independent formal count **0/40** unless a separate reviewed sealed append-only successor is merged.
+
+`pg_bigm PG14` is deliberately **BLOCKED** for this source-specific pilot: the existing main P1 batch labels the sealed PG14 one-off bridge as `ALREADY_ACCEPTED`, without rerunning its full source-specific original cryptographic path. Do not widen that bridge; require the original independently verified source evidence to be linked and audited separately for PG14.
+
+The output remains only a diagnostic Actions artifact (not original Release, not an authenticated standalone source certificate). Any missing inventory, mismatched digest/number/PG/job/attempt, failed original Run, unverified signature, absent upstream full SHA, or unavailable genuine original proof remains BLOCKED. Actual source admission requires reviewing byte-identical source receipts and live main Run, pinning their SHA256, and creating a new versioned append-only formal source ledger and hostile tests on a protected PR. **No receipt or JSON alone grants admission**; the next ledger must tie its accepted rows to the real verified Run and immutable original release data. Historic tags may be mutable; original log, signed SHA, immutable original source and commit corroboration are mandatory and a present-day tag lookup cannot independently establish its state at build time.
+
+## Execution / safeties
+
+Protected main triggers `.github/workflows/issue112-p1-fleet-readonly.yml` on verifier/source changes. Run original per-row checks with the exact pinned official gh 2.102.0, TUF-validated Trusted Root and existing saved original Job logs. Unverified rows are not counted; the 5 failed plpgsql_check Promotion rows still DENY and P1 65/70 is immutable. Do not dispatch/re-run an original build, publish a Release or tag, modify Secrets or branch rules, authorize installation, or publish fleet ZIP. A future offline fleet ZIP is produced locally by the CLI, not hosted as a prebuilt distribution. No second human reviewer or per-row Work handoff is required for identical cryptographic checks.
+
+## Next gate
+
+Use the **real** new protected-main batch `source-*.json` 40 per-row evidence files and `source-summary.json` to identify actual nonblocked candidates. Independently hash the diagnostic artifact and each row, reconcile against numeric original Release Assets and previous true P1 receipts. Admit only truly verified source rows in a follow-on strict immutable source ledger v2; investigate pg_bigm PG14 separately. Keep DENY for every unverified source.
