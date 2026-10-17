@@ -35,6 +35,11 @@ from distribution_historical_p1_pg14 import (
 from distribution_p1_historical_fleet import (
     pins_load as historical_pins_load, verify_historical_row,
 )
+from distribution_p1_formal_ledger_v4 import (
+    validate as formal_v4_validate, V4 as FORMAL_V4,
+    V3 as FORMAL_V3, PINS as FORMAL_PINS,
+    FLEET as FORMAL_FLEET, V4_GIT_BLOB,
+)
 
 SCHEMA = "pgextwin-p1-genuine-fleet-batch/v1"
 VERIFIER = "batch-v4-original-historical-crypto;distribution_release_verify_p1.py"
@@ -532,6 +537,29 @@ def run(policy, cache, output):
             set(policy["assetIds"]) == set(NAMES) and
             policy["approvedMajors"] == [14, 15, 16, 17, 18],
             "incomplete/unsupported immutable fleet policy")
+    # The formal 61/70 baseline is a SHA-pinned sealed record from an actual
+    # previous protected-main audit, NOT a synthetic current-run PASS.
+    formal_v4_validate(FORMAL_V4.read_bytes(), FORMAL_V3.read_bytes(),
+                       FORMAL_PINS.read_bytes(), FORMAL_FLEET.read_bytes())
+    admission = strict_json(FORMAL_V4.read_bytes())
+    require(admission["formalP1Accepted"] == 61
+            and admission["historicalSourceAccepted"] == 0
+            and admission["publicationAuthorized"] is False
+            and admission["distributionAuthorized"] is False,
+            "unsafe formal baseline v4")
+    old_rows = [dict(extension="pg_bigm", pgMajor=14,
+                     repoId=BASELINE[2], releaseId=BASELINE[3],
+                     assetId=BASELINE[4])] + [
+        dict(extension="wal2json", pgMajor=int(m)) for m in MAJORS]
+    new_rows = [
+        dict(extension=r["extension"], pgMajor=r["pgMajor"],
+             repoId=r["repositoryId"], releaseId=r["releaseId"],
+             assetId=r["assetId"]) for r in admission["newAcceptedRows"]]
+    formal_rows = old_rows + new_rows
+    require(len(formal_rows) == 61 and len({
+        (x["extension"], x["pgMajor"]) for x in formal_rows
+    }) == 61, "duplicate admission in merged v4 baseline")
+    existing_rows = {(x["extension"], x["pgMajor"]) for x in formal_rows}
     output.mkdir(parents=True, exist_ok=True)
     cache.mkdir(parents=True, exist_ok=True)
     pins_path = (Path(__file__).resolve().parents[1] /
@@ -602,12 +630,13 @@ def run(policy, cache, output):
             "schema": SCHEMA, "type": "summary",
             "asOf": datetime.now(timezone.utc).isoformat(), "catalogCommit": policy["catalogCommitSha"],
             "verificationMode": "original-release-real-bytes-and-genuine-cryptography",
-            "verifiedCandidatesNotFormallyAdmitted": candidates,
-            "formalAcceptedBaseline": [dict(extension="pg_bigm", pgMajor=14,
-                                            repoId=BASELINE[2], releaseId=BASELINE[3],
-                                            assetId=BASELINE[4])] +
-                [dict(extension="wal2json", pgMajor=int(m)) for m in MAJORS],
-            "formalP1Accepted": 6, "formalP1Total": 70,
+            "verifiedCandidatesNotFormallyAdmitted": [
+                row for row in candidates if tuple(row) not in existing_rows],
+            "verifiedPreviouslyAdmittedRowsRechecked": [
+                row for row in candidates if tuple(row) in existing_rows],
+            "formalAcceptanceLedgerGitBlob": V4_GIT_BLOB,
+            "formalAcceptedBaseline": formal_rows,
+            "formalP1Accepted": 61, "formalP1Total": 70,
             "historicalSourceAccepted": 0, "historicalSourceTotal": 40,
             "batchDecisions": {x: sum(r["decision"] == x for r in receipts.values())
                                for x in ("ALREADY_ACCEPTED", "PASS_CANDIDATE",
