@@ -25,7 +25,7 @@ V2 = ROOT / "evidence/p1/formal-acceptance-20261017-v2.json"
 PINS = ROOT / "config/issue112-p1-historical-source-pins-20261017.json"
 FLEET = ROOT / "config/issue112-p1-fleet-pins-20261017.json"
 
-V4_GIT_BLOB = "ef8f4ec0214631523b449c7539329eb636f6d730"
+V4_GIT_BLOB = "217dcea05fe1f61ebb821529b548165170293d2e"
 V3_GIT_BLOB = "d26b3db5ce497200cfaadf793851653c7c582df6"
 PINS_GIT_BLOB = "c04a8c34688265cfd598fe99c399aa032321ed61"
 AUDIT_COMMIT = "2330d9027f33c7ab3317e382539725feda285a1e"
