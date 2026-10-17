@@ -20,7 +20,7 @@ from distribution_p1_orafce_cross_attempt import (
 
 ROOT = Path(__file__).resolve().parents[1]
 V5 = ROOT / "evidence/p1/formal-acceptance-20261017-v5.json"
-V5_GIT_BLOB = "__V5_BLOB__"
+V5_GIT_BLOB = "06964377d1fd0d8ad43864d841395f9643b77fb0"
 ROW_PINS = {
   14: ("5a53a6c560d16c0e2978f271b9a20aaaef021a922b310f4c0d1a8c47c66ba057",
        "dab9d6b772ba2791e0737cb93f93bb82354ec83b30dd4dae751730476fdb3d11"),
