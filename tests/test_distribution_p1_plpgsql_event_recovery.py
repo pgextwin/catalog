@@ -36,6 +36,9 @@ def jobs():
     rows=[{"id":jid,"name":f"Fresh attested Windows maintained PG14–18 build from validated main / PostgreSQL {pg} / Windows x64",
            "conclusion":"success","run_attempt":1}
           for pg,jid in recovery.ORIGINAL_JOBS.items()]
+    rows.append({"id":recovery.AUTHORIZE_JOB,
+                 "name":"Verify manual operator confirmation and immutable candidate evidence",
+                 "conclusion":"success","run_attempt":1})
     rows.append({"id":recovery.PUBLISH_JOB,
                  "name":"Verify signatures and SHA; create-only formal publication",
                  "conclusion":"failure","run_attempt":1})
@@ -94,6 +97,43 @@ class RecoveryHostile(unittest.TestCase):
         with self.assertRaises(Denied):
             recovery.verify_event_snapshot(raw.strip(),hashlib.sha256(raw.strip()).hexdigest())
 
+    def test_actual_protected_main_original_event_sha_and_witness(self):
+        captured=recovery.verify_protected_capture()
+        self.assertEqual(captured["eventId"],recovery.EVENT_ID)
+        self.assertEqual(captured["release"]["id"],recovery.RELEASE_ID)
+        self.assertEqual(captured["actor"]["id"],recovery.ACTOR_ID)
+        self.assertEqual(recovery.EVENT_CANONICAL_SHA256,
+                         "bed069a8ffe16f6cc3756a2e7608b84ecb9ababccad28d93c5e1c01889c643a8")
+        with patch.object(recovery,"EVENT_CANONICAL_SHA256","0"*64),self.assertRaises(Denied):
+            recovery.verify_protected_capture()
+        with patch.object(recovery,"CAPTURE_ARTIFACT_ID",1),self.assertRaises(Denied):
+            recovery.verify_protected_capture()
+        with patch.object(recovery,"CAPTURE_MAIN_SHA","a"*40),self.assertRaises(Denied):
+            recovery.verify_protected_capture()
+
+    def test_actual_manual_dispatch_receipt_not_forged_publish_input(self):
+        approval={"schemaVersion":1,"status":"VERIFIED_MANUAL_DISPATCH",
+            "authorizationMode":"manual-dispatch","operator":"ShutenOishi",
+            "repository":recovery.REPO,"extension":"plpgsql_check",
+            "trustedCommit":recovery.PACKAGING,"releaseTag":recovery.TAG,
+            "upstreamCommit":"ccdbcce9de51f01e1138c270aeb9fe4e26c6e911",
+            "upstreamRef":"v2.10.14","version":"2.10.14",
+            "majors":[14,15,16,17,18],"candidatePr":12,
+            "candidateRunId":38120999663,"decisionRunId":38027456001,
+            "candidateId":"94cdd9afb80af57282f5"}
+        staged={"schemaVersion":1,"state":"DRAFT_STAGED",
+                "runId":recovery.RUN_ID,"tag":recovery.TAG,"commit":recovery.PACKAGING}
+        self.assertTrue(recovery.validate_recovery_artifacts(approval,staged))
+        for key,bad in (("status","APPROVED"),("releaseTag","wrong"),
+                        ("operator","unknown"),("trustedCommit","a"*40),
+                        ("candidateRunId",12)):
+            altered=copy.deepcopy(approval);altered[key]=bad
+            with self.subTest(key=key),self.assertRaises(Denied):
+                recovery.validate_recovery_artifacts(altered,staged)
+        altered=copy.deepcopy(staged);altered["state"]="PUBLISHED"
+        with self.assertRaises(Denied):
+            recovery.validate_recovery_artifacts(approval,altered)
+
     def test_run_must_remain_failure_and_all_five_builds_succeed(self):
         self.assertTrue(recovery.validate_original_run(run(),jobs()))
         scenarios=[
@@ -105,6 +145,7 @@ class RecoveryHostile(unittest.TestCase):
             ("publisher-success-forged",lambda r,j:j["jobs"][-1].update(conclusion="success")),
             ("publisher-missing",lambda r,j:j["jobs"].pop()),
             ("pg18-failure",lambda r,j:j["jobs"][4].update(conclusion="failure")),
+            ("authorize-missing",lambda r,j:j["jobs"][-2].update(conclusion="failure")),
             ("pg17-retry",lambda r,j:j["jobs"][3].update(run_attempt=2)),
             ("truncated-page",lambda r,j:j.update(total_count=100)),
             ("duplicated-job",lambda r,j:j["jobs"][0].update(id=j["jobs"][1]["id"])),
