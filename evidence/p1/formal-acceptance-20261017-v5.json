@@ -126,7 +126,7 @@
       "signerSha": "43993b864e59bd35870e15c410ac13c85def8531",
       "releaseIdentitySha256": "c84db3083873cc5a830e37b5bbec978531e52dd295965a99c1cd4e85626659e0",
       "zipSha256": "d16077ef8df2a3770bd36cb4ce1eb2bb884f11c6a70adca623583680bd5474aa",
-      "artifactArchiveSha256": "f1e1930c7c7c0eb4e961ec75d9af124234e1c28922f63ac4956494b15951c6",
+      "artifactArchiveSha256": "f1e1930c7c7c0eb4e961ec75d9af124234e1c28922f63ac4956494b4ed9ae8f6",
       "bundleSha256": "c81cbd9fb91a158df2613e4ff65c23156828f0e326e12f2266b8bd82ff302700",
       "rowReceiptSha256": "18d021ec64d00e52e583deb10a3197172420db5aa9690a34685e181397edabcf",
       "verificationOrigin": "protected-main-original-release-and-real-Sigstore",
