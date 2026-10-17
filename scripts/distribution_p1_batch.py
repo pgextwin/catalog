@@ -465,6 +465,24 @@ def handle_release(name, rec, policy, cache, root, measured, historical_pins, up
             if (name, major) == BASELINE[:2]:
                 rows[major] = row_receipt(name, major, policy, release, key, measured, {
                     "decision": "ALREADY_ACCEPTED", "reason": "2026-10-17 sealed PG14 bridge; not recounted"}, origin="prior-formal-bridge")
+                # Separate SOURCE-only genuine re-verification. P1 stays formally
+                # ALREADY_ACCEPTED, so neither P1 nor source may be double-counted.
+                # No PG14 bridge waiver is inherited by any other PG/extension.
+                try:
+                    require(name in historical_pins,
+                            "BLOCKED: original PG14 historical source pin unavailable")
+                    original_source_crypto = verify_historical_row(
+                        name=name, major=major, pin=historical_pins[name],
+                        release=release, config=config, row=row, folder=folder,
+                        assets=assets, hashes=hashes, trusted_root=root,
+                        root_sha=policy["rootSha256"], cache=upstream_cache)
+                    original_source_crypto["verificationProfile"] = "historical/windows.yml/push/v1"
+                    original_source_crypto["signatureProof"]["sourceOnlySeparatePG14Rerun"] = True
+                    rows[major]["sourceOnlyGenuineP1"] = row_receipt(
+                        name, major, policy, release, key, measured,
+                        original_source_crypto)
+                except (Denied, OSError, KeyError, TypeError, ValueError) as exc:
+                    rows[major]["sourceOnlyBlocker"] = str(exc)[:240]
                 continue
             if name == "wal2json":
                 rows[major] = row_receipt(name, major, policy, release, key, measured, {
@@ -655,10 +673,16 @@ def run(policy, cache, output):
                 for source_major in SOURCE_MAJORS:
                     identity = source_inventory.get((name, source_major))
                     if identity is not None:
+                        original_row = rows.get(str(source_major))
+                        source_crypto_row = (original_row.get("sourceOnlyGenuineP1", original_row)
+                                             if type(original_row) is dict else None)
                         sr = source_receipt(
-                            identity, common, rows.get(str(source_major)),
+                            identity, common, source_crypto_row,
                             official_gh_sha=measured.get("binarySha256", ""),
                             trusted_root_sha=policy["rootSha256"])
+                        if (sr["decision"] == "BLOCKED" and type(original_row) is dict
+                                and original_row.get("sourceOnlyBlocker")):
+                            sr["reason"] = "BLOCKED: PG14 independent original crypto rerun: " + original_row["sourceOnlyBlocker"]
                     else:
                         sr = {
                             "schema": "pgextwin-historical-source-row/v1",
