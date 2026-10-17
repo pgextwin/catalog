@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from distribution_manifest_v1 import Denied
-from distribution_p1_historical_fleet import pins_load
+from distribution_p1_historical_fleet import pins_load, LOG_BLOBS
 from distribution_p1_historical_source import (
     INVENTORY, LEDGER, TARGETS, MAJORS, load_inventory,
     source_receipt, source_summary, validate_formal_v1)
@@ -47,7 +47,7 @@ class SourceOriginalTests(unittest.TestCase):
                     "publicationJobId":identity["originalPublishJobId"],
                     "originalCheckoutJobId":identity["originalBuildJobId"],
                     "originalCheckoutRunAttempt":identity["originalRunAttempt"],
-                    "originalCheckoutArchiveBlob":"a"*40,
+                    "originalCheckoutArchiveBlob":LOG_BLOBS[identity["extension"]],
                     "workflowBlob":identity["workflowGitBlob"],
                     "configBlob":identity["configGitBlob"],"signerSha":identity["signerSha"],
                     "upstreamRepository":identity["upstreamRepository"],
@@ -126,6 +126,10 @@ class SourceOriginalTests(unittest.TestCase):
     def test_pg14_one_off_exception_not_replayed(self):
         ident=self.identity[("pg_bigm",14)]
         self.assertEqual(self.observe(ident)["decision"],"BLOCKED")
+        signed=self.p1(ident)
+        signed["signatureProof"]["sourceOnlySeparatePG14Rerun"]=True
+        self.assertEqual(self.observe(ident,p1=signed)["decision"],"SOURCE_PASS_CANDIDATE")
+        self.assertIs(self.observe(ident,p1=signed)["formalSourceAccepted"],False)
     def test_candidate_observation_never_formal_admission(self):
         # A forged in-memory fixture may only prove parser wiring, never real crypto.
         receipt=self.observe(self.row())
