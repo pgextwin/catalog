@@ -1,0 +1,74 @@
+{
+  "schema": "pgextwin-p1-orafce-cross-attempt-observation/v1",
+  "decision": "EVIDENCE_OBSERVED_NOT_SIGNATURE_VERIFIED",
+  "repository": "pgextwin/orafce",
+  "repositoryId": 1413246504,
+  "releaseId": 409043426,
+  "releaseTag": "v4.16.13-windows.1",
+  "packagingSha": "9f10b9039abe8c909df1ed17133481f4d64da1e4",
+  "workflow": "windows.yml",
+  "runId": 38062983035,
+  "attempt1": {
+    "conclusion": "failure",
+    "failedBuildMajor": 18,
+    "publishSucceeded": false
+  },
+  "attempt2": {
+    "conclusion": "success",
+    "publisherJobId": 114251123808,
+    "downloadedArtifacts": 5
+  },
+  "publisherLogGitBlob": "591f05c75cf0a5aacbedcc2cd339822080e4ad5f",
+  "rows": [
+    {
+      "pgMajor": 14,
+      "buildAttempt": 1,
+      "buildJobId": 114244899868,
+      "originalZipAssetId": 628346166,
+      "originalZipName": "orafce-VERSION_4_16_13-pg14-windows-x64.zip",
+      "originalZipSha256": "1b49956b4f7b8e3b4f5264344bc0db38928559453ca67ccc184b7cfad9575039",
+      "originalBuildAttestationLogCount": 2,
+      "uploadedArtifactArchiveSha256": "ce1b4f6a68ae2ec1438ab91323344afc8d293e56af2c5788fec11cab9104117f",
+      "publisherDownloadedArtifactSha256": "ce1b4f6a68ae2ec1438ab91323344afc8d293e56af2c5788fec11cab9104117f"
+    },
+    {
+      "pgMajor": 15,
+      "buildAttempt": 1,
+      "buildJobId": 114244899833,
+      "originalZipAssetId": 628346162,
+      "originalZipName": "orafce-VERSION_4_16_13-pg15-windows-x64.zip",
+      "originalZipSha256": "1b945cf443cf70ab2b0353895613e3a3ee97ed23e37e0144cc113939c292b74a",
+      "originalBuildAttestationLogCount": 2,
+      "uploadedArtifactArchiveSha256": "aea77542a92ac91a0a47c271c806aca97a925aa23a1985668df12514b15951c6",
+      "publisherDownloadedArtifactSha256": "aea77542a92ac91a0a47c271c806aca97a925aa23a1985668df12514b15951c6"
+    },
+    {
+      "pgMajor": 16,
+      "buildAttempt": 1,
+      "buildJobId": 114244899844,
+      "originalZipAssetId": 628346163,
+      "originalZipName": "orafce-VERSION_4_16_13-pg16-windows-x64.zip",
+      "originalZipSha256": "a8b6f29b2fd5b7ad2598e74eb952c88e19549742e8c8361d57fdc00e877367e5",
+      "originalBuildAttestationLogCount": 2,
+      "uploadedArtifactArchiveSha256": "f88447c5e9ed157792017c514b810aa1f07d8682dac0561dc46b6979429f1755",
+      "publisherDownloadedArtifactSha256": "f88447c5e9ed157792017c514b810aa1f07d8682dac0561dc46b6979429f1755"
+    },
+    {
+      "pgMajor": 17,
+      "buildAttempt": 1,
+      "buildJobId": 114244899848,
+      "originalZipAssetId": 628346158,
+      "originalZipName": "orafce-VERSION_4_16_13-pg17-windows-x64.zip",
+      "originalZipSha256": "d16077ef8df2a3770bd36cb4ce1eb2bb884f11c6a70adca623583680bd5474aa",
+      "originalBuildAttestationLogCount": 2,
+      "uploadedArtifactArchiveSha256": "f1e1930c7c7c0eb4e961ec75d9af124234e1c28922f63ac4956494b4ed9ae8f6",
+      "publisherDownloadedArtifactSha256": "f1e1930c7c7c0eb4e961ec75d9af124234e1c28922f63ac4956494b4ed9ae8f6"
+    }
+  ],
+  "limitations": [
+    "Not a verification of X.509/OIDC/SLSA/SPDX signed predicates; must run genuine official-gh/TUF per PG with attempt 1",
+    "Attempt1 overall Run failure is not treated as success",
+    "Do not copy any PG18 attempt2 attestation to attempt1 rows",
+    "No formal admission or publication flags authorized"
+  ]
+}
