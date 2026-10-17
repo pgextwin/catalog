@@ -57,6 +57,15 @@ PG_ZIPS = {
 }
 HEX64 = re.compile(r"[a-f0-9]{64}\Z")
 ROOT = Path(__file__).resolve().parents[1]
+EVENT_CANONICAL_PATH = ROOT / "evidence/p1/plpgsql-published-event-canonical-v1.json"
+EVENT_CANONICAL_SHA256 = "bed069a8ffe16f6cc3756a2e7608b84ecb9ababccad28d93c5e1c01889c643a8"
+EVENT_CAPTURE_WITNESS = ROOT / "evidence/p1/plpgsql-published-event-capture-witness-v1.json"
+CAPTURE_RUN_ID = 39001516733
+CAPTURE_JOB_ID = 117305259134
+CAPTURE_ARTIFACT_ID = 12088909315
+CAPTURE_ARCHIVE_SHA256 = "43580fcd1018f6a487881ac85eb9d6076ad3faa69f5b0140bed9b64b2e277073"
+CAPTURE_MAIN_SHA = "11d3c9c6566588c895f6d0f5618d7915f20fe751"
+AUTHORIZE_JOB = 114436691584
 ANCHOR = ROOT / "evidence/p1/plpgsql-published-event-recovery-pending-v1.json"
 
 
@@ -121,6 +130,52 @@ def verify_event_snapshot(snapshot_bytes, pinned_sha):
     return snapshot
 
 
+def verify_protected_capture():
+    """Check SHA-sealed immutable original Event and separate capture witness."""
+    require(EVENT_CANONICAL_PATH.is_file() and not EVENT_CANONICAL_PATH.is_symlink(),
+            "BLOCKED: event original canonical bytes not preserved")
+    raw = EVENT_CANONICAL_PATH.read_bytes()
+    result = verify_event_snapshot(raw, EVENT_CANONICAL_SHA256)
+    require(EVENT_CAPTURE_WITNESS.is_file() and not EVENT_CAPTURE_WITNESS.is_symlink(),
+            "BLOCKED: missing independent protected-main witness")
+    witness = strict_json(EVENT_CAPTURE_WITNESS.read_bytes())
+    pinned = {"schema":"pgextwin-plpgsql-published-event-capture-witness/v1",
+              "status":"CANONICAL_EVENT_OBSERVED_NOT_CAUSAL_PROOF",
+              "exactEventId":EVENT_ID,
+              "canonicalSnapshotPath":"evidence/p1/plpgsql-published-event-canonical-v1.json",
+              "canonicalSnapshotSize":438, "canonicalSnapshotSha256":EVENT_CANONICAL_SHA256,
+              "originalObservedRepositoryId":REPO_ID,"originalObservedActorId":ACTOR_ID,
+              "originalObservedReleaseId":RELEASE_ID,
+              "originalObservedPackagingSha":PACKAGING,
+              "originalObservedEventTime":EVENT_TIME,
+              "captureCatalogProtectedMainCommit":CAPTURE_MAIN_SHA,
+              "captureWorkflowRunId":CAPTURE_RUN_ID,
+              "captureWorkflowJobId":CAPTURE_JOB_ID,
+              "captureArtifactId":CAPTURE_ARTIFACT_ID,
+              "captureArtifactArchiveByteSize":475,
+              "captureArtifactArchiveSha256":CAPTURE_ARCHIVE_SHA256,
+              "captureArchiveEntryName":"issue112-plpgsql-event-canonical.json",
+              "originalPromotionRunId":RUN_ID,
+              "originalPromotionAttempt":1,
+              "originalPromotionConclusion":"failure",
+              "originalPublishJobId":PUBLISH_JOB,
+              "originalPublishJobConclusion":"failure",
+              "originalPublishApprovalToEventCausalityVerified":False,
+              "eventPublishingToken":None,"eventHTTPMethodOfPublishing":None,
+              "humanBehindPublishing":None,"formalP1Accepted":65,
+              "historicalSourceFormalAccepted":40,
+              "publicationAuthorized":False,"distributionAuthorized":False,
+              "formalDistribution":"DENY"}
+    require(all(witness.get(k)==v and type(witness.get(k)) is type(v)
+                for k,v in pinned.items())
+            and witness.get("originalSource") ==
+                "https://api.github.com/repos/pgextwin/plpgsql_check/events?per_page=100&page=2"
+            and witness.get("p1") == "BLOCKED"
+            and witness.get("p2") == "NO-GO",
+            "BLOCKED: original Event capture provenance/denial changed")
+    return result
+
+
 def capture_event_get_only():
     """Candidate evidence capture; no authentication or admission claim."""
     for page in (1, 2, 3):
@@ -164,6 +219,12 @@ def validate_original_run(run, jobs):
     all_jobs = jobs["jobs"]
     require(len({j.get("id") for j in all_jobs}) == len(all_jobs),
             "duplicate original Jobs")
+    manual = [j for j in all_jobs if j.get("id") == AUTHORIZE_JOB]
+    require(len(manual) == 1 and manual[0].get("name") ==
+                "Verify manual operator confirmation and immutable candidate evidence"
+            and manual[0].get("conclusion") == "success"
+            and manual[0].get("run_attempt") == 1,
+            "original manual authorization Job missing or not successful")
     for pg, job_id in ORIGINAL_JOBS.items():
         matches = [j for j in all_jobs if j.get("id") == job_id]
         require(len(matches) == 1
