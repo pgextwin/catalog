@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = ROOT / "config/issue112-historical-source-original-40-v1.json"
 INVENTORY_GIT_BLOB = "db528c079135ebfb653d844f5683672f0730a8f4"
 LEDGER = ROOT / "evidence/source/formal-historical-source-v1.json"
+LEDGER_GIT_BLOB = "4da7bd90b9e7089080bedef1a0e15922da616e3c"
 TARGETS = ("pg_bigm", "pg_cron", "pg_hint_plan", "pg_ivm",
            "pg_qualstats", "pg_repack", "pgaudit", "set_user")
 MAJORS = (14, 15, 16, 17, 18)
@@ -185,6 +186,8 @@ def source_summary(rows: list) -> dict:
 def validate_formal_v1(raw: bytes) -> dict:
     """Sealed independent ZERO baseline; v2+ must prove real rows individually."""
     # Cannot derive acceptance from a self-reported source receipt or P1 v5.
+    require(blob_sha(raw) == LEDGER_GIT_BLOB,
+            "historical source genesis ledger raw bytes/Git Blob changed")
     validate_p1_v5(V5.read_bytes(), V4.read_bytes(), PINS.read_bytes(), FLEET.read_bytes())
     d = strict_json(raw)
     expected = {
