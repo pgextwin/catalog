@@ -211,9 +211,9 @@ class HistoricalFleetHostile(unittest.TestCase):
                     source_ref="refs/heads/release/foo",
                     build_trigger="workflow_dispatch",workflow_path="promote.yml")
 
-    def test_formal_ledger_baseline_stays_six_without_new_cryptographic_receipts(self):
+    def test_formal_ledger_baseline_v4_61_reuses_genuine_prior_receipts(self):
         source = Path(batch.__file__).read_text()
-        self.assertIn('"formalP1Accepted": 6', source)
+        self.assertIn('"formalP1Accepted": 61', source)
         self.assertIn('"historicalSourceAccepted": 0', source)
         self.assertNotIn('"publicationAuthorized": True', source)
         self.assertNotIn('"distributionAuthorized": True', source)
