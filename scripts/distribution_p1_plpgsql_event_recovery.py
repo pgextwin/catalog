@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -39,6 +40,13 @@ ORIGINAL_JOBS = {14: 114436765036, 15: 114436765058,
 ARTIFACTS = {
     "promotion-receipt": (11698050284, "132e7bad81707344e8fd9d433cde4a161144417b843620c684ae8088615d8856"),
     "promotion-recovery": (11698336665, "5316ef1674098697da65bf9780390e313ff8da9a61db2def86c2b72ad765dfd6"),
+}
+BUILD_ARTIFACTS = {
+    14: (11699020232, "d55eeca6695017d9487bdbdd71df329fbcf3809d671dac2cf28af47f7a20c9fa"),
+    15: (11698091030, "669bb4cec61c40de772e2b590a332b3ae63577688abb774010a2272439c85f12"),
+    16: (11698575691, "887431c2e51b0be9eb6c74ec625fea288b0f5d092c5da874a0deffd4fdf9adc9"),
+    17: (11698530525, "73783bd6b099d1e87dc5b8f66bb2a89fefca6dc880d846e22cce5e53642e6ba7"),
+    18: (11697942095, "c107e152b0961a521e474dbd298c494218726b154d76f006cba168a47014e13e"),
 }
 PG_ZIPS = {
     14: "c12870b33aa62c8743c86864342b9737b7cde714cb9305358fb30aaaf5fa3444",
@@ -217,7 +225,67 @@ def validate_artifact_metadata(artifacts):
         require(len(matching) == 1 and matching[0].get("expired") is False
                 and matching[0].get("digest") == "sha256:" + digest,
                 "original approval/recovery transport artifact mismatch")
+    for pg, (number, digest) in BUILD_ARTIFACTS.items():
+        matching = [a for a in artifacts
+                    if a.get("id") == number
+                    and a.get("name") == f"plpgsql_check-pg{pg}-windows-x64"]
+        require(len(matching) == 1 and matching[0].get("expired") is False
+                and matching[0].get("digest") == "sha256:" + digest,
+                "original PG Build Artifact transport digest/ID mismatch")
     return True
+
+
+def verify_original_build_archive(pg, artifact_path, release_assets):
+    """Actually rehash ZIP/SPDX/Grype ORIGINAL inner bytes against public assets.
+
+    Actions upload ZIP transport SHA is independently pinned, never substituted
+    for the inner public Release ZIP digest or a Sigstore certificate.
+    """
+    require(type(pg) is int and pg in ORIGINAL_JOBS
+            and artifact_path.is_file() and not artifact_path.is_symlink()
+            and artifact_path.stat().st_size < 1024 * 1024
+            and sha(artifact_path) == BUILD_ARTIFACTS[pg][1],
+            "BLOCKED: original Build Artifact transport archive changed")
+    names = [name for name in release_assets
+             if name.endswith(f"-pg{pg}-windows-x64.zip")
+             or name.endswith(f"-pg{pg}-windows-x64.spdx.json")
+             or name.endswith(f"-pg{pg}-windows-x64.vulnerabilities.json")]
+    require(len(names) == 3, "missing per-PG Release triple")
+    try:
+        with ZipFile(artifact_path) as archive:
+            verify_archive_members(archive)
+            members = [item for item in archive.infolist() if not item.is_dir()]
+            require(len(members) == 3 and {x.filename for x in members} == set(names)
+                    and all(x.file_size <= 16 * 1024 * 1024 for x in members),
+                    "wrong/oversized original Build Artifact members")
+            actual = {name: archive.read(name) for name in names}
+        for name, data in actual.items():
+            require(hashlib.sha256(data).hexdigest() ==
+                    release_assets[name]["digest"][7:],
+                    "original Build Artifact inner bytes differ from published Asset")
+        original_zip = next(actual[n] for n in names if n.endswith(".zip"))
+        with ZipFile(BytesIO(original_zip)) as pkg_zip:
+            verify_archive_members(pkg_zip)
+            metadata = strict_json(pkg_zip.read("PACKAGE-INFO.json").decode("utf-8-sig"))
+        wf = metadata.get("workflowRun") or {}
+        source = metadata.get("source") or {}
+        infra = metadata.get("buildInfrastructure") or {}
+        require(wf.get("id") == RUN_ID and wf.get("attempt") == 1
+                and wf.get("event") == "workflow_dispatch"
+                and wf.get("ref") == "refs/heads/main"
+                and source.get("packagingCommit") == PACKAGING
+                and infra.get("commit") == SIGNER
+                and infra.get("repository") == "pgextwin/build",
+                "inner signed build source/run/signer binding mismatch")
+        sbom_name = next(n for n in names if n.endswith(".spdx.json"))
+        report_name = next(n for n in names if n.endswith(".vulnerabilities.json"))
+        require(strict_json(actual[sbom_name]).get("spdxVersion") == "SPDX-2.3"
+                and type(strict_json(actual[report_name]).get("matches")) is list,
+                "original SPDX/Grype invalid")
+    except (OSError, BadZipFile, ValueError, RuntimeError, KeyError) as exc:
+        raise Denied("BLOCKED: original Build Artifact malformed or CRC failure") from exc
+    return {name: hashlib.sha256(data).hexdigest()
+            for name, data in sorted(actual.items())}
 
 
 def original_json_archive(path, name):
