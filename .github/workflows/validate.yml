@@ -101,3 +101,5 @@ jobs:
           $downloadDenial = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $downloadDenial -notmatch 'DENY:') { throw 'Download missing independent policy did not fail closed' }
           Write-Output 'CLI_WIN_X64_PRIVATE_SMOKE=PASS LIST_14_SEARCH_DENY_UNTRUSTED_NO_RELEASE'
+          # Negative tests intentionally exit 2; clear the native process code only after all assertions pass.
+          $global:LASTEXITCODE = 0
