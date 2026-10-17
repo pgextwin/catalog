@@ -50,7 +50,8 @@
       "originalPublicationJobConclusion": "success",
       "integrityVerified": true,
       "signatureVerified": true,
-      "workIndividualAuditRequired": false
+      "workIndividualAuditRequired": false,
+      "buildJobId": 114244899868
     },
     {
       "extension": "orafce",
@@ -78,7 +79,8 @@
       "originalPublicationJobConclusion": "success",
       "integrityVerified": true,
       "signatureVerified": true,
-      "workIndividualAuditRequired": false
+      "workIndividualAuditRequired": false,
+      "buildJobId": 114244899833
     },
     {
       "extension": "orafce",
@@ -106,7 +108,8 @@
       "originalPublicationJobConclusion": "success",
       "integrityVerified": true,
       "signatureVerified": true,
-      "workIndividualAuditRequired": false
+      "workIndividualAuditRequired": false,
+      "buildJobId": 114244899844
     },
     {
       "extension": "orafce",
@@ -134,7 +137,8 @@
       "originalPublicationJobConclusion": "success",
       "integrityVerified": true,
       "signatureVerified": true,
-      "workIndividualAuditRequired": false
+      "workIndividualAuditRequired": false,
+      "buildJobId": 114244899848
     }
   ],
   "formalP1Accepted": 65,
