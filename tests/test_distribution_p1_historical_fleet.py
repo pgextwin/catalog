@@ -117,27 +117,34 @@ class HistoricalFleetHostile(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(Denied):
                 verify(bad)
 
-    def test_checkout_log_corroboration_required_and_job_id_pinned(self):
+    def test_archived_original_checkout_log_source_and_sha_pins(self):
         p = self.pins["hypopg"]
         source = {"upstreamRepository": "HypoPG/hypopg",
                   "upstreamRef": "1.4.3",
                   "upstreamCommit": "21d5461ad1868434cc47d9aa656d7afc2b24c464"}
-        original = (
-            "Complete job name: release_build / PostgreSQL 15 / Windows x64\\n"
-            "  repository: HypoPG/hypopg\\n"
-            "  ref: 21d5461ad1868434cc47d9aa656d7afc2b24c464\\n"
-            "21d5461ad1868434cc47d9aa656d7afc2b24c464\\n").replace("\\\\n", "\\n").encode()
-        good = type("P", (), {"returncode": 0, "stdout": original})()
-        with patch.object(history.subprocess, "run", return_value=good):
-            proof = history.checkout_log_corrob("hypopg", "15", p, source)
-            self.assertEqual(proof["originalCheckoutJobId"], p["pgBuildJobIds"]["15"])
-        for malicious in (original.replace(b"HypoPG/hypopg", b"other/repo"),
-                          original.replace(source["upstreamCommit"].encode(), b"0"*40),
-                          b"unrelated checkout evidence"):
-            proc = type("P", (), {"returncode": 0, "stdout": malicious})()
-            with patch.object(history.subprocess, "run", return_value=proc):
-                with self.assertRaises(Denied):
-                    history.checkout_log_corrob("hypopg", "15", p, source)
+        proof = history.checkout_log_corrob("hypopg", "15", p, source)
+        self.assertEqual(proof["originalCheckoutJobId"], p["pgBuildJobIds"]["15"])
+        self.assertEqual(proof["originalCheckoutArchiveBlob"], history.LOG_BLOBS["hypopg"])
+        self.assertEqual(len(proof["originalCheckoutLogSha256"]), 64)
+        for key, altered in (
+            ("upstreamRepository", "other/attacker"),
+            ("upstreamRef", "vFAKE"),
+            ("upstreamCommit", "f"*40),
+        ):
+            wrong = dict(source, **{key: altered})
+            with self.subTest(key=key), self.assertRaises(Denied):
+                history.checkout_log_corrob("hypopg", "15", p, wrong)
+        with patch.dict(history.LOG_BLOBS, {"hypopg": "0"*40}):
+            with self.assertRaises(Denied):
+                history.checkout_log_corrob("hypopg", "15", p, source)
+        wrong_id = copy.deepcopy(p)
+        wrong_id["pgBuildJobIds"]["15"] += 10
+        with self.assertRaises(Denied):
+            history.checkout_log_corrob("hypopg", "15", wrong_id, source)
+        # Attempt-mixed orafce PG14–17 remains DENY; PG18 has exact attempt-2 archive.
+        orafce = self.pins["orafce"]
+        with self.assertRaises(Denied):
+            history.checkout_log_corrob("orafce", "14", orafce, source)
 
     def test_external_upstream_resolution_is_mandatory_not_pkg_self_assertion(self):
         upstream = {"repository":"sampleowner/samplerepo", "ref":"v1.2", "version":"1.2"}
