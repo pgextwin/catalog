@@ -129,7 +129,7 @@ class SourceOriginalTests(unittest.TestCase):
     def test_candidate_observation_never_formal_admission(self):
         # A forged in-memory fixture may only prove parser wiring, never real crypto.
         receipt=self.observe(self.row())
-        self.assertEqual(receipt["decision"],"SOURCE_PASS_CANDIDATE")
+        self.assertEqual(receipt["decision"],"SOURCE_PASS_CANDIDATE",receipt["reason"])
         self.assertIs(receipt["formalSourceAccepted"],False)
         self.assertIs(receipt["publicationAuthorized"],False)
         rows=[{"extension":name,"pgMajor":pg,"decision":"BLOCKED",
