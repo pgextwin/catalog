@@ -211,9 +211,20 @@ class HistoricalFleetHostile(unittest.TestCase):
                     source_ref="refs/heads/release/foo",
                     build_trigger="workflow_dispatch",workflow_path="promote.yml")
 
-    def test_formal_ledger_baseline_v4_61_reuses_genuine_prior_receipts(self):
+    def test_formal_ledger_v4_61_sealed_and_v5_65_reuses_genuine_prior_receipts(self):
+        # The prior admission stays byte-for-byte sealed; the batch selects
+        # the new append-only v5 after validating the complete v2/v3/v4 chain.
+        import distribution_p1_formal_ledger_v5 as v5
+        prior = v5.V4.read_bytes()
+        self.assertEqual(v5.git_blob(prior), v5.V4_GIT_BLOB)
+        self.assertEqual(json.loads(prior)["formalP1Accepted"], 61)
+        current = v5.V5.read_bytes()
+        self.assertEqual(v5.git_blob(current), v5.V5_GIT_BLOB)
+        self.assertEqual(json.loads(current)["previousFormalAccepted"], 61)
+        self.assertEqual(json.loads(current)["formalP1Accepted"], 65)
+        self.assertEqual(len(json.loads(current)["newAcceptedRows"]), 4)
         source = Path(batch.__file__).read_text()
-        self.assertIn('"formalP1Accepted": 61', source)
+        self.assertIn('"formalP1Accepted": 65', source)
         self.assertIn('"historicalSourceAccepted": 0', source)
         self.assertNotIn('"publicationAuthorized": True', source)
         self.assertNotIn('"distributionAuthorized": True', source)
