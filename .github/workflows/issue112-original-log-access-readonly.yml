@@ -1,0 +1,42 @@
+name: Issue 112 fixed original public Job log GET (diagnostic only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-original-log-access-readonly.yml
+      - scripts/issue112_original_log_access_probe.py
+
+permissions:
+  contents: read
+
+jobs:
+  original-public-log-access:
+    if: ${{ github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out trusted exact protected main without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Try existing GitHub App only with actions read on fixed public pg_bigm
+        id: app-read
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.PGEXTWIN_CATALOG_MERGE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PGEXTWIN_CATALOG_MERGE_APP_PRIVATE_KEY }}
+          owner: pgextwin
+          repositories: pg_bigm
+          permission-actions: read
+      - name: Probe official original public Job-log GET metadata only (no content output)
+        env:
+          ISSUE112_READONLY_APP_TOKEN: ${{ steps.app-read.outputs.token }}
+          APP_READ_STEP: ${{ steps.app-read.outcome }}
+        run: |
+          printf 'Existing App actions-read installation probe: %s\n' "$APP_READ_STEP"
+          python scripts/issue112_original_log_access_probe.py
