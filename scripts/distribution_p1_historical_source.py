@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 
 from distribution_manifest_v1 import Denied, require, strict_json
-from distribution_p1_historical_fleet import blob_sha
+from distribution_p1_historical_fleet import blob_sha, LOG_BLOBS
 from distribution_p1_formal_ledger_v5 import V5, V5_GIT_BLOB, validate as validate_p1_v5
 from distribution_p1_formal_ledger_v4 import V4, PINS, FLEET
 
@@ -99,8 +99,6 @@ def source_receipt(identity: dict, release: dict | None, p1: dict | None,
            "distributionAuthorized": False, "formalSourceAccepted": False}
     def verify():
         require(type(release) is dict and type(p1) is dict, "BLOCKED: genuine release/PG inspection missing")
-        require(n != "pg_bigm" or pg != 14,
-                "BLOCKED: original PG14 P1 bridge did not repeat source-specific crypto in this run")
         require(release.get("type") == "release" and
                 release.get("extension") == n and
                 release.get("repositoryId") == identity["repositoryId"] and
@@ -134,7 +132,7 @@ def source_receipt(identity: dict, release: dict | None, p1: dict | None,
                 proof.get("publicationJobId") == identity["originalPublishJobId"] and
                 proof.get("originalCheckoutJobId") == identity["originalBuildJobId"] and
                 proof.get("originalCheckoutRunAttempt") == identity["originalRunAttempt"] and
-                proof.get("originalCheckoutArchiveBlob") is not None and
+                proof.get("originalCheckoutArchiveBlob") == LOG_BLOBS[n] and
                 proof.get("workflowBlob") == identity["workflowGitBlob"] and
                 proof.get("configBlob") == identity["configGitBlob"] and
                 proof.get("signerSha") == identity["signerSha"] and
@@ -145,8 +143,10 @@ def source_receipt(identity: dict, release: dict | None, p1: dict | None,
                 type(proof.get("originalCheckoutLogSha256")) is str and
                 H64.fullmatch(proof["originalCheckoutLogSha256"]) and
                 type(proof.get("bundleSha256")) is str and
-                H64.fullmatch(proof["bundleSha256"]),
-                "BLOCKED: historical upstream full SHA, immutable log or signed subject evidence missing")
+                H64.fullmatch(proof["bundleSha256"]) and
+                ((n,pg) != ("pg_bigm",14) or
+                 proof.get("sourceOnlySeparatePG14Rerun") is True),
+                "BLOCKED: historical upstream full SHA, immutable log, original PG14 recheck or signed subject evidence missing")
         return proof
     try:
         proof = verify()
@@ -155,8 +155,7 @@ def source_receipt(identity: dict, release: dict | None, p1: dict | None,
                    originalCheckoutLogSha256=proof["originalCheckoutLogSha256"],
                    bundleSha256=proof["bundleSha256"])
         # Hash original same-run P1 receipt. It does not authenticate itself.
-        raw = (json.dumps(p1, sort_keys=True, separators=(",", ":"),
-                          ensure_ascii=False) + "\n").encode("utf-8")
+        raw = (json.dumps(p1, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
         out["p1RowReceiptSha256"] = hashlib.sha256(raw).hexdigest()
     except (Denied, KeyError, ValueError, TypeError, AttributeError) as exc:
         out["reason"] = str(exc)[:240]
