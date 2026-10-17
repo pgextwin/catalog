@@ -72,7 +72,7 @@ class RecoveryHostile(unittest.TestCase):
                 bad=event();bad[field]=value
                 recovery.event_snapshot(bad)
         for path, badval in [
-            (("repo","id"),REPO_BAD:=1),(("repo","name"),"evil/plpgsql_check"),
+            (("repo","id"),1),(("repo","name"),"evil/plpgsql_check"),
             (("actor","id"),1),(("actor","login"),"ShutenOishi"),
             (("payload","action"),"created"),
             (("payload","release","id"),409572203),
@@ -116,7 +116,8 @@ class RecoveryHostile(unittest.TestCase):
 
     def test_release_all_16_assets_pinned_and_per_pg_digests(self):
         a=release(); pins={i["name"]:i["id"] for i in a["assets"]}
-        self.assertEqual(len(recovery.validate_original_release(a,pins)),16)
+        digests={i["name"]:i["digest"][7:] for i in a["assets"]}
+        self.assertEqual(len(recovery.validate_original_release(a,pins,digests)),16)
         for name,change in [
             ("replaced-asset-id",lambda x:x["assets"][0].update(id=42)),
             ("missing-asset",lambda x:x["assets"].pop()),
@@ -126,7 +127,7 @@ class RecoveryHostile(unittest.TestCase):
             ("tag-sha",lambda x:x.update(target_commitish="f"*40))]:
             bad=copy.deepcopy(a);change(bad)
             with self.subTest(name=name),self.assertRaises(Denied):
-                recovery.validate_original_release(bad,pins)
+                recovery.validate_original_release(bad,pins,digests)
 
     def test_original_artifact_metadata_not_fake_sha(self):
         a=[{"id":n,"name":k,"digest":"sha256:"+digest,"expired":False}
@@ -145,6 +146,11 @@ class RecoveryHostile(unittest.TestCase):
         data=json.loads(recovery.ANCHOR.read_text())
         self.assertIsNone(data["eventCanonicalSha256"])
         self.assertFalse(data["causalBridgeIndependentlyVerified"])
+        with self.assertRaises(Denied):
+            recovery.require_causal_bridge(data)
+        data["eventCanonicalSha256"]="a"*64
+        data["causalBridgeIndependentlyVerified"]=True
+        data["causalBridgeEvidenceSha256"]="b"*64
         with self.assertRaises(Denied):
             recovery.require_causal_bridge(data)
 
