@@ -167,6 +167,19 @@ def validate(raw: bytes, previous: bytes, pins_raw: bytes, fleet_raw: bytes) -> 
                 and SHA64.fullmatch(row["rowReceiptSha256"]),
                 "unverified original historical Release/Run/asset/job/receipt pin")
     require(seen == expected, "historical verified row missing")
+    # Independently recomputed from the 55 actual signed main-run JSON receipts,
+    # BEFORE the v4 record was created. This is not a synthetic gh proof.
+    frozen_fields = ("extension pgMajor repositoryId releaseId assetId "
+                     "packagingSha runId runAttempt signerSha buildJobId "
+                     "publicationJobId rowReceiptSha256 profile "
+                     "workIndividualAuditRequired").split()
+    canonical = "".join(
+        "|".join(str(r[k]).lower() if type(r[k]) is bool else str(r[k])
+                 for k in frozen_fields) + "\n"
+        for r in sorted(rows, key=lambda x: (x["extension"], x["pgMajor"])))
+    require(git_blob(canonical.encode("utf-8")) ==
+            "32187dc5badf0bd471e9936cc6a1d3f66a6d5db6",
+            "55 original per-PG receipt SHA256 identities differ from the original Run")
     return {"decision": "V4_FORMAL_RECORD_INTEGRITY_VALID_NOT_A_CRYPTO_TEST",
             "accepted": 61, "addedGenuineRows": 55, "remainingDenied": 9,
             "historicalSourceAccepted": 0, "publicationAuthorized": False,
