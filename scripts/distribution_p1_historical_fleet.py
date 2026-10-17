@@ -27,6 +27,22 @@ REF = re.compile(r"refs/heads/release/[A-Za-z0-9_.-]+\Z")
 UPSTREAM = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 UPSTREAM_REF = re.compile(r"[A-Za-z0-9_.-]+\Z")
 PINNED_SOURCE_REGISTRY_BLOB = "c04a8c34688265cfd598fe99c399aa032321ed61"
+
+LOG_BLOBS = {
+    "hypopg": "cc33670e310893df53184dc3a3c1ed8e8f51dc44",
+    "orafce": "dc05491ddc55140abc1c28e83150792df0a1a26d",
+    "pg_bigm": "217c866613a5cbd2ad272394bda0a7ca80c4e0b7",
+    "pg_cron": "790208fe0085ed4ca95d773099deacf2f1e1662b",
+    "pg_hint_plan": "493776ec8c2dae7df529ccf42e15bb4d0a830b5c",
+    "pg_ivm": "203d6159951a6381d12c080a3e594b86ece7d525",
+    "pg_partman": "0e3440a947899e2e87a098aee5e5cd41aa40a5b4",
+    "pg_qualstats": "79d71d8ce589e1c23758244f2ba7e06df1311842",
+    "pg_repack": "e30e7a7b270f7e77db93679cfe7c8f7309306d3a",
+    "pg_stat_monitor": "9a04358346804db9810c98712d7fa057d0aebe84",
+    "pgaudit": "d8ad6c1f9087259d987f225e56b4a90892872d65",
+    "set_user": "809f19b8859c7ebc52b1ce087bb5b6e901eacb9a"
+}
+
 OLD_SIGNERS = frozenset({
     "8246f4d3415a48b1ad4af13f421277057886b58f",
     "43993b864e59bd35870e15c410ac13c85def8531",
@@ -215,31 +231,65 @@ def historical_upstream(name, major, config, pkg, *, cache):
 
 
 def checkout_log_corrob(name, major, pin, source):
-    """GET original PG job checkout log; corroboration, NOT Sigstore proof."""
-    job_id = pin["pgBuildJobIds"][major]
-    target = ("repos/pgextwin/" + name + "/actions/jobs/" +
-              str(job_id) + "/logs")
-    require(re.fullmatch(
-        r"repos/pgextwin/[a-z][a-z0-9_]*/actions/jobs/[1-9][0-9]*/logs",
-        target), "unsafe original job log target")
-    try:
-        p = subprocess.run(("gh", "api", target), capture_output=True,
-                           timeout=120, env={**os.environ, "GH_PROMPT_DISABLED": "1",
-                                             "GH_NO_UPDATE_NOTIFIER": "1"})
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise Denied("BLOCKED: original checkout log unavailable") from exc
-    require(p.returncode == 0 and 0 < len(p.stdout) <= 16 * 1024 * 1024,
-            "BLOCKED: original checkout Job log unavailable/oversized")
-    log = p.stdout.decode("utf-8-sig", "replace")
-    expected_job = "Complete job name: release_build / PostgreSQL " + major + " / Windows x64"
-    require(expected_job in log and
-            "repository: " + source["upstreamRepository"] in log and
-            source["upstreamCommit"] in log and
-            ("ref: " + source["upstreamCommit"] in log or
-             "ref: " + source["upstreamRef"] in log),
-            "original checkout Job log does not corroborate actual immutable source")
-    return {"originalCheckoutLogSha256": hashlib.sha256(p.stdout).hexdigest(),
-            "originalCheckoutJobId": job_id}
+    """Check ALL original GitHub App GET logs from protected SHA-pinned archive.
+
+    These are original full public Windows job-log byte texts, fetched once via
+    the authenticated GitHub connector, not CI-generated synthetic fixtures.
+    The known Git Blob SHA of each saved Release archive is independently
+    pinned here. Run/source/log identities are still corroboration, NEVER
+    a replacement for genuine signed original Release Sigstore predicates.
+    """
+    expected_blob = LOG_BLOBS.get(name)
+    require(type(expected_blob) is str and re.fullmatch(r"[0-9a-f]{40}", expected_blob),
+            "unregistered historical log archive")
+    file = (Path(__file__).resolve().parents[1] /
+            "evidence/p1/historical-original-jobs" / (name + ".json"))
+    require(file.is_file() and not file.is_symlink()
+            and 0 < file.stat().st_size <= 1024 * 1024,
+            "BLOCKED: immutable original public PG logs missing/oversized")
+    original = file.read_bytes()
+    require(blob_sha(original) == expected_blob,
+            "BLOCKED: historical source log archive Git Blob SHA changed")
+    record = strict_json(original)
+    require(type(record) is dict and record.get("schema") ==
+            "pgextwin-p1-original-public-job-logs/v1"
+            and record.get("source") ==
+            "original GitHub public Actions Job log via authenticated GitHub connector GET"
+            and record.get("repo") == "pgextwin/" + name
+            and record.get("originalRunId") == pin["runId"]
+            and record.get("packagingSha") == pin["packagingSha"]
+            and record.get("attempt") == pin["runAttempt"],
+            "wrong original historical log record identity")
+    logs = record.get("logs")
+    require(type(logs) is list and len(logs) == 5
+            and all(type(item) is dict and
+                    set(item) == {"pg", "id", "attempt", "content"}
+                    for item in logs)
+            and {item["pg"] for item in logs} == {"14", "15", "16", "17", "18"},
+            "original log archive has missing/duplicate/extra PG entries")
+    target = next(item for item in logs if item["pg"] == major)
+    # The orafce attempt-1 success/attempt-2 final publication is deliberately
+    # NOT generalized. PG14-17 still require an independently proven exception,
+    # so preserve their current DENY gate before considering those log entries.
+    require(target["id"] == pin["pgBuildJobIds"][major]
+            and target["attempt"] == pin["runAttempt"],
+            "unmatched historical original Run attempt / PG job identity")
+    raw = target["content"]
+    require(type(raw) is str and 0 < len(raw.encode("utf-8")) <= 16 * 1024 * 1024,
+            "missing/oversized authenticated original checkout text")
+    expected_job = ("Complete job name: release_build / PostgreSQL " +
+                    major + " / Windows x64")
+    require(expected_job in raw and
+            "repository: " + source["upstreamRepository"] in raw and
+            source["upstreamCommit"] in raw and
+            ("ref: " + source["upstreamCommit"] in raw or
+             "ref: " + source["upstreamRef"] in raw),
+            "original checkout Job log fails immutable upstream source corroboration")
+    return {"originalCheckoutLogSha256":
+            hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+            "originalCheckoutArchiveBlob": expected_blob,
+            "originalCheckoutJobId": target["id"],
+            "originalCheckoutRunAttempt": target["attempt"]}
 
 
 def verify_historical_row(*, name, major, pin, release, config, row,
