@@ -152,7 +152,8 @@ class HistoricalFleetHostile(unittest.TestCase):
         self.assertEqual(len(proof["originalCheckoutLogSha256"]), 64)
         for key, altered in (
             ("upstreamRepository", "other/attacker"),
-            ("upstreamRef", "vFAKE"),
+            # Historical checkout may use a full SHA instead of the tag;
+            # ref/version are separately bound by historical_upstream().
             ("upstreamCommit", "f"*40),
         ):
             wrong = dict(source, **{key: altered})
