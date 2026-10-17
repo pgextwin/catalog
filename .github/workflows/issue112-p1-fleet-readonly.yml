@@ -8,6 +8,9 @@ on:
       - .github/workflows/issue112-p1-fleet-readonly.yml
       - scripts/distribution_p1_batch.py
       - scripts/distribution_p1_historical_fleet.py
+      - scripts/distribution_p1_orafce_cross_attempt.py
+      - evidence/p1/orafce-cross-attempt-observed-v1.json
+      - evidence/p1/orafce-attempt2-original-publication-log-v1.json
       - scripts/distribution_release_verify_p1.py
       - config/issue112-p1-fleet-pins-20261017.json
       - config/issue112-p1-historical-source-pins-20261017.json
@@ -39,6 +42,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_distribution_p1_batch.py' -v
           python -m unittest discover -s tests -p 'test_distribution_p1_historical_fleet.py' -v
+          python -m unittest discover -s tests -p 'test_distribution_p1_orafce_cross_attempt.py' -v
       - name: Install exact verified official gh 2.102.0 for original TUF/Sigstore
         shell: bash
         run: |
@@ -79,4 +83,4 @@ jobs:
           exit 1
       - name: No acceptance without separate receipt review
         if: ${{ steps.actual.outcome == 'success' }}
-        run: echo 'Genuine candidates only; 1/70 formal baseline unchanged.'
+        run: echo 'Genuine candidates only; formal 61/70 baseline unchanged until separately verified v5.'
