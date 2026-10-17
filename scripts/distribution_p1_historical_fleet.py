@@ -29,7 +29,7 @@ UPSTREAM_REF = re.compile(r"[A-Za-z0-9_.-]+\Z")
 PINNED_SOURCE_REGISTRY_BLOB = "c04a8c34688265cfd598fe99c399aa032321ed61"
 
 LOG_BLOBS = {
-    "hypopg": "cc33670e310893df53184dc3a3c1ed8e8f51dc44",
+    "hypopg": "7f5bffb9ee1361d69676e5589f2dc25c0c6693d1",
     "orafce": "dc05491ddc55140abc1c28e83150792df0a1a26d",
     "pg_bigm": "217c866613a5cbd2ad272394bda0a7ca80c4e0b7",
     "pg_cron": "790208fe0085ed4ca95d773099deacf2f1e1662b",
