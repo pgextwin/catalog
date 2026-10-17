@@ -91,7 +91,7 @@ static async Task<int> RunAsync(string[] args)
         }
         return displayed == 0 ? 3 : 0;
     }
-    catch (Exception e) when (e is IOException or UnauthorizedAccessException or
+    catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or
         ArgumentException or System.Text.Json.JsonException or InvalidOperationException or
         KeyNotFoundException or HttpRequestException or OperationCanceledException)
     {
