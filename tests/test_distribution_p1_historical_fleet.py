@@ -33,6 +33,30 @@ class HistoricalFleetHostile(unittest.TestCase):
         self.assertNotIn("plpgsql_check", self.pins)
         self.assertEqual(sum(x["name"] != "pg_bigm" for x in self.pins.values()) * 5 + 4, 59)
 
+    def test_all_twelve_immutable_full_original_job_archives(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(set(history.LOG_BLOBS), set(self.pins))
+        for name, pin in self.pins.items():
+            with self.subTest(repo=name):
+                data = (root / "evidence/p1/historical-original-jobs" /
+                        (name + ".json")).read_bytes()
+                self.assertEqual(history.blob_sha(data), history.LOG_BLOBS[name])
+                doc = json.loads(data)
+                self.assertEqual(doc["originalRunId"], pin["runId"])
+                self.assertEqual(doc["packagingSha"], pin["packagingSha"])
+                self.assertEqual(doc["repo"], "pgextwin/" + name)
+                self.assertEqual(len(doc["logs"]), 5)
+                self.assertEqual({i["pg"] for i in doc["logs"]},
+                                 {"14", "15", "16", "17", "18"})
+                for item in doc["logs"]:
+                    self.assertIn("Complete job name: release_build / PostgreSQL " +
+                                  item["pg"] + " / Windows x64", item["content"])
+                    if name != "orafce" or item["pg"] == "18":
+                        self.assertEqual(item["id"], pin["pgBuildJobIds"][item["pg"]])
+                        self.assertEqual(item["attempt"], pin["runAttempt"])
+                    else:
+                        self.assertEqual(item["attempt"], 1)
+
     def test_unpinned_signer_source_profile_or_future_pg_deny(self):
         for field, bad in (
             ("signerSha", "0"*40), ("runId", 38128142145),
