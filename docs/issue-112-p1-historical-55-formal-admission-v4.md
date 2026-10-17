@@ -1,0 +1,21 @@
+# Issue #112 — historical windows.yml/push genuine 55-row formal P1 intake, v4
+
+## Independent live evidence
+
+Protected trusted Catalog main commit `2330d9027f33c7ab3317e382539725feda285a1e`, nonpublishing GET-only [Run 38984927984](https://github.com/pgextwin/catalog/actions/runs/38984927984). Its actual JSON summary reported **6 ALREADY_ACCEPTED, 55 PASS_CANDIDATE, 9 DENY, 0 BLOCKED**. Its run conclusion is failure only at the explicit *incomplete fleet* guard; this never authorizes 9 denied rows or global promotion.
+
+GitHub Action Artifact `12082613192` has outer ZIP SHA256 `071cf1c7d41338382546ba61ad6cbc63ac58af4285dcf7bad2fcebc044bb897c`. The 85 diagnostic receipts were previously independently recovered and inspected with exact ZIP CRC and SHA256. Summary JSON SHA256 `4025b7c773e194b42f4b3b65fb8b2d0ebf5c54810c8b7abbb1707c5e57fe0abe`. The actual original Release ZIPs (14 immutable numeric Releases × 16 original Assets) were obtained directly from GitHub Releases by the trusted-main runner and verified with complete real-byte SHA256, original checksum, all PG ZIP CRC, PACKAGE-INFO, SPDX 2.3 and Grype structure. **CI Artifact is diagnostic evidence, never a substitute for those original Release objects**.
+
+Each new historical PG row independently passed the actual pinned official `gh` executable SHA256 `7469124f706944133d6a169691dd1c6c3511b12e85878d255e044e2948df4c9b`, TUF Trusted Root `65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c`, genuine original Sigstore **SLSA v1 + SPDX 2.3** checks, X.509/OIDC, signer, subject SHA, upstream full source SHA, immutable workflow/config Git Blobs, Run/attempt, original successful PG and publication jobs, and SHA-pinned full original checkout job log from the authenticated GitHub connector. Historical profile is individually constrained to `windows.yml / push / refs/heads/release/*`. This does **not** make PG14's original exceptional bridge a fleet-wide wildcard.
+
+## Formal immutable ledger and controls
+
+This PR only adds append-only `evidence/p1/formal-acceptance-20261017-v4.json` (55 new unique historical PG rows), plus the **record integrity only** verifier `scripts/distribution_p1_formal_ledger_v4.py` and hostile tests. Each accepted row pins its original numeric Repo/Release/ZIP Asset ID, original source full SHA, exact signed Run/attempt, signer, original successful build/publication Job IDs, and original actual PG receipt SHA256. The verifier fixes the v3 baseline Git Blob and separate 12-Release historical input Git Blob and independently freezes all **55 actual PG row receipt identities** to a known Git Blob digest. Hostile tests reject duplicate/replayed rows, false PASS/fake receipt, upstream/release ID and signer substitutions, wrong Run attempt, prior ledger edits, and publication flag escalation. **A unit test does not itself verify Sigstore.**
+
+The prior sealed formal **pg_bigm PG14** and genuine **wal2json PG14–18** remain unchanged and counted once each: new formal acceptance **61/70**, with **9 denied rows**: `orafce PG14–17` (original build attempt 1 / final publication attempt 2; no cross-attempt authorization), and `plpgsql_check PG14–18` (original Promotion Run 38128142145 attempt 1 failed; no waiver). Historical *source* acceptance remains **0/40**, a different ledger/gate. P1 BLOCKED, P2 NO-GO, fleetComplete=false, publicationAuthorized=false, distributionAuthorized=false and formal distribution DENY remain. All original Work evidence, v2 and v3, previous Issue comments, and sealed archives are unmodified.
+
+**Work個別監査不要：自動実検査済み** applies only to the 55 exact rows proven by the real main-run cryptographic verifier; no per-row Work replay or manual dispatch is required. No new Release, Tag, Publisher, signing/attestation issuance, P2 install/bundle, Secrets, branch protection relaxation or Workflow Dispatch/Re-run.
+
+## Formal admission workflow
+
+Require Catalog protected PR/App15368 CI success, unchanged expected head SHA, squash merge, postmerge Catalog validate and Website public-smoke, then record this *new versioned evidence* in build Issue #112. Any further original Run or source validation is separately gated, never silently counted via this ledger.
