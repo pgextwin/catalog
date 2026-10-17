@@ -132,15 +132,23 @@ class RecoveryHostile(unittest.TestCase):
     def test_original_artifact_metadata_not_fake_sha(self):
         a=[{"id":n,"name":k,"digest":"sha256:"+digest,"expired":False}
            for k,(n,digest) in recovery.ARTIFACTS.items()]
+        a.extend({"id":number,"name":f"plpgsql_check-pg{pg}-windows-x64",
+                  "digest":"sha256:"+digest,"expired":False}
+                 for pg,(number,digest) in recovery.BUILD_ARTIFACTS.items())
         self.assertTrue(recovery.validate_artifact_metadata(a))
         for name,alter in [
             ("missing",lambda b:b.pop()),
             ("digest",lambda b:b[0].update(digest="sha256:"+"0"*64)),
             ("expired",lambda b:b[1].update(expired=True)),
-            ("wrong-id",lambda b:b[1].update(id=99))]:
+            ("wrong-id",lambda b:b[1].update(id=99)),
+            ("pg18-substitution",lambda b:b[-1].update(digest="sha256:"+"e"*64))]:
             b=copy.deepcopy(a);alter(b)
             with self.subTest(name=name),self.assertRaises(Denied):
                 recovery.validate_artifact_metadata(b)
+
+    def test_missing_original_build_archive_cannot_qualify(self):
+        with self.assertRaises(Denied):
+            recovery.verify_original_build_archive(18,Path("missing"),{})
 
     def test_fail_closed_unanchored_causal_link(self):
         data=json.loads(recovery.ANCHOR.read_text())
