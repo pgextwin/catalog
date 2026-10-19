@@ -41,7 +41,10 @@ def load_manifest(path):
         old = normalized(row["oldBody"])
         original_lines = [line.strip() for line in old.splitlines()\n                          if line.strip() and not line.startswith("# ")]
         assert all(line in body for line in original_lines), "Original release lines must all be preserved"
-        assert "INTEGRITY_ONLY" in body or row["tag"].startswith("cli-v0.1.")
+        if repo == "pgextwin/catalog":
+            assert "INTEGRITY_ONLY" in body or row["tag"].startswith("cli-v0.1.")
+        else:
+            assert "SHA256SUMS" in body, "Release evidence must be disclosed"
         names = [x["name"] for x in row["assets"]]
         assert len(names) == len(set(names))
         for item in row["assets"]:
