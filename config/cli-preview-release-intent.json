@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "pgextwin-cli-preview-release/v1",
+  "publish": true,
+  "scope": "CLI_ONLY_READONLY_PREVIEW",
+  "tag": "cli-v0.1.0-preview.1",
+  "sourceCommit": "d0056b688dc27095d2d7ffd6f8b77aff965def79",
+  "sourceRunId": 39200819667,
+  "exeSha256": "c2782f46539bd932c9c19105055e45dcf8796d573a8c30ad9844e6ba510ddfb1"
+}
