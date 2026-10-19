@@ -64,6 +64,24 @@ class SignedEvidenceTests(unittest.TestCase):
         root = Path(tmp.name)
         return root, *fixture(root, name)
 
+    def test_absent_first_release_stays_absent_without_published_attested_release(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "extensions"
+            directory.mkdir()
+            for name, version in (("pgtap", "1.3.4"),
+                                  ("pg_variables", "1.2.1"),
+                                  ("pg_store_plans", "1.10")):
+                with self.subTest(extension=name):
+                    target = directory / (name + ".json")
+                    with patch.object(verifier, "api", return_value={
+                        "tag_name": "v" + version + "-windows.1",
+                        "draft": True, "prerelease": False,
+                        "published_at": None
+                    }):
+                        with self.assertRaises(verifier.Denied):
+                            verifier.generate(name, "v" + version + "-windows.1", target)
+                    self.assertFalse(target.exists())
+
     def test_exact_per_major_upstream_and_download_sha(self):
         root, release, manifest, contract, source = self.make()
         assets, sums, run = verifier.verify_payload(
