@@ -239,3 +239,25 @@ explicit stable rollback/compatibility option; never silently fall back to it
 for a failed latest selection. A successful anonymous Windows run is evidence,
 not a permanent API availability guarantee. See
 [Catalog latest spec](../docs/cli-authenticated-latest-catalog.md).
+
+## v0.3.1 — full-trimmed, compressed self-contained Windows EXE
+
+The v0.3.1 build preserves the v0.3.0 authenticated Sigstore-signed
+Catalog latest-by-default and explicit `--fixed` historical rollback.
+The only CLI payload change is .NET single-file compression + full trimming
+(`PublishTrimmed=true;TrimMode=full;EnableCompressionInSingleFile=true`).
+Both CLI local listing JSON and batch receipt JSON use source-generated
+System.Text.Json metadata instead of the unsafe reflection fallback; the
+existing strict deny flags and serialized field names are preserved.
+`IL2026` is **not** suppressed, ignored, or downgraded.
+
+On Windows .NET 10.0.402 with the 10.0.13 runtime pack, experimental full
+trimming produced **12,827,394 bytes** versus public v0.3.0's **79,338,604**
+(83.83% smaller), and passed a genuine signed-Catalog verification plus
+14 original PG18 ZIP SHA256 rechecks. A protected-PR and postmerge independent
+70 ZIP check, original signed binary and published EXE verification remain
+mandatory before v0.3.1 Release acceptance.
+
+The presence or absence of trimming changes **neither** the original ZIP
+`INTEGRITY_ONLY` status nor Issue #75 GO B/G4/G5 gates. See
+[the v0.3.1 release evidence](../docs/cli-v0.3.1-release-notes.md).
