@@ -54,6 +54,8 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.13"
+      - name: Install pinned-major Catalog schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4,<5"
       - name: Run fail-closed offline verifier tests
         run: python -m unittest discover -s tests -v
       - name: Independently verify immutable manual signed Release
@@ -70,6 +72,28 @@ jobs:
             --record-output "extensions/$EXTENSION.json" \
             | tee "$RUNNER_TEMP/verified-release-audit.json"
           echo "Verified signed public Release. The next protected Catalog PR must separately pass native validate CI; this workflow never pushes, merges or publishes." >> "$GITHUB_STEP_SUMMARY"
+      - name: Validate verified proposed Catalog record and immutable public sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/validate_landscape.py
+          python scripts/validate_catalog.py
+          python scripts/validate_catalog.py --verify-remote
+      - name: Report no-App GitHub-only protected PR handoff (not an approval)
+        env:
+          EXTENSION: ${{ inputs.extension }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          {
+            echo "## Verified public signed Release (read-only)"
+            echo "Repository: pgextwin/$EXTENSION; tag: $RELEASE_TAG"
+            echo "This run rehashed the public Release, independently verified its attestations, generated the proposed Catalog record, and passed all offline/schema/remote validators."
+            echo "Download the verified-manual-release-record artifact; inspect the single extensions/$EXTENSION.json diff against current protected catalog/main."
+            echo "An authenticated GitHub actor or connected Chat may propose that exact one-record change via a normal PR without installing a Catalog proposer App."
+            echo "Require native protected Catalog PR CI at the exact head; merge only after SUCCESS, then confirm the Website's cross-repository public Pages audit."
+            echo "This read-only run cannot create, authorize, merge or publish a Release or Catalog PR; no App, Secret or write permission is used."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Store proposed verified Catalog record (not a PR)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
