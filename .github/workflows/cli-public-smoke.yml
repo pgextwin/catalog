@@ -1,0 +1,89 @@
+name: CLI v0.1 public Windows download and Sigstore smoke
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cli-public-smoke.yml'
+      - 'tests/test_cli_public_smoke_policy.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cli-public-smoke.yml'
+permissions:
+  contents: read
+
+jobs:
+  public-cli-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Catalog as read-only reference
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch real public Release bytes and independently verify identity and provenance
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = 'cli-v0.1.0-preview.1'
+          $source = 'd0056b688dc27095d2d7ffd6f8b77aff965def79'
+          $hash = 'c2782f46539bd932c9c19105055e45dcf8796d573a8c30ad9844e6ba510ddfb1'
+          $originalReleaseId = 416920183
+          $originalAssetId = 655295134
+          $release = gh api "repos/pgextwin/catalog/releases/tags/$version" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.id -ne $originalReleaseId -or
+              $release.tag_name -cne $version -or $release.draft -ne $false -or
+              $release.prerelease -ne $true -or @($release.assets).Count -ne 5) {
+            throw 'Wrong public GitHub Release state'
+          }
+          $entry = @($release.assets | Where-Object { $_.name -ceq 'pgextwin.exe' })
+          if ($entry.Count -ne 1 -or $entry[0].id -ne $originalAssetId -or
+              $entry[0].size -ne 73647388 -or
+              $entry[0].digest -cne ("sha256:" + $hash) -or
+              $entry[0].browser_download_url -cne "https://github.com/pgextwin/catalog/releases/download/$version/pgextwin.exe") {
+            throw 'Published EXE metadata mismatched original byte identity'
+          }
+          $tag = gh api "repos/pgextwin/catalog/git/ref/tags/$version" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $tag.object.sha -cne $source -or $tag.object.type -cne 'commit') {
+            throw 'Public tag does not point at the reviewed original R6 source'
+          }
+
+          $dir = Join-Path $env:RUNNER_TEMP 'pgextwin-public-independent'
+          New-Item -ItemType Directory $dir -Force | Out-Null
+          $exe = Join-Path $dir 'pgextwin.exe'
+          # This is the ordinary anonymous, public browser download address,
+          # NOT the private Actions artifact and NOT the draft Release API.
+          $url = "https://github.com/pgextwin/catalog/releases/download/$version/pgextwin.exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe -MaximumRedirection 5
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Public EXE GET returned no original bytes' }
+          if ((Get-Item -LiteralPath $exe).Length -ne 73647388) { throw 'Public EXE size mismatch' }
+          $actual = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -cne $hash) { throw 'Public EXE actual-byte SHA256 mismatch' }
+          $verified = gh attestation verify $exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest $source --format json
+          if ($LASTEXITCODE -ne 0 -or @(($verified | ConvertFrom-Json)).Count -lt 1) {
+            throw 'Independent public EXE Sigstore/SLSA signature verification failed'
+          }
+          Write-Output "CLI_PUBLIC_REAL_BYTE_AND_SLSA=PASS SHA256=$actual"
+
+          $cliVersion = (& $exe --version 2>&1 | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $cliVersion -cne '0.1.0-preview.1') { throw 'Public EXE failed Windows --version' }
+          $helpText = & $exe --help 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'pgextwin list') { throw 'Public EXE help failed' }
+          $listing = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'Public EXE local catalog list failed' }
+          $j = $listing | ConvertFrom-Json
+          if ($j.count -ne 14 -or @($j.records).Count -ne 14 -or
+              $j.source -cne 'LOCAL_UNAUTHENTICATED' -or $j.trust -cne 'UNVERIFIED' -or
+              $j.signatureVerified -ne $false -or $j.distributionAuthorized -ne $false) {
+            throw 'Public EXE Catalog trust envelope failed'
+          }
+          $find = & $exe search cron --catalog-dir $env:GITHUB_WORKSPACE --pg 18 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $find -notmatch 'pg_cron') { throw 'Public EXE search failed' }
+          $deny = & $exe verify pg_cron --pg 18 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $deny -notmatch 'DENY:') { throw 'Unimplemented extension Sigstore verification accepted' }
+          $global:LASTEXITCODE = 0
+          Write-Output 'CLI_PUBLIC_DOWNLOADED_WIN_X64_SMOKE=PASS 14_EXTENSIONS UNVERIFIED PACKAGE_VERIFY_DENY'
