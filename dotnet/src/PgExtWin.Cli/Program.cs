@@ -142,7 +142,7 @@ static async Task<int> RunAsync(string[] args)
         var outputJson = format == "json";
         if (!outputJson)
             Console.WriteLine("SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY");
-        var rows = new List<object>();
+        var rows = new List<CliCatalogRow>();
         var displayed = 0;
         foreach (var entry in records)
         {
@@ -153,34 +153,23 @@ static async Task<int> RunAsync(string[] args)
             {
                 if (pg is not null && version.Major != pg) continue;
                 if (outputJson)
-                    rows.Add(new
-                    {
-                        extension = entry.Name,
-                        pgMajor = version.Major,
-                        upstreamVersion = version.Version,
-                        releaseTag = entry.ReleaseTag,
-                        assetName = version.Asset,
-                        preload = entry.Preload,
-                        trust = "UNVERIFIED"
-                    });
+                    rows.Add(new CliCatalogRow(
+                        entry.Name, version.Major, version.Version,
+                        entry.ReleaseTag, version.Asset, entry.Preload, "UNVERIFIED"));
                 else
                     Console.WriteLine($"{entry.Name}\tPG{version.Major}\t{version.Version}\tpreload={entry.Preload}\tUNVERIFIED");
                 displayed++;
             }
         }
         if (outputJson)
-            Console.WriteLine(JsonSerializer.Serialize(new
-            {
-                schemaVersion = "pgextwin-cli-local-catalog/v1",
-                source = "LOCAL_UNAUTHENTICATED",
-                trust = "UNVERIFIED",
-                catalogAuthenticated = false,
-                signatureVerified = false,
-                publicationAuthorized = false,
-                distributionAuthorized = false,
-                count = displayed,
-                records = rows
-            }));
+            Console.WriteLine(JsonSerializer.Serialize(
+                new CliListEnvelope(
+                    "pgextwin-cli-local-catalog/v1",
+                    "LOCAL_UNAUTHENTICATED", "UNVERIFIED",
+                    CatalogAuthenticated: false, SignatureVerified: false,
+                    PublicationAuthorized: false, DistributionAuthorized: false,
+                    displayed, rows),
+                CliJsonContext.Default.CliListEnvelope));
         return displayed == 0 ? 3 : 0;
     }
     catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or
