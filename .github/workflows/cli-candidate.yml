@@ -91,3 +91,74 @@ jobs:
           if ($LASTEXITCODE -ne 2 -or $deny -notmatch 'DENY:') { throw 'Unimplemented Sigstore verification accepted' }
           $global:LASTEXITCODE = 0
           Write-Output 'CLI_R6_PRIVATE_FRESH_RUNNER_SMOKE=PASS PUBLISH=DENY'
+
+  attest-provenance:
+    # Signed provenance only for protected main, never an untrusted PR.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [candidate, independent-smoke]
+    name: Sign exact Windows binary build provenance (main only)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Download exact current-run candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: cli-r6-private-candidate
+          path: ${{ runner.temp }}/cli-signed
+
+      - name: Validate only expected original candidate byte files
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'cli-signed'
+          $names = @(Get-ChildItem -LiteralPath $dir -File | Select-Object -ExpandProperty Name | Sort-Object)
+          if (($names -join ',') -cne 'candidate-evidence.json,pgextwin.exe') { throw 'Unexpected candidate set' }
+          $receipt = Get-Content -LiteralPath (Join-Path $dir 'candidate-evidence.json') -Raw | ConvertFrom-Json
+          $sha = (Get-FileHash -LiteralPath (Join-Path $dir 'pgextwin.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($receipt.sourceCommit -cne $env:GITHUB_SHA.ToLowerInvariant() -or
+              $receipt.runId -cne [string]$env:GITHUB_RUN_ID -or
+              $receipt.sha256 -cne $sha -or
+              $receipt.signatureVerified -ne $false -or
+              $receipt.provenanceVerified -ne $false -or
+              $receipt.publishAuthorized -ne $false) { throw 'Receipt identity mismatch' }
+          Write-Output "CLI_PROVENANCE_INPUT_VERIFIED=$sha"
+
+      - name: Issue Sigstore SLSA v1 attestation for actual binary (not release)
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/cli-signed/pgextwin.exe
+
+  verify-provenance:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [attest-provenance]
+    name: Independently verify signed CLI provenance and source identity
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download same-run candidate to distinct clean verifier
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: cli-r6-private-candidate
+          path: ${{ runner.temp }}/cli-verified
+
+      - name: Independently validate SLSA, signer workflow, protected ref and SHA
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:RUNNER_TEMP 'cli-verified/pgextwin.exe'
+          $receipt = Get-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'cli-verified/candidate-evidence.json') -Raw | ConvertFrom-Json
+          $digest = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($receipt.sha256 -cne $digest -or
+              $receipt.sourceCommit -cne $env:GITHUB_SHA.ToLowerInvariant() -or
+              $receipt.runId -cne [string]$env:GITHUB_RUN_ID) { throw 'Byte/checkout/run identity mismatch' }
+          $result = & gh attestation verify $exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest $env:GITHUB_SHA --format json
+          if ($LASTEXITCODE -ne 0) { throw 'Genuine SLSA signature validation failed' }
+          $checked = $result | ConvertFrom-Json
+          if (@($checked).Count -lt 1) { throw 'No verified attestations' }
+          Write-Output "CLI_R6_GENUINE_SLSA_SIGNER_MAIN_VERIFIED=PASS SHA256=$digest PUBLISH=DENY"
