@@ -95,7 +95,7 @@ jobs:
           if ($helpText -notmatch 'download-all') { throw 'Bulk download command absent' }
           if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'pgextwin list') { throw 'Help smoke failed' }
           $version = & $exe --version 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '0.2.0-preview.1') { throw 'CLI preview version smoke failed' }
+          if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '0.2.0') { throw 'CLI preview version smoke failed' }
           $listing = @(& $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1)
           if ($LASTEXITCODE -ne 0) { throw 'List smoke failed' }
           if ($listing[0] -ne 'SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY') { throw 'Trust banner missing' }
