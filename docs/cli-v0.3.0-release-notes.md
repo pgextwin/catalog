@@ -28,8 +28,30 @@ Missing/invalid Sigstore trust root, signature mismatch, source commit mismatch,
 
 The new v0.3.0 **public EXE** requires separate current-source R6 Sigstore attest, independent original-byte SHA256, owner-approved create-only CLI R7 intent, complete CI, and then actual public EXE re-download and one-line 70 ZIP verification. The historic extension P1 gaps and #75 GO B/G4/G5 are not claimed as fixed by a CLI binary release.
 
-## Binary authenticity
+## Independently verify the public v0.3.0 EXE
 
-Check `pgextwin.exe` against the published `SHA256SUMS.txt` and verify its GitHub SLSA attestation. **The source digest and exact EXE SHA256 will be populated only from the accepted original protected-main R6 run**, never inferred from PR test artifacts.
+Original Windows x64 single-file EXE SHA256:
+`5fac25624f4c3ffa84147280308eb85f0627ed9993e3f280566c82f177a72318`
 
-No Windows Authenticode signature, ZIP extraction, installation, service mutation, new extension Publisher authorization, offline signed bundle, or formal original extension SLSA/SPDX acceptance.
+Protected-main source: `04c06ee206d790cd0704bc16b0781f0061fb6238`
+
+Successful original signed R6 candidate/independent Windows verifier:
+https://github.com/pgextwin/catalog/actions/runs/39243788109
+
+```powershell
+Get-FileHash .\pgextwin.exe -Algorithm SHA256
+gh attestation verify .\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 04c06ee206d790cd0704bc16b0781f0061fb6238
+```
+
+Compare original EXE digest against both the displayed expected value and
+the public SHA256SUMS.txt asset. The CLI binary's genuine SLSA provenance is
+verified separately from the Catalog feed's Sigstore authentication. Neither
+establishes original extension ZIP Sigstore authenticity.
+
+The signed Catalog selection feed is published as a separate, stable **metadata-only**
+Release. CLI v0.3.0 remains a `--prerelease --latest=false` publication to avoid
+changing that feed's `releases/latest/download` endpoint.
+
+No Windows Authenticode signature, ZIP extraction, installation, service mutation,
+new extension Publisher authorization, offline signed bundle, or formal original
+extension SLSA/SPDX acceptance.
