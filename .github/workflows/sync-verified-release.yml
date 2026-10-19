@@ -1,4 +1,4 @@
-name: Propose fully verified manual signed Release to Catalog (all 14; opt-in)
+name: Propose fully verified manual signed Release to Catalog (17 verifier identities; opt-in)
 
 on:
   workflow_dispatch:
@@ -22,6 +22,9 @@ on:
           - pg_partman
           - pg_stat_monitor
           - orafce
+          - pgtap
+          - pg_variables
+          - pg_store_plans
       release_tag:
         description: Already public and operator-PUBLISH signed Release tag
         required: true
@@ -67,11 +70,39 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "base_record_sha=$(git hash-object "extensions/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
+          if [[ -f "extensions/$EXTENSION.json" ]]; then
+            echo "base_record_sha=$(git hash-object "extensions/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_record_sha=MISSING" >> "$GITHUB_OUTPUT"
+          fi
+          echo "base_index_sha=$(git hash-object index.json)" >> "$GITHUB_OUTPUT"
           python scripts/verify_signed_fleet_release.py \
             --extension "$EXTENSION" --release-tag "$RELEASE_TAG" \
             --record-output "extensions/$EXTENSION.json" \
             | tee "$RUNNER_TEMP/verified-catalog-record.json"
+      - name: Update index only after complete signed first-Release verification
+        if: steps.verify.outputs.changed == 'true'
+        env:
+          EXTENSION: ${{ inputs.extension }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          name = os.environ["EXTENSION"]
+          path = Path("index.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          names = data["extensions"]
+          if name not in names:
+              if name not in {"pgtap", "pg_variables", "pg_store_plans"}:
+                  raise SystemExit("DENY: unknown first-Release Catalog identity")
+              if not (Path("extensions") / (name + ".json")).is_file():
+                  raise SystemExit("DENY: verifier did not generate the signed record")
+              names.append(name)
+              data["extensions"] = sorted(names)
+              path.write_text(json.dumps(data, indent=2) + "\\n", encoding="utf-8")
+          PY
       - name: Validate proposed record against Catalog schema and live sources
         if: steps.verify.outputs.changed == 'true'
         env:
@@ -86,6 +117,7 @@ jobs:
           name: verified-catalog-proposal
           path: |
             extensions/${{ inputs.extension }}.json
+            index.json
             ${{ runner.temp }}/verified-catalog-record.json
           if-no-files-found: error
           retention-days: 14
@@ -108,13 +140,14 @@ jobs:
           path: proposed
           token: ${{ steps.proposer-token.outputs.token }}
           persist-credentials: true
-      - name: Create immutable one-record PR with native PR CI (never auto-merge)
+      - name: Create immutable verified-record PR with native PR CI (never auto-merge)
         if: steps.proposer-token.outcome == 'success'
         env:
           GH_TOKEN: ${{ steps.proposer-token.outputs.token }}
           EXTENSION: ${{ inputs.extension }}
           RELEASE_TAG: ${{ inputs.release_tag }}
           BASE_RECORD_SHA: ${{ steps.verify.outputs.base_record_sha }}
+          BASE_INDEX_SHA: ${{ steps.verify.outputs.base_index_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -124,18 +157,32 @@ jobs:
             echo "::error::Catalog proposal branch already exists; do not overwrite or duplicate it."
             exit 1
           fi
-          if [[ "$(git hash-object "extensions/$EXTENSION.json")" != "$BASE_RECORD_SHA" ]]; then
+          if [[ "$(git hash-object index.json)" != "$BASE_INDEX_SHA" ]]; then
+            echo "::error::Catalog index changed after verification; refuse stale overwrite"
+            exit 1
+          fi
+          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
+            if [[ -e "extensions/$EXTENSION.json" ]]; then
+              echo "::error::First Catalog record unexpectedly exists; deny overwrite"
+              exit 1
+            fi
+          elif [[ ! -f "extensions/$EXTENSION.json" || "$(git hash-object "extensions/$EXTENSION.json")" != "$BASE_RECORD_SHA" ]]; then
             echo "::error::Catalog main record changed after signed verification; refuse stale overwrite"
             exit 1
           fi
           cp "../extensions/$EXTENSION.json" "extensions/$EXTENSION.json"
+          cp ../index.json index.json
           git switch -c "$branch"
           git config user.name "pgextwin-catalog-proposer[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "extensions/$EXTENSION.json"
+          git add -- "extensions/$EXTENSION.json" index.json
           actual="$(git diff --cached --name-only)"
-          if [[ "$actual" != "extensions/$EXTENSION.json" ]]; then
-            echo "::error::Catalog proposed diff must contain exactly one verified extension record"
+          expected="extensions/$EXTENSION.json"
+          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
+            expected="$(printf 'extensions/%s.json\\nindex.json' "$EXTENSION")"
+          fi
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Catalog PR files not exactly the verified record and permitted initial index"
             exit 1
           fi
           git commit -m "catalog: verified operator release $EXTENSION $RELEASE_TAG"
