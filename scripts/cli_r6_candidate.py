@@ -47,7 +47,7 @@ def parse_receipt(raw):
 def check(record, size, digest, source, run_id):
     if (record["schema"] != "pgextwin-cli-r6-candidate/v1"
             or record["name"] != "pgextwin.exe"
-            or record["version"] != "0.1.0-preview.1"
+            or record["version"] != "0.2.0-preview.1"
             or record["sourceCommit"] != source
             or record["runId"] != run_id
             or not isinstance(record["sdkObserved"], str)
@@ -83,7 +83,7 @@ def main():
         if receipt.exists() or not args.sdk:
             deny("receipt collision or SDK missing")
         data = dict(schema="pgextwin-cli-r6-candidate/v1", name="pgextwin.exe",
-                    version="0.1.0-preview.1", sourceCommit=args.source,
+                    version="0.2.0-preview.1", sourceCommit=args.source,
                     sdkObserved=args.sdk, runId=args.run_id,
                     sha256=digest, bytes=size, signatureVerified=False,
                     provenanceVerified=False, publishAuthorized=False,
