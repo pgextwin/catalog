@@ -89,12 +89,12 @@ static async Task<int> RunAsync(string[] args)
             {
                 var batch = await BatchReleaseDownloader.RunAsync(
                     directory, policy, policySha, pg, output, downloader);
-                Console.WriteLine($"BATCH_INTEGRITY_ONLY\\tZIP_COUNT={batch.Count}\\tBYTES={batch.Bytes}\\t{batch.Directory}");
+                Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={batch.Count}\tBYTES={batch.Bytes}\t{batch.Directory}");
                 return 0;
             }
             var pin = PinnedReleaseSelector.FromLocalFiles(directory, policy, policySha, query!, pg);
             var receipt = await downloader.DownloadAsync(pin, output);
-            Console.WriteLine($"INTEGRITY_ONLY\\t{receipt.Sha256}\\t{receipt.Size}\\t{receipt.FilePath}");
+            Console.WriteLine($"INTEGRITY_ONLY\t{receipt.Sha256}\t{receipt.Size}\t{receipt.FilePath}");
             return 0;
         }
 
