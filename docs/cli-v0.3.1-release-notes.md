@@ -1,74 +1,85 @@
-# pgextwin CLI v0.3.1 — Windows x64 EXE lightweight release
+# pgextwin CLI v0.3.1 — 83.83% smaller Windows executable
 
-## Preserved CLI behavior
+## English
+
+### Highlights
+
+The Windows x64 self-contained, single-file `pgextwin.exe` is now **12.83 MB (12,827,362 bytes)**, down from **79.34 MB (79,338,604 bytes)** in v0.3.0 — an **83.83% reduction**.
+
+- Full .NET 10 trimming and single-file compression, with trim-safe, source-generated `System.Text.Json` serialization. The original IL2026 warnings were resolved rather than suppressed.
+- The default one-line command continues to download the **latest Catalog-registered releases**, currently **14 extensions × PostgreSQL 14–18 = 70 original ZIPs**.
+- The Catalog selection feed is independently verified using Sigstore, including its signer identity, source commit and immutable Catalog hashes, without requiring anonymous GitHub REST API access.
+- Each downloaded original ZIP is checked against its approved SHA256; incomplete batches are discarded and existing output is never overwritten.
+- `--fixed` retains the historical immutable Catalog snapshot for explicit compatibility/rollback.
+
+### Get started
+
+Download [pgextwin.exe for Windows x64](https://github.com/pgextwin/catalog/releases/download/cli-v0.3.1/pgextwin.exe) and [SHA256SUMS.txt](https://github.com/pgextwin/catalog/releases/download/cli-v0.3.1/SHA256SUMS.txt).
 
 ```powershell
 .\pgextwin.exe download-all --pg all
+.\pgextwin.exe download-all --pg 18
 .\pgextwin.exe download-all --pg all --fixed
 ```
 
-The default still independently verifies the genuine GitHub Actions Sigstore-signed
-Catalog feed and downloads all 14 × PostgreSQL 14–18 original extension ZIPs via
-bounded HTTPS/redirects and per-file SHA256. The `--fixed` mode retains the
-historical immutable Catalog/policy. No extension install, signature authenticity
-claim, privilege escalation, Publisher or P1 safety override was added.
+Other commands include read-only local Catalog `list` and `search`. Local Catalog listing remains explicitly `UNVERIFIED`.
 
-## 2026-10-19 private Windows size tests (same .NET 10.0.402 + 10.0.13 runtime)
+### Security and verification
 
-| Configuration | Windows EXE original bytes | Reduction vs v0.3.0 | Real PG18 ZIP SHA256 | Signed feed |
-|---|---:|---:|---|---|
-| v0.3.0 published, no trim or compression | 79,338,604 | baseline | previously 70/70 | success |
-| v0.3.0 compression only | 40,452,771 | 49.01% | 14/14 PASS | success |
-| compression only after source-generator changes | 40,469,202 | 48.99% | 14/14 PASS | success |
-| compression + `PublishTrimmed=true`, `TrimMode=partial` | 15,218,396 | 80.82% | 14/14 PASS | success |
-| **compression + `PublishTrimmed=true`, `TrimMode=full`** | **12,827,394** | **83.83%** | **14/14 PASS** | **success** |
+**The CLI executable and the Catalog selection feed are Sigstore-verified. Individual extension ZIPs are not individually Sigstore-authenticated**: their SHA256 is rechecked, but their status remains **`INTEGRITY_ONLY`**. No extension signature/provenance verification, installation, service modification, offline bundle, or distribution/publication authorization is implied. CLI v0.3.1 is a GitHub prerelease, **not** a Windows Authenticode-signed installer.
 
-Proof for second trial:
-https://github.com/pgextwin/catalog/actions/runs/39251994011
-
-Both trimming modes initially failed with the real `IL2026` warning under
-`TreatWarningsAsErrors`: a dynamically typed `JsonSerializer.Serialize()`
-in `BatchReleaseDownloader`. Rather than suppressing IL2026 or disabling
-warnings, we converted both the batch receipt and the local Catalog listing to
-explicit source-generated `JsonSerializerContext` types. The JSON property
-names and original denial flags are unchanged and tested. The final full-trim
-Windows candidate passed `--version`, `--help`, local JSON listing, explicit
-security DENY, genuine anonymous signed Catalog feed verification and 14/14
-actual original PG18 ZIP rehashing.
-
-## Reproducible production build
+- Published EXE SHA256: `baee38b3aafdd1bbb7f61857747358dbd40ab056d989aa0f753c93b2025a7580`
+- Original signed build source: `a7a1d93d38d7338d80404c402eb5faaaa96b272e`
+- [Original protected-main R6 Sigstore build](https://github.com/pgextwin/catalog/actions/runs/39253153311) — SUCCESS
+- [Release creation, checksum, SPDX and license verification](https://github.com/pgextwin/catalog/actions/runs/39253881898) — SUCCESS
+- [Independent public EXE re-download, Sigstore and Windows 70/70 ZIP SHA256](https://github.com/pgextwin/catalog/actions/runs/39254657650) — SUCCESS
 
 ```powershell
-dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o out --nologo
+Get-FileHash .\pgextwin.exe -Algorithm SHA256
+gh attestation verify .\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest a7a1d93d38d7338d80404c402eb5faaaa96b272e
 ```
 
-Production R6 candidate and PR Windows smoke apply exactly the same flags.
-Sigstore feed's source identity, signer workflow, SHA and verified timestamp
-remain required at runtime. If trim warnings or runtime verification regress,
-the build/test is FAIL, not a success or a justification to bypass protections.
+[Visual CLI guide (English)](https://pgextwin.github.io/website/en/cli.html) · [Visual CLI guide (Japanese)](https://pgextwin.github.io/website/ja/cli.html)
 
-## Final protected-main signed original binary
+---
 
-- Source: `a7a1d93d38d7338d80404c402eb5faaaa96b272e`
-- Original R6 signed Run: [39253153311](https://github.com/pgextwin/catalog/actions/runs/39253153311) — SUCCESS
-- Original win-x64 EXE SHA256: `baee38b3aafdd1bbb7f61857747358dbd40ab056d989aa0f753c93b2025a7580`
-- This is **EXE provenance**, not extension ZIP authenticity.
+## 日本語
 
-The R7 public-release workflow must exact-match this original main source,
-run and EXE digest, rehash draft public assets, create a new `cli-v0.3.1`
-prerelease without replacing the stable signed Catalog selection feed, then
-require a second clean Windows runner to download the **public** EXE and
-verify genuine Sigstore EXE provenance and all 70 public ZIP hashes.
+### 主な変更点
 
-## Acceptance remaining for this v0.3.1 implementation
+Windows x64向けの自己完結型・単一ファイル `pgextwin.exe` を、v0.3.0の **79.34 MB（79,338,604バイト）**から **12.83 MB（12,827,362バイト）**に軽量化しました。**削減率は83.83%**です。
 
-- Fresh protected PR mandatory Validate + private Windows build/smoke +
-  **exact default no-token 70 original ZIP real SHA256**.
-- After protected merge: exact-main postmerge Validate, full 70 ZIP,
-  independent signed R6 actual Windows EXE and exact SHA256.
-- Separately reviewed/create-only v0.3.1 CLI-only R7 release intent pinning
-  original successful R6 run/SHA/EXE hash. Published original EXE must be
-  independently re-downloaded and tested against the genuine Sigstore
-  attestation and actual default 70 ZIP.
-- Preserve stable metadata-only Catalog feed `releases/latest` pointer;
-  CLI is published as prerelease with `--latest=false`.
+- .NET 10の完全トリミングと単一ファイル圧縮を採用。JSON出力にはトリミング対応の`System.Text.Json`ソース生成方式を用い、IL2026警告を抑制するのではなく原因を修正しました。
+- 標準の1行コマンドで**Catalogに登録された最新版**を取得します。現在は**14拡張×PostgreSQL 14～18の元ZIP計70件**です。
+- Sigstore署名付きCatalog選択フィードの発行元・コミット・不変CatalogのSHA256を独立検証します。GitHub匿名REST APIの利用は不要です。
+- 各ZIPのSHA256を再計算し、不一致や一部失敗の場合には出力を確定させません。既存ファイルの上書きも行いません。
+- `--fixed` で過去の不変Catalogスナップショットを明示的に利用できます。
+
+### 使い方
+
+[Windows x64用 pgextwin.exe](https://github.com/pgextwin/catalog/releases/download/cli-v0.3.1/pgextwin.exe) と [SHA256SUMS.txt](https://github.com/pgextwin/catalog/releases/download/cli-v0.3.1/SHA256SUMS.txt) を取得してください。
+
+```powershell
+.\pgextwin.exe download-all --pg all
+.\pgextwin.exe download-all --pg 18
+.\pgextwin.exe download-all --pg all --fixed
+```
+
+ローカルCatalogを読み取る `list`／`search` にも対応しています。ローカルの一覧情報は明示的に `UNVERIFIED` です。
+
+### 安全性と検証証跡
+
+**Sigstore検証済みなのはCLI本体とCatalog選択フィードです。拡張ZIPの個別の真正署名が検証されたわけではありません。** 拡張ZIPはSHA256によるバイト整合性のみで、状態は **`INTEGRITY_ONLY`** です。個別ZIPの署名・来歴・導入・サービス変更・オフライン統合ZIP・配布／公開認可は成立していません。CLI v0.3.1は公開済みのプレリリースであり、Windows Authenticode署名付きインストーラーではありません。
+
+- 公開EXEのSHA256：`baee38b3aafdd1bbb7f61857747358dbd40ab056d989aa0f753c93b2025a7580`
+- 署名済み元ビルドのソースコミット：`a7a1d93d38d7338d80404c402eb5faaaa96b272e`
+- [保護main上のR6署名・検証](https://github.com/pgextwin/catalog/actions/runs/39253153311)：SUCCESS
+- [Release作成・SHA256・SPDX・ライセンス検証](https://github.com/pgextwin/catalog/actions/runs/39253881898)：SUCCESS
+- [公開EXEの再取得・Sigstore検証・Windows 70 ZIP全件SHA256再検証](https://github.com/pgextwin/catalog/actions/runs/39254657650)：SUCCESS
+
+```powershell
+Get-FileHash .\pgextwin.exe -Algorithm SHA256
+gh attestation verify .\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest a7a1d93d38d7338d80404c402eb5faaaa96b272e
+```
+
+[Website図解（日本語）](https://pgextwin.github.io/website/ja/cli.html) · [Website visual guide (English)](https://pgextwin.github.io/website/en/cli.html)
