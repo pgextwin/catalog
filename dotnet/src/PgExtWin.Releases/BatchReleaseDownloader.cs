@@ -101,7 +101,7 @@ public static class BatchReleaseDownloader
         System.IO.Directory.CreateDirectory(stage);
         try
         {
-            var rows = new List<object>();
+            var rows = new List<BatchPackage>();
             long total = 0;
             foreach (var pin in pins)
             {
@@ -130,34 +130,22 @@ public static class BatchReleaseDownloader
                 if (rehash != pin.AssetSha256)
                     throw new InvalidDataException("Original ZIP changed after download");
                 total = checked(total + file.Length);
-                rows.Add(new {
-                    extension = pin.Extension,
-                    pgMajor = pin.PgMajor,
-                    releaseTag = pin.Tag,
-                    catalogCommit = pin.CatalogCommit,
-                    relativePath = "pg" + pin.PgMajor + "/" + pin.AssetName,
-                    sha256 = rehash,
-                    bytes = file.Length,
-                    repositoryId = pin.RepositoryId,
-                    releaseId = pin.ReleaseId,
-                    assetId
-                });
+                rows.Add(new BatchPackage(
+                    pin.Extension, pin.PgMajor, pin.Tag, pin.CatalogCommit,
+                    "pg" + pin.PgMajor + "/" + pin.AssetName,
+                    rehash, file.Length, pin.RepositoryId, pin.ReleaseId, assetId));
             }
-            var info = new {
-                schemaVersion = "pgextwin-cli-batch-download/v1",
-                source = sourceOverride ?? (metadataVerified ? "EXTERNALLY_PINNED_LOCAL_CATALOG" : "CLI_PINNED_HISTORICAL_CANDIDATE_POLICY"),
-                releaseMetadataVerified = metadataVerified,
-                verificationLevel = "INTEGRITY_ONLY",
-                signatureVerified = false,
-                provenanceVerified = false,
-                publicationAuthorized = false,
-                distributionAuthorized = false,
-                installAuthorized = false,
-                zipCount = rows.Count,
-                packages = rows
-            };
+            var info = new BatchDownloadInfo(
+                "pgextwin-cli-batch-download/v1",
+                sourceOverride ?? (metadataVerified
+                    ? "EXTERNALLY_PINNED_LOCAL_CATALOG"
+                    : "CLI_PINNED_HISTORICAL_CANDIDATE_POLICY"),
+                metadataVerified, "INTEGRITY_ONLY",
+                SignatureVerified: false, ProvenanceVerified: false,
+                PublicationAuthorized: false, DistributionAuthorized: false,
+                InstallAuthorized: false, rows.Count, rows);
             var receiptPath = Path.Combine(stage, "DOWNLOAD-INFO.json");
-            await File.WriteAllTextAsync(receiptPath, JsonSerializer.Serialize(info), cancellationToken);
+            await File.WriteAllTextAsync(receiptPath, JsonSerializer.Serialize(info, BatchReceiptJsonContext.Default.BatchDownloadInfo), cancellationToken);
             // Directory rename on the same volume: no partially visible final batch.
             if (File.Exists(final) || System.IO.Directory.Exists(final))
                 throw new IOException("Batch output was created concurrently; no overwrite");
