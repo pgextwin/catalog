@@ -24,10 +24,16 @@ ALLOWED = {
     "pg_partman": "pgpartman/pg_partman",
     "pg_stat_monitor": "percona/pg_stat_monitor",
     "orafce": "orafce/orafce",
+}
+
+# Preserve the immutable published-14 roster for historical audit consumers.
+# New identities enter only the independent signed-Release Catalog intake.
+FIRST_RELEASE_SOURCES = {
     "pgtap": "theory/pgtap",
     "pg_variables": "postgrespro/pg_variables",
     "pg_store_plans": "ossc-db/pg_store_plans",
 }
+INTAKE_ALLOWED = {**ALLOWED, **FIRST_RELEASE_SOURCES}
 SHA = re.compile(r"^[0-9a-f]{40}$")
 DIGEST = re.compile(r"^[0-9a-f]{64}$")
 REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -57,8 +63,8 @@ def majors(ext):
 
 def source_map(ext):
     name=ext.get("name")
-    require(isinstance(name,str) and name in ALLOWED
-            and ext.get("upstream",{}).get("repository")==ALLOWED[name],
+    require(isinstance(name,str) and name in INTAKE_ALLOWED
+            and ext.get("upstream",{}).get("repository")==INTAKE_ALLOWED[name],
             "untrusted extension / upstream identity")
     upstream=ext["upstream"]
     allowed=majors(ext)
@@ -118,7 +124,7 @@ def seed_verified_first_release(ext, contract):
     return {
         "schemaVersion": 2, "name": name, "displayName": display,
         "description": description,
-        "upstream": {"repository": ALLOWED[name], "version": src[max(src)]["version"]},
+        "upstream": {"repository": INTAKE_ALLOWED[name], "version": src[max(src)]["version"]},
         "repository": "pgextwin/" + name, "license": license_name,
         "architecture": "x64",
         "latest": {}, "postgresql": {},
@@ -139,7 +145,7 @@ def map_verified_release(existing, release, ext, contract, assets, sums,
     repo="pgextwin/"+name
     require(existing.get("schemaVersion")==2 and existing.get("name")==name
             and existing.get("repository")==repo
-            and existing.get("upstream",{}).get("repository")==ALLOWED[name],
+            and existing.get("upstream",{}).get("repository")==INTAKE_ALLOWED[name],
             "catalog/upstream identity changed")
     require(contract.get("contractVersion")==2
             and contract.get("extension")==name
