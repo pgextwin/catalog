@@ -6,6 +6,11 @@ on:
   workflow_run:
     workflows: ["Validate catalog"]
     types: [completed]
+  pull_request:
+    paths:
+      - "scripts/cli_signed_feed.py"
+      - "tests/test_cli_signed_feed.py"
+      - ".github/workflows/cli-signed-catalog-feed.yml"
 
 permissions:
   contents: read
@@ -15,6 +20,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  pr-readonly-dryrun:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Synthetics and read-only 70 signed-feed plan without publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
+          python scripts/cli_signed_feed.py --catalog . --commit "$GITHUB_SHA" --output "$RUNNER_TEMP/catalog-latest.json"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert d['zipCount']==70 and not d['extensionSignatureVerified']"
+          echo 'CATALOG_FEED_PR_READONLY_DRYRUN=PASS NO_SIGN NO_TAG NO_RELEASE'
   gate:
     if: ${{ github.repository == 'pgextwin/catalog' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1 }}
     runs-on: ubuntu-latest
