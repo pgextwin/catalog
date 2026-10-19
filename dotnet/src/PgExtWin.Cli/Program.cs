@@ -24,8 +24,8 @@ static async Task<int> RunAsync(string[] args)
         {
             Usage(); return 0;
         }
-        if (args.Length < 1 || args[0] is not ("list" or "search" or "download"))
-            throw new ArgumentException("Only list/search and explicit GET-only download are available");
+        if (args.Length < 1 || args[0] is not ("list" or "search" or "download" or "download-all"))
+            throw new ArgumentException("Only list/search and explicit GET-only download/download-all are available");
         var command = args[0];
         var i = 1;
         string? query = null;
@@ -51,41 +51,48 @@ static async Task<int> RunAsync(string[] args)
                     if (directory is not null) throw new ArgumentException("Duplicate --catalog-dir");
                     directory = value; break;
                 case "--pg":
-                    if (pg is not null || !System.Text.RegularExpressions.Regex.IsMatch(value, @"\A[1-9][0-9]*\z"))
+                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, @"\A[1-9][0-9]*\z")) || (value == "all" && command != "download-all"))
                         throw new ArgumentException("Invalid/duplicate --pg");
                     pg = value; break;
                 case "--policy":
-                    if (policy is not null || command != "download")
+                    if (policy is not null || command is not ("download" or "download-all"))
                         throw new ArgumentException("Unexpected/duplicate --policy");
                     policy = value; break;
                 case "--policy-sha256":
-                    if (policySha is not null || command != "download")
+                    if (policySha is not null || command is not ("download" or "download-all"))
                         throw new ArgumentException("Unexpected/duplicate --policy-sha256");
                     policySha = value; break;
                 case "--format":
-                    if (format is not null || command == "download" || value is not ("text" or "json"))
+                    if (format is not null || command is "download" or "download-all" || value is not ("text" or "json"))
                         throw new ArgumentException("Invalid/duplicate --format");
                     format = value; break;
                 case "--output":
-                    if (output is not null || command != "download")
+                    if (output is not null || command is not ("download" or "download-all"))
                         throw new ArgumentException("Unexpected/duplicate --output");
                     output = value; break;
                 default: throw new ArgumentException("Unknown option: " + option);
             }
         }
         if (directory is null) throw new ArgumentException("--catalog-dir is mandatory");
-        if (command == "download")
+        if (command is "download" or "download-all")
         {
-            if (pg is null || query is null || policy is null || policySha is null || output is null)
-                throw new ArgumentException("download needs --pg, --policy, --policy-sha256 and --output");
+            if (pg is null || (command == "download" && query is null) || policy is null || policySha is null || output is null)
+                throw new ArgumentException(command + " needs --pg, --policy, --policy-sha256 and --output");
             Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; P1 root/attestation NOT verified");
-            var pin = PinnedReleaseSelector.FromLocalFiles(directory, policy, policySha, query, pg);
             using var downloader = new ReadOnlyReleaseDownloader(new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
                 UseCookies = false,
                 AutomaticDecompression = DecompressionMethods.None
             });
+            if (command == "download-all")
+            {
+                var batch = await BatchReleaseDownloader.RunAsync(
+                    directory, policy, policySha, pg, output, downloader);
+                Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={batch.Count}\tBYTES={batch.Bytes}\t{batch.Directory}");
+                return 0;
+            }
+            var pin = PinnedReleaseSelector.FromLocalFiles(directory, policy, policySha, query!, pg);
             var receipt = await downloader.DownloadAsync(pin, output);
             Console.WriteLine($"INTEGRITY_ONLY\t{receipt.Sha256}\t{receipt.Size}\t{receipt.FilePath}");
             return 0;
@@ -156,5 +163,8 @@ static void Usage()
     Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json]");
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
-    Console.Error.WriteLine("Downloaded ZIP = INTEGRITY_ONLY; no Sigstore, install, bundle, signature, Release or Publisher.");
+    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
+    Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
+    Console.Error.WriteLine("download-all saves 14 original ZIPs per PG, or 70 with --pg all, in an atomic new subdirectory.");
+    Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
 }
