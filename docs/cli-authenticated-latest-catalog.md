@@ -1,9 +1,10 @@
-# CLI authenticated latest Catalog — guarded opt-in implementation (2026-10-19)
+# CLI v0.3.0 authenticated latest Catalog — default download (2026-10-19)
 
-Status: PR canary only. **No default flip or public CLI release without Windows success and independent approval.**
+Status: anonymous Windows 70 ZIP GET-only canary passed on [Run 39237271741](https://github.com/pgextwin/catalog/actions/runs/39237271741), SHA256=70/70 without GH_TOKEN. CLI v0.3.0 changes the default only after protected PR and publisher gates.
 
 ```powershell
-.\pgextwin.exe download-all --pg all --latest
+.\pgextwin.exe download-all --pg all  # verified Catalog latest (default)
+.\pgextwin.exe download-all --pg all --latest  # explicit equivalent
 .\pgextwin.exe download-all --pg all --fixed  # historical SHA-pinned snapshot
 ```
 
@@ -20,7 +21,7 @@ The existing `PinnedBrowserDownloader`, `BatchReleaseDownloader.StageAsync`, 64M
 
 ## Critical usability gate
 
-The latest path needs read access to GitHub REST **branch, commit, Actions run, repository and Release metadata**. The previously observed anonymous HTTP 403 cannot be waived or converted into a success. The runtime optionally uses an existing `GH_TOKEN`/`GITHUB_TOKEN` environment variable, but does not prompt for, persist or generate credentials. **Do not make this path the unqualified default until real anonymous Windows networking works reliably or a separate cryptographically authenticated public no-REST feed is validated.** The fixed v0.2.2 path must remain intact until then.
+The latest path needs read access to GitHub REST **branch, commit, Actions run, repository and Release metadata**. The previously observed anonymous HTTP 403 cannot be waived or converted into a success. The runtime optionally uses an existing `GH_TOKEN`/`GITHUB_TOKEN` environment variable, but does not prompt for, persist or generate credentials. The anonymous Windows canary passed all 70 original ZIP SHA256 without a GitHub token at PR #124. The v0.2.2 historical snapshot remains available through `--fixed`. A future 403/429 is an explicit fail-closed error (no silent fallback to old ZIPs or false latest claim); a single canary does not guarantee GitHub API availability for every machine.
 
 Synthetic hostile tests exercise protected-branch denial, signature-status failure, missing successful exact-head CI, head racing, incorrect record identity, HTTP 403, mutated Release digest, draft Release and clean staging rollback. PR Windows self-contained packaging smoke and existing App15368 required Validate are the acceptance path; a green compile alone is not public download acceptance.
 
