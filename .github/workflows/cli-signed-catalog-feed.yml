@@ -170,7 +170,15 @@ jobs:
           gh release create "$tag" "$dir/catalog-latest.json" "$dir/catalog-latest.sigstore.json" \
             --repo pgextwin/catalog --verify-tag --draft --latest=false \
             --title "pgextwin Catalog signed ZIP feed $SOURCE" \
-            --notes "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized."
+            --notes "# pgextwin signed Catalog ZIP selection feed
+
+## English
+
+Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PostgreSQL 14–18 ZIPs. Independently verifiable GitHub Actions Sigstore attestation is attached. Original extension ZIP bytes remain INTEGRITY_ONLY; this metadata-only feed does not grant an extension Release, installation or publication authorization.
+
+## 日本語
+
+すでにCatalogで承認・登録された14拡張について、PostgreSQL 14～18向けの元ZIP計70件を選択する不変のメタデータ専用Releaseです。独立検証可能なGitHub ActionsのSigstore Attestationを添付します。個別の拡張ZIPはINTEGRITY_ONLYであり、元ZIPの真正署名・新規Release・インストール・配布／公開の認可を意味しません。"
           mkdir -p "$RUNNER_TEMP/feed-draft-audit"
           gh release download "$tag" --repo pgextwin/catalog --pattern 'catalog-latest.*' --dir "$RUNNER_TEMP/feed-draft-audit"
           for name in catalog-latest.json catalog-latest.sigstore.json; do
