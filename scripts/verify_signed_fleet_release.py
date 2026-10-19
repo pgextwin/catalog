@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only, fail-closed public signed Release verifier for all 14 extensions.
+"""Read-only, fail-closed public signed Release verifier for approved Catalog identities.
 
 This is NOT a publisher or a Catalog merger. The verified Catalog record is
 returned only after all download hashes, ZIP identities, manifest pins,
@@ -24,10 +24,12 @@ from zipfile import ZipFile, BadZipFile
 if __package__:
     from .verified_release_record import (
         ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        seed_verified_first_release,
     )
 else:
     from verified_release_record import (
         ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        seed_verified_first_release,
     )
 
 SIGNER = "pgextwin/build/.github/workflows/build-extension-attested.yml"
@@ -241,11 +243,11 @@ def deny_catalog_rollback(existing, release):
 
 
 def generate(extension, tag, record):
-    require(extension in ALLOWED, "extension not on exact 14-repository allowlist")
+    require(extension in ALLOWED, "extension not on exact Catalog verification allowlist")
     repo = "pgextwin/" + extension
     require(isinstance(tag, str) and re.fullmatch(r"v[A-Za-z0-9._-]+-windows\.[1-9][0-9]*", tag),
             "invalid formal Release tag")
-    require(record.is_file() and record.name == extension + ".json"
+    require(record.name == extension + ".json"
             and record.parent.name == "extensions", "Catalog destination identity mismatch")
     release = api("repos/" + repo + "/releases/tags/" + tag)
     require(release.get("tag_name") == tag and release.get("draft") is False
@@ -281,7 +283,11 @@ def generate(extension, tag, record):
             gh("attestation", "verify", zipped, "--repo", repo,
                "--signer-workflow", SIGNER,
                "--predicate-type", "https://spdx.dev/Document/v2.3")
-    original = json.loads(record.read_text(encoding="utf-8"))
+    # Existing records are updated. Only the three explicitly pre-registered
+    # third-wave identities may be seeded on their FIRST genuinely signed,
+    # public, independently verified Release. No placeholder is written.
+    original = (json.loads(record.read_text(encoding="utf-8"))
+                if record.is_file() else seed_verified_first_release(manifest, contract))
     deny_catalog_rollback(original, release)
     mapped = map_verified_release(original, release, manifest, contract,
                                 assets, sums, source_commit, active)
