@@ -14,6 +14,8 @@ internal static class AuthenticatedCatalogHeadTests
         public bool MutateHead = false;
         public bool BadRecord = false;
         public bool RateLimit = false;
+        public bool WrongReleaseDigest = false;
+        public bool DraftRelease = false;
         public int HeadReads = 0;
         private static readonly string[] Names = new[]
         {
@@ -61,6 +63,52 @@ internal static class AuthenticatedCatalogHeadTests
                             run_attempt = 1 }
                     }
                 });
+            }
+            else if (path.StartsWith("/repos/pgextwin/", StringComparison.Ordinal) &&
+                !path.StartsWith("/repos/pgextwin/catalog/", StringComparison.Ordinal))
+            {
+                var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var extension = parts[2];
+                if (parts.Length == 3)
+                    body = JsonSerializer.Serialize(new { id = 4242, full_name = "pgextwin/" + extension });
+                else if (parts.Length == 6 && parts[3] == "releases" &&
+                         parts[4] == "tags" && parts[5] == "v1")
+                {
+                    var assets = new List<object>();
+                    long assetId = 100;
+                    foreach (var major in new[] { "14", "15", "16", "17", "18" })
+                    {
+                        var asset = extension + "-v1-pg" + major + "-windows-x64.zip";
+                        assets.Add(new
+                        {
+                            id = ++assetId,
+                            name = asset,
+                            state = "uploaded",
+                            browser_download_url = "https://github.com/pgextwin/" + extension +
+                                "/releases/download/v1/" + asset,
+                            digest = "sha256:" + new string(WrongReleaseDigest ? 'b' : 'a', 64)
+                        });
+                    }
+                    assets.Add(new
+                    {
+                        id = ++assetId,
+                        name = "SHA256SUMS.txt",
+                        state = "uploaded",
+                        browser_download_url = "https://github.com/pgextwin/" + extension +
+                            "/releases/download/v1/SHA256SUMS.txt",
+                        digest = "sha256:" + new string('c', 64)
+                    });
+                    body = JsonSerializer.Serialize(new
+                    {
+                        id = 5678,
+                        tag_name = "v1",
+                        draft = DraftRelease,
+                        published_at = "2026-10-19T00:00:00Z",
+                        assets
+                    });
+                }
+                else
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             }
             else if (path.EndsWith("/index.json", StringComparison.Ordinal))
             {
@@ -115,6 +163,22 @@ internal static class AuthenticatedCatalogHeadTests
                 check(File.Exists(Path.Combine(session.CatalogPath, "extensions", "pg_cron.json")),
                     "exact immutable Catalog record fetched");
                 check(fixture.HeadReads == 2, "latest head verified before and after");
+                var latest = await AuthenticatedLatestReleasePins.ResolveAsync(session, "all", fixture);
+                check(latest.Count == 70, "latest 14x5 release asset mapping");
+                check(latest.All(x => x.CatalogCommit == Head && x.RepositoryId == 4242
+                                    && x.ReleaseId == 5678 && x.AssetSha256 == new string('a', 64)),
+                    "latest immutable Catalog and live numeric IDs bound to 70 ZIPs");
+                fixture.WrongReleaseDigest = true;
+                var hashDenied = false;
+                try { await AuthenticatedLatestReleasePins.ResolveAsync(session, "18", fixture); }
+                catch (InvalidDataException) { hashDenied = true; }
+                check(hashDenied, "Catalog/public Release digest mismatch fails closed");
+                fixture.WrongReleaseDigest = false;
+                fixture.DraftRelease = true;
+                var draftDenied = false;
+                try { await AuthenticatedLatestReleasePins.ResolveAsync(session, "18", fixture); }
+                catch (InvalidDataException) { draftDenied = true; }
+                check(draftDenied, "draft unpublished Release fails closed");
             }
             check(Directory.GetFileSystemEntries(parent).Length == 0,
                 "latest verified snapshot disposed without leftovers");
