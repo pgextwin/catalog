@@ -97,7 +97,16 @@ internal static class BatchDownloadTests
             await Deny("Unapproved PG19", new[] { Pin("pg_cron", "19") }, "all", Download);
             await Deny("PG major mismatched selected", new[] { Pin("pg_cron", "14") }, "18", Download);
             await Deny("Invalid ZIP basename traversal", new[] { a with { AssetName = "../escape.zip" } }, "18", Download);
-            await Deny("Duplicate already-published destination", all, "18", Download);
+            {
+                var repeatRejected = false;
+                try { await BatchReleaseDownloader.StageAsync(all, "18", root, Download); }
+                catch (IOException) { repeatRejected = true; }
+                check(repeatRejected &&
+                      File.Exists(Path.Combine(result.Directory, "pg18", a.AssetName)) &&
+                      Directory.GetDirectories(root).Count(d => Path.GetFileName(d).StartsWith(
+                          ".pgextwin-batch-", StringComparison.Ordinal)) == 0,
+                      "Pre-existing completed batch is not overwritten or partially recreated");
+            }
 
             // The 'all' option preserves each version's ZIP in its own PG subdirectory.
             var multiDir = Path.Combine(root, "cross-major");
