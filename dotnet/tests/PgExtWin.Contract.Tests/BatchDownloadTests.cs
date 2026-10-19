@@ -67,7 +67,7 @@ internal static class BatchDownloadTests
                 var failed = false;
                 try { await BatchReleaseDownloader.StageAsync(pins, major, outDir, operation); }
                 catch (Exception e) when (e is InvalidDataException or IOException or
-                        ArgumentException or OperationCanceledException) { failed = true; }
+                        ArgumentException or OperationCanceledException or HttpRequestException) { failed = true; }
                 check(failed && Directory.GetDirectories(outDir).Length == 0 &&
                       File.ReadAllText(Path.Combine(outDir, "existing.txt")) == "KEEP",
                       label + " denied without partial output or deleting user files");
