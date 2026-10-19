@@ -140,6 +140,17 @@ Catalogには`secure`、`safe`、`trusted`、`vulnerabilityFree`、mutableな`vu
 
 Step 10はreport-only baselineのままで、Catalog v2はrelease-specificなvulnerability reportが存在するかだけを表現します。
 
+## GitHubのみで正式ReleaseをCatalogへ反映（追加App不要）
+
+これは**認証済み担当者による操作を含む代替経路**であり、無人で正式公開する仕組みではありません。未署名の候補、失敗したPromotion、公開前のDraftを正式Release扱いしません。
+
+1. **実際に公開済み**で不変の、担当者が明示的に`PUBLISH`した正式Releaseのみを対象にします。候補やmainのWindowsビルド成功だけでは不足です。[署名付き正式Releaseの読み取り専用検証Workflow](https://github.com/pgextwin/catalog/actions/workflows/verify-manual-release.yml) を保護された`main`から開き、対象拡張と公開済み`release_tag`を指定し、GitHubの認証済み「Run workflow」で実行します。ローカルPC・VM・Private Writerは不要です。
+2. Run全体の**SUCCESS**を確認します。公開ZIP/SPDX/Grypeの実バイトSHA256、GitHub Attestation、固定ソース・mainでの正式Promotion成功、Catalog schemaとオフライン・リモート検証が必要です。失敗Runの免除、古いArtifactの流用は禁止です。
+3. そのRunの`verified-manual-release-record` Artifactを取得し、認証済みGitHub接続またはGUIで現在の`catalog/main`と比較します。検証済みの`extensions/<extension>.json` **1件だけ**を変更する保護PRを作成します。古いレコードへの巻戻し、競合PR、無関係な変更、main変化による不一致は停止します。この読取専用Workflow自体はPRを作成・承認・マージしません。**手動PR経路では専用提案Appの導入は必須ではありません。**
+4. PRの正確なheadに対する必須Catalog CIを通してからマージします。その後、[CatalogからWebsiteへの公開監査](https://github.com/pgextwin/catalog/actions/workflows/notify-website.yml) と日本語・英語サイト、ZIP直リンク、SHA256を確認します。別コミットの成功結果やスケジュール実行を代替の証拠にしません。
+
+現在の通常ChatのGitHub接続でWorkflow Dispatchを起動できない場合、**GitHub上の「Run workflow」操作だけ**は認証済み担当者が行います。専用AppやVMの導入は要求しません。未達成の正式公開ゲートは迂回せず、公開前にはCatalog/Websiteを新Releaseへ進めません。運用上の制約は[公開サイト末尾](https://pgextwin.github.io/website/ja/)にも記載しています。
+
 ## Validation
 
 local validation:
