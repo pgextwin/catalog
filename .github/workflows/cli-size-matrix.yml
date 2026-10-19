@@ -1,0 +1,96 @@
+name: CLI v0.3.1 size and Windows runtime experiments
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cli-size-matrix.yml'
+      - 'dotnet/**'
+permissions:
+  contents: read
+jobs:
+  size-experiment:
+    name: Windows EXE ${{ matrix.mode }} and signed Catalog runtime
+    runs-on: windows-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [compressed, trim-partial, trim-full]
+    continue-on-error: ${{ matrix.mode != 'compressed' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.402'
+      - name: Build private reproducible alternative, no release
+        shell: pwsh
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = Join-Path $env:RUNNER_TEMP ('cli-size-'+$env:MODE)
+          $extra = @('-p:PublishTrimmed=false')
+          if ($env:MODE -eq 'trim-partial') { $extra = @('-p:PublishTrimmed=true','-p:TrimMode=partial') }
+          if ($env:MODE -eq 'trim-full') { $extra = @('-p:PublishTrimmed=true','-p:TrimMode=full') }
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo @extra
+          if ($LASTEXITCODE -ne 0) { throw "BUILD_FAILED mode=$env:MODE" }
+          $exe = Join-Path $dir 'pgextwin.exe'
+          if (!(Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'No EXE' }
+          if (@(Get-ChildItem -LiteralPath $dir -Filter '*.dll').Count -ne 0) { throw 'Not a single EXE' }
+          $size=(Get-Item -LiteralPath $exe).Length
+          $sha=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $baseline=[long]79338604
+          $percent=[Math]::Round(100*($baseline-$size)/$baseline,2)
+          Write-Output "SIZE_EXPERIMENT MODE=$env:MODE SIZE_BYTES=$size BASELINE_BYTES=$baseline REDUCTION_PERCENT=$percent SHA256=$sha"
+          if ($size -ge $baseline) { throw 'Experimental EXE not smaller than public 0.3.0' }
+      - name: Verify real CLI and negative security boundaries
+        shell: pwsh
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe=Join-Path $env:RUNNER_TEMP ('cli-size-'+$env:MODE+'/pgextwin.exe')
+          $version=(& $exe --version 2>&1 | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $version -cne '0.3.0') { throw "CLI --version failed: $version" }
+          $help=(& $exe --help 2>&1 | Out-String)
+          if ($LASTEXITCODE -ne 0 -or $help -notmatch 'download-all') { throw 'CLI help broken' }
+          $body=(& $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json 2>&1 | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw "Catalog JSON read failed: $body" }
+          $json=$body | ConvertFrom-Json
+          if ($json.count -ne 14 -or @($json.records).Count -ne 14 -or
+              $json.trust -cne 'UNVERIFIED' -or $json.signatureVerified -ne $false) { throw 'Trust model changed' }
+          $deny=(& $exe verify pg_cron --pg 18 2>&1 | Out-String)
+          if ($LASTEXITCODE -ne 2 -or $deny -notmatch 'DENY:') { throw 'Security fail closed broken' }
+          $global:LASTEXITCODE=0
+          Write-Output "SIZE_RUNTIME_NEGATIVE=PASS MODE=$env:MODE"
+      - name: Real anonymous Sigstore Catalog and PG18 ZIP byte audit
+        shell: pwsh
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $exe=Join-Path $env:RUNNER_TEMP ('cli-size-'+$env:MODE+'/pgextwin.exe')
+          $work=Join-Path $env:RUNNER_TEMP ('test-download-'+$env:MODE)
+          New-Item -ItemType Directory -Path $work | Out-Null
+          Push-Location $work
+          try {
+            $log=(& $exe download-all --pg 18 2>&1 | Out-String)
+            if ($LASTEXITCODE -ne 0 -or $log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED' -or
+                $log -notmatch 'ZIP_COUNT=14') { throw "Real anonymous signed Catalog failed: $log" }
+            $dir=Join-Path $work 'pgextwin-pg18'
+            $receipt=Get-Content -LiteralPath (Join-Path $dir 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
+            if ($receipt.zipCount -ne 14 -or $receipt.signatureVerified -ne $false -or
+                $receipt.installAuthorized -ne $false -or
+                $receipt.verificationLevel -cne 'INTEGRITY_ONLY' -or
+                $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS') { throw 'Corrupted authorization' }
+            foreach ($item in $receipt.packages) {
+              $path=Join-Path $dir $item.relativePath
+              if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $item.sha256) {
+                throw 'Original ZIP checksum mismatch'
+              }
+            }
+            Write-Output "SIZE_REAL_PG18=PASS 14/14 MODE=$env:MODE SIGSTORE_FEED=VERIFIED EXTENSION_AUTH=INTEGRITY_ONLY"
+          } finally { Pop-Location }
