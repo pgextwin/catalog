@@ -1,0 +1,157 @@
+name: Publish Sigstore-attested public Catalog ZIP selection feed
+
+# This release contains METADATA ONLY for already approved Catalog entries.
+# Never runs on PR content; starts from successful protected-main Validate.
+on:
+  workflow_run:
+    workflows: ["Validate catalog"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pgextwin-signed-catalog-feed-release
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    if: ${{ github.repository == 'pgextwin/catalog' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1 }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      source: ${{ steps.verify.outputs.source }}
+    steps:
+      - name: Independently require current protected Catalog main and successful exact-head Validate
+        id: verify
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          branch="$(gh api repos/pgextwin/catalog/branches/main)"
+          [[ "$(jq -r '.protected' <<< "$branch")" == true ]]
+          [[ "$(jq -r '.commit.sha' <<< "$branch")" == "$RUN_SHA" ]] || { echo 'Main changed: deny feed'; exit 1; }
+          run="$(gh api "repos/pgextwin/catalog/actions/runs/$RUN_ID")"
+          jq -e --arg sha "$RUN_SHA" '.status=="completed" and .conclusion=="success" and .event=="push" and .head_branch=="main" and .run_attempt==1 and .head_sha==$sha' <<< "$run" >/dev/null
+          commit="$(gh api "repos/pgextwin/catalog/commits/$RUN_SHA")"
+          jq -e '.commit.verification.verified==true and .commit.verification.reason=="valid" and .committer.login=="web-flow" and .commit.committer.email=="noreply@github.com"' <<< "$commit" >/dev/null
+          jobs="$(gh api --paginate "repos/pgextwin/catalog/actions/runs/$RUN_ID/jobs?per_page=100" --jq '.jobs[] | [.name,.conclusion] | @tsv')"
+          grep -Fx $'validate\tsuccess' <<< "$jobs" >/dev/null
+          echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"
+          echo "CATALOG_FEED_GATE=PASS HEAD=$RUN_SHA ORIGINAL_VALIDATE_RUN=$RUN_ID"
+
+  attest:
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Read exact approved commit without persistent token
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.gate.outputs.source }}
+          persist-credentials: false
+      - name: Build exact 14x5 Catalog feed with independently scoped API token
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.gate.outputs.source }}
+        run: |
+          python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
+          python scripts/cli_signed_feed.py --catalog . --commit "$SOURCE" --output "$RUNNER_TEMP/catalog-latest.json"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert d['zipCount']==70 and d['catalogCommit']==os.environ['SOURCE'] and not d['extensionSignatureVerified']"
+      - name: Mint genuine Sigstore keyless signed Catalog-feed attestation on main
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/catalog-latest.json
+      - name: Verify exact file via Sigstore (signer-workflow, source SHA, main-only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.gate.outputs.source }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -f "$BUNDLE"
+          cp "$BUNDLE" "$RUNNER_TEMP/catalog-latest.sigstore.json"
+          gh attestation verify "$RUNNER_TEMP/catalog-latest.json" \
+            --repo pgextwin/catalog --bundle "$BUNDLE" \
+            --signer-workflow pgextwin/catalog/.github/workflows/cli-signed-catalog-feed.yml \
+            --source-ref refs/heads/main --source-digest "$SOURCE" \
+            --deny-self-hosted-runners --format json > "$RUNNER_TEMP/verified.json"
+          jq -e 'length>=1' "$RUNNER_TEMP/verified.json"
+          echo 'CATALOG_FEED_SIGSTORE_VERIFIED=PASS PUBLISH=DENY_UNTIL_INDEPENDENT_JOB'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: approved-catalog-feed
+          path: |
+            ${{ runner.temp }}/catalog-latest.json
+            ${{ runner.temp }}/catalog-latest.sigstore.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-metadata-only:
+    needs: [gate, attest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: approved-catalog-feed
+          path: ${{ runner.temp }}/verified-catalog-feed
+      - name: Independently verify approved original feed and exact main before create-only publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.gate.outputs.source }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/verified-catalog-feed"
+          [[ "$(find "$dir" -maxdepth 1 -type f -printf '%f\n' | sort | paste -sd,)" == 'catalog-latest.json,catalog-latest.sigstore.json' ]]
+          python - "$dir/catalog-latest.json" "$SOURCE" <<'PY'
+          import sys,json
+          p,s=sys.argv[1:]
+          d=json.load(open(p))
+          assert d["schemaVersion"]=="pgextwin-signed-catalog-zip-feed/v1"
+          assert d["catalogCommit"]==s and d["zipCount"]==70 and d["extensionCount"]==14
+          assert d["extensionSignatureVerified"] is False and d["publicationAuthorized"] is False and d["installAuthorized"] is False
+          assert len(d["catalogSha256"])==15 and len(d["releases"])==14
+          PY
+          gh attestation verify "$dir/catalog-latest.json" \
+            --repo pgextwin/catalog --bundle "$dir/catalog-latest.sigstore.json" \
+            --signer-workflow pgextwin/catalog/.github/workflows/cli-signed-catalog-feed.yml \
+            --source-ref refs/heads/main --source-digest "$SOURCE" \
+            --deny-self-hosted-runners --format json > "$RUNNER_TEMP/verified-signature.json"
+          jq -e 'length>=1' "$RUNNER_TEMP/verified-signature.json"
+          [[ "$(gh api repos/pgextwin/catalog/branches/main --jq .commit.sha)" == "$SOURCE" ]] || { echo 'Main advanced: refuse to publish stale feed'; exit 1; }
+          echo 'INDEPENDENT_PUBLISHER_FEED_SIGSTORE_VERIFIED=PASS'
+      - name: Create-only draft -> rehash -> public metadata Release (never any extension Release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.gate.outputs.source }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="catalog-feed-$SOURCE"
+          dir="$RUNNER_TEMP/verified-catalog-feed"
+          gh api --method POST repos/pgextwin/catalog/git/refs -f "ref=refs/tags/$tag" -f "sha=$SOURCE"
+          gh release create "$tag" "$dir/catalog-latest.json" "$dir/catalog-latest.sigstore.json" \
+            --repo pgextwin/catalog --verify-tag --draft --latest=false \
+            --title "pgextwin Catalog signed ZIP feed $SOURCE" \
+            --notes "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized."
+          mkdir -p "$RUNNER_TEMP/feed-draft-audit"
+          gh release download "$tag" --repo pgextwin/catalog --pattern 'catalog-latest.*' --dir "$RUNNER_TEMP/feed-draft-audit"
+          for name in catalog-latest.json catalog-latest.sigstore.json; do
+            cmp "$dir/$name" "$RUNNER_TEMP/feed-draft-audit/$name"
+          done
+          gh release edit "$tag" --repo pgextwin/catalog --draft=false --latest=true
+          echo "CATALOG_SIGNED_FEED_METADATA_ONLY_PUBLISHED=PASS TAG=$tag"
