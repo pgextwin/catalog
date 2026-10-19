@@ -17,7 +17,7 @@ public static class BatchReleaseDownloader
     public static async Task<BatchResult> RunAsync(
         string catalogDirectory, string policyFile, string policyDigest,
         string pgSelection, string outputParent, ReadOnlyReleaseDownloader downloader,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool usePinnedBrowserTransport = false)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all"))
             throw new InvalidDataException("Batch PG selection must be 14, 15, 16, 17, 18 or all");
@@ -44,9 +44,16 @@ public static class BatchReleaseDownloader
         }
         if (pins.Count != records.Count * majors.Length)
             throw new InvalidDataException("Incomplete batch selection");
+        // In one-line mode only, original ZIP bytes are fetched from the exact
+        // fixed GitHub browser URLs instead of mutable/rate-limited REST calls.
+        // Numeric IDs remain pinned by the cryptographically hashed baked policy
+        // but are explicitly NOT asserted to have been re-queried from the API.
+        using var browser = usePinnedBrowserTransport ? new PinnedBrowserDownloader() : null;
         return await StageAsync(pins, pgSelection, outputParent,
-            (pin, folder, token) => downloader.DownloadAsync(pin, folder, token),
-            cancellationToken);
+            (pin, folder, token) => usePinnedBrowserTransport
+                ? browser!.DownloadAsync(pin, folder, token)
+                : downloader.DownloadAsync(pin, folder, token),
+            cancellationToken, metadataVerified: !usePinnedBrowserTransport);
     }
 
     // Pure transaction adapter: production always calls the existing strict
@@ -54,7 +61,7 @@ public static class BatchReleaseDownloader
     public static async Task<BatchResult> StageAsync(
         IReadOnlyList<ReleasePins> pins, string pgSelection, string outputParent,
         Func<ReleasePins, string, CancellationToken, Task<DownloadReceipt>> downloadOne,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool metadataVerified = true)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
             pins.Count == 0 || pins.Count > 70 || downloadOne is null)
@@ -135,7 +142,8 @@ public static class BatchReleaseDownloader
             }
             var info = new {
                 schemaVersion = "pgextwin-cli-batch-download/v1",
-                source = "EXTERNALLY_PINNED_LOCAL_CATALOG",
+                source = metadataVerified ? "EXTERNALLY_PINNED_LOCAL_CATALOG" : "CLI_PINNED_HISTORICAL_CANDIDATE_POLICY",
+                releaseMetadataVerified = metadataVerified,
                 verificationLevel = "INTEGRITY_ONLY",
                 signatureVerified = false,
                 provenanceVerified = false,

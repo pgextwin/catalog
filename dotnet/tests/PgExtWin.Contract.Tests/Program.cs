@@ -84,6 +84,7 @@ if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
 await ReleaseHttpTests.RunAsync(Check);
 await BatchDownloadTests.RunAsync(Check);
 await TrustedBootstrapTests.RunAsync(Check);
+await PinnedBrowserDownloadTests.RunAsync(Check);
 SyntheticBundleTests.Run(Check);
 P1HandoffTests.Run(Check);
 P1ReportCommandTests.Run(Check);
