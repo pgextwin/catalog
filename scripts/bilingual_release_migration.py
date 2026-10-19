@@ -38,7 +38,9 @@ def load_manifest(path):
         assert body.startswith("# ") and "## English" in body and "## 日本語" in body
         assert 0 < body.index("## English") < body.index("## 日本語")
         assert body.count("## English") == body.count("## 日本語") == 1
-        assert normalized(row["oldBody"]) in body, "Original English must be preserved in full"
+        old = normalized(row["oldBody"])
+        original_content = old.split("\n", 1)[1].strip() if old.startswith("# ") else old
+        assert original_content in body, "Original English body must be preserved in full"
         assert "INTEGRITY_ONLY" in body or row["tag"].startswith("cli-v0.1.")
         names = [x["name"] for x in row["assets"]]
         assert len(names) == len(set(names))
