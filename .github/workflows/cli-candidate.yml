@@ -1,0 +1,34 @@
+name: CLI R6 private candidate (no publication)
+on:
+  pull_request:
+    paths:
+      - 'dotnet/**'
+      - '.github/workflows/cli-candidate.yml'
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.100'
+      - name: Build v0.1 private binary and SHA256
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'cli-candidate'
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -o $dir
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+          $exe = Join-Path $dir 'pgextwin.exe'
+          if (!(Test-Path $exe)) { throw 'Binary missing' }
+          $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output "R6_CANDIDATE_SHA256=$sha RELEASE=DENY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cli-r6-private-candidate
+          path: ${{ runner.temp }}/cli-candidate/pgextwin.exe
+          if-no-files-found: error
+          retention-days: 1
