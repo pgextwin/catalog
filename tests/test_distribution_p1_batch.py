@@ -290,8 +290,7 @@ class GenuineBatchHostileTests(unittest.TestCase):
         with patch.object(Path, "read_bytes", side_effect=AssertionError(
                 "historical check must not read the mutable current worktree")):
             verify_sealed_catalog_snapshot(policy)
-        self.assertEqual(batch.FORMAL_ACCEPTED_BASELINE if hasattr(batch, "FORMAL_ACCEPTED_BASELINE")
-                         else 65, 65)
+        self.assertEqual(len(batch.NAMES) * len(batch.MAJORS), 70)
         self.assertEqual(policy["catalogDigests"]["extensions/plpgsql_check.json"],
                          HISTORICAL_PLPGSQL_SHA256)
 
