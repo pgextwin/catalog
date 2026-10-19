@@ -23,12 +23,12 @@ from zipfile import ZipFile, BadZipFile
 
 if __package__:
     from .verified_release_record import (
-        ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        INTAKE_ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
     )
 else:
     from verified_release_record import (
-        ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        INTAKE_ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
     )
 
@@ -192,7 +192,7 @@ def verify_payload(folder, release, manifest, contract, source_commit, active):
     expected = {"SHA256SUMS.txt"}
     run_id = None
     for major in active:
-        source = dict(src[major], repository=ALLOWED[name])
+        source = dict(src[major], repository=INTAKE_ALLOWED[name])
         stem = name + "-" + source["ref"] + "-pg" + str(major) + "-windows-x64"
         expected.update(stem + suf for suf in SUFFIXES)
         zip_path = files[stem + ".zip"]
@@ -243,7 +243,7 @@ def deny_catalog_rollback(existing, release):
 
 
 def generate(extension, tag, record):
-    require(extension in ALLOWED, "extension not on exact Catalog verification allowlist")
+    require(extension in INTAKE_ALLOWED, "extension not on exact Catalog verification allowlist")
     repo = "pgextwin/" + extension
     require(isinstance(tag, str) and re.fullmatch(r"v[A-Za-z0-9._-]+-windows\.[1-9][0-9]*", tag),
             "invalid formal Release tag")
