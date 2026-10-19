@@ -27,7 +27,8 @@ public sealed class PinnedBrowserDownloader : IDisposable
     }
 
     public async Task<DownloadReceipt> DownloadAsync(ReleasePins pin,
-        string outputDirectory, CancellationToken cancellationToken = default)
+        string outputDirectory, CancellationToken cancellationToken = default,
+        Action<string>? progress = null)
     {
         if (!Regex.IsMatch(pin.Extension, @"\A[a-z][a-z0-9_]*\z",
                 RegexOptions.CultureInvariant) ||
@@ -72,6 +73,7 @@ public sealed class PinnedBrowserDownloader : IDisposable
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             var bytes = ArrayPool<byte>.Shared.Rent(81920);
             long count = 0;
+            long nextProgress = 8L * 1024 * 1024;
             try
             {
                 while (true)
@@ -84,6 +86,11 @@ public sealed class PinnedBrowserDownloader : IDisposable
                     hash.AppendData(bytes, 0, n);
                     await file.WriteAsync(bytes.AsMemory(0, n), cancellationToken);
                     count += n;
+                    if (progress is not null && count >= nextProgress)
+                    {
+                        progress($"ZIP_TRANSFER extension={pin.Extension} pg={pin.PgMajor} bytes={count}");
+                        nextProgress = (count / (8L * 1024 * 1024) + 1) * (8L * 1024 * 1024);
+                    }
                 }
             }
             finally { ArrayPool<byte>.Shared.Return(bytes); }

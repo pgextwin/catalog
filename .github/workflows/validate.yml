@@ -95,7 +95,7 @@ jobs:
           if ($helpText -notmatch 'download-all') { throw 'Bulk download command absent' }
           if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'pgextwin list') { throw 'Help smoke failed' }
           $version = & $exe --version 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '0.3.1') { throw 'CLI preview version smoke failed' }
+          if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '0.3.2') { throw 'CLI preview version smoke failed' }
           $listing = @(& $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1)
           if ($LASTEXITCODE -ne 0) { throw 'List smoke failed' }
           if ($listing[0] -ne 'SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY') { throw 'Trust banner missing' }
@@ -104,6 +104,24 @@ jobs:
           $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
           if ($LASTEXITCODE -ne 0) { throw 'JSON list CLI failed' }
           $json = $jsonText | ConvertFrom-Json
+          # Verbose must keep stdout JSON byte-for-byte stable and never raise trust.
+          $log = Join-Path $env:RUNNER_TEMP 'verbose-stderr.log'
+          $verboseJson = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json --verbose 2> $log | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'Verbose JSON failed' }
+          $verboseData = $verboseJson | ConvertFrom-Json
+          $trace = Get-Content -LiteralPath $log -Raw
+          if ($verboseJson.Trim() -cne $jsonText.Trim() -or
+              $verboseData.trust -cne 'UNVERIFIED' -or
+              $trace -notmatch 'VERBOSE COMMAND_START' -or
+              $trace -notmatch 'CATALOG_LOCAL_LOADED' -or
+              $trace -notmatch 'COMMAND_END') { throw 'Verbose stream isolation failed' }
+          $duplicate = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --verbose --verbose 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $duplicate -notmatch 'DENY: Duplicate --verbose') { throw 'Duplicate verbose accepted' }
+          $unsupported = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --debug 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $unsupported -notmatch 'DENY:') { throw 'Unknown flag accepted' }
+          $downloadVerbose = & $exe download-all --pg 19 --verbose 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $downloadVerbose -notmatch 'DENY:') { throw 'Verbose bypassed PG validation' }
+          $global:LASTEXITCODE = 0
           if ($json.schemaVersion -ne 'pgextwin-cli-local-catalog/v1' -or
               $json.source -ne 'LOCAL_UNAUTHENTICATED' -or $json.trust -ne 'UNVERIFIED' -or
               $json.catalogAuthenticated -ne $false -or $json.signatureVerified -ne $false -or

@@ -48,7 +48,8 @@ public static class SignedPublicCatalogFeed
     }
 
     public static async Task<Session> AcquireAsync(string outputParent, string pgSelection,
-        HttpMessageHandler? handler = null, CancellationToken token = default)
+        HttpMessageHandler? handler = null, CancellationToken token = default,
+        Action<string>? progress = null)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all"))
             throw new InvalidDataException("Unsupported signed Catalog PG selection");
@@ -69,8 +70,12 @@ public static class SignedPublicCatalogFeed
         { Timeout = TimeSpan.FromMinutes(3) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("pgextwin-signed-catalog-feed/0.3");
 
+        progress?.Invoke("FEED_FETCH_START asset=catalog-latest.json");
         var (feedBytes, tag) = await GetReleaseAssetAsync(http, "catalog-latest.json", token);
+        progress?.Invoke($"FEED_FETCH_OK bytes={feedBytes.Length}");
+        progress?.Invoke("FEED_BUNDLE_FETCH_START asset=catalog-latest.sigstore.json");
         var (bundleBytes, secondTag) = await GetReleaseAssetAsync(http, "catalog-latest.sigstore.json", token);
+        progress?.Invoke($"FEED_BUNDLE_FETCH_OK bytes={bundleBytes.Length}");
         if (tag != secondTag)
             throw new InvalidDataException("Signed feed and Sigstore bundle originate from different Releases");
 
@@ -90,6 +95,7 @@ public static class SignedPublicCatalogFeed
             tag != "catalog-feed-" + commit)
             throw new InvalidDataException("Signed Catalog feed identity or trust boundary invalid");
 
+        progress?.Invoke("FEED_SIGSTORE_VERIFY_START signer=pinned-workflow");
         VerificationResult proof;
         try
         {
@@ -126,6 +132,7 @@ public static class SignedPublicCatalogFeed
             proof.VerifiedTimestamps.Count == 0)
             throw new InvalidDataException("Sigstore certificate source SHA, SLSA or time mismatches signed Catalog");
 
+        progress?.Invoke($"FEED_SIGSTORE_VERIFIED catalog_commit={commit} trust=CATALOG_ONLY");
         var stage = Path.Combine(parent, ".pgextwin-signed-catalog-" + Guid.NewGuid().ToString("N"));
         System.IO.Directory.CreateDirectory(Path.Combine(stage, "catalog", "extensions"));
         try
@@ -159,6 +166,7 @@ public static class SignedPublicCatalogFeed
                     throw new InvalidDataException("Immutable Catalog record differs from Sigstore-signed digest");
                 var file = Path.Combine(catalogue, path.Replace('/', Path.DirectorySeparatorChar));
                 await File.WriteAllBytesAsync(file, bytes, token);
+                progress?.Invoke($"CATALOG_RECORD_VERIFIED path={path} bytes={bytes.Length}");
             }
             var loaded = CatalogReader.LoadLocal(catalogue);
             if (loaded.Count != 14 || loaded.Any(x => x.Versions.Count != 5) ||
@@ -220,6 +228,7 @@ public static class SignedPublicCatalogFeed
             }
             if (pins.Count != selected.Length * 14)
                 throw new InvalidDataException("Incomplete Sigstore-signed Catalog selection");
+            progress?.Invoke($"CATALOG_PINS_SELECTED count={pins.Count} pg={pgSelection} extension_auth=INTEGRITY_ONLY");
             return new Session(stage, commit, tag, pins);
         }
         catch
