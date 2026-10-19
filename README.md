@@ -140,6 +140,17 @@ The catalog intentionally does not define fields such as `secure`, `safe`, `trus
 
 Step 10 remains a report-only baseline; Catalog schema v2 only exposes whether a release-specific vulnerability report exists.
 
+## GitHub-only signed Release → Catalog PR (no new App required)
+
+This is an **operator-assisted fallback**, not automatic publication. It never turns an unsigned candidate, an incomplete Promotion run or a partially staged Draft into a public Release.
+
+1. First require an **already published**, immutable operator-`PUBLISH` Release. A successful candidate/main Windows build is insufficient. Open [Verify signed manual Release (read-only)](https://github.com/pgextwin/catalog/actions/workflows/verify-manual-release.yml) on the protected `main`, choose the exact extension and public `release_tag`, and use GitHub's authenticated **Run workflow** action. No local host or private Writer is required for this verifier.
+2. Require the **entire** run to finish SUCCESS: independent public ZIP/SBOM/Grype byte rehash, GitHub artifact attestation checks, source-commit and main-only successful Promotion identity, Catalog/schema/offline/remote validation. Never waive a failed job or reuse an old artifact.
+3. Open that exact run's `verified-manual-release-record` artifact. Using the authenticated GitHub connector or UI, compare the single verified `extensions/<extension>.json` against current `catalog/main` and propose **one-record-only** protected PR. Refuse stale record hashes, rollback to an older Release, unrelated changes or conflicting open PRs. The read-only Workflow **never creates a PR** and does not grant publication approval; a separate proposer GitHub App is **optional** for this manual route.
+4. Require native Catalog PR CI (schema, remote Release, .NET and Windows smoke when applicable) at that exact head; merge safely with the existing branch protection, then inspect [Catalog → Website public audit](https://github.com/pgextwin/catalog/actions/workflows/notify-website.yml), deployed public JA/EN pages, direct downloads and SHA-256. A scheduled smoke or a success from another commit cannot substitute for current-head evidence.
+
+If `workflow_dispatch` is unavailable in the current Chat GitHub connection, the only unavoidable manual action is GitHub's authenticated **Run workflow** UI. **Do not** install a local VM, grant a new App, bypass a missing `PUBLISH` identity, or claim the Website is updated before the Catalog PR merges. Current limits are disclosed in the [Website footer](https://pgextwin.github.io/website/en/).
+
 ## Validation
 
 Local validation:
