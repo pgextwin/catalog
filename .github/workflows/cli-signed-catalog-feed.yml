@@ -29,14 +29,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Synthetics and read-only 70 signed-feed plan without publication
+      - name: Synthetics and exact 14–17 signed-feed plan without publication
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
           python scripts/cli_signed_feed.py --catalog . --commit "$GITHUB_SHA" --output "$RUNNER_TEMP/catalog-latest.json"
-          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert d['zipCount']==70 and not d['extensionSignatureVerified']"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 17 and d['zipCount']==5*d['extensionCount'] and not d['extensionSignatureVerified']"
           echo 'CATALOG_FEED_PR_READONLY_DRYRUN=PASS NO_SIGN NO_TAG NO_RELEASE'
   gate:
     if: ${{ github.repository == 'pgextwin/catalog' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1 }}
@@ -82,14 +82,14 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.source }}
           persist-credentials: false
-      - name: Build exact 14x5 Catalog feed with independently scoped API token
+      - name: Build exact verified Catalog roster feed with independently scoped API token
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE: ${{ needs.gate.outputs.source }}
         run: |
           python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
           python scripts/cli_signed_feed.py --catalog . --commit "$SOURCE" --output "$RUNNER_TEMP/catalog-latest.json"
-          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert d['zipCount']==70 and d['catalogCommit']==os.environ['SOURCE'] and not d['extensionSignatureVerified']"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 17 and d['zipCount']==5*d['extensionCount'] and d['catalogCommit']==os.environ['SOURCE'] and not d['extensionSignatureVerified']"
       - name: Mint genuine Sigstore keyless signed Catalog-feed attestation on main
         id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -145,9 +145,9 @@ jobs:
           p,s=sys.argv[1:]
           d=json.load(open(p))
           assert d["schemaVersion"]=="pgextwin-signed-catalog-zip-feed/v1"
-          assert d["catalogCommit"]==s and d["zipCount"]==70 and d["extensionCount"]==14
+          assert d["catalogCommit"]==s and 14<=d["extensionCount"]<=17 and d["zipCount"]==5*d["extensionCount"]
           assert d["extensionSignatureVerified"] is False and d["publicationAuthorized"] is False and d["installAuthorized"] is False
-          assert len(d["catalogSha256"])==15 and len(d["releases"])==14
+          assert len(d["catalogSha256"])==d["extensionCount"]+1 and len(d["releases"])==d["extensionCount"]
           PY
           gh attestation verify "$dir/catalog-latest.json" \
             --repo pgextwin/catalog --bundle "$dir/catalog-latest.sigstore.json" \
@@ -167,16 +167,18 @@ jobs:
           tag="catalog-feed-$SOURCE"
           dir="$RUNNER_TEMP/verified-catalog-feed"
           gh api --method POST repos/pgextwin/catalog/git/refs -f "ref=refs/tags/$tag" -f "sha=$SOURCE"
-          cat > "$RUNNER_TEMP/catalog-feed-notes.md" <<'RELEASE_NOTES'
+          count="$(jq -r '.extensionCount' "$dir/catalog-latest.json")"
+          zip_count="$((count * 5))"
+          cat > "$RUNNER_TEMP/catalog-feed-notes.md" <<RELEASE_NOTES
           # pgextwin signed Catalog ZIP selection feed
 
           ## English
 
-          Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PostgreSQL 14–18 ZIPs. Independently verifiable GitHub Actions Sigstore attestation is attached. Original extension ZIP bytes remain INTEGRITY_ONLY; this metadata-only feed does not grant an extension Release, installation or publication authorization.
+          Metadata-only immutable selection of already-Catalog-approved ${count} extensions and ${zip_count} original PostgreSQL 14–18 ZIPs. Independently verifiable GitHub Actions Sigstore attestation is attached. Original extension ZIP bytes remain INTEGRITY_ONLY; this metadata-only feed does not grant an extension Release, installation or publication authorization.
 
           ## 日本語
 
-          すでにCatalogで承認・登録された14拡張について、PostgreSQL 14～18向けの元ZIP計70件を選択する不変のメタデータ専用Releaseです。独立検証可能なGitHub ActionsのSigstore Attestationを添付します。個別の拡張ZIPはINTEGRITY_ONLYであり、元ZIPの真正署名・新規Release・インストール・配布／公開の認可を意味しません。
+          すでにCatalogで承認・登録された${count}拡張について、PostgreSQL 14～18向けの元ZIP計${zip_count}件を選択する不変のメタデータ専用Releaseです。独立検証可能なGitHub ActionsのSigstore Attestationを添付します。個別の拡張ZIPはINTEGRITY_ONLYであり、元ZIPの真正署名・新規Release・インストール・配布／公開の認可を意味しません。
           RELEASE_NOTES
           gh release create "$tag" "$dir/catalog-latest.json" "$dir/catalog-latest.sigstore.json" \
             --repo pgextwin/catalog --verify-tag --draft --latest=false \

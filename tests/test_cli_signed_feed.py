@@ -50,6 +50,62 @@ class SignedFeedTests(unittest.TestCase):
                             "published_at": "2026-10-19T00:00:00Z", "assets": files}
             }
 
+    def include_wave3(self, *additions):
+        # Synthetic future verified Catalog intake, never real Releases.
+        original = (self.root / "extensions" / "hypopg.json").read_text()
+        for name in additions:
+            (self.root / "extensions" / (name + ".json")).write_text(
+                original.replace("hypopg", name), encoding="utf-8")
+            self.assets[name] = json.loads(
+                json.dumps(self.assets["hypopg"]).replace("hypopg", name))
+        (self.root / "index.json").write_text(json.dumps(
+            {"schemaVersion": 2, "extensions": sorted(NAMES + list(additions))}),
+            encoding="utf-8")
+
+    def test_stage_15_16_17_only_after_indexed_published_release(self):
+        for additions in (("pgtap",),
+                          ("pgtap", "pg_variables"),
+                          ("pgtap", "pg_variables", "pg_store_plans")):
+            with self.subTest(extensions=additions):
+                self.include_wave3(*additions)
+                feed = self.generate()
+                self.assertEqual(feed["extensionCount"], 14 + len(additions))
+                self.assertEqual(feed["zipCount"], 5 * (14 + len(additions)))
+                self.assertFalse(feed["extensionSignatureVerified"])
+                self.assertFalse(feed["publicationAuthorized"])
+                self.assertFalse(feed["installAuthorized"])
+                self.assertEqual(len(feed["catalogSha256"]), 15 + len(additions))
+                self.assertEqual(len(feed["releases"]), 14 + len(additions))
+
+    def test_stage_reject_candidate_or_missing_original_release(self):
+        self.include_wave3("pgtap")
+        self.assets["pgtap"]["release"]["draft"] = True
+        with self.assertRaises(ValueError):
+            self.generate()
+        self.assets["pgtap"]["release"]["draft"] = False
+        self.assets["pgtap"]["release"]["published_at"] = None
+        with self.assertRaises(ValueError):
+            self.generate()
+
+    def test_stage_reject_wrong_roster_and_partial_historical_fleet(self):
+        self.include_wave3("pgtap")
+        index = self.root / "index.json"
+        original = json.loads(index.read_text())
+        variants = [
+            sorted((set(original["extensions"]) - {"hypopg"})),
+            sorted((set(original["extensions"]) - {"hypopg"}) | {"pg_repack_extra"}),
+            sorted(set(original["extensions"]) | {"unexpected_extension"}),
+        ]
+        for names in variants:
+            with self.subTest(names=names):
+                index.write_text(json.dumps({"schemaVersion": 2, "extensions": names}))
+                with self.assertRaises(ValueError):
+                    self.generate()
+        index.write_text(json.dumps(original))
+        (self.root / "extensions" / "unindexed.json").write_text("{}")
+        with self.assertRaises(ValueError):
+            self.generate()
+
     def tearDown(self):
         self.tmp.cleanup()
 
