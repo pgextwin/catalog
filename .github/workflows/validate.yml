@@ -16,6 +16,11 @@ jobs:
     steps:
       - name: Check out catalog
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Required for the sealed P1 2026-10-17 Catalog Git tree check:
+          # a shallow checkout cannot resolve its immutable historical commit.
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
