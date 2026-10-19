@@ -44,7 +44,7 @@ public static class TrustedCatalogBootstrap
 
     public static async Task<Session> AcquireAsync(string outputParent,
         HttpMessageHandler? httpHandler = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, Action<string>? progress = null)
     {
         var root = Path.GetFullPath(outputParent);
         if (!Directory.Exists(root))
@@ -70,10 +70,12 @@ public static class TrustedCatalogBootstrap
         Directory.CreateDirectory(session.CatalogPath);
         try
         {
+            progress?.Invoke("FIXED_POLICY_FETCH_START trust=PINNED_SHA256");
             var policyUri = PinnedUrl(PolicySourceCommit, PolicyPath);
             var policy = await FetchBoundedAsync(client, policyUri, cancellationToken);
             if (StrictJson.Sha256(policy) != PolicySha256)
                 throw new InvalidDataException("Embedded approved P1 policy SHA256 mismatch");
+            progress?.Invoke($"FIXED_POLICY_SHA256_VERIFIED bytes={policy.Length}");
             using var parsed = StrictJson.Parse(policy);
             var document = parsed.RootElement;
             if (document.GetProperty("schemaVersion").GetString() !=
@@ -102,6 +104,7 @@ public static class TrustedCatalogBootstrap
                     path.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(file)!);
                 await File.WriteAllBytesAsync(file, data, cancellationToken);
+                progress?.Invoke($"FIXED_CATALOG_RECORD_VERIFIED path={path} bytes={data.Length}");
             }
             await File.WriteAllBytesAsync(session.PolicyFile, policy, cancellationToken);
             var records = CatalogReader.LoadLocal(session.CatalogPath);
@@ -112,6 +115,7 @@ public static class TrustedCatalogBootstrap
             _ = PinnedReleaseSelector.FromLocalFiles(
                 session.CatalogPath, session.PolicyFile, PolicySha256,
                 records[0].Name, "18");
+            progress?.Invoke("FIXED_CATALOG_READY zip_count=70 trust=INTEGRITY_ONLY");
             return session;
         }
         catch

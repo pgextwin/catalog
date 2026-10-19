@@ -17,7 +17,8 @@ public static class BatchReleaseDownloader
     public static async Task<BatchResult> RunAsync(
         string catalogDirectory, string policyFile, string policyDigest,
         string pgSelection, string outputParent, ReadOnlyReleaseDownloader downloader,
-        CancellationToken cancellationToken = default, bool usePinnedBrowserTransport = false)
+        CancellationToken cancellationToken = default, bool usePinnedBrowserTransport = false,
+        Action<string>? progress = null)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all"))
             throw new InvalidDataException("Batch PG selection must be 14, 15, 16, 17, 18 or all");
@@ -51,9 +52,10 @@ public static class BatchReleaseDownloader
         using var browser = usePinnedBrowserTransport ? new PinnedBrowserDownloader() : null;
         return await StageAsync(pins, pgSelection, outputParent,
             (pin, folder, token) => usePinnedBrowserTransport
-                ? browser!.DownloadAsync(pin, folder, token)
+                ? browser!.DownloadAsync(pin, folder, token, progress)
                 : downloader.DownloadAsync(pin, folder, token),
-            cancellationToken, metadataVerified: !usePinnedBrowserTransport);
+            cancellationToken, metadataVerified: !usePinnedBrowserTransport,
+            progress: progress);
     }
 
     // Pure transaction adapter: production always calls the existing strict
@@ -62,7 +64,7 @@ public static class BatchReleaseDownloader
         IReadOnlyList<ReleasePins> pins, string pgSelection, string outputParent,
         Func<ReleasePins, string, CancellationToken, Task<DownloadReceipt>> downloadOne,
         CancellationToken cancellationToken = default, bool metadataVerified = true,
-        string? sourceOverride = null)
+        string? sourceOverride = null, Action<string>? progress = null)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
             pins.Count == 0 || pins.Count > 70 || downloadOne is null)
@@ -99,6 +101,7 @@ public static class BatchReleaseDownloader
 
         var stage = Path.Combine(parent, ".pgextwin-batch-" + Guid.NewGuid().ToString("N"));
         System.IO.Directory.CreateDirectory(stage);
+        progress?.Invoke($"BATCH_START pg={pgSelection} zip_count={pins.Count} trust=INTEGRITY_ONLY");
         try
         {
             var rows = new List<BatchPackage>();
@@ -106,6 +109,7 @@ public static class BatchReleaseDownloader
             foreach (var pin in pins)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                progress?.Invoke($"ZIP_START index={rows.Count + 1}/{pins.Count} extension={pin.Extension} pg={pin.PgMajor} asset={pin.AssetName}");
                 var majorDir = Path.Combine(stage, "pg" + pin.PgMajor);
                 System.IO.Directory.CreateDirectory(majorDir);
                 var receipt = await downloadOne(pin, majorDir, cancellationToken);
@@ -130,6 +134,7 @@ public static class BatchReleaseDownloader
                 if (rehash != pin.AssetSha256)
                     throw new InvalidDataException("Original ZIP changed after download");
                 total = checked(total + file.Length);
+                progress?.Invoke($"ZIP_VERIFIED index={rows.Count + 1}/{pins.Count} extension={pin.Extension} pg={pin.PgMajor} bytes={file.Length} sha256={rehash} trust=INTEGRITY_ONLY");
                 rows.Add(new BatchPackage(
                     pin.Extension, pin.PgMajor, pin.Tag, pin.CatalogCommit,
                     "pg" + pin.PgMajor + "/" + pin.AssetName,
@@ -150,6 +155,7 @@ public static class BatchReleaseDownloader
             if (File.Exists(final) || System.IO.Directory.Exists(final))
                 throw new IOException("Batch output was created concurrently; no overwrite");
             System.IO.Directory.Move(stage, final);
+            progress?.Invoke($"BATCH_COMPLETE zip_count={rows.Count} bytes={total} trust=INTEGRITY_ONLY");
             return new BatchResult(final, rows.Count, total);
         }
         finally

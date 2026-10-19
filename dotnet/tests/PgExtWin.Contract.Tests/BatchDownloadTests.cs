@@ -32,7 +32,15 @@ internal static class BatchDownloadTests
                     path, pin.AssetSha256, bytes.Length,
                     pin.RepositoryId, pin.ReleaseId, pin.AssetIds[pin.AssetName]));
             }
-            var result = await BatchReleaseDownloader.StageAsync(all, "18", root, Download);
+            var diagnostics = new List<string>();
+            var result = await BatchReleaseDownloader.StageAsync(
+                all, "18", root, Download, progress: diagnostics.Add);
+            check(diagnostics.Count(x => x.StartsWith("ZIP_START ", StringComparison.Ordinal)) == 2 &&
+                  diagnostics.Count(x => x.StartsWith("ZIP_VERIFIED ", StringComparison.Ordinal)) == 2 &&
+                  diagnostics[0] == "BATCH_START pg=18 zip_count=2 trust=INTEGRITY_ONLY" &&
+                  diagnostics[^1].StartsWith("BATCH_COMPLETE zip_count=2 ", StringComparison.Ordinal) &&
+                  diagnostics.All(x => !x.Contains("SIGNATURE_VERIFIED", StringComparison.Ordinal)),
+                  "Opt-in batch diagnostic event ordering never upgrades trust");
             check(result.Count == 2 && result.Bytes == bytes.Length * 2 &&
                   result.VerificationLevel == "INTEGRITY_ONLY",
                   "Batch original ZIP count, byte sum and integrity-only verdict");

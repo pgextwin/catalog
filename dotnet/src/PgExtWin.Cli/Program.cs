@@ -11,8 +11,21 @@ static async Task<int> RunAsync(string[] args)
 {
     try
     {
+        // Opt-in diagnostics go to stderr and never alter machine-readable stdout.
+        var verboseCount = args.Count(x => x == "--verbose");
+        if (verboseCount > 1) throw new ArgumentException("Duplicate --verbose");
+        var verbose = verboseCount == 1;
+        if (verbose) args = args.Where(x => x != "--verbose").ToArray();
+        Action<string>? log = verbose
+            ? message => Console.Error.WriteLine($"[{DateTimeOffset.UtcNow:O}] VERBOSE {message}")
+            : null;
         if (args.Length > 0 && args[0] == "verify-report")
-            return AuthenticatedReportCommand.Run(args);
+        {
+            log?.Invoke("VERIFY_REPORT_START trust=UNVERIFIED");
+            var status = AuthenticatedReportCommand.Run(args);
+            log?.Invoke("VERIFY_REPORT_END trust=UNVERIFIED publish=DENY");
+            return status;
+        }
         if (args.Length == 1 && args[0] is "--version" or "-V")
         {
             var info = Assembly.GetExecutingAssembly()
@@ -27,6 +40,7 @@ static async Task<int> RunAsync(string[] args)
         if (args.Length < 1 || args[0] is not ("list" or "search" or "download" or "download-all"))
             throw new ArgumentException("Only list/search and explicit GET-only download/download-all are available");
         var command = args[0];
+        log?.Invoke($"COMMAND_START command={command} publish=DENY");
         var i = 1;
         string? query = null;
         if (command is "search" or "download")
@@ -105,40 +119,48 @@ static async Task<int> RunAsync(string[] args)
                 {
                     // Default latest from independently Sigstore-verified public Catalog feed.
                     // No anonymous GitHub REST calls; --fixed retains v0.2.2 immutable snapshot.
+                    log?.Invoke($"CATALOG_MODE mode=latest pg={pg} authentication=Sigstore");
                     using var selected = await SignedPublicCatalogFeed.AcquireAsync(
-                        Directory.GetCurrentDirectory(), pg);
+                        Directory.GetCurrentDirectory(), pg, progress: log);
                     using var browser = new PinnedBrowserDownloader();
                     var latestBatch = await BatchReleaseDownloader.StageAsync(
                         selected.Pins, pg, Directory.GetCurrentDirectory(),
-                        (pin, folder, token) => browser.DownloadAsync(pin, folder, token),
+                        (pin, folder, token) => browser.DownloadAsync(pin, folder, token, log),
                         metadataVerified: false,
-                        sourceOverride: "SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS");
+                        sourceOverride: "SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS",
+                        progress: log);
                     Console.WriteLine($"CATALOG_COMMIT={selected.Commit} CATALOG_AUTH=SIGSTORE_VERIFIED_FEED RELEASE={selected.SourceReleaseTag}");
                     Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={latestBatch.Count}\tBYTES={latestBatch.Bytes}\t{latestBatch.Directory}");
                     return 0;
                 }
                 // All four optional paths absent: trust anchors live in the
                 // current CLI build, never in a live, unpinned HEAD response.
+                log?.Invoke($"CATALOG_MODE mode={(auto ? "fixed" : "external")} pg={pg}");
                 using var bootstrap = auto
-                    ? await TrustedCatalogBootstrap.AcquireAsync(Directory.GetCurrentDirectory())
+                    ? await TrustedCatalogBootstrap.AcquireAsync(
+                        Directory.GetCurrentDirectory(), progress: log)
                     : null;
                 var batch = await BatchReleaseDownloader.RunAsync(
                     bootstrap?.CatalogPath ?? directory!,
                     bootstrap?.PolicyFile ?? policy!,
                     bootstrap is null ? policySha! : TrustedCatalogBootstrap.PolicySha256,
                     pg, auto ? Directory.GetCurrentDirectory() : output!, downloader,
-                    usePinnedBrowserTransport: auto);
+                    usePinnedBrowserTransport: auto, progress: log);
                 Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={batch.Count}\tBYTES={batch.Bytes}\t{batch.Directory}");
                 return 0;
             }
+            log?.Invoke($"PIN_SELECT_START extension={query} pg={pg}");
             var pin = PinnedReleaseSelector.FromLocalFiles(directory!, policy!, policySha!, query!, pg);
+            log?.Invoke($"DOWNLOAD_START extension={pin.Extension} pg={pin.PgMajor} asset={pin.AssetName}");
             var receipt = await downloader.DownloadAsync(pin, output!);
+            log?.Invoke($"DOWNLOAD_VERIFIED extension={pin.Extension} pg={pin.PgMajor} bytes={receipt.Size} sha256={receipt.Sha256} trust=INTEGRITY_ONLY");
             Console.WriteLine($"INTEGRITY_ONLY\t{receipt.Sha256}\t{receipt.Size}\t{receipt.FilePath}");
             return 0;
         }
         if (directory is null) throw new ArgumentException("--catalog-dir is mandatory");
 
         var records = CatalogReader.LoadLocal(directory);
+        log?.Invoke($"CATALOG_LOCAL_LOADED records={records.Count} trust=UNVERIFIED");
         var outputJson = format == "json";
         if (!outputJson)
             Console.WriteLine("SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY");
@@ -170,6 +192,7 @@ static async Task<int> RunAsync(string[] args)
                     PublicationAuthorized: false, DistributionAuthorized: false,
                     displayed, rows),
                 CliJsonContext.Default.CliListEnvelope));
+        log?.Invoke($"COMMAND_END rows={displayed} trust=UNVERIFIED");
         return displayed == 0 ? 3 : 0;
     }
     catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or
@@ -185,6 +208,7 @@ static async Task<int> RunAsync(string[] args)
 static void Usage()
 {
     Console.Error.WriteLine("pgextwin --version");
+    Console.Error.WriteLine("Add --verbose to any command for timestamped progress on stderr (stdout unchanged).");
     Console.Error.WriteLine("pgextwin verify-report EXTENSION --pg MAJOR --catalog-dir PATH --policy FILE");
     Console.Error.WriteLine("  --policy-sha256 HEX --trusted-root-sha256 HEX --p1-verifier-sha256 HEX");
     Console.Error.WriteLine("  --report FILE --signature FILE --authority-key PEM --authority-key-sha256 HEX");
