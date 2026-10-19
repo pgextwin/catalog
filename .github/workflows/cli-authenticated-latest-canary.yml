@@ -54,11 +54,11 @@ jobs:
           try {
             $receipt=& $exe download-all --pg all --latest 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "Latest download must fail closed, not be waived: $receipt" }
-            if ($receipt -notmatch 'ZIP_COUNT=70' -or $receipt -notmatch 'CATALOG_AUTH=GITHUB_API_SIGNED_COMMIT_STATUS') { throw 'Authenticated latest receipt missing' }
+            if ($receipt -notmatch 'ZIP_COUNT=70' -or $receipt -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'Authenticated latest receipt missing' }
             $folder=Join-Path $parent 'pgextwin-pg14-18'
             $info=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             if ($info.zipCount -ne 70 -or @($info.packages).Count -ne 70 -or
-                $info.source -cne 'GITHUB_VERIFIED_PROTECTED_MAIN_AND_EXACT_VALIDATE' -or
+                $info.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
                 $info.signatureVerified -ne $false -or $info.provenanceVerified -ne $false -or
                 $info.publicationAuthorized -ne $false -or $info.distributionAuthorized -ne $false -or
                 $info.installAuthorized -ne $false -or $info.verificationLevel -cne 'INTEGRITY_ONLY') {

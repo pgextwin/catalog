@@ -6,6 +6,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Sigstore" Version="1.1.1" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../PgExtWin.Core/PgExtWin.Core.csproj" />
     <ProjectReference Include="../PgExtWin.Catalog/PgExtWin.Catalog.csproj" />
   </ItemGroup>

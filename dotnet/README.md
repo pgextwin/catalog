@@ -206,3 +206,36 @@ keep using the existing full set of `--catalog-dir`, `--policy`,
 ### v0.2.2 public asset rate-limit recovery
 
 The one-line frozen policy download uses `https://github.com/pgextwin/<repo>/releases/download/<tag>/<original ZIP>` with a strictly pinned immutable Catalog asset filename, Release tag, SHA256 and bounded GitHub-owned redirect destinations. The **original ZIP bytes are rehashed** and never extracted. Unlike explicit `download`, one-line mode avoids anonymous GitHub REST Release metadata GET quotas entirely. The `DOWNLOAD-INFO.json` receipt sets `releaseMetadataVerified=false`; Repo/Release/Asset numeric IDs are historical, **policy-pinned**, not live API audited. `INTEGRITY_ONLY` does not imply authentic original extension Sigstore signatures.
+
+
+## v0.3.0 — latest signed-Catalog main by default
+
+After the real anonymous Windows 70-ZIP acceptance (Catalog PR #124,
+Run 39237271741), v0.3.0 uses the latest registered, protected-main
+Catalog version for the standard one-line download:
+
+```powershell
+.\pgextwin.exe download-all --pg all
+.\pgextwin.exe download-all --pg 18
+.\pgextwin.exe download-all --pg all --fixed  # preserve v0.2.2 historic snapshot
+```
+
+`--latest` is also accepted explicitly. The live selector requires GitHub's
+signed web-flow commit verdict, protected branch and successful current-head
+main-push Validate CI, then fetches immutable Catalog JSON at that full SHA.
+Each selected extension Release tag/Repo ID/Release ID/asset ID, original ZIP
+SHA256, and exact direct URL is cross-checked using public GitHub Release
+metadata before the original ZIP bytes are obtained through the existing
+bounded browser transport. No latest Release guesswork, unsigned candidates,
+unapproved Catalog records, zip extraction, service changes or installs.
+The receipt includes per-ZIP `releaseTag` and `catalogCommit`.
+All original extension authenticity and install/distribution flags remain DENY
+(`INTEGRITY_ONLY` is only byte integrity).
+
+GitHub REST 403/429, unsigned or mutable/unstable head, absent green
+current-head Validate, missing Release assets, SHA mismatch or output collision
+will fail closed and not make a partial directory visible. `--fixed` is an
+explicit stable rollback/compatibility option; never silently fall back to it
+for a failed latest selection. A successful anonymous Windows run is evidence,
+not a permanent API availability guarantee. See
+[Catalog latest spec](../docs/cli-authenticated-latest-catalog.md).
