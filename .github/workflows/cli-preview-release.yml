@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/cli-preview-release.yml'
       - 'config/cli-preview-release-intent.json'
+      - 'scripts/cli_r7_asset_set.ps1'
   push:
     branches: [main]
     paths:
@@ -113,6 +114,13 @@ jobs:
           $lines | Set-Content (Join-Path $env:RUNNER_TEMP 'cli-release/SHA256SUMS.txt') -Encoding ascii
           Write-Output 'CLI_R7_SPDX_CHECKSUMS=PASS'
 
+      - name: Reproduce exact five-file asset validation before release upload
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'cli-release'
+          & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
+          if ($LASTEXITCODE -ne 0) { throw 'Release file validation failed' }
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: cli-v01-verified-release-input
@@ -155,14 +163,9 @@ jobs:
           $intent=Get-Content config/cli-preview-release-intent.json -Raw | ConvertFrom-Json
           if ($intent.publish -ne $true -or $intent.tag -cne $tag -or $intent.exeSha256 -cne $digest -or $intent.sourceCommit -cne $expectedSource) { throw 'Release intent changed' }
           $dir=Join-Path $env:RUNNER_TEMP 'cli-release'
-          $files=@(Get-ChildItem $dir -File | Select-Object -ExpandProperty Name | Sort-Object)
-          if (($files -join ',') -cne 'DOTNET-LICENSE.txt,DOTNET-THIRD-PARTY-NOTICES.txt,SHA256SUMS.txt,pgextwin.exe,pgextwin.spdx.json') { throw 'Release asset set mismatch' }
+          & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
+          if ($LASTEXITCODE -ne 0) { throw 'Release original asset validation failed' }
           if ((Get-FileHash (Join-Path $dir 'pgextwin.exe') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $digest) { throw 'EXE hash mismatch' }
-          foreach ($line in @(Get-Content (Join-Path $dir 'SHA256SUMS.txt'))) {
-            if ($line -notmatch '^([A-Fa-f0-9]{64})  (pgextwin.exe|pgextwin.spdx.json|DOTNET-LICENSE.txt|DOTNET-THIRD-PARTY-NOTICES.txt)$') { throw 'Bad checksum entry' }
-            $actual=(Get-FileHash (Join-Path $dir $Matches[2]) -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($actual -cne $Matches[1].ToLowerInvariant()) { throw 'SHA256SUMS inconsistent' }
-          }
           $reserve=gh api --method POST repos/pgextwin/catalog/git/refs -f "ref=refs/tags/$tag" -f "sha=$expectedSource"
           if ($LASTEXITCODE -ne 0) { throw 'CLI tag already exists or cannot be created: fail closed' }
           gh release create $tag (Join-Path $dir 'pgextwin.exe') (Join-Path $dir 'SHA256SUMS.txt') (Join-Path $dir 'pgextwin.spdx.json') (Join-Path $dir 'DOTNET-LICENSE.txt') (Join-Path $dir 'DOTNET-THIRD-PARTY-NOTICES.txt') --verify-tag --draft --prerelease --latest=false --title 'pgextwin CLI v0.1.0-preview.1' --notes-file docs/cli-v0.1-release-notes.md --repo pgextwin/catalog
