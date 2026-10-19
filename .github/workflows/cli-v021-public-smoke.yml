@@ -1,0 +1,152 @@
+name: CLI v0.2.1 independently verify public EXE and one-line 70 ZIPs
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cli-v021-public-smoke.yml'
+      - 'tests/test_cli_v021_public_smoke_policy.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cli-v021-public-smoke.yml'
+permissions:
+  contents: read
+
+jobs:
+  public-cli-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Catalog as read-only reference
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch real public Release bytes and independently verify identity and provenance
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = 'cli-v0.2.1'
+          $source = '79db0018cd930847330c024770328892eb46cf3c'
+          $hash = '78de25e4ac3b8d40ba173f3369a12cf92e97ee0e2a65695820390231e3d08aca'
+          $originalReleaseId = 416979703
+          $originalAssetId = 655455674
+          $release = gh api "repos/pgextwin/catalog/releases/tags/$version" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.id -ne $originalReleaseId -or
+              $release.tag_name -cne $version -or $release.draft -ne $false -or
+              $release.prerelease -ne $true -or @($release.assets).Count -ne 5) {
+            throw 'Wrong public GitHub Release state'
+          }
+          $entry = @($release.assets | Where-Object { $_.name -ceq 'pgextwin.exe' })
+          if ($entry.Count -ne 1 -or $entry[0].id -ne $originalAssetId -or
+              $entry[0].size -ne 73676040 -or
+              $entry[0].digest -cne ("sha256:" + $hash) -or
+              $entry[0].browser_download_url -cne "https://github.com/pgextwin/catalog/releases/download/$version/pgextwin.exe") {
+            throw 'Published EXE metadata mismatched original byte identity'
+          }
+          $tag = gh api "repos/pgextwin/catalog/git/ref/tags/$version" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $tag.object.sha -cne $source -or $tag.object.type -cne 'commit') {
+            throw 'Public tag does not point at the reviewed original R6 source'
+          }
+
+          $dir = Join-Path $env:RUNNER_TEMP 'pgextwin-public-independent'
+          New-Item -ItemType Directory $dir -Force | Out-Null
+          $exe = Join-Path $dir 'pgextwin.exe'
+          # This is the ordinary anonymous, public browser download address,
+          # NOT the private Actions artifact and NOT the draft Release API.
+          $url = "https://github.com/pgextwin/catalog/releases/download/$version/pgextwin.exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe -MaximumRedirection 5
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Public EXE GET returned no original bytes' }
+          if ((Get-Item -LiteralPath $exe).Length -ne 73676040) { throw 'Public EXE size mismatch' }
+          $actual = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -cne $hash) { throw 'Public EXE actual-byte SHA256 mismatch' }
+          $verified = gh attestation verify $exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest $source --format json
+          if ($LASTEXITCODE -ne 0 -or @(($verified | ConvertFrom-Json)).Count -lt 1) {
+            throw 'Independent public EXE Sigstore/SLSA signature verification failed'
+          }
+          Write-Output "CLI_PUBLIC_REAL_BYTE_AND_SLSA=PASS SHA256=$actual"
+
+          $cliVersion = (& $exe --version 2>&1 | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $cliVersion -cne '0.2.1') { throw 'Public EXE failed Windows --version' }
+          $helpText = & $exe --help 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'pgextwin list') { throw 'Public EXE help failed' }
+          $listing = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'Public EXE local catalog list failed' }
+          $j = $listing | ConvertFrom-Json
+          if ($j.count -ne 14 -or @($j.records).Count -ne 14 -or
+              $j.source -cne 'LOCAL_UNAUTHENTICATED' -or $j.trust -cne 'UNVERIFIED' -or
+              $j.signatureVerified -ne $false -or $j.distributionAuthorized -ne $false) {
+            throw 'Public EXE Catalog trust envelope failed'
+          }
+          $find = & $exe search cron --catalog-dir $env:GITHUB_WORKSPACE --pg 18 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $find -notmatch 'pg_cron') { throw 'Public EXE search failed' }
+          $deny = & $exe verify pg_cron --pg 18 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $deny -notmatch 'DENY:') { throw 'Unimplemented extension Sigstore verification accepted' }
+          $bad = & $exe download-all --pg all --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $bad -notmatch 'DENY:') {
+            throw 'Bulk download without independent policy was not denied'
+          }
+          $help = & $exe --help 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $help -notmatch 'download-all') {
+            throw 'Public EXE lacks batch command'
+          }
+          $global:LASTEXITCODE = 0
+          Write-Output 'CLI_V021_PUBLIC_WINDOWS_BINARY=PASS BULK_COMMAND_PRESENT MISSING_P1_POLICY_DENY'
+
+  real-70-zip-one-line:
+    name: Real 70 original Release ZIPs by exactly one user command
+    runs-on: windows-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - name: Download signed CLI v0.2.1 public original EXE (no temporary artifact)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = Join-Path $env:RUNNER_TEMP 'real-cli'
+          New-Item -ItemType Directory $dir | Out-Null
+          $exe = Join-Path $dir 'pgextwin.exe'
+          Invoke-WebRequest 'https://github.com/pgextwin/catalog/releases/download/cli-v0.2.1/pgextwin.exe' -OutFile $exe -MaximumRedirection 5
+          if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -cne '78de25e4ac3b8d40ba173f3369a12cf92e97ee0e2a65695820390231e3d08aca') { throw 'CLI original EXE SHA256 invalid' }
+          $ver = (& $exe --version 2>&1 | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $ver -cne '0.2.1') { throw 'Wrong live EXE version' }
+
+      - name: Fetch actual 70 original ZIPs with only download-all --pg all
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:RUNNER_TEMP 'real-cli/pgextwin.exe'
+          Push-Location $env:RUNNER_TEMP
+          try {
+            $start = Get-Date
+            $result = & $exe download-all --pg all 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) { throw "The real one-line command failed closed: $result" }
+            if ($result -notmatch 'BATCH_INTEGRITY_ONLY' -or $result -notmatch 'ZIP_COUNT=70') { throw '70 ZIP receipt missing' }
+            $folder = Join-Path $env:RUNNER_TEMP 'pgextwin-pg14-18'
+            $metadata = Join-Path $folder 'DOWNLOAD-INFO.json'
+            if (!(Test-Path -LiteralPath $metadata -PathType Leaf)) { throw 'Complete batch info missing' }
+            $info = Get-Content -LiteralPath $metadata -Raw | ConvertFrom-Json
+            if ($info.zipCount -ne 70 -or @($info.packages).Count -ne 70 -or $info.signatureVerified -ne $false -or
+                $info.provenanceVerified -ne $false -or $info.distributionAuthorized -ne $false -or
+                $info.installAuthorized -ne $false -or $info.verificationLevel -cne 'INTEGRITY_ONLY') { throw 'Batch content/trust contract failed' }
+            $zips = @(Get-ChildItem $folder -File -Recurse -Filter '*.zip')
+            if ($zips.Count -ne 70) { throw "Wrong real ZIP count $($zips.Count)" }
+            foreach ($pg in @(14,15,16,17,18)) {
+              $pack = @($info.packages | Where-Object { $_.pgMajor -eq [string]$pg })
+              if ($pack.Count -ne 14) { throw "PG$pg did not return 14 ZIPs" }
+            }
+            foreach ($record in $info.packages) {
+              if ($record.relativePath -notmatch '^pg1[4-8]/[A-Za-z0-9._-]+\.zip$') { throw 'Unexpected ZIP path' }
+              $file = Join-Path $folder $record.relativePath
+              if (!(Test-Path -LiteralPath $file -PathType Leaf)) { throw 'Missing original ZIP byte file' }
+              $dig = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+              if ($dig -cne $record.sha256 -or (Get-Item -LiteralPath $file).Length -ne $record.bytes) { throw 'Independent original ZIP rehash differs from manifest' }
+            }
+            $secs = [int]((Get-Date) - $start).TotalSeconds
+            Write-Output "CLI_V021_REAL_70_ZIP_DOWNLOAD=PASS ALL_PG14_18 SHA256=70/70 SEC=$secs AUTHENTICITY=INTEGRITY_ONLY"
+          }
+          finally { Pop-Location }
