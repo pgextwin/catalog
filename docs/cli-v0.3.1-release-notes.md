@@ -47,6 +47,19 @@ Sigstore feed's source identity, signer workflow, SHA and verified timestamp
 remain required at runtime. If trim warnings or runtime verification regress,
 the build/test is FAIL, not a success or a justification to bypass protections.
 
+## Final protected-main signed original binary
+
+- Source: `a7a1d93d38d7338d80404c402eb5faaaa96b272e`
+- Original R6 signed Run: [39253153311](https://github.com/pgextwin/catalog/actions/runs/39253153311) — SUCCESS
+- Original win-x64 EXE SHA256: `baee38b3aafdd1bbb7f61857747358dbd40ab056d989aa0f753c93b2025a7580`
+- This is **EXE provenance**, not extension ZIP authenticity.
+
+The R7 public-release workflow must exact-match this original main source,
+run and EXE digest, rehash draft public assets, create a new `cli-v0.3.1`
+prerelease without replacing the stable signed Catalog selection feed, then
+require a second clean Windows runner to download the **public** EXE and
+verify genuine Sigstore EXE provenance and all 70 public ZIP hashes.
+
 ## Acceptance remaining for this v0.3.1 implementation
 
 - Fresh protected PR mandatory Validate + private Windows build/smoke +
