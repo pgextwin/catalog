@@ -26,6 +26,7 @@ class CliReleasePolicyTests(unittest.TestCase):
             self.assertEqual(record["sourceCommit"],"d0056b688dc27095d2d7ffd6f8b77aff965def79")
             self.assertEqual(record["exeSha256"],"c2782f46539bd932c9c19105055e45dcf8796d573a8c30ad9844e6ba510ddfb1")
         self.assertIn("branches: [main]",self.doc)
+        self.assertIn(".github/workflows/cli-preview-release.yml",self.doc)
         self.assertIn("pull_request:",self.doc)
         self.assertIn("if: github.event_name == 'push' && github.ref == 'refs/heads/main'",self.doc)
         for forbidden in ("pull_request_target:", "workflow_dispatch:", "workflow_run:"):
@@ -53,6 +54,8 @@ class CliReleasePolicyTests(unittest.TestCase):
         self.assertIn("--verify-tag --draft --prerelease",self.doc)
         self.assertIn("gh release download $tag",self.doc)
         self.assertIn("--draft=false",self.doc)
+        self.assertIn("[Array]::Sort($files, [StringComparer]::Ordinal)",self.doc)
+        self.assertIn("[Array]::Sort($expected, [StringComparer]::Ordinal)",self.doc)
         self.assertNotIn("--clobber",self.doc)
 
 
