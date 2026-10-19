@@ -13,7 +13,9 @@ $expected = [string[]]@(
   'DOTNET-THIRD-PARTY-NOTICES.txt',
   'SHA256SUMS.txt'
 )
-$files = @(Get-ChildItem -LiteralPath $Directory -File)
+$entries = @(Get-ChildItem -LiteralPath $Directory -Force)
+if (@($entries | Where-Object { $_.PSIsContainer }).Count -ne 0) { throw 'R7 unexpected directory' }
+$files = @($entries | Where-Object { -not $_.PSIsContainer })
 if ($files.Count -ne $expected.Count) {
   throw "R7 asset count mismatch: found $($files.Count), expected $($expected.Count)"
 }
