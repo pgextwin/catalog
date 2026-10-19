@@ -150,3 +150,29 @@ verification, R3 bundles and R7 publication remain gated.
 
 Only synthetic ephemeral signing keys and synthetic files are used in CI.
 The CLI public binary and any real extension Release are not published.
+
+## v0.2.0 — fetch all original ZIPs for one or five PostgreSQL majors
+
+The `download-all` command reuses the **previously validated** Catalog v2, P1 policy
+pins, and single-ZIP bounded, GET-only downloader. Use `--pg 18` to fetch 14 ZIPs,
+or `--pg all` to fetch the full 70 ZIPs (PG14–18). Examples:
+
+```powershell
+New-Item -ItemType Directory -Force C:\\pgextwin-downloads
+.\\pgextwin.exe download-all --pg 18 --catalog-dir C:\\approved\\catalog \`
+  --policy C:\\approved\\policy.json --policy-sha256 OUT_OF_BAND_APPROVED_HEX \`
+  --output C:\\pgextwin-downloads
+```
+
+Each ZIP is saved in `pg<major>/` under a new `pgextwin-pg<major>` directory;
+`--pg all` creates `pgextwin-pg14-18/pg14/` through `pg18/`. The directory
+is exposed only after all selected original bytes have passed their SHA256 and
+numeric GitHub Release identity checks. If one fails, staging is removed and
+existing output is never overwritten. `DOWNLOAD-INFO.json` keeps the complete
+package inventory and explicitly sets all signer/provenance/install authority
+flags to **false**; a digest match is `INTEGRITY_ONLY`, not signature verification.
+
+This is bulk retrieval of individually published ZIPs, **not** a signed enclosing
+archive or an installer. It requires a separately approved current P1 policy
+and SHA256; where independent validation is unavailable, it rejects rather than
+silently downgrading the trust claim. See [v0.2 guide](../docs/cli-v0.2-batch-download.md).
