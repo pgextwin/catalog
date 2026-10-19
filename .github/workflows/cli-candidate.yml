@@ -1,0 +1,93 @@
+name: CLI R6 private candidate (no publication)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dotnet/**'
+      - 'scripts/cli_r6_candidate.py'
+      - 'tests/test_cli_r6_candidate.py'
+      - '.github/workflows/cli-candidate.yml'
+  pull_request:
+    paths:
+      - 'dotnet/**'
+      - '.github/workflows/cli-candidate.yml'
+      - 'scripts/cli_r6_candidate.py'
+      - 'tests/test_cli_r6_candidate.py'
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.100'
+      - name: Build v0.1 private binary and SHA256
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'cli-candidate'
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -o $dir
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+          $exe = Join-Path $dir 'pgextwin.exe'
+          if (!(Test-Path $exe)) { throw 'Binary missing' }
+          $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output "R6_CANDIDATE_SHA256=$sha RELEASE=DENY"
+      - name: Record bounded exact-byte receipt (not a signature)
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:RUNNER_TEMP 'cli-candidate/pgextwin.exe'
+          $receipt = Join-Path $env:RUNNER_TEMP 'cli-candidate/candidate-evidence.json'
+          $sha = (& git rev-parse HEAD).Trim().ToLowerInvariant()
+          $sdk = (& dotnet --version).Trim()
+          python scripts/cli_r6_candidate.py emit --binary $exe --receipt $receipt --source $sha --run-id $env:GITHUB_RUN_ID --sdk $sdk
+          if ($LASTEXITCODE -ne 0) { throw 'Receipt emission failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cli-r6-private-candidate
+          path: |
+            ${{ runner.temp }}/cli-candidate/pgextwin.exe
+            ${{ runner.temp }}/cli-candidate/candidate-evidence.json
+          if-no-files-found: error
+          retention-days: 1
+
+  independent-smoke:
+    name: Independent Windows CLI runtime and hash verification
+    needs: candidate
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: cli-r6-private-candidate
+          path: ${{ runner.temp }}/cli-independent
+      - name: Rehash original bytes, reject escalation and run EXE
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = Join-Path $env:RUNNER_TEMP 'cli-independent'
+          $names = @(Get-ChildItem -LiteralPath $dir -File | Select-Object -ExpandProperty Name | Sort-Object)
+          if (($names -join ',') -cne 'candidate-evidence.json,pgextwin.exe') { throw 'Unexpected candidate file layout' }
+          $exe = Join-Path $dir 'pgextwin.exe'
+          $receipt = Join-Path $dir 'candidate-evidence.json'
+          $sha = (& git rev-parse HEAD).Trim().ToLowerInvariant()
+          python scripts/cli_r6_candidate.py verify --binary $exe --receipt $receipt --source $sha --run-id $env:GITHUB_RUN_ID
+          if ($LASTEXITCODE -ne 0) { throw 'Independent candidate verification failed' }
+          $version = (& $exe --version 2>&1 | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $version -cne '0.1.0-preview.1') { throw 'Version smoke failed' }
+          $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'Catalog smoke failed' }
+          $data = $jsonText | ConvertFrom-Json
+          if ($data.count -ne 14 -or @($data.records).Count -ne 14 -or $data.trust -cne 'UNVERIFIED' -or $data.signatureVerified -ne $false) { throw 'Unsafe listing' }
+          $search = & $exe search cron --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $search -notmatch 'pg_cron') { throw 'Search smoke failed' }
+          $deny = & $exe verify pg_cron --pg 18 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $deny -notmatch 'DENY:') { throw 'Unimplemented Sigstore verification accepted' }
+          $global:LASTEXITCODE = 0
+          Write-Output 'CLI_R6_PRIVATE_FRESH_RUNNER_SMOKE=PASS PUBLISH=DENY'
