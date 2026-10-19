@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'config/cli-preview-release-intent.json'
+      - '.github/workflows/cli-preview-release.yml'
 
 permissions:
   contents: read
@@ -155,8 +156,13 @@ jobs:
           $intent=Get-Content config/cli-preview-release-intent.json -Raw | ConvertFrom-Json
           if ($intent.publish -ne $true -or $intent.tag -cne $tag -or $intent.exeSha256 -cne $digest -or $intent.sourceCommit -cne $expectedSource) { throw 'Release intent changed' }
           $dir=Join-Path $env:RUNNER_TEMP 'cli-release'
-          $files=@(Get-ChildItem $dir -File | Select-Object -ExpandProperty Name | Sort-Object)
-          if (($files -join ',') -cne 'DOTNET-LICENSE.txt,DOTNET-THIRD-PARTY-NOTICES.txt,SHA256SUMS.txt,pgextwin.exe,pgextwin.spdx.json') { throw 'Release asset set mismatch' }
+          $files=[string[]]@(Get-ChildItem -LiteralPath $dir -File | Select-Object -ExpandProperty Name)
+          [Array]::Sort($files, [StringComparer]::Ordinal)
+          # PowerShell Sort-Object is culture/case insensitive: never compare its
+          # order to an ordinal literal because lower-case pgextwin sorts differently.
+          $expected=[string[]]@('DOTNET-LICENSE.txt','DOTNET-THIRD-PARTY-NOTICES.txt','SHA256SUMS.txt','pgextwin.exe','pgextwin.spdx.json')
+          [Array]::Sort($expected, [StringComparer]::Ordinal)
+          if (($files -join ',') -cne ($expected -join ',')) { throw "Release asset set mismatch: $($files -join ',')" }
           if ((Get-FileHash (Join-Path $dir 'pgextwin.exe') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $digest) { throw 'EXE hash mismatch' }
           foreach ($line in @(Get-Content (Join-Path $dir 'SHA256SUMS.txt'))) {
             if ($line -notmatch '^([A-Fa-f0-9]{64})  (pgextwin.exe|pgextwin.spdx.json|DOTNET-LICENSE.txt|DOTNET-THIRD-PARTY-NOTICES.txt)$') { throw 'Bad checksum entry' }
