@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pure, fail-closed Catalog v2 mapping for 14 pgextwin signed public Releases.
+"""Pure, fail-closed Catalog v2 mapping for independently verified signed public Releases.
 
 Does not download artifacts, verify GitHub attestations, dispatch workflows,
 merge PRs or publish Releases. Call ONLY after a separate fully signed Release
@@ -24,6 +24,9 @@ ALLOWED = {
     "pg_partman": "pgpartman/pg_partman",
     "pg_stat_monitor": "percona/pg_stat_monitor",
     "orafce": "orafce/orafce",
+    "pgtap": "theory/pgtap",
+    "pg_variables": "postgrespro/pg_variables",
+    "pg_store_plans": "ossc-db/pg_store_plans",
 }
 SHA = re.compile(r"^[0-9a-f]{40}$")
 DIGEST = re.compile(r"^[0-9a-f]{64}$")
@@ -88,6 +91,42 @@ def tag_for(ext, revision):
     else:
         stem="v"+latest["version"]
     return stem+"-windows."+revision
+
+# Only these new identities may bootstrap a Catalog record, and only AFTER the
+# independent Release verifier has rehashed public assets, verified both
+# attestations and checked an exact successful human main Promotion run.
+# This is a Catalog intake allowlist, NOT a Publisher permission grant.
+FIRST_RELEASE = {
+    "pgtap": ("pgTAP", "TAP-compatible PostgreSQL unit testing", "PostgreSQL"),
+    "pg_variables": ("pg_variables", "Session variables for PostgreSQL", "PostgreSQL"),
+    "pg_store_plans": ("pg_store_plans", "SQL execution plan statistics", "BSD-3-Clause"),
+}
+
+
+def seed_verified_first_release(ext, contract):
+    """In-memory Catalog v2 seed; never creates a public record by itself."""
+    name = ext.get("name")
+    require(name in FIRST_RELEASE, "first-release Catalog seed not authorized")
+    src = source_map(ext)  # exact immutable full upstream commit for every major
+    require(contract.get("contractVersion") == 2 and contract.get("extension") == name
+            and isinstance(contract.get("runtimeRequirements"), dict),
+            "first-release Test Contract v2 missing")
+    preload = contract["runtimeRequirements"].get("preload")
+    require(preload in ("none", "optional", "shared"),
+            "unknown initial preload requirement")
+    display, description, license_name = FIRST_RELEASE[name]
+    return {
+        "schemaVersion": 2, "name": name, "displayName": display,
+        "description": description,
+        "upstream": {"repository": ALLOWED[name], "version": src[max(src)]["version"]},
+        "repository": "pgextwin/" + name, "license": license_name,
+        "architecture": "x64",
+        "latest": {}, "postgresql": {},
+        "runtime": {"sharedPreloadLibraries": [name] if preload == "shared" else [],
+                    "requirements": {}},
+        "capabilities": {}, "capabilitiesSource": {},
+    }
+
 
 def map_verified_release(existing, release, ext, contract, assets, sums,
                          source_commit, required_majors):
