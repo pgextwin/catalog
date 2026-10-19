@@ -36,6 +36,22 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("gh pr create --repo", workflow)
         self.assertNotIn("gh pr merge", workflow)
 
+    def test_third_wave_requires_signed_first_record_verification(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        for name in ("pgtap", "pg_variables", "pg_store_plans"):
+            self.assertIn("          - " + name + "\n", workflow)
+        self.assertIn("base_record_sha=MISSING", workflow)
+        self.assertIn("base_index_sha=", workflow)
+        self.assertIn("steps.verify.outputs.changed == 'true'", workflow)
+        self.assertLess(workflow.index("Rehash all signed assets"),
+                        workflow.index("Update index only after complete signed"))
+        self.assertLess(workflow.index("Update index only after complete signed"),
+                        workflow.index("Validate proposed record against Catalog"))
+        self.assertIn('if [[ "$BASE_RECORD_SHA" == MISSING ]]', workflow)
+        self.assertIn('cp ../index.json index.json', workflow)
+        self.assertIn('git add -- "extensions/$EXTENSION.json" index.json', workflow)
+        self.assertNotIn("gh pr merge", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

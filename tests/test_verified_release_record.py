@@ -2,7 +2,7 @@
 """No-network tests for mapping a pre-verified formal Windows Release to Catalog v2."""
 import copy
 import unittest
-from scripts.verified_release_record import ALLOWED, Denied, tag_for, map_verified_release
+from scripts.verified_release_record import INTAKE_ALLOWED, Denied, tag_for, map_verified_release, seed_verified_first_release
 
 REFS={
  "pg_bigm":("v1.2-20250903","1.2"),
@@ -16,7 +16,10 @@ REFS={
  "wal2json":("wal2json_2_7","2.7"),
  "pg_partman":("v5.5.0","5.5.0"),
  "pg_stat_monitor":("2.4.0","2.4.0"),
- "orafce":("VERSION_4_16_13","4.16.13")
+ "orafce":("VERSION_4_16_13","4.16.13"),
+ "pgtap":("v1.3.4","1.3.4"),
+ "pg_variables":("v1.2.1","1.2.1"),
+ "pg_store_plans":("1.10","1.10")
 }
 PER={
  "pgaudit":{14:("1.6.3","1.6.3"),15:("1.7.1","1.7.1"),16:("16.1","16.1"),17:("17.1","17.1"),18:("18.0","18.0")},
@@ -24,7 +27,7 @@ PER={
 }
 def fixture(name):
     repo="pgextwin/"+name
-    up={"repository":ALLOWED[name]}
+    up={"repository":INTAKE_ALLOWED[name]}
     if name in REFS:
         ref,vers=REFS[name]
         up.update(ref=ref,version=vers,commit="a"*40)
@@ -34,7 +37,7 @@ def fixture(name):
     ext={"name":name,"upstream":up,"postgresql":{"majors":[14,15,16,17,18]}}
     tag=tag_for(ext,"3")
     base={"schemaVersion":2,"name":name,"repository":repo,
-          "upstream":{"repository":ALLOWED[name],"version":"historical"},
+          "upstream":{"repository":INTAKE_ALLOWED[name],"version":"historical"},
           "postgresql":{str(m):{} for m in range(14,19)},
           "runtime":{"requirements":{}},"capabilities":{},"capabilitiesSource":{}}
     rel={"tag_name":tag,"draft":False,"prerelease":False,
@@ -62,9 +65,9 @@ def mapped(name, parts=None, required=None):
                                 required if required is not None else [14,15,16,17,18])
 
 class RecordTests(unittest.TestCase):
-    def test_exact_fourteen_source_and_asset_naming_rules(self):
-        self.assertEqual(set(ALLOWED),set(REFS)|set(PER))
-        for name in ALLOWED:
+    def test_exact_seventeen_source_and_asset_naming_rules(self):
+        self.assertEqual(set(INTAKE_ALLOWED),set(REFS)|set(PER))
+        for name in INTAKE_ALLOWED:
             with self.subTest(name=name):
                 original=fixture(name)
                 after=mapped(name,original)
@@ -78,6 +81,32 @@ class RecordTests(unittest.TestCase):
                          if name in PER else original[2]["upstream"]["ref"])
                     self.assertIn("-"+ref+"-pg"+str(major)+"-",after["postgresql"][str(major)]["asset"])
                 self.assertEqual(after["capabilities"]["testContractVersion"],2)
+
+    def test_first_release_seed_requires_exact_third_wave_identity(self):
+        for name in ("pgtap", "pg_variables", "pg_store_plans"):
+            with self.subTest(name=name):
+                base, release, manifest, contract, assets, sums = fixture(name)
+                if name == "pg_store_plans":
+                    contract["runtimeRequirements"]["preload"] = "shared"
+                seed = seed_verified_first_release(manifest, contract)
+                self.assertEqual(seed["latest"], {})
+                self.assertEqual(seed["postgresql"], {})
+                self.assertEqual(seed["repository"], "pgextwin/" + name)
+                self.assertEqual(seed["upstream"]["repository"], INTAKE_ALLOWED[name])
+                result = map_verified_release(
+                    seed, release, manifest, contract, assets, sums, "c"*40,
+                    [14, 15, 16, 17, 18])
+                self.assertEqual(len(result["postgresql"]), 5)
+                self.assertEqual(result["latest"]["releaseTag"], release["tag_name"])
+                self.assertEqual(result["runtime"]["sharedPreloadLibraries"],
+                                 ["pg_store_plans"] if name == "pg_store_plans" else [])
+        base, release, manifest, contract, assets, sums = fixture("orafce")
+        with self.assertRaises(Denied):
+            seed_verified_first_release(manifest, contract)
+        base, release, manifest, contract, assets, sums = fixture("pg_variables")
+        manifest["upstream"]["commit"] = "unverified"
+        with self.assertRaises(Denied):
+            seed_verified_first_release(manifest, contract)
 
     def test_stale_pg14_is_preserved_when_not_maintained(self):
         parts=fixture("wal2json")
