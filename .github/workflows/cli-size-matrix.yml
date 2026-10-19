@@ -94,3 +94,34 @@ jobs:
             }
             Write-Output "SIZE_REAL_PG18=PASS 14/14 MODE=$env:MODE SIGSTORE_FEED=VERIFIED EXTENSION_AUTH=INTEGRITY_ONLY"
           } finally { Pop-Location }
+
+      - name: Full-trim explicit frozen Catalog compatibility and SHA256
+        if: matrix.mode == 'trim-full'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $exe=Join-Path $env:RUNNER_TEMP 'cli-size-trim-full/pgextwin.exe'
+          $work=Join-Path $env:RUNNER_TEMP 'frozen-contract'
+          New-Item -ItemType Directory -Path $work | Out-Null
+          Push-Location $work
+          try {
+            $out=(& $exe download-all --pg 18 --fixed 2>&1 | Out-String)
+            if ($LASTEXITCODE -ne 0 -or $out -notmatch 'ZIP_COUNT=14') {
+              throw "Explicit historical compatibility failed: $out"
+            }
+            $root=Join-Path $work 'pgextwin-pg18'
+            $info=Get-Content -LiteralPath (Join-Path $root 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
+            if ($info.zipCount -ne 14 -or $info.signatureVerified -ne $false -or
+                $info.verificationLevel -cne 'INTEGRITY_ONLY' -or
+                $info.source -cne 'CLI_PINNED_HISTORICAL_CANDIDATE_POLICY') {
+              throw 'Fixed historical trust flags changed'
+            }
+            foreach ($p in $info.packages) {
+              $actual=(Get-FileHash -LiteralPath (Join-Path $root $p.relativePath) -Algorithm SHA256).Hash.ToLowerInvariant()
+              if ($actual -cne $p.sha256) { throw 'Original historical ZIP byte mismatch' }
+            }
+            Write-Output 'CLI_V031_FULL_TRIM_FIXED_FALLBACK=PASS SHA256=14/14 NO_GH_TOKEN=true'
+          }
+          finally { Pop-Location }
