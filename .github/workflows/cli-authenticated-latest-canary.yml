@@ -1,0 +1,78 @@
+name: CLI latest Catalog real Windows GET-only canary
+on:
+  pull_request:
+    paths:
+      - 'dotnet/**'
+      - '.github/workflows/cli-authenticated-latest-canary.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'dotnet/**'
+      - '.github/workflows/cli-authenticated-latest-canary.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  latest-real-70:
+    name: Exact signed-Catalog main metadata and real 70 ZIP Windows E2E (nonpublishing)
+    if: github.repository == 'pgextwin/catalog'
+    runs-on: windows-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout source without write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pinned .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.402'
+      - name: Publish private self-contained win-x64 CLI (no Release)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:RUNNER_TEMP 'latest-cli'
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo
+          if ($LASTEXITCODE -ne 0) { throw 'CLI build failed' }
+          $exe=Join-Path $dir 'pgextwin.exe'
+          if (!(Test-Path -LiteralPath $exe)) { throw 'CLI EXE missing' }
+          Write-Output "LATEST_CANARY_PRIVATE_EXE_SHA256=$((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant())"
+      - name: Download real latest Catalog 70 ZIPs via one command and rehash
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'latest-cli/pgextwin.exe'
+          $parent=Join-Path $env:RUNNER_TEMP 'latest-download'
+          New-Item -ItemType Directory -Path $parent | Out-Null
+          Push-Location $parent
+          try {
+            $receipt=& $exe download-all --pg all --latest 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) { throw "Latest download must fail closed, not be waived: $receipt" }
+            if ($receipt -notmatch 'ZIP_COUNT=70' -or $receipt -notmatch 'CATALOG_AUTH=GITHUB_API_SIGNED_COMMIT_STATUS') { throw 'Authenticated latest receipt missing' }
+            $folder=Join-Path $parent 'pgextwin-pg14-18'
+            $info=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
+            if ($info.zipCount -ne 70 -or @($info.packages).Count -ne 70 -or
+                $info.source -cne 'GITHUB_VERIFIED_PROTECTED_MAIN_AND_EXACT_VALIDATE' -or
+                $info.signatureVerified -ne $false -or $info.provenanceVerified -ne $false -or
+                $info.publicationAuthorized -ne $false -or $info.distributionAuthorized -ne $false -or
+                $info.installAuthorized -ne $false -or $info.verificationLevel -cne 'INTEGRITY_ONLY') {
+              throw 'Unsafe or incomplete live latest receipt'
+            }
+            $hashes=0
+            foreach ($row in $info.packages) {
+              if ($row.catalogCommit -notmatch '^[0-9a-f]{40}$' -or $row.releaseTag -notmatch '^[a-zA-Z0-9._-]+$') { throw 'Unpinned latest receipt' }
+              $file=Join-Path $folder $row.relativePath
+              if (!(Test-Path -LiteralPath $file -PathType Leaf)) { throw 'Missing real ZIP' }
+              if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Real ZIP bytes wrong' }
+              $hashes++
+            }
+            if ($hashes -ne 70) { throw 'Wrong original real ZIP count' }
+            Write-Output "LATEST_CATALOG_REAL_70_ZIPS=PASS SHA256=70/70 CATALOG_AUTH=GITHUB_API_APPROVED SIGNATURE_VERIFIED=false PUBLISH=DENY"
+          }
+          finally { Pop-Location }
