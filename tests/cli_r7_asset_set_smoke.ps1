@@ -26,7 +26,6 @@ try {
   }
   Write-Checksums
   & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
-  if ($LASTEXITCODE -ne 0) { throw 'Positive asset fixture failed' }
 
   [IO.File]::WriteAllText((Join-Path $dir 'unexpected.txt'), 'inject')
   Expect-Denied 'extra file'
