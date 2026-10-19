@@ -4,6 +4,13 @@ on:
   workflow_run:
     workflows: ["Publish one-command pgextwin CLI v0.3.1 after signed R6 approval"]
     types: [completed]
+  pull_request:
+    paths:
+      - '.github/workflows/cli-v031-public-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cli-v031-public-smoke.yml'
 
 permissions:
   contents: read
@@ -11,7 +18,7 @@ permissions:
 jobs:
   public-cli-70:
     name: Public v0.3.1 exact-byte Sigstore and anonymous latest 70 ZIP
-    if: ${{ github.repository == 'pgextwin/catalog' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1 }}
+    if: ${{ github.repository == 'pgextwin/catalog' && ((github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1) || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
     runs-on: windows-latest
     timeout-minutes: 40
     permissions:
@@ -58,7 +65,7 @@ jobs:
             throw 'Original public EXE independent Sigstore verification failed'
           }
           $v=(& $exe --version 2>&1 | Out-String).Trim()
-          if ($LASTEXITCODE -ne 0 -or $v -cne '0.3.0') { throw 'Wrong public Windows CLI version' }
+          if ($LASTEXITCODE -ne 0 -or $v -cne '0.3.1') { throw 'Wrong public Windows CLI version' }
           Write-Output "CLI_V031_PUBLIC_ORIGINAL_SHA256_SLSA=PASS EXE_SHA256=$digest"
 
       - name: Execute exact default one-line 70 ZIP command on real public EXE without GitHub token
