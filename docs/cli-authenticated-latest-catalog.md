@@ -1,30 +1,33 @@
-# CLI v0.3.0 authenticated latest Catalog — default download (2026-10-19)
+# pgextwin CLI v0.3.0 — locally verified Sigstore Catalog feed
 
-Status: anonymous Windows 70 ZIP GET-only canary passed on [Run 39237271741](https://github.com/pgextwin/catalog/actions/runs/39237271741), SHA256=70/70 without GH_TOKEN. CLI v0.3.0 changes the default only after protected PR and publisher gates.
+## Behavior
 
-```powershell
-.\pgextwin.exe download-all --pg all  # verified Catalog latest (default)
-.\pgextwin.exe download-all --pg all --latest  # explicit equivalent
-.\pgextwin.exe download-all --pg all --fixed  # historical SHA-pinned snapshot
-```
+The user command `pgextwin.exe download-all --pg all` selects the **Catalog-registered** published Release per extension and retrieves the 14 × PG14–18 original public ZIPs; `--pg 18` restricts to 14. The `--latest` argument is equivalent to the default. `--fixed` retains the frozen historical 2026-10-17 policy and original packages from v0.2.2.
 
-The `--latest` path selects **only** the exact Release tags, PG major ZIP URLs, and SHA256 values in the protected `pgextwin/catalog` main snapshot. It does not use GitHub's `releases/latest`, upstream latest tags, draft Releases, candidate PRs or failed workflow runs.
+Unlike PR #123's experimental GitHub REST online metadata verifier, v0.3.0 does **not call anonymous GitHub REST APIs**. The #125 first default attempt correctly failed with HTTP403 and was **not** waived. Instead, the protected-main signed-feed publisher introduced in PR #126 runs only after an independently verified exact-main `Validate catalog` push SUCCESS. A separate GitHub Actions OIDC signer signs `catalog-latest.json` using Sigstore; a separate write-scoped job cryptographically validates the original signed bytes before create-only **metadata-only** Release publication.
 
-It requires an authenticated GitHub HTTPS REST response reporting all of:
-- `main.protected == true` and a full immutable HEAD commit ID;
-- signed GitHub `web-flow` merge commit with `commit.verification.verified=true`, reason `valid`, expected GitHub committer identity;
-- a completed successful **push** `validate.yml` workflow run at that **exact same main SHA** and attempt 1;
-- a complete 14-extension Catalog v2 read at the immutable commit SHA, stable HEAD before and after the snapshot;
-- exact live repository ID, public Release tag/ID, uploaded asset IDs, browser URLs and GitHub Release SHA256 digests consistent with every Catalog-selected ZIP.
+Each public feed Release has a create-only `catalog-feed-<40-char-sha>` tag and exactly:
+- `catalog-latest.json` — raw Catalog SHA256 digests for 15 files and 70 published asset URL, original SHA256, Repo/Release/Asset IDs.
+- `catalog-latest.sigstore.json` — its original GitHub Actions Sigstore/SLSA signature bundle.
 
-The existing `PinnedBrowserDownloader`, `BatchReleaseDownloader.StageAsync`, 64MiB ZIP caps, SHA256 streamed checks, URL/redirect guards, ZIP magic checks, no-overwrite staging, whole-batch atomic promotion and rollback are reused. No ZIP extraction, install, Sigstore assertion or publisher privilege is introduced. The receipt remains `INTEGRITY_ONLY`, `signatureVerified=false`, `publicationAuthorized=false`, `distributionAuthorized=false`, `installAuthorized=false`. A GitHub-reported signed commit is *not* an independently evaluated OpenPGP signature or original Release attestation.
+Current public feed: [GitHub Catalog latest stable Release](https://github.com/pgextwin/catalog/releases/latest).
 
-## Critical usability gate
+The CLI retrieves both files from `https://github.com/pgextwin/catalog/releases/latest/download/...` using bounded, HTTPS-only redirects to approved GitHub asset hosts, no API calls or GitHub account login. It rejects cross-release feed/bundle redirects. **Before accepting any metadata**, the CLI verifies the bundle cryptographically using the pinned **Sigstore 1.1.1** managed verifier and a TUF trust root independent of the feed. The exact GitHub Actions OIDC issuer, signer workflow SAN, protected main ref, source repository ID and SHA, SLSA predicate and verified timestamps must match. It then fetches the 15 Catalog JSON files by exact immutable commit SHA and rehashes every byte against the signed feed, checks all 14 latest tags/70 asset URLs/digests/IDs, and invokes the existing bounded `PinnedBrowserDownloader` and all-or-nothing `BatchReleaseDownloader.StageAsync`.
 
-The latest path needs read access to GitHub REST **branch, commit, Actions run, repository and Release metadata**. The previously observed anonymous HTTP 403 cannot be waived or converted into a success. The runtime optionally uses an existing `GH_TOKEN`/`GITHUB_TOKEN` environment variable, but does not prompt for, persist or generate credentials. The anonymous Windows canary passed all 70 original ZIP SHA256 without a GitHub token at PR #124. The v0.2.2 historical snapshot remains available through `--fixed`. A future 403/429 is an explicit fail-closed error (no silent fallback to old ZIPs or false latest claim); a single canary does not guarantee GitHub API availability for every machine.
+`DOWNLOAD-INFO.json` records each package's original Catalog commit/Release tag/SHA256 and `source=SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS`, `releaseMetadataVerified=false` because numeric GitHub Release IDs are **signed feed pins** and not live API audited by the client, `verificationLevel=INTEGRITY_ONLY`, `signatureVerified=false` for **original extension ZIP signatures**, `provenanceVerified=false` for the same originals, `installAuthorized=false` and `publicationAuthorized=false`. `CATALOG_AUTH=SIGSTORE_VERIFIED_FEED` means *only the Catalog feed's* Sigstore attestation passed.
 
-Synthetic hostile tests exercise protected-branch denial, signature-status failure, missing successful exact-head CI, head racing, incorrect record identity, HTTP 403, mutated Release digest, draft Release and clean staging rollback. PR Windows self-contained packaging smoke and existing App15368 required Validate are the acceptance path; a green compile alone is not public download acceptance.
+## Safety, availability and policy
 
-This design uses GitHub API TLS and GitHub's server-side commit signature/CI verdict as its online authorization source. It is not a detached end-user-verified publisher signature. If the required interpretation of independently authenticated Catalog demands a separate pinned signer key/Sigstore bundle, a further issuer-and-root gated implementation is required before default promotion.
+- Any incorrect Sigstore identity, revoked/missing trust root, incorrect original ZIP SHA256, unsigned/mismatched feed, cross-Release redirect, unexpected Catalog commit, stale/missing raw files, HTTP 403/429, incomplete 70 entries, duplicate/unsafe names or output collisions fail closed.
+- A GitHub stable `releases/latest` pointer is an online freshness locator. Stateles clients cannot prove an absent new signed feed against rollback by a compromised GitHub Release latest pointer. The signed feed provenance and exact immutable contents are independently authenticated; automatic update freshness still depends on GitHub's public latest Release endpoint. No mutable untrusted feed hash authorizes itself.
+- This new metadata-only Release **does not publish/authorize any extension ZIP or bundle**, change #75 GO B/G4/G5, upgrade historical P1 acceptance, or attest the extension original ZIP bytes individually.
+- Existing v0.2.2 CLI, Releases and safety gates remain intact.
 
-Safety remains Issue #75 GO B/G4/G5 NO-GO for its separate signed-Publisher scope. Formal historical P1 gaps are not reclassified.
+## Acceptance gates
+
+1. PR #126 produced a real signed metadata feed via [Run 39239324505](https://github.com/pgextwin/catalog/actions/runs/39239324505): protected current-main Validate, Sigstore genuine attestation, independent signed-asset verification, create-only Release, re-read and byte compare.
+2. v0.3.0 independent Windows PR, postmerge, clean **tokenless** Windows 70/70 real ZIP checks must succeed and use only public signed feed. Test failures cannot be waived.
+3. Protected-main CLI R6 genuine original EXE Sigstore SLSA, source commit identity, SHA256, .NET runtime and NuGet third-party licensing/SBOM verification must succeed.
+4. Only then a separately signed **CLI-only** R7 publication intent may authorize a unique v0.3.0 Release. Finally fetch the public original EXE and re-verify the default command's actual 70 ZIP SHA256 on Windows.
+
+No step above is an original extension Publisher authorization; it cannot turn INTEGRITY_ONLY into extension SIGNATURE_VERIFIED.
