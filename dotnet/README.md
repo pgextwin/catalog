@@ -176,3 +176,29 @@ This is bulk retrieval of individually published ZIPs, **not** a signed enclosin
 archive or an installer. It requires a separately approved current P1 policy
 and SHA256; where independent validation is unavailable, it rejects rather than
 silently downgrading the trust claim. See [v0.2 guide](../docs/cli-v0.2-batch-download.md).
+
+## v0.2.1 one-command original ZIP retrieval
+
+From the directory where you want a new `pgextwin-pg14-18` folder:
+
+```powershell
+.\\pgextwin.exe download-all --pg all
+```
+
+No separately downloaded Catalog, P1 candidate policy file, SHA or output path is needed.
+The signed CLI binary **embeds** the historical P1 candidate policy's original SHA256
+and exact immutable source commits. It fetches only the fixed policy and the 15
+original Catalog v2 files over HTTPS, verifies every original byte against the
+policy, and then reuses the existing strict numeric-ID/SHA256 GitHub Release ZIP
+downloader for all 70 files. Partial output is discarded if any asset fails;
+all original ZIPs remain `INTEGRITY_ONLY`, not genuinely signature-verified.
+
+The fixed policy is a **candidate PIN SET**, not an assertion that 70 historic
+P1 authentic signed-release acceptances are complete. The one-line mode is a
+frozen 2026-10-17 Catalog/release snapshot, not an automatically updated latest
+extensions feed. Failures against mutated or replaced historical assets are
+intentional and do not silently select newer packages or waive safety gates.
+
+To use a different independently approved snapshot or an explicit destination,
+keep using the existing full set of `--catalog-dir`, `--policy`,
+`--policy-sha256` and `--output` arguments.

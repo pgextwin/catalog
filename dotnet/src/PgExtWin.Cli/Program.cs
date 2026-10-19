@@ -73,12 +73,15 @@ static async Task<int> RunAsync(string[] args)
                 default: throw new ArgumentException("Unknown option: " + option);
             }
         }
-        if (directory is null) throw new ArgumentException("--catalog-dir is mandatory");
         if (command is "download" or "download-all")
         {
-            if (pg is null || (command == "download" && query is null) || policy is null || policySha is null || output is null)
-                throw new ArgumentException(command + " needs --pg, --policy, --policy-sha256 and --output");
-            Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; P1 root/attestation NOT verified");
+            if (pg is null || (command == "download" && query is null))
+                throw new ArgumentException(command + " requires --pg (and an extension for single download)");
+            var auto = command == "download-all" &&
+                directory is null && policy is null && policySha is null && output is null;
+            if (!auto && (directory is null || policy is null || policySha is null || output is null))
+                throw new ArgumentException(command + " needs --catalog-dir, --policy, --policy-sha256 and --output unless using simple download-all");
+            Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; policy pin is bundled with the signed CLI, not original extension Sigstore verification");
             using var downloader = new ReadOnlyReleaseDownloader(new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
@@ -87,16 +90,25 @@ static async Task<int> RunAsync(string[] args)
             });
             if (command == "download-all")
             {
+                // All four optional paths absent: trust anchors live in the
+                // current CLI build, never in a live, unpinned HEAD response.
+                using var bootstrap = auto
+                    ? await TrustedCatalogBootstrap.AcquireAsync(Directory.GetCurrentDirectory())
+                    : null;
                 var batch = await BatchReleaseDownloader.RunAsync(
-                    directory, policy, policySha, pg, output, downloader);
+                    bootstrap?.CatalogPath ?? directory!,
+                    bootstrap?.PolicyFile ?? policy!,
+                    bootstrap is null ? policySha! : TrustedCatalogBootstrap.PolicySha256,
+                    pg, auto ? Directory.GetCurrentDirectory() : output!, downloader);
                 Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={batch.Count}\tBYTES={batch.Bytes}\t{batch.Directory}");
                 return 0;
             }
-            var pin = PinnedReleaseSelector.FromLocalFiles(directory, policy, policySha, query!, pg);
-            var receipt = await downloader.DownloadAsync(pin, output);
+            var pin = PinnedReleaseSelector.FromLocalFiles(directory!, policy!, policySha!, query!, pg);
+            var receipt = await downloader.DownloadAsync(pin, output!);
             Console.WriteLine($"INTEGRITY_ONLY\t{receipt.Sha256}\t{receipt.Size}\t{receipt.FilePath}");
             return 0;
         }
+        if (directory is null) throw new ArgumentException("--catalog-dir is mandatory");
 
         var records = CatalogReader.LoadLocal(directory);
         var outputJson = format == "json";
@@ -163,6 +175,7 @@ static void Usage()
     Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json]");
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
+    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all   # auto-fetch pinned Catalog/policy, save in current directory");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("download-all saves 14 original ZIPs per PG, or 70 with --pg all, in an atomic new subdirectory.");
