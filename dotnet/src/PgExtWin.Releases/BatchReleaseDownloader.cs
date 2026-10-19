@@ -61,7 +61,8 @@ public static class BatchReleaseDownloader
     public static async Task<BatchResult> StageAsync(
         IReadOnlyList<ReleasePins> pins, string pgSelection, string outputParent,
         Func<ReleasePins, string, CancellationToken, Task<DownloadReceipt>> downloadOne,
-        CancellationToken cancellationToken = default, bool metadataVerified = true)
+        CancellationToken cancellationToken = default, bool metadataVerified = true,
+        string? sourceOverride = null)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
             pins.Count == 0 || pins.Count > 70 || downloadOne is null)
@@ -132,6 +133,8 @@ public static class BatchReleaseDownloader
                 rows.Add(new {
                     extension = pin.Extension,
                     pgMajor = pin.PgMajor,
+                    releaseTag = pin.Tag,
+                    catalogCommit = pin.CatalogCommit,
                     relativePath = "pg" + pin.PgMajor + "/" + pin.AssetName,
                     sha256 = rehash,
                     bytes = file.Length,
@@ -142,7 +145,7 @@ public static class BatchReleaseDownloader
             }
             var info = new {
                 schemaVersion = "pgextwin-cli-batch-download/v1",
-                source = metadataVerified ? "EXTERNALLY_PINNED_LOCAL_CATALOG" : "CLI_PINNED_HISTORICAL_CANDIDATE_POLICY",
+                source = sourceOverride ?? (metadataVerified ? "EXTERNALLY_PINNED_LOCAL_CATALOG" : "CLI_PINNED_HISTORICAL_CANDIDATE_POLICY"),
                 releaseMetadataVerified = metadataVerified,
                 verificationLevel = "INTEGRITY_ONLY",
                 signatureVerified = false,
