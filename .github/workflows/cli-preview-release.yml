@@ -114,6 +114,15 @@ jobs:
           $lines | Set-Content (Join-Path $env:RUNNER_TEMP 'cli-release/SHA256SUMS.txt') -Encoding ascii
           Write-Output 'CLI_R7_SPDX_CHECKSUMS=PASS'
 
+      - name: Exclude private R6 evidence receipt from five public Release assets
+        shell: pwsh
+        run: |
+          $receipt = Join-Path $env:RUNNER_TEMP 'cli-release/candidate-evidence.json'
+          if (-not (Test-Path -LiteralPath $receipt -PathType Leaf)) { throw 'Verified R6 receipt missing' }
+          # The receipt was checked against real R6 Sigstore and original bytes above.
+          # It is internal provenance bookkeeping, not a public CLI binary asset.
+          Remove-Item -LiteralPath $receipt -Force
+
       - name: Reproduce exact five-file asset validation before release upload
         shell: pwsh
         run: |
