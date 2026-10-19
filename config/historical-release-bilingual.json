@@ -1,0 +1,372 @@
+{
+  "schemaVersion": "pgextwin-historical-bilingual-notes/v1",
+  "repository": "pgextwin/catalog",
+  "releases": [
+    {
+      "id": 417310465,
+      "tag": "catalog-feed-b3a89b652e94e42426d6c7abcf95a5d6934c6faa",
+      "tagSha": "b3a89b652e94e42426d6c7abcf95a5d6934c6faa",
+      "publishedAt": "2026-10-19T13:14:17Z",
+      "prerelease": false,
+      "oldBody": "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.",
+      "newBody": "# pgextwin Catalog signed ZIP feed b3a89b652e94e42426d6c7abcf95a5d6934c6faa\n\n## English\n\nMetadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.\n\n## 日本語\n\n### このReleaseについて\n\nすでにpgextwin Catalogで承認・登録された14拡張について、PostgreSQL 14～18用の元ZIP **計70件**を選択する、改ざん検出可能な**メタデータ専用**の不変Releaseです。GitHub Actionsの独立したSigstore Attestationを含みます。元ZIP自体のSigstore真正署名や来歴を検証済みと主張するものではなく、ZIPの検証レベルは`INTEGRITY_ONLY`です。拡張機能の新規Release、インストール、配布・公開認可は行いません。これはこのタグの公開時点の固定スナップショットであり、最新版の自動追従や個別ZIPの署名保証を意味しません。\n",
+      "assets": [
+        {
+          "id": 656323973,
+          "name": "catalog-latest.json",
+          "size": 24370,
+          "digest": "sha256:0cf46d733d1ac000dcdec87ec110ff0dde92cb4ff2305e1bd95e34df26c1e558"
+        },
+        {
+          "id": 656323968,
+          "name": "catalog-latest.sigstore.json",
+          "size": 11330,
+          "digest": "sha256:8d772b75bc72a102beee66aa7cdff5032264eb52d1a500cd1e973144f814779c"
+        }
+      ]
+    },
+    {
+      "id": 417273086,
+      "tag": "catalog-feed-a7a1d93d38d7338d80404c402eb5faaaa96b272e",
+      "tagSha": "a7a1d93d38d7338d80404c402eb5faaaa96b272e",
+      "publishedAt": "2026-10-19T12:36:21Z",
+      "prerelease": false,
+      "oldBody": "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.",
+      "newBody": "# pgextwin Catalog signed ZIP feed a7a1d93d38d7338d80404c402eb5faaaa96b272e\n\n## English\n\nMetadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.\n\n## 日本語\n\n### このReleaseについて\n\nすでにpgextwin Catalogで承認・登録された14拡張について、PostgreSQL 14～18用の元ZIP **計70件**を選択する、改ざん検出可能な**メタデータ専用**の不変Releaseです。GitHub Actionsの独立したSigstore Attestationを含みます。元ZIP自体のSigstore真正署名や来歴を検証済みと主張するものではなく、ZIPの検証レベルは`INTEGRITY_ONLY`です。拡張機能の新規Release、インストール、配布・公開認可は行いません。これはこのタグの公開時点の固定スナップショットであり、最新版の自動追従や個別ZIPの署名保証を意味しません。\n",
+      "assets": [
+        {
+          "id": 656232190,
+          "name": "catalog-latest.json",
+          "size": 24370,
+          "digest": "sha256:1435e5876f3a7b31ba92df0b9f907e53e17d9364234cdeab9b10bf0e93d8baa6"
+        },
+        {
+          "id": 656232200,
+          "name": "catalog-latest.sigstore.json",
+          "size": 11236,
+          "digest": "sha256:341616dc2520974552661753426b1bc444a989c883321b982cdfa076c6e0a5cb"
+        }
+      ]
+    },
+    {
+      "id": 417213105,
+      "tag": "catalog-feed-5fc29d919e0ec84dabc3da4f08b38f012dcc0b97",
+      "tagSha": "5fc29d919e0ec84dabc3da4f08b38f012dcc0b97",
+      "publishedAt": "2026-10-19T11:28:18Z",
+      "prerelease": false,
+      "oldBody": "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.",
+      "newBody": "# pgextwin Catalog signed ZIP feed 5fc29d919e0ec84dabc3da4f08b38f012dcc0b97\n\n## English\n\nMetadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.\n\n## 日本語\n\n### このReleaseについて\n\nすでにpgextwin Catalogで承認・登録された14拡張について、PostgreSQL 14～18用の元ZIP **計70件**を選択する、改ざん検出可能な**メタデータ専用**の不変Releaseです。GitHub Actionsの独立したSigstore Attestationを含みます。元ZIP自体のSigstore真正署名や来歴を検証済みと主張するものではなく、ZIPの検証レベルは`INTEGRITY_ONLY`です。拡張機能の新規Release、インストール、配布・公開認可は行いません。これはこのタグの公開時点の固定スナップショットであり、最新版の自動追従や個別ZIPの署名保証を意味しません。\n",
+      "assets": [
+        {
+          "id": 656084403,
+          "name": "catalog-latest.json",
+          "size": 24370,
+          "digest": "sha256:380f101c666fded139e57c49d907df699b377f896709e0b0851e008e57280958"
+        },
+        {
+          "id": 656084405,
+          "name": "catalog-latest.sigstore.json",
+          "size": 11138,
+          "digest": "sha256:40efff166895eeb66663cea45cdf498cbdec455c8fd0005b0b3ab44380595c1b"
+        }
+      ]
+    },
+    {
+      "id": 417284128,
+      "tag": "catalog-feed-5dfa858524c2ec474e8c51e999238021606df195",
+      "tagSha": "5dfa858524c2ec474e8c51e999238021606df195",
+      "publishedAt": "2026-10-19T12:47:50Z",
+      "prerelease": false,
+      "oldBody": "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.",
+      "newBody": "# pgextwin Catalog signed ZIP feed 5dfa858524c2ec474e8c51e999238021606df195\n\n## English\n\nMetadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.\n\n## 日本語\n\n### このReleaseについて\n\nすでにpgextwin Catalogで承認・登録された14拡張について、PostgreSQL 14～18用の元ZIP **計70件**を選択する、改ざん検出可能な**メタデータ専用**の不変Releaseです。GitHub Actionsの独立したSigstore Attestationを含みます。元ZIP自体のSigstore真正署名や来歴を検証済みと主張するものではなく、ZIPの検証レベルは`INTEGRITY_ONLY`です。拡張機能の新規Release、インストール、配布・公開認可は行いません。これはこのタグの公開時点の固定スナップショットであり、最新版の自動追従や個別ZIPの署名保証を意味しません。\n",
+      "assets": [
+        {
+          "id": 656259796,
+          "name": "catalog-latest.json",
+          "size": 24370,
+          "digest": "sha256:15704280ebc92d600571d07aa914899f3e6936c109512c99b26dd041a14ee72a"
+        },
+        {
+          "id": 656259797,
+          "name": "catalog-latest.sigstore.json",
+          "size": 11326,
+          "digest": "sha256:ec5a642f3489a790f671a387747452bd5ec9a4201062b6ebe0d2a9b75011ca27"
+        }
+      ]
+    },
+    {
+      "id": 417278360,
+      "tag": "catalog-feed-452f296a3fa9e9ff88f537d7cc7801bce6f10c65",
+      "tagSha": "452f296a3fa9e9ff88f537d7cc7801bce6f10c65",
+      "publishedAt": "2026-10-19T12:42:05Z",
+      "prerelease": false,
+      "oldBody": "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.",
+      "newBody": "# pgextwin Catalog signed ZIP feed 452f296a3fa9e9ff88f537d7cc7801bce6f10c65\n\n## English\n\nMetadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.\n\n## 日本語\n\n### このReleaseについて\n\nすでにpgextwin Catalogで承認・登録された14拡張について、PostgreSQL 14～18用の元ZIP **計70件**を選択する、改ざん検出可能な**メタデータ専用**の不変Releaseです。GitHub Actionsの独立したSigstore Attestationを含みます。元ZIP自体のSigstore真正署名や来歴を検証済みと主張するものではなく、ZIPの検証レベルは`INTEGRITY_ONLY`です。拡張機能の新規Release、インストール、配布・公開認可は行いません。これはこのタグの公開時点の固定スナップショットであり、最新版の自動追従や個別ZIPの署名保証を意味しません。\n",
+      "assets": [
+        {
+          "id": 656246361,
+          "name": "catalog-latest.json",
+          "size": 24370,
+          "digest": "sha256:5b7a251093229a41e90c2425df0fb79cc45d6b915ed96a29327f3981125c159a"
+        },
+        {
+          "id": 656246357,
+          "name": "catalog-latest.sigstore.json",
+          "size": 11044,
+          "digest": "sha256:64de1230f1a16536791983cc7fed7d640d7aaed99d8d51fc5c2f8a816e9b2c5d"
+        }
+      ]
+    },
+    {
+      "id": 417175146,
+      "tag": "catalog-feed-0b60d15731687cc5c6cfe071c90918cc97d9c5ee",
+      "tagSha": "0b60d15731687cc5c6cfe071c90918cc97d9c5ee",
+      "publishedAt": "2026-10-19T10:42:46Z",
+      "prerelease": false,
+      "oldBody": "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.",
+      "newBody": "# pgextwin Catalog signed ZIP feed 0b60d15731687cc5c6cfe071c90918cc97d9c5ee\n\n## English\n\nMetadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.\n\n## 日本語\n\n### このReleaseについて\n\nすでにpgextwin Catalogで承認・登録された14拡張について、PostgreSQL 14～18用の元ZIP **計70件**を選択する、改ざん検出可能な**メタデータ専用**の不変Releaseです。GitHub Actionsの独立したSigstore Attestationを含みます。元ZIP自体のSigstore真正署名や来歴を検証済みと主張するものではなく、ZIPの検証レベルは`INTEGRITY_ONLY`です。拡張機能の新規Release、インストール、配布・公開認可は行いません。これはこのタグの公開時点の固定スナップショットであり、最新版の自動追従や個別ZIPの署名保証を意味しません。\n",
+      "assets": [
+        {
+          "id": 655983759,
+          "name": "catalog-latest.json",
+          "size": 24370,
+          "digest": "sha256:d1bf3235f212754b61a6b5a016ece6e2a59e3b32d22a2e03079c6644562b96b7"
+        },
+        {
+          "id": 655983762,
+          "name": "catalog-latest.sigstore.json",
+          "size": 10907,
+          "digest": "sha256:4c33d0b40965c7064e46e0a0a52e44fac1b16e83eab2faca4a1833325b8f6964"
+        }
+      ]
+    },
+    {
+      "id": 417206320,
+      "tag": "catalog-feed-04c06ee206d790cd0704bc16b0781f0061fb6238",
+      "tagSha": "04c06ee206d790cd0704bc16b0781f0061fb6238",
+      "publishedAt": "2026-10-19T11:20:43Z",
+      "prerelease": false,
+      "oldBody": "Metadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.",
+      "newBody": "# pgextwin Catalog signed ZIP feed 04c06ee206d790cd0704bc16b0781f0061fb6238\n\n## English\n\nMetadata-only immutable selection of already-Catalog-approved 14 extensions and 70 original PG14-18 ZIPs. Independent GitHub Actions Sigstore attestation; originals remain INTEGRITY_ONLY and no extension Release, installation or publication gate is authorized.\n\n## 日本語\n\n### このReleaseについて\n\nすでにpgextwin Catalogで承認・登録された14拡張について、PostgreSQL 14～18用の元ZIP **計70件**を選択する、改ざん検出可能な**メタデータ専用**の不変Releaseです。GitHub Actionsの独立したSigstore Attestationを含みます。元ZIP自体のSigstore真正署名や来歴を検証済みと主張するものではなく、ZIPの検証レベルは`INTEGRITY_ONLY`です。拡張機能の新規Release、インストール、配布・公開認可は行いません。これはこのタグの公開時点の固定スナップショットであり、最新版の自動追従や個別ZIPの署名保証を意味しません。\n",
+      "assets": [
+        {
+          "id": 656066785,
+          "name": "catalog-latest.json",
+          "size": 24370,
+          "digest": "sha256:39baaed1322b353cca8d0026b4179da2790dd4ccdb463bd614178a005d37eb6e"
+        },
+        {
+          "id": 656066790,
+          "name": "catalog-latest.sigstore.json",
+          "size": 10958,
+          "digest": "sha256:49d8eba23e653bdf9c2dee9f28ee8970de82f52564e4f1625e04cc82d134bff6"
+        }
+      ]
+    },
+    {
+      "id": 417213396,
+      "tag": "cli-v0.3.0",
+      "tagSha": "04c06ee206d790cd0704bc16b0781f0061fb6238",
+      "publishedAt": "2026-10-19T11:28:46Z",
+      "prerelease": true,
+      "oldBody": "# pgextwin CLI v0.3.0 — authenticated Catalog latest by default\r\n\r\nWindows x64 self-contained single-file `pgextwin.exe`, read-only original ZIP downloader.\r\n\r\n## One-line latest registered packages\r\n\r\n```powershell\r\n.\\pgextwin.exe download-all --pg all\r\n```\r\n\r\nThe standard command selects the *current Catalog-registered official Release* for each of the 14 pgextwin extensions, for PG14/15/16/17/18. It does **not** guess from upstream tags, draft Releases or GitHub's separate `releases/latest`. To retrieve one major, use `--pg 18`. For explicit legacy v0.2.2 fixed 2026-10-17 inventory:\r\n\r\n```powershell\r\n.\\pgextwin.exe download-all --pg all --fixed\r\n```\r\n\r\nAn explicit `--latest` flag is accepted but not required.\r\n\r\nThe CLI retrieves the canonical public Catalog feed and its Sigstore bundle via stable GitHub Release browser/download URLs without GitHub REST API calls. It independently verifies the OIDC identity for `pgextwin/catalog/.github/workflows/cli-signed-catalog-feed.yml@refs/heads/main`, Sigstore transparency log, verified timestamps, the Catalog source commit and all 15 immutable record bytes against signed SHA256. The feed producer separately checks protected main/required Validate and original public Release/asset IDs and hashes. Original ZIPs use the previously validated bounded GitHub HTTPS browser transport, streamed SHA256, 64 MiB per ZIP, exact ZIP magic and all-or-nothing output staging. The `DOWNLOAD-INFO.json` receipt includes Release tag and Catalog commit for each original ZIP. `INTEGRITY_ONLY` is not original extension Sigstore signature verification; `signatureVerified=false`, `provenanceVerified=false`, `publicationAuthorized=false`, `distributionAuthorized=false`, `installAuthorized=false` remain explicit.\r\n\r\nMissing/invalid Sigstore trust root, signature mismatch, source commit mismatch, Catalog drift, wrong tags, asset digest mismatch, unsafe redirects, non-200 public HTTP responses and local directory collision fail closed; there is **no silent fallback** to frozen versions. The read-only signed-commit determination is independently verified GitHub Actions Sigstore identity and original feed bytes, not independently verified original extension signatures.\r\n\r\n## Acceptance evidence\r\n\r\n- Protected Catalog PR #123 and genuine Windows authenticated selected-Catalog real 70 ZIP SHA256: https://github.com/pgextwin/catalog/actions/runs/39236569189\r\n- Postmerge selected-Catalog 70 real ZIP Windows SHA256: https://github.com/pgextwin/catalog/actions/runs/39236902866\r\n- PR #124 clean Windows **anonymous**, no GitHub token, real public 70 ZIP SHA256 70/70: https://github.com/pgextwin/catalog/actions/runs/39237271741\r\n\r\nThe new v0.3.0 **public EXE** requires separate current-source R6 Sigstore attest, independent original-byte SHA256, owner-approved create-only CLI R7 intent, complete CI, and then actual public EXE re-download and one-line 70 ZIP verification. The historic extension P1 gaps and #75 GO B/G4/G5 are not claimed as fixed by a CLI binary release.\r\n\r\n## Independently verify the public v0.3.0 EXE\r\n\r\nOriginal Windows x64 single-file EXE SHA256:\r\n`5fac25624f4c3ffa84147280308eb85f0627ed9993e3f280566c82f177a72318`\r\n\r\nProtected-main source: `04c06ee206d790cd0704bc16b0781f0061fb6238`\r\n\r\nSuccessful original signed R6 candidate/independent Windows verifier:\r\nhttps://github.com/pgextwin/catalog/actions/runs/39243788109\r\n\r\n```powershell\r\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\r\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 04c06ee206d790cd0704bc16b0781f0061fb6238\r\n```\r\n\r\nCompare original EXE digest against both the displayed expected value and\r\nthe public SHA256SUMS.txt asset. The CLI binary's genuine SLSA provenance is\r\nverified separately from the Catalog feed's Sigstore authentication. Neither\r\nestablishes original extension ZIP Sigstore authenticity.\r\n\r\nThe signed Catalog selection feed is published as a separate, stable **metadata-only**\r\nRelease. CLI v0.3.0 remains a `--prerelease --latest=false` publication to avoid\r\nchanging that feed's `releases/latest/download` endpoint.\r\n\r\nNo Windows Authenticode signature, ZIP extraction, installation, service mutation,\r\nnew extension Publisher authorization, offline signed bundle, or formal original\r\nextension SLSA/SPDX acceptance.\r\n",
+      "newBody": "# pgextwin CLI v0.3.0 — authenticated Catalog latest by default\n\n## English\n\nWindows x64 self-contained single-file `pgextwin.exe`, read-only original ZIP downloader.\n\n## One-line latest registered packages\n\n```powershell\n.\\pgextwin.exe download-all --pg all\n```\n\nThe standard command selects the *current Catalog-registered official Release* for each of the 14 pgextwin extensions, for PG14/15/16/17/18. It does **not** guess from upstream tags, draft Releases or GitHub's separate `releases/latest`. To retrieve one major, use `--pg 18`. For explicit legacy v0.2.2 fixed 2026-10-17 inventory:\n\n```powershell\n.\\pgextwin.exe download-all --pg all --fixed\n```\n\nAn explicit `--latest` flag is accepted but not required.\n\nThe CLI retrieves the canonical public Catalog feed and its Sigstore bundle via stable GitHub Release browser/download URLs without GitHub REST API calls. It independently verifies the OIDC identity for `pgextwin/catalog/.github/workflows/cli-signed-catalog-feed.yml@refs/heads/main`, Sigstore transparency log, verified timestamps, the Catalog source commit and all 15 immutable record bytes against signed SHA256. The feed producer separately checks protected main/required Validate and original public Release/asset IDs and hashes. Original ZIPs use the previously validated bounded GitHub HTTPS browser transport, streamed SHA256, 64 MiB per ZIP, exact ZIP magic and all-or-nothing output staging. The `DOWNLOAD-INFO.json` receipt includes Release tag and Catalog commit for each original ZIP. `INTEGRITY_ONLY` is not original extension Sigstore signature verification; `signatureVerified=false`, `provenanceVerified=false`, `publicationAuthorized=false`, `distributionAuthorized=false`, `installAuthorized=false` remain explicit.\n\nMissing/invalid Sigstore trust root, signature mismatch, source commit mismatch, Catalog drift, wrong tags, asset digest mismatch, unsafe redirects, non-200 public HTTP responses and local directory collision fail closed; there is **no silent fallback** to frozen versions. The read-only signed-commit determination is independently verified GitHub Actions Sigstore identity and original feed bytes, not independently verified original extension signatures.\n\n## Acceptance evidence\n\n- Protected Catalog PR #123 and genuine Windows authenticated selected-Catalog real 70 ZIP SHA256: https://github.com/pgextwin/catalog/actions/runs/39236569189\n- Postmerge selected-Catalog 70 real ZIP Windows SHA256: https://github.com/pgextwin/catalog/actions/runs/39236902866\n- PR #124 clean Windows **anonymous**, no GitHub token, real public 70 ZIP SHA256 70/70: https://github.com/pgextwin/catalog/actions/runs/39237271741\n\nThe new v0.3.0 **public EXE** requires separate current-source R6 Sigstore attest, independent original-byte SHA256, owner-approved create-only CLI R7 intent, complete CI, and then actual public EXE re-download and one-line 70 ZIP verification. The historic extension P1 gaps and #75 GO B/G4/G5 are not claimed as fixed by a CLI binary release.\n\n## Independently verify the public v0.3.0 EXE\n\nOriginal Windows x64 single-file EXE SHA256:\n`5fac25624f4c3ffa84147280308eb85f0627ed9993e3f280566c82f177a72318`\n\nProtected-main source: `04c06ee206d790cd0704bc16b0781f0061fb6238`\n\nSuccessful original signed R6 candidate/independent Windows verifier:\nhttps://github.com/pgextwin/catalog/actions/runs/39243788109\n\n```powershell\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 04c06ee206d790cd0704bc16b0781f0061fb6238\n```\n\nCompare original EXE digest against both the displayed expected value and\nthe public SHA256SUMS.txt asset. The CLI binary's genuine SLSA provenance is\nverified separately from the Catalog feed's Sigstore authentication. Neither\nestablishes original extension ZIP Sigstore authenticity.\n\nThe signed Catalog selection feed is published as a separate, stable **metadata-only**\nRelease. CLI v0.3.0 remains a `--prerelease --latest=false` publication to avoid\nchanging that feed's `releases/latest/download` endpoint.\n\nNo Windows Authenticode signature, ZIP extraction, installation, service mutation,\nnew extension Publisher authorization, offline signed bundle, or formal original\nextension SLSA/SPDX acceptance.\n\n## 日本語\n\n### このバージョンの主な機能\n\nWindows x64用の自己完結型・単一EXEです。標準コマンド `.\\pgextwin.exe download-all --pg all`で、Catalog登録済みの14拡張×PG14～18、合計70件の元ZIPを取得します。`--pg 18`なら14件、`--fixed`ならv0.2.2由来の2026年10月17日固定版を取得します。`--latest`は省略可能です。\n\n### 検証と安全性\n\nGitHub REST APIを使わず、公開CatalogフィードとSigstore bundleを取得し、GitHub Actionsの発行元、署名、透明性ログ、検証時刻、Catalogの元コミットおよび15原本のSHA256を確認します。ZIP自体はGitHub Release公開URLから制限付きHTTPSで取得し、64 MiB上限・ZIP形式・SHA256をチェックします。70件のうち1件でも失敗すれば全体を確定しません。\n\n`DOWNLOAD-INFO.json`にはReleaseタグとCatalogコミットが記録されます。**拡張ZIPの個別Sigstore真正性は未検証**で、状態は`INTEGRITY_ONLY`です。`signatureVerified=false`、`provenanceVerified=false`、`publicationAuthorized=false`、`distributionAuthorized=false`、`installAuthorized=false`を維持します。旧版への暗黙のフォールバックはありません。\n\n### 公開済みEXEの検証\n\n公開EXE SHA256：`5fac25624f4c3ffa84147280308eb85f0627ed9993e3f280566c82f177a72318`。ビルド元ソース：`04c06ee206d790cd0704bc16b0781f0061fb6238`。署名付きR6実証：[Run 39243788109](https://github.com/pgextwin/catalog/actions/runs/39243788109)。公開後の匿名70件取得も独立検証済みです。CLIの来歴検証と拡張ZIPの真正性は異なります。Windows Authenticode署名、展開・インストール、PostgreSQLサービス変更、Issue #75の未成立安全ゲートの許可はありません。\n\n**参考：** v0.3.0時点の機能と証跡を記述しています。後続バージョンの機能を過去のEXEに遡及適用したものではありません。\n",
+      "assets": [
+        {
+          "id": 656085185,
+          "name": "DOTNET-LICENSE.txt",
+          "size": 1139,
+          "digest": "sha256:d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "id": 656085175,
+          "name": "DOTNET-THIRD-PARTY-NOTICES.txt",
+          "size": 78041,
+          "digest": "sha256:6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+        },
+        {
+          "id": 656085176,
+          "name": "pgextwin.exe",
+          "size": 79338604,
+          "digest": "sha256:5fac25624f4c3ffa84147280308eb85f0627ed9993e3f280566c82f177a72318"
+        },
+        {
+          "id": 656085179,
+          "name": "pgextwin.spdx.json",
+          "size": 8603,
+          "digest": "sha256:975a07046694066bb86982a9e6cd362b1b2fa522a38122520bec84ba216fd820"
+        },
+        {
+          "id": 656085180,
+          "name": "SHA256SUMS.txt",
+          "size": 350,
+          "digest": "sha256:ea826e52f5b1fa91a42b2498089b68990500e7dbb150f15a32fc9492942fff2d"
+        }
+      ]
+    },
+    {
+      "id": 416989357,
+      "tag": "cli-v0.2.2",
+      "tagSha": "594df3d703d983d5978b640a03c64d498765035a",
+      "publishedAt": "2026-10-19T06:51:30Z",
+      "prerelease": true,
+      "oldBody": "# pgextwin CLI v0.2.2 — Windows x64, one-line 70 ZIP download\r\n\r\n**PowerShell (no other arguments):**\r\n```powershell\r\n.\\pgextwin.exe download-all --pg all\r\n```\r\n\r\nThis creates `pgextwin-pg14-18` in the current directory and retrieves 70 *original separate extension ZIP files* (14 for each of PostgreSQL 14, 15, 16, 17, and 18). To download just one major, use `--pg 18`.\r\n\r\n## v0.2.2 real transport recovery\r\n\r\nThe original v0.2.1 command was independently tested on Windows, and **failed closed**: GitHub's anonymous REST Release API returned HTTP 403; see [failed, never waived real 70 ZIP Run 39211137784](https://github.com/pgextwin/catalog/actions/runs/39211137784). This release fixes that actual failure rather than asking users for a GitHub token or manually supplied pin paths.\r\n\r\nThe signed CLI retains a fixed historical P1 candidate policy independently baked SHA256 `dc1e52bbb10f52d0c1f14913e99bf30e6dc4855e0c39d0547b78f39da549f201`, at policy source SHA `4dcf3b9c601c6fd43a7ee34bb0f73592f5509a34` and Catalog original `e372e2c6a95adcf8227ea82d6253df3792b6f029`. These 16 raw original files are fetched at immutable GitHub HTTPS paths and exact hash checked before any ZIP GET. For the one-line mode, ZIP bytes come through *exact pinned public GitHub Release browser URLs*, not anonymous GitHub REST API endpoints, with strict HTTPS/CDN redirect allowlist, max 64 MiB per ZIP, original ZIP SHA256/ZIP magic verification and atomic rollback. This avoids anonymous GitHub REST quota by design. Existing explicit advanced `download` / `download-all --catalog-dir --policy --policy-sha256 --output` modes still perform live API numeric Release ID checks.\r\n\r\nOriginal numeric repository/release/asset IDs in the auto mode are independently **policy pinned**, but **not live REST queried**; `DOWNLOAD-INFO.json` records `releaseMetadataVerified=false`. Download success means only `INTEGRITY_ONLY`, not formal P1 acceptance of all 70 originally signed extension releases or Sigstore authenticity. Never treat a stale, changed, missing or mismatched original asset as PASS. The snapshot is frozen and does not auto-select newer releases.\r\n\r\nNo installation, service change, ZIP extraction, automatic privilege elevation, signed enclosing archive, extension release publication or original extension SLSA/SPDX verification. #75 GO B/G4/G5 safety gates remain unchanged.\r\n\r\n## Verify the CLI executable\r\n\r\n```powershell\r\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\r\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 594df3d703d983d5978b640a03c64d498765035a\r\n```\r\n\r\nExpected SHA256: `3567e34cf9f7347cfab7a1292f58965b7bd15e2d8a2bb5b1f0479685633862a0`.\r\n\r\nProtected original R6 signer+Windows verifier [Run 39211701760](https://github.com/pgextwin/catalog/actions/runs/39211701760). Includes SPDX2.3, original SHA256SUMS and Microsoft .NET runtime notices (self-contained runtime 10.0.13). No Windows Authenticode signature.\r\n",
+      "newBody": "# pgextwin CLI v0.2.2 — Windows x64, one-line 70 ZIP download\n\n## English\n\n**PowerShell (no other arguments):**\n```powershell\n.\\pgextwin.exe download-all --pg all\n```\n\nThis creates `pgextwin-pg14-18` in the current directory and retrieves 70 *original separate extension ZIP files* (14 for each of PostgreSQL 14, 15, 16, 17, and 18). To download just one major, use `--pg 18`.\n\n## v0.2.2 real transport recovery\n\nThe original v0.2.1 command was independently tested on Windows, and **failed closed**: GitHub's anonymous REST Release API returned HTTP 403; see [failed, never waived real 70 ZIP Run 39211137784](https://github.com/pgextwin/catalog/actions/runs/39211137784). This release fixes that actual failure rather than asking users for a GitHub token or manually supplied pin paths.\n\nThe signed CLI retains a fixed historical P1 candidate policy independently baked SHA256 `dc1e52bbb10f52d0c1f14913e99bf30e6dc4855e0c39d0547b78f39da549f201`, at policy source SHA `4dcf3b9c601c6fd43a7ee34bb0f73592f5509a34` and Catalog original `e372e2c6a95adcf8227ea82d6253df3792b6f029`. These 16 raw original files are fetched at immutable GitHub HTTPS paths and exact hash checked before any ZIP GET. For the one-line mode, ZIP bytes come through *exact pinned public GitHub Release browser URLs*, not anonymous GitHub REST API endpoints, with strict HTTPS/CDN redirect allowlist, max 64 MiB per ZIP, original ZIP SHA256/ZIP magic verification and atomic rollback. This avoids anonymous GitHub REST quota by design. Existing explicit advanced `download` / `download-all --catalog-dir --policy --policy-sha256 --output` modes still perform live API numeric Release ID checks.\n\nOriginal numeric repository/release/asset IDs in the auto mode are independently **policy pinned**, but **not live REST queried**; `DOWNLOAD-INFO.json` records `releaseMetadataVerified=false`. Download success means only `INTEGRITY_ONLY`, not formal P1 acceptance of all 70 originally signed extension releases or Sigstore authenticity. Never treat a stale, changed, missing or mismatched original asset as PASS. The snapshot is frozen and does not auto-select newer releases.\n\nNo installation, service change, ZIP extraction, automatic privilege elevation, signed enclosing archive, extension release publication or original extension SLSA/SPDX verification. #75 GO B/G4/G5 safety gates remain unchanged.\n\n## Verify the CLI executable\n\n```powershell\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 594df3d703d983d5978b640a03c64d498765035a\n```\n\nExpected SHA256: `3567e34cf9f7347cfab7a1292f58965b7bd15e2d8a2bb5b1f0479685633862a0`.\n\nProtected original R6 signer+Windows verifier [Run 39211701760](https://github.com/pgextwin/catalog/actions/runs/39211701760). Includes SPDX2.3, original SHA256SUMS and Microsoft .NET runtime notices (self-contained runtime 10.0.13). No Windows Authenticode signature.\n\n## 日本語\n\n### このバージョンの主な機能\n\n`.\\pgextwin.exe download-all --pg all`の1行で、PG14～18向けの14拡張×5バージョン、計70件の公開済み元ZIPを新規`pgextwin-pg14-18`フォルダーに取得します。`--pg 18`でPG18のみ取得できます。**これは2026年10月時点に固定した過去のCatalogであり、最新版への自動追従ではありません。**\n\n### v0.2.1で判明した障害への対処\n\nv0.2.1の実Windows検証ではGitHub匿名REST APIがHTTP 403を返し、安全側で失敗しました。[失敗Run 39211137784](https://github.com/pgextwin/catalog/actions/runs/39211137784)は成功扱いにしていません。v0.2.2では、元ZIPを固定されたGitHub Releaseの公開ブラウザーURLから取得する方式に変更し、匿名REST制限への依存を解消しました。固定済みポリシーSHA256：`dc1e52bbb10f52d0c1f14913e99bf30e6dc4855e0c39d0547b78f39da549f201`。固定ソース、Catalogの原本16ファイルのハッシュ照合、HTTPSリダイレクト制限、64 MiB上限、ZIPマジックとSHA256照合、全件成功時のみの確定を維持します。\n\n### 検証と制限\n\n元のRepository/Release/Asset数値IDはポリシーで固定していますが、自動モードでその都度GitHub RESTから照会していません。`releaseMetadataVerified=false`で、拡張ZIPは`INTEGRITY_ONLY`のみです。拡張ZIPの個別Sigstore署名や正式な全70件の受入、インストール、サービス操作、統合署名ZIPの生成を意味しません。\n\n公開EXE SHA256：`3567e34cf9f7347cfab7a1292f58965b7bd15e2d8a2bb5b1f0479685633862a0`。元ソース：`594df3d703d983d5978b640a03c64d498765035a`。署名・Windows証跡：[Run 39211701760](https://github.com/pgextwin/catalog/actions/runs/39211701760)。Windows Authenticode署名はありません。Issue #75のGO B/G4/G5ゲートは維持します。\n",
+      "assets": [
+        {
+          "id": 655483605,
+          "name": "DOTNET-LICENSE.txt",
+          "size": 1139,
+          "digest": "sha256:d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "id": 655483603,
+          "name": "DOTNET-THIRD-PARTY-NOTICES.txt",
+          "size": 78041,
+          "digest": "sha256:6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+        },
+        {
+          "id": 655483599,
+          "name": "pgextwin.exe",
+          "size": 73684232,
+          "digest": "sha256:3567e34cf9f7347cfab7a1292f58965b7bd15e2d8a2bb5b1f0479685633862a0"
+        },
+        {
+          "id": 655483598,
+          "name": "pgextwin.spdx.json",
+          "size": 4212,
+          "digest": "sha256:a8fbb44f7a8a3d4f6363bd0bdd735a5eb61078924e1a207f62a6c35ba2324331"
+        },
+        {
+          "id": 655483601,
+          "name": "SHA256SUMS.txt",
+          "size": 350,
+          "digest": "sha256:ffcce5ddb9a9137a8474f6eac58c8138c53849dbc03718040f5f505e67769b2a"
+        }
+      ]
+    },
+    {
+      "id": 416979703,
+      "tag": "cli-v0.2.1",
+      "tagSha": "79db0018cd930847330c024770328892eb46cf3c",
+      "publishedAt": "2026-10-19T06:36:36Z",
+      "prerelease": true,
+      "oldBody": "# pgextwin CLI v0.2.1 — Windows x64\r\n\r\n**One line, 70 original extension ZIPs:**\r\n\r\n```powershell\r\n.\\pgextwin.exe download-all --pg all\r\n```\r\n\r\nThe current directory is the destination parent; the command creates a new `pgextwin-pg14-18/` folder containing 14 original per-major extension ZIPs for each PG14, PG15, PG16, PG17, PG18 and a `DOWNLOAD-INFO.json` receipt. For only 14 packages, use `--pg 18` or one other supported PostgreSQL major. An existing completed destination is never overwritten and partial batches are rolled back.\r\n\r\nUnlike v0.2.0, there is no need to download a separate Catalog snapshot, policy file, externally entered SHA256 or to specify an output directory. This signed CLI executable embeds the exact historical candidate P1 policy SHA256 `dc1e52bbb10f52d0c1f14913e99bf30e6dc4855e0c39d0547b78f39da549f201`; it downloads **only** the immutable policy `4dcf3b9c601c6fd43a7ee34bb0f73592f5509a34` and Catalog `e372e2c6a95adcf8227ea82d6253df3792b6f029` originals from fixed HTTPS GitHub raw paths, rehashes all 16 originals against their fixed expected byte values and then invokes the previously validated 14/70 original ZIP GitHub Release bounded downloader with immutable numeric Release/asset IDs and SHA256. No mutable default-branch/latest-version feed is trusted.\r\n\r\n**Trust meaning:** this is a frozen 2026-10-17 Catalog candidate selection, NOT 70 formally accepted original-release Sigstore signatures. Each downloaded ZIP only passes `INTEGRITY_ONLY` SHA256 and exact GitHub Release numeric identity checks. It does not assert original PostgreSQL extension SLSA/SPDX authenticity, sign a new master ZIP, apply installation or restart PostgreSQL. It fails closed if a pinned historical GitHub Release asset is unavailable, changed or inaccessible.\r\n\r\nThe former explicit `download-all --catalog-dir PATH --policy FILE --policy-sha256 DIGEST --output DIR` remains supported for separately approved snapshots. `list`, `search`, single `download` and `verify-report` remain. Original extension Sigstore `verify` stays DENY.\r\n\r\n## Independently verify this CLI executable\r\n\r\n```powershell\r\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\r\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 79db0018cd930847330c024770328892eb46cf3c\r\n```\r\n\r\nExpected original EXE SHA256: `78de25e4ac3b8d40ba173f3369a12cf92e97ee0e2a65695820390231e3d08aca`.\r\n\r\nThe protected-main original v0.2.1 binary R6 [Run 39210035547](https://github.com/pgextwin/catalog/actions/runs/39210035547) completed build, clean Windows SHA/runtime, isolated GitHub Sigstore attest, and independent signer/workflow/source verification. SPDX2.3, SHA256SUMS, .NET runtime 10.0.13 license and third-party notices accompany the release. No Authenticode signature. No extension Release changes, credential or protection changes, or #75 GO B/G4/G5 bypass.\r\n",
+      "newBody": "# pgextwin CLI v0.2.1 — Windows x64\n\n## English\n\n**One line, 70 original extension ZIPs:**\n\n```powershell\n.\\pgextwin.exe download-all --pg all\n```\n\nThe current directory is the destination parent; the command creates a new `pgextwin-pg14-18/` folder containing 14 original per-major extension ZIPs for each PG14, PG15, PG16, PG17, PG18 and a `DOWNLOAD-INFO.json` receipt. For only 14 packages, use `--pg 18` or one other supported PostgreSQL major. An existing completed destination is never overwritten and partial batches are rolled back.\n\nUnlike v0.2.0, there is no need to download a separate Catalog snapshot, policy file, externally entered SHA256 or to specify an output directory. This signed CLI executable embeds the exact historical candidate P1 policy SHA256 `dc1e52bbb10f52d0c1f14913e99bf30e6dc4855e0c39d0547b78f39da549f201`; it downloads **only** the immutable policy `4dcf3b9c601c6fd43a7ee34bb0f73592f5509a34` and Catalog `e372e2c6a95adcf8227ea82d6253df3792b6f029` originals from fixed HTTPS GitHub raw paths, rehashes all 16 originals against their fixed expected byte values and then invokes the previously validated 14/70 original ZIP GitHub Release bounded downloader with immutable numeric Release/asset IDs and SHA256. No mutable default-branch/latest-version feed is trusted.\n\n**Trust meaning:** this is a frozen 2026-10-17 Catalog candidate selection, NOT 70 formally accepted original-release Sigstore signatures. Each downloaded ZIP only passes `INTEGRITY_ONLY` SHA256 and exact GitHub Release numeric identity checks. It does not assert original PostgreSQL extension SLSA/SPDX authenticity, sign a new master ZIP, apply installation or restart PostgreSQL. It fails closed if a pinned historical GitHub Release asset is unavailable, changed or inaccessible.\n\nThe former explicit `download-all --catalog-dir PATH --policy FILE --policy-sha256 DIGEST --output DIR` remains supported for separately approved snapshots. `list`, `search`, single `download` and `verify-report` remain. Original extension Sigstore `verify` stays DENY.\n\n## Independently verify this CLI executable\n\n```powershell\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 79db0018cd930847330c024770328892eb46cf3c\n```\n\nExpected original EXE SHA256: `78de25e4ac3b8d40ba173f3369a12cf92e97ee0e2a65695820390231e3d08aca`.\n\nThe protected-main original v0.2.1 binary R6 [Run 39210035547](https://github.com/pgextwin/catalog/actions/runs/39210035547) completed build, clean Windows SHA/runtime, isolated GitHub Sigstore attest, and independent signer/workflow/source verification. SPDX2.3, SHA256SUMS, .NET runtime 10.0.13 license and third-party notices accompany the release. No Authenticode signature. No extension Release changes, credential or protection changes, or #75 GO B/G4/G5 bypass.\n\n## 日本語\n\n### このバージョンの機能\n\n1行の `.\\pgextwin.exe download-all --pg all`で、固定された過去のCatalogからPG14～18の元ZIP計70件を取得する構成です。`--pg 18`などで14件のみに絞ることもでき、完了済み出力は上書きせず、不完全なバッチは破棄します。別途Catalogやポリシーのファイル、SHA256、出力ディレクトリを毎回指定する必要がない方式を初めて導入しました。\n\n内蔵の過去の固定ポリシーSHA256は`dc1e52bbb10f52d0c1f14913e99bf30e6dc4855e0c39d0547b78f39da549f201`です。元のCatalog、ポリシーおよび対象ZIPの固定されたGitHub Release識別情報とSHA256を照合します。`INTEGRITY_ONLY`は個々の拡張ZIPの真正署名検証を意味しません。\n\n### 重要：公開後に判明した制約\n\n**このv0.2.1は、独立した実Windows一括取得でGitHub匿名REST APIのHTTP 403により失敗したことが後から判明しています。** 失敗Run：[39211137784](https://github.com/pgextwin/catalog/actions/runs/39211137784)。失敗を成功に修正したわけではありません。匿名で70 ZIPを実際に取得する用途には、REST依存を解消した後続のv0.2.2以降を使用してください。\n\n### EXEの来歴\n\n元のEXE SHA256：`78de25e4ac3b8d40ba173f3369a12cf92e97ee0e2a65695820390231e3d08aca`。署名元ソース：`79db0018cd930847330c024770328892eb46cf3c`。保護main上の署名・独立検証：[Run 39210035547](https://github.com/pgextwin/catalog/actions/runs/39210035547)。インストール、サービス変更、拡張ZIPの真正署名認可、Issue #75のGO B/G4/G5迂回は行いません。\n",
+      "assets": [
+        {
+          "id": 655455669,
+          "name": "DOTNET-LICENSE.txt",
+          "size": 1139,
+          "digest": "sha256:d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "id": 655455661,
+          "name": "DOTNET-THIRD-PARTY-NOTICES.txt",
+          "size": 78041,
+          "digest": "sha256:6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+        },
+        {
+          "id": 655455674,
+          "name": "pgextwin.exe",
+          "size": 73676040,
+          "digest": "sha256:78de25e4ac3b8d40ba173f3369a12cf92e97ee0e2a65695820390231e3d08aca"
+        },
+        {
+          "id": 655455672,
+          "name": "pgextwin.spdx.json",
+          "size": 4212,
+          "digest": "sha256:5f668476e85bc188571c552af12cc033455681b03afa0c9636d781612fc32966"
+        },
+        {
+          "id": 655455675,
+          "name": "SHA256SUMS.txt",
+          "size": 350,
+          "digest": "sha256:d96b85fcc79835d88d2dd89c375eea8c1390d4337e5184db7a93b6f6fd0e5723"
+        }
+      ]
+    },
+    {
+      "id": 416943008,
+      "tag": "cli-v0.2.0",
+      "tagSha": "529718ac8ff829c8a98b57d26adb1d74971588c1",
+      "publishedAt": "2026-10-19T05:49:06Z",
+      "prerelease": true,
+      "oldBody": "# pgextwin CLI v0.2.0 — Windows x64\r\n\r\nA self-contained Windows x64 command-line tool to browse the 14 pgextwin PostgreSQL extensions and download individually published original ZIPs in bulk.\r\n\r\n## New in v0.2.0\r\n\r\n**`download-all`** downloads the 14 original ZIP files of any one PostgreSQL major, or up to **70 original ZIP files for PG14–18**. Files are grouped under `pg14/` ... `pg18/`, with `DOWNLOAD-INFO.json` recording exact source ZIP bytes, SHA256, and numerical GitHub Release IDs. An entire batch is staged privately and renamed to its final new directory only after every selected ZIP passes identity and checksum validation. No partial completed batch is exposed and existing output cannot be overwritten.\r\n\r\n```powershell\r\n.\\pgextwin.exe --version\r\n.\\pgextwin.exe list --catalog-dir C:\\approved\\catalog --pg 18 --format json\r\nNew-Item -ItemType Directory -Force C:\\pgextwin-downloads\r\n.\\pgextwin.exe download-all --pg 18 --catalog-dir C:\\approved\\catalog `\r\n  --policy C:\\approved\\policy.json --policy-sha256 INDEPENDENT_APPROVED_64_HEX `\r\n  --output C:\\pgextwin-downloads\r\n# For all 70 original ZIPs: use --pg all instead of --pg 18.\r\n```\r\n\r\n**Requirements:** an intact locally saved Catalog v2 with all 14 extensions, a separately approved P1 policy file and its genuine independently authenticated SHA256, network access to the existing official GitHub Releases, and a pre-existing output parent folder. If independent pins are not available, this command **fails closed**. A checksum copied only from the Catalog itself is not an independent policy approval.\r\n\r\nThe ZIPs are original already-published upstream extension release assets, not a newly signed/attested enclosing offline distribution bundle. Download success means **INTEGRITY_ONLY**; it does NOT claim to verify original extension Sigstore signatures. There is no ZIP extraction, installation, service modification, SQL execution, publisher privilege or Authenticode signature.\r\n\r\n## Existing features\r\n\r\nLocal `list`/`search` (text or JSON), exact pinned single-file `download`, and offline signed P1 report-claim authentication (`verify-report`). `verify-report` authenticates the report source, **not** actual original release provenance. All extension authenticity/install/publication claims remain DENY.\r\n\r\n## Verifying the CLI binary itself\r\n\r\nCompare `pgextwin.exe` against the attached `SHA256SUMS.txt`. The genuine GitHub SLSA provenance is for **this CLI executable** (not the downloaded extension ZIPs):\r\n\r\n```powershell\r\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\r\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 529718ac8ff829c8a98b57d26adb1d74971588c1\r\n```\r\n\r\nOriginal EXE SHA256: `1764d2f5a54b9fa715a2bba1d068493ef1d5dcb159b895e3f24becf2dee6fdc0`.\r\n\r\nBuild chain: [protected main Windows R6 signer/independent verifier Run 39205817118](https://github.com/pgextwin/catalog/actions/runs/39205817118). The EXE is not Windows Authenticode-signed. SDK 10.0.402 and self-contained runtime 10.0.13 were pinned; SPDX 2.3 and runtime LICENSE/third-party notices are attached.\r\n\r\nInstall `--apply`, one signed master ZIP bundle, genuine extension SLSA/SPDX verification, auto elevation, PostgreSQL service changes and #75 GO B/G4/G5 are out of scope; their gates are not waived.\r\n",
+      "newBody": "# pgextwin CLI v0.2.0 — Windows x64\n\n## English\n\nA self-contained Windows x64 command-line tool to browse the 14 pgextwin PostgreSQL extensions and download individually published original ZIPs in bulk.\n\n## New in v0.2.0\n\n**`download-all`** downloads the 14 original ZIP files of any one PostgreSQL major, or up to **70 original ZIP files for PG14–18**. Files are grouped under `pg14/` ... `pg18/`, with `DOWNLOAD-INFO.json` recording exact source ZIP bytes, SHA256, and numerical GitHub Release IDs. An entire batch is staged privately and renamed to its final new directory only after every selected ZIP passes identity and checksum validation. No partial completed batch is exposed and existing output cannot be overwritten.\n\n```powershell\n.\\pgextwin.exe --version\n.\\pgextwin.exe list --catalog-dir C:\\approved\\catalog --pg 18 --format json\nNew-Item -ItemType Directory -Force C:\\pgextwin-downloads\n.\\pgextwin.exe download-all --pg 18 --catalog-dir C:\\approved\\catalog `\n  --policy C:\\approved\\policy.json --policy-sha256 INDEPENDENT_APPROVED_64_HEX `\n  --output C:\\pgextwin-downloads\n# For all 70 original ZIPs: use --pg all instead of --pg 18.\n```\n\n**Requirements:** an intact locally saved Catalog v2 with all 14 extensions, a separately approved P1 policy file and its genuine independently authenticated SHA256, network access to the existing official GitHub Releases, and a pre-existing output parent folder. If independent pins are not available, this command **fails closed**. A checksum copied only from the Catalog itself is not an independent policy approval.\n\nThe ZIPs are original already-published upstream extension release assets, not a newly signed/attested enclosing offline distribution bundle. Download success means **INTEGRITY_ONLY**; it does NOT claim to verify original extension Sigstore signatures. There is no ZIP extraction, installation, service modification, SQL execution, publisher privilege or Authenticode signature.\n\n## Existing features\n\nLocal `list`/`search` (text or JSON), exact pinned single-file `download`, and offline signed P1 report-claim authentication (`verify-report`). `verify-report` authenticates the report source, **not** actual original release provenance. All extension authenticity/install/publication claims remain DENY.\n\n## Verifying the CLI binary itself\n\nCompare `pgextwin.exe` against the attached `SHA256SUMS.txt`. The genuine GitHub SLSA provenance is for **this CLI executable** (not the downloaded extension ZIPs):\n\n```powershell\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest 529718ac8ff829c8a98b57d26adb1d74971588c1\n```\n\nOriginal EXE SHA256: `1764d2f5a54b9fa715a2bba1d068493ef1d5dcb159b895e3f24becf2dee6fdc0`.\n\nBuild chain: [protected main Windows R6 signer/independent verifier Run 39205817118](https://github.com/pgextwin/catalog/actions/runs/39205817118). The EXE is not Windows Authenticode-signed. SDK 10.0.402 and self-contained runtime 10.0.13 were pinned; SPDX 2.3 and runtime LICENSE/third-party notices are attached.\n\nInstall `--apply`, one signed master ZIP bundle, genuine extension SLSA/SPDX verification, auto elevation, PostgreSQL service changes and #75 GO B/G4/G5 are out of scope; their gates are not waived.\n\n## 日本語\n\n### このバージョンの機能\n\nWindows x64向け自己完結型CLIです。`download-all`を導入し、指定したPostgreSQLのメジャーバージョンにつき14件、`--pg all`ならPG14～18の**最大70件の元ZIP**を一括取得できます。元ZIPのファイル名・バイト数・SHA256・GitHub Release数値IDを`DOWNLOAD-INFO.json`に記録し、1件でも照合に失敗すれば確定せず、既存の出力フォルダーも上書きしません。\n\n**v0.2.0では1行の完全自動ダウンロードではありません。** 別途承認したCatalog v2、P1ポリシー原本、その独立認証済みSHA256、および既存出力ディレクトリが必要です。実行例と引数は上の英語原文をご確認ください。独立した固定値が不明な場合には安全側で拒否します。\n\n一覧表示・検索・単体ダウンロード・署名付きP1レポートの認証も備えます。ただしP1レポート認証は元のRelease真正性とは別です。元ZIPは`INTEGRITY_ONLY`であり、拡張ZIPのSigstore真正性、インストール、サービス変更、権限昇格、オフライン統合ZIPは含みません。\n\n公開EXE SHA256：`1764d2f5a54b9fa715a2bba1d068493ef1d5dcb159b895e3f24becf2dee6fdc0`。署名元ソース：`529718ac8ff829c8a98b57d26adb1d74971588c1`。Windows R6署名・検証：[Run 39205817118](https://github.com/pgextwin/catalog/actions/runs/39205817118)。Windows Authenticode署名なし。Issue #75の安全ゲートは変更していません。\n",
+      "assets": [
+        {
+          "id": 655369586,
+          "name": "DOTNET-LICENSE.txt",
+          "size": 1139,
+          "digest": "sha256:d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "id": 655369588,
+          "name": "DOTNET-THIRD-PARTY-NOTICES.txt",
+          "size": 78041,
+          "digest": "sha256:6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+        },
+        {
+          "id": 655369584,
+          "name": "pgextwin.exe",
+          "size": 73663752,
+          "digest": "sha256:1764d2f5a54b9fa715a2bba1d068493ef1d5dcb159b895e3f24becf2dee6fdc0"
+        },
+        {
+          "id": 655369587,
+          "name": "pgextwin.spdx.json",
+          "size": 4212,
+          "digest": "sha256:eeca85040ae92dbc6cc843c93e34643cfc2cb106465d7191f038d8fd64d18eb1"
+        },
+        {
+          "id": 655369585,
+          "name": "SHA256SUMS.txt",
+          "size": 350,
+          "digest": "sha256:96f6a755b6ace2d5d9f3305d01a3090d5c26fec826b9fbcc90ae7382fc8f373c"
+        }
+      ]
+    },
+    {
+      "id": 416920183,
+      "tag": "cli-v0.1.0-preview.1",
+      "tagSha": "d0056b688dc27095d2d7ffd6f8b77aff965def79",
+      "publishedAt": "2026-10-19T05:06:46Z",
+      "prerelease": true,
+      "oldBody": "# pgextwin CLI v0.1.0-preview.1 — Windows x64\r\n\r\nEarly read-only preview. This release is **only the pgextwin CLI executable**, not an installer or newly signed release of PostgreSQL extensions.\r\n\r\n## What works\r\n- Standalone self-contained Windows x64 `pgextwin.exe` (.NET 10 runtime included).\r\n- `--help`, `--version`, `list` and `search` across the local 14-extension Catalog v2, with `--pg 14` through `--pg 18` and `--format text|json`.\r\n- Explicit user-authorized single-asset `download` with externally approved exact Catalog/Release/policy SHA256 pins; success is **INTEGRITY_ONLY**, not attestation/authenticity verification.\r\n- Optional independently signed P1 report authentication is **P1_REPORT_AUTHENTICATED_ONLY**, not genuine original Release Sigstore verification.\r\n\r\n## Get started (PowerShell)\r\nDownload `pgextwin.exe` from this Release and a trusted copy of the Catalog source (the exact main snapshot may be identified independently). Extract the Catalog with its `index.json` and `extensions` directory.\r\n\r\n```powershell\r\n.\\pgextwin.exe --version\r\n.\\pgextwin.exe list --catalog-dir C:\\path\\to\\catalog --pg 18\r\n.\\pgextwin.exe search cron --catalog-dir C:\\path\\to\\catalog --format json\r\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\r\n```\r\n\r\nCompare the SHA256 with the release's `SHA256SUMS.txt`, then independently verify the GitHub Sigstore build provenance against the exact owner/repo, signer workflow and source commit:\r\n\r\n```powershell\r\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest d0056b688dc27095d2d7ffd6f8b77aff965def79\r\n```\r\n\r\nThe provenance is a signed GitHub/Sigstore attestation of this **CLI executable's SHA256**. The EXE is **not Authenticode-signed** and Windows may display an unrecognized publisher warning. Neither SHA256SUMS nor the CLI Sigstore attestation proves the authenticity of downloaded extension ZIPs.\r\n\r\n## Safety and non-features\r\n- Local Catalog listing remains `LOCAL_UNAUTHENTICATED / UNVERIFIED`.\r\n- Genuine `verify` for extension SLSA/SPDX is not implemented: fail-closed / exit 2. Do not call downloaded extensions signature-verified.\r\n- No `install --apply`, no PostgreSQL service modifications, no bundled offline ZIP generator or autonomous elevation.\r\n- No extension, Catalog or Website Release is implicitly created by this CLI preview.\r\n- The project does not provide malware-free guarantees. Prefer verifying the exact GitHub signed provenance and locally scanning downloaded executables.\r\n\r\nThe R6 protected-main Windows candidate, isolated signer and independent verifier completed on run [39200819667](https://github.com/pgextwin/catalog/actions/runs/39200819667). Re-run independent checks against the actual public Release binary rather than trusting these notes alone.\r\n",
+      "newBody": "# pgextwin CLI v0.1.0-preview.1 — Windows x64\n\n## English\n\nEarly read-only preview. This release is **only the pgextwin CLI executable**, not an installer or newly signed release of PostgreSQL extensions.\n\n## What works\n- Standalone self-contained Windows x64 `pgextwin.exe` (.NET 10 runtime included).\n- `--help`, `--version`, `list` and `search` across the local 14-extension Catalog v2, with `--pg 14` through `--pg 18` and `--format text|json`.\n- Explicit user-authorized single-asset `download` with externally approved exact Catalog/Release/policy SHA256 pins; success is **INTEGRITY_ONLY**, not attestation/authenticity verification.\n- Optional independently signed P1 report authentication is **P1_REPORT_AUTHENTICATED_ONLY**, not genuine original Release Sigstore verification.\n\n## Get started (PowerShell)\nDownload `pgextwin.exe` from this Release and a trusted copy of the Catalog source (the exact main snapshot may be identified independently). Extract the Catalog with its `index.json` and `extensions` directory.\n\n```powershell\n.\\pgextwin.exe --version\n.\\pgextwin.exe list --catalog-dir C:\\path\\to\\catalog --pg 18\n.\\pgextwin.exe search cron --catalog-dir C:\\path\\to\\catalog --format json\nGet-FileHash .\\pgextwin.exe -Algorithm SHA256\n```\n\nCompare the SHA256 with the release's `SHA256SUMS.txt`, then independently verify the GitHub Sigstore build provenance against the exact owner/repo, signer workflow and source commit:\n\n```powershell\ngh attestation verify .\\pgextwin.exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest d0056b688dc27095d2d7ffd6f8b77aff965def79\n```\n\nThe provenance is a signed GitHub/Sigstore attestation of this **CLI executable's SHA256**. The EXE is **not Authenticode-signed** and Windows may display an unrecognized publisher warning. Neither SHA256SUMS nor the CLI Sigstore attestation proves the authenticity of downloaded extension ZIPs.\n\n## Safety and non-features\n- Local Catalog listing remains `LOCAL_UNAUTHENTICATED / UNVERIFIED`.\n- Genuine `verify` for extension SLSA/SPDX is not implemented: fail-closed / exit 2. Do not call downloaded extensions signature-verified.\n- No `install --apply`, no PostgreSQL service modifications, no bundled offline ZIP generator or autonomous elevation.\n- No extension, Catalog or Website Release is implicitly created by this CLI preview.\n- The project does not provide malware-free guarantees. Prefer verifying the exact GitHub signed provenance and locally scanning downloaded executables.\n\nThe R6 protected-main Windows candidate, isolated signer and independent verifier completed on run [39200819667](https://github.com/pgextwin/catalog/actions/runs/39200819667). Re-run independent checks against the actual public Release binary rather than trusting these notes alone.\n\n## 日本語\n\n### 初期プレビューの内容\n\nWindows x64向け`.NET 10`自己完結型の**読み取り専用CLI初期プレビュー**です。ローカルの14拡張Catalog v2に対して`--help`、`--version`、`list`、`search`が利用できます。PostgreSQL 14～18とテキスト／JSON表示に対応します。個別の`download`は、外部で承認済みのCatalog・Release・ポリシー固定値が揃った場合のみ実行可能です。\n\n**初期プレビューは、後続のv0.2.xやv0.3.xの1行70 ZIP取得機能を持ちません。** 署名済みP1レポートの認証は`P1_REPORT_AUTHENTICATED_ONLY`であり、元の拡張ReleaseのSigstore真正性を証明しません。ローカルCatalogの信頼表示は`LOCAL_UNAUTHENTICATED / UNVERIFIED`、個別ZIPのダウンロードは`INTEGRITY_ONLY`です。\n\n### 本体の検証・安全上の注意\n\n公開EXEと`SHA256SUMS.txt`を照合し、GitHub Sigstore来歴は元ソース`d0056b688dc27095d2d7ffd6f8b77aff965def79`と署名Workflowを指定して検証してください。[R6保護main証跡 Run 39200819667](https://github.com/pgextwin/catalog/actions/runs/39200819667)。EXEにはWindows Authenticode署名がなく、Windowsで発行元不明の警告が表示される場合があります。インストール、PostgreSQLサービス操作、自動権限昇格、統合ZIP作成、個別拡張の真正署名検証は未提供です。\n",
+      "assets": [
+        {
+          "id": 655295138,
+          "name": "DOTNET-LICENSE.txt",
+          "size": 1139,
+          "digest": "sha256:d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "id": 655295132,
+          "name": "DOTNET-THIRD-PARTY-NOTICES.txt",
+          "size": 78041,
+          "digest": "sha256:6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+        },
+        {
+          "id": 655295134,
+          "name": "pgextwin.exe",
+          "size": 73647388,
+          "digest": "sha256:c2782f46539bd932c9c19105055e45dcf8796d573a8c30ad9844e6ba510ddfb1"
+        },
+        {
+          "id": 655295136,
+          "name": "pgextwin.spdx.json",
+          "size": 4252,
+          "digest": "sha256:d0ca5d6afe02b040989a8fd32053a0b717da5e6ed9db9e57ac244475d8c4a39b"
+        },
+        {
+          "id": 655295137,
+          "name": "SHA256SUMS.txt",
+          "size": 350,
+          "digest": "sha256:aaa3c72ffac33ec39e826428276846dcf177f4cde0cb9f88da88de417cf8b94e"
+        }
+      ]
+    }
+  ]
+}
