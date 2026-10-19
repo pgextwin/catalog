@@ -36,7 +36,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $dir=Join-Path $env:RUNNER_TEMP 'latest-cli'
-          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo
           if ($LASTEXITCODE -ne 0) { throw 'CLI build failed' }
           $exe=Join-Path $dir 'pgextwin.exe'
           if (!(Test-Path -LiteralPath $exe)) { throw 'CLI EXE missing' }
