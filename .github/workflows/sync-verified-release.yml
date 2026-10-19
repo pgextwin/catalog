@@ -101,7 +101,7 @@ jobs:
                   raise SystemExit("DENY: verifier did not generate the signed record")
               names.append(name)
               data["extensions"] = sorted(names)
-              path.write_text(json.dumps(data, indent=2) + "\\n", encoding="utf-8")
+              path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
           PY
       - name: Validate proposed record against Catalog schema and live sources
         if: steps.verify.outputs.changed == 'true'
@@ -179,7 +179,7 @@ jobs:
           actual="$(git diff --cached --name-only)"
           expected="extensions/$EXTENSION.json"
           if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
-            expected="$(printf 'extensions/%s.json\\nindex.json' "$EXTENSION")"
+            expected="$(printf 'extensions/%s.json\nindex.json' "$EXTENSION")"
           fi
           if [[ "$actual" != "$expected" ]]; then
             echo "::error::Catalog PR files not exactly the verified record and permitted initial index"
