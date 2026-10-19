@@ -41,8 +41,17 @@ static async Task<int> RunAsync(string[] args)
         string? policySha = null;
         string? output = null;
         string? format = null;
+        bool? latest = null;
         while (i < args.Length)
         {
+            if (args[i] is "--latest" or "--fixed")
+            {
+                if (command != "download-all" || latest is not null)
+                    throw new ArgumentException("Latest/fixed choice is only allowed once with download-all");
+                latest = args[i] == "--latest";
+                i++;
+                continue;
+            }
             if (i + 1 >= args.Length) throw new ArgumentException("Missing option value");
             var option = args[i++]; var value = args[i++];
             switch (option)
@@ -79,6 +88,8 @@ static async Task<int> RunAsync(string[] args)
                 throw new ArgumentException(command + " requires --pg (and an extension for single download)");
             var auto = command == "download-all" &&
                 directory is null && policy is null && policySha is null && output is null;
+            if (latest == true && !auto)
+                throw new ArgumentException("--latest only supports verified automatic Catalog mode");
             if (!auto && (directory is null || policy is null || policySha is null || output is null))
                 throw new ArgumentException(command + " needs --catalog-dir, --policy, --policy-sha256 and --output unless using simple download-all");
             Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; policy pin is bundled with the signed CLI, not original extension Sigstore verification");
@@ -90,6 +101,23 @@ static async Task<int> RunAsync(string[] args)
             });
             if (command == "download-all")
             {
+                if (latest == true)
+                {
+                    // Opt-in canary. Promotion to default requires independent
+                    // authenticated Windows public-network success first.
+                    using var selected = await AuthenticatedCatalogHead.AcquireAsync(
+                        Directory.GetCurrentDirectory());
+                    var resolved = await AuthenticatedLatestReleasePins.ResolveAsync(selected, pg);
+                    using var browser = new PinnedBrowserDownloader();
+                    var latestBatch = await BatchReleaseDownloader.StageAsync(
+                        resolved, pg, Directory.GetCurrentDirectory(),
+                        (pin, folder, token) => browser.DownloadAsync(pin, folder, token),
+                        metadataVerified: true,
+                        sourceOverride: "GITHUB_VERIFIED_PROTECTED_MAIN_AND_EXACT_VALIDATE");
+                    Console.WriteLine($"CATALOG_COMMIT={selected.Commit} CATALOG_AUTH=GITHUB_API_SIGNED_COMMIT_STATUS");
+                    Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={latestBatch.Count}\tBYTES={latestBatch.Bytes}\t{latestBatch.Directory}");
+                    return 0;
+                }
                 // All four optional paths absent: trust anchors live in the
                 // current CLI build, never in a live, unpinned HEAD response.
                 using var bootstrap = auto
@@ -176,7 +204,8 @@ static void Usage()
     Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json]");
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
-    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all   # auto-fetch pinned Catalog/policy, save in current directory");
+    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all [--fixed|--latest]");
+    Console.Error.WriteLine("  --fixed (default): immutable historical snapshot; --latest: verified protected Catalog/main (opt-in canary)");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("download-all saves 14 original ZIPs per PG, or 70 with --pg all, in an atomic new subdirectory.");
