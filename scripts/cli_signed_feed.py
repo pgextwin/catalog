@@ -22,6 +22,12 @@ ASSET = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,159}\Z")
 MAJORS = ("14", "15", "16", "17", "18")
 LIMIT = 2_000_000
 SCHEMA = "pgextwin-signed-catalog-zip-feed/v1"
+HISTORICAL = frozenset((
+    "hypopg", "orafce", "pg_bigm", "pg_cron", "pg_hint_plan",
+    "pg_ivm", "pg_partman", "pg_qualstats", "pg_repack",
+    "pg_stat_monitor", "pgaudit", "plpgsql_check", "set_user", "wal2json"
+))
+WAVE3_INTAKE_ONLY = frozenset(("pgtap", "pg_variables", "pg_store_plans"))
 
 
 def strict_object(text):
@@ -71,9 +77,12 @@ def build_feed(root, commit, load):
     index_bytes = source_bytes(root, "index.json")
     index = strict_object(index_bytes.decode("utf-8"))
     names = index["extensions"]
-    if index.get("schemaVersion") != 2 or not isinstance(names, list) or len(names) != 14 or (
+    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not 14 <= len(names) <= 17 or (
         names != sorted(names) or len(names) != len(set(names)) or
-        any(not isinstance(n, str) or not EXTENSION.fullmatch(n) for n in names)
+        any(not isinstance(n, str) or not EXTENSION.fullmatch(n) for n in names) or
+        not HISTORICAL.issubset(names) or
+        not set(names).issubset(HISTORICAL | WAVE3_INTAKE_ONLY) or
+        sorted(p.stem for p in (root / "extensions").glob("*.json")) != names
     ):
         raise ValueError("Catalog extension inventory incomplete")
     source_hashes = {"index.json": hashlib.sha256(index_bytes).hexdigest()}
@@ -145,8 +154,8 @@ def build_feed(root, commit, load):
         "catalogCommit": commit,
         "catalogSha256": source_hashes,
         "postgresqlMajors": list(MAJORS),
-        "extensionCount": 14,
-        "zipCount": 70,
+        "extensionCount": len(names),
+        "zipCount": len(names) * len(MAJORS),
         "releases": records,
         "verificationLevel": "CATALOG_FEED_SIGNED_CLAIM_ONLY",
         "extensionSignatureVerified": False,
@@ -175,7 +184,7 @@ def main():
     if path.exists() or path.is_symlink():
         raise ValueError("Refuse to overwrite old feed")
     path.write_bytes(canonical(feed))
-    print(f"CATALOG_FEED_READY=70 HASH={hashlib.sha256(path.read_bytes()).hexdigest()} "
+    print(f"CATALOG_FEED_READY={feed['zipCount']} HASH={hashlib.sha256(path.read_bytes()).hexdigest()} "
           "SIGNED=false PUBLISH=DENY")
 
 

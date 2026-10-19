@@ -22,7 +22,8 @@ public static class AuthenticatedLatestReleasePins
         if (selection is not ("14" or "15" or "16" or "17" or "18" or "all"))
             throw new InvalidDataException("Unsupported PostgreSQL latest selection");
         var names = CatalogReader.LoadLocal(snapshot.CatalogPath);
-        if (names.Count != 14 || names.Any(x => x.Versions.Count != 5))
+        VerifiedFleetRoster.Require(names.Select(x => x.Name));
+        if (names.Any(x => x.Versions.Count != 5))
             throw new InvalidDataException("Latest fleet is incomplete");
         var majors = selection == "all" ? new[] { "14", "15", "16", "17", "18" } : new[] { selection };
         using var ownedHandler = handler is null ? new SocketsHttpHandler
@@ -113,7 +114,7 @@ public static class AuthenticatedLatestReleasePins
                     }, snapshot.Commit));
             }
         }
-        if (result.Count != 14 * majors.Length ||
+        if (result.Count != names.Count * majors.Length ||
             result.Select(p => p.Extension + "/" + p.PgMajor).Distinct(StringComparer.Ordinal).Count() != result.Count)
             throw new InvalidDataException("Incomplete latest ZIP plan");
         return result;

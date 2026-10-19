@@ -17,6 +17,15 @@ internal static class AuthenticatedCatalogHeadTests
         public bool WrongReleaseDigest = false;
         public bool DraftRelease = false;
         public int HeadReads = 0;
+        public int WaveThreeCount = 0;
+        public bool DropHistorical = false;
+        public bool AddUnknown = false;
+        private static readonly string[] Wave3 = ["pgtap", "pg_variables", "pg_store_plans"];
+        private string[] Inventory => Names
+            .Concat(Wave3.Take(WaveThreeCount))
+            .Where(n => !DropHistorical || n != "hypopg")
+            .Concat(AddUnknown ? ["untrusted_extension"] : Array.Empty<string>())
+            .Order(StringComparer.Ordinal).ToArray();
         private static readonly string[] Names = new[]
         {
             "hypopg", "orafce", "pg_bigm", "pg_cron", "pg_hint_plan",
@@ -112,12 +121,12 @@ internal static class AuthenticatedCatalogHeadTests
             }
             else if (path.EndsWith("/index.json", StringComparison.Ordinal))
             {
-                body = JsonSerializer.Serialize(new { schemaVersion = 2, extensions = Names });
+                body = JsonSerializer.Serialize(new { schemaVersion = 2, extensions = Inventory });
             }
             else
             {
                 var name = Path.GetFileNameWithoutExtension(path);
-                if (!Names.Contains(name, StringComparer.Ordinal))
+                if (!Inventory.Contains(name, StringComparer.Ordinal))
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 var pg = new Dictionary<string, object>();
                 foreach (var major in new[] { "14", "15", "16", "17", "18" })
@@ -179,6 +188,33 @@ internal static class AuthenticatedCatalogHeadTests
                 try { await AuthenticatedLatestReleasePins.ResolveAsync(session, "18", fixture); }
                 catch (InvalidDataException) { draftDenied = true; }
                 check(draftDenied, "draft unpublished Release fails closed");
+            }
+            // All synthetic: the live Catalog still indexes only 14 signed public Releases.
+            for (var extra = 1; extra <= 3; extra++)
+            {
+                using var expanding = new FixtureHandler { WaveThreeCount = extra };
+                using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, expanding);
+                var rows = await AuthenticatedLatestReleasePins.ResolveAsync(staged, "all", expanding);
+                check(rows.Count == (14 + extra) * 5,
+                    "staged authenticated Catalog accepts only exact 14+" + extra + " ZIP cohort");
+                check(rows.Count(x => x.Extension == "pgtap") == 5,
+                    "staged candidate name has exact PG14-18 public-Release metadata fixture");
+            }
+            foreach (var scenario in new[] { "missing-base", "unknown" })
+            {
+                using var invalid = new FixtureHandler
+                {
+                    WaveThreeCount = 1,
+                    DropHistorical = scenario == "missing-base",
+                    AddUnknown = scenario == "unknown"
+                };
+                var denied = false;
+                try
+                {
+                    using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, invalid);
+                }
+                catch (InvalidDataException) { denied = true; }
+                check(denied, "staged Catalog rejects " + scenario + " extension roster");
             }
             check(Directory.GetFileSystemEntries(parent).Length == 0,
                 "latest verified snapshot disposed without leftovers");

@@ -112,13 +112,14 @@ public static class AuthenticatedCatalogHead
             using var parsed = StrictJson.Parse(index);
             var arr = parsed.RootElement.GetProperty("extensions");
             if (parsed.RootElement.GetProperty("schemaVersion").GetInt32() != 2 ||
-                arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() != 14)
+                arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() < 14 || arr.GetArrayLength() > 17)
                 throw new InvalidDataException("Unexpected Catalog v2 fleet");
             var names = arr.EnumerateArray().Select(x => x.GetString() ?? "").ToArray();
             if (names.Any(x => !Name.IsMatch(x)) ||
                 !names.SequenceEqual(names.Order(StringComparer.Ordinal)) ||
                 names.Distinct(StringComparer.Ordinal).Count() != names.Length)
                 throw new InvalidDataException("Unsafe Catalog fleet names");
+            VerifiedFleetRoster.Require(names);
             await File.WriteAllBytesAsync(Path.Combine(session.CatalogPath, "index.json"),
                 index, cancellationToken);
             var extensionDir = Path.Combine(session.CatalogPath, "extensions");

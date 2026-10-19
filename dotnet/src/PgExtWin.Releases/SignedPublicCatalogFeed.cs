@@ -84,11 +84,12 @@ public static class SignedPublicCatalogFeed
         using var feed = StrictJson.Parse(feedBytes);
         var root = feed.RootElement;
         var commit = root.GetProperty("catalogCommit").GetString() ?? "";
+        var expectedCount = root.GetProperty("extensionCount").GetInt32();
         if (!Sha40.IsMatch(commit) ||
             root.GetProperty("schemaVersion").GetString() != "pgextwin-signed-catalog-zip-feed/v1" ||
             root.GetProperty("repository").GetString() != "pgextwin/catalog" ||
-            root.GetProperty("extensionCount").GetInt32() != 14 ||
-            root.GetProperty("zipCount").GetInt32() != 70 ||
+            (expectedCount < 14 || expectedCount > 17) ||
+            root.GetProperty("zipCount").GetInt32() != expectedCount * Majors.Length ||
             root.GetProperty("extensionSignatureVerified").ValueKind != JsonValueKind.False ||
             root.GetProperty("publicationAuthorized").ValueKind != JsonValueKind.False ||
             root.GetProperty("installAuthorized").ValueKind != JsonValueKind.False ||
@@ -140,11 +141,11 @@ public static class SignedPublicCatalogFeed
             var catalogue = Path.Combine(stage, "catalog");
             var hashes = root.GetProperty("catalogSha256");
             var entries = hashes.EnumerateObject().ToArray();
-            if (entries.Length != 15)
+            if (entries.Length != expectedCount + 1)
                 throw new InvalidDataException("Signed Catalog byte digest inventory incomplete");
             var paths = new List<string> { "index.json" };
             var releaseArray = root.GetProperty("releases").EnumerateArray().ToArray();
-            if (releaseArray.Length != 14)
+            if (releaseArray.Length != expectedCount)
                 throw new InvalidDataException("Signed latest Release inventory incomplete");
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var rec in releaseArray)
@@ -154,7 +155,8 @@ public static class SignedPublicCatalogFeed
                     throw new InvalidDataException("Signed feed contains unknown/duplicate extension");
                 paths.Add("extensions/" + name + ".json");
             }
-            if (paths.Count != 15 || entries.Any(x =>
+            VerifiedFleetRoster.Require(names.Order(StringComparer.Ordinal));
+            if (paths.Count != expectedCount + 1 || entries.Any(x =>
                 !paths.Contains(x.Name, StringComparer.Ordinal) ||
                 !Sha64.IsMatch(x.Value.GetString() ?? "")))
                 throw new InvalidDataException("Signed feed contains unsafe Catalog paths or raw digests");
@@ -169,7 +171,7 @@ public static class SignedPublicCatalogFeed
                 progress?.Invoke($"CATALOG_RECORD_VERIFIED path={path} bytes={bytes.Length}");
             }
             var loaded = CatalogReader.LoadLocal(catalogue);
-            if (loaded.Count != 14 || loaded.Any(x => x.Versions.Count != 5) ||
+            if (loaded.Count != expectedCount || loaded.Any(x => x.Versions.Count != 5) ||
                 !loaded.Select(x => x.Name).SequenceEqual(
                     names.Order(StringComparer.Ordinal)))
                 throw new InvalidDataException("Signed Catalog fleet is incomplete");
@@ -226,7 +228,7 @@ public static class SignedPublicCatalogFeed
                             }, commit));
                 }
             }
-            if (pins.Count != selected.Length * 14)
+            if (pins.Count != selected.Length * expectedCount)
                 throw new InvalidDataException("Incomplete Sigstore-signed Catalog selection");
             progress?.Invoke($"CATALOG_PINS_SELECTED count={pins.Count} pg={pgSelection} extension_auth=INTEGRITY_ONLY");
             return new Session(stage, commit, tag, pins);
