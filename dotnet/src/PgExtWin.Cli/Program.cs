@@ -92,7 +92,7 @@ static async Task<int> RunAsync(string[] args)
                 throw new ArgumentException("--latest only supports verified automatic Catalog mode");
             if (!auto && (directory is null || policy is null || policySha is null || output is null))
                 throw new ArgumentException(command + " needs --catalog-dir, --policy, --policy-sha256 and --output unless using simple download-all");
-            Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; policy pin is bundled with the signed CLI, not original extension Sigstore verification");
+            Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; Catalog provenance is not original extension Sigstore verification");
             using var downloader = new ReadOnlyReleaseDownloader(new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
@@ -101,10 +101,10 @@ static async Task<int> RunAsync(string[] args)
             });
             if (command == "download-all")
             {
-                if (latest == true)
+                if (auto && latest != false)
                 {
-                    // Opt-in canary. Promotion to default requires independent
-                    // authenticated Windows public-network success first.
+                    // Default latest after PR #124 anonymous full 70 ZIP Windows PASS.
+                    // --fixed retains the audited immutable v0.2.2 snapshot.
                     using var selected = await AuthenticatedCatalogHead.AcquireAsync(
                         Directory.GetCurrentDirectory());
                     var resolved = await AuthenticatedLatestReleasePins.ResolveAsync(selected, pg);
@@ -205,7 +205,7 @@ static void Usage()
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all [--fixed|--latest]");
-    Console.Error.WriteLine("  --fixed (default): immutable historical snapshot; --latest: verified protected Catalog/main (opt-in canary)");
+    Console.Error.WriteLine("  Default/--latest: GitHub-verified protected Catalog/main; --fixed: immutable historical snapshot");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("download-all saves 14 original ZIPs per PG, or 70 with --pg all, in an atomic new subdirectory.");
