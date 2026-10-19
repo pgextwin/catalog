@@ -175,7 +175,8 @@ static void Usage()
     Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json]");
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
-    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all   # auto-fetch pinned Catalog/policy, save in current directory");\n    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
+    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all   # auto-fetch pinned Catalog/policy, save in current directory");
+    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("download-all saves 14 original ZIPs per PG, or 70 with --pg all, in an atomic new subdirectory.");
     Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
