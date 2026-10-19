@@ -202,3 +202,7 @@ intentional and do not silently select newer packages or waive safety gates.
 To use a different independently approved snapshot or an explicit destination,
 keep using the existing full set of `--catalog-dir`, `--policy`,
 `--policy-sha256` and `--output` arguments.
+
+### v0.2.2 public asset rate-limit recovery
+
+The one-line frozen policy download uses `https://github.com/pgextwin/<repo>/releases/download/<tag>/<original ZIP>` with a strictly pinned immutable Catalog asset filename, Release tag, SHA256 and bounded GitHub-owned redirect destinations. The **original ZIP bytes are rehashed** and never extracted. Unlike explicit `download`, one-line mode avoids anonymous GitHub REST Release metadata GET quotas entirely. The `DOWNLOAD-INFO.json` receipt sets `releaseMetadataVerified=false`; Repo/Release/Asset numeric IDs are historical, **policy-pinned**, not live API audited. `INTEGRITY_ONLY` does not imply authentic original extension Sigstore signatures.
