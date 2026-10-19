@@ -43,10 +43,10 @@ jobs:
             $exe=Join-Path $env:RUNNER_TEMP 'anon-cli/pgextwin.exe'
             $log=& $exe download-all --pg all 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "ANONYMOUS_DEFAULT_LATEST=NO_GO; original error: $log" }
-            if ($log -notmatch 'ZIP_COUNT=70') { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; partial batch' }
+            if ($log -notmatch 'ZIP_COUNT=70' -or $log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; incomplete or unauthenticated batch' }
             $folder=Join-Path $p 'pgextwin-pg14-18'
             $manifest=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
-            if ($manifest.zipCount -ne 70 -or $manifest.signatureVerified -ne $false -or
+            if ($manifest.zipCount -ne 70 -or $manifest.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or $manifest.releaseMetadataVerified -ne $false -or $manifest.signatureVerified -ne $false -or
                 $manifest.installAuthorized -ne $false -or $manifest.verificationLevel -cne 'INTEGRITY_ONLY') {
               throw 'Untrusted output was incorrectly authorized'
             }
