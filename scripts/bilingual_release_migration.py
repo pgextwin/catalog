@@ -39,7 +39,8 @@ def load_manifest(path):
         assert 0 < body.index("## English") < body.index("## 日本語")
         assert body.count("## English") == body.count("## 日本語") == 1
         old = normalized(row["oldBody"])
-        original_lines = [line.strip() for line in old.splitlines()\n                          if line.strip() and not line.startswith("# ")]
+        original_lines = [line.strip() for line in old.splitlines()
+                          if line.strip() and not line.startswith("# ")]
         assert all(line in body for line in original_lines), "Original release lines must all be preserved"
         if repo == "pgextwin/catalog":
             assert "INTEGRITY_ONLY" in body or row["tag"].startswith("cli-v0.1.")
