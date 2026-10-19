@@ -27,7 +27,7 @@ jobs:
         shell: pwsh
         run: |
           $dir=Join-Path $env:RUNNER_TEMP 'anon-cli'
-          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo
           if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
       - name: Exact anonymous one-line latest PG14-18 70 ZIP full-batch smoke
         shell: pwsh
