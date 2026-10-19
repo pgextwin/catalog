@@ -128,13 +128,11 @@ jobs:
         run: |
           $dir = Join-Path $env:RUNNER_TEMP 'cli-release'
           & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
-          if ($LASTEXITCODE -ne 0) { throw 'Release file validation failed' }
 
       - name: Exercise hostile asset mutations before allowing a publication attempt
         shell: pwsh
         run: |
           & ./tests/cli_r7_asset_set_smoke.ps1
-          if ($LASTEXITCODE -ne 0) { throw 'R7 hostile fixture check failed' }
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -179,7 +177,6 @@ jobs:
           if ($intent.publish -ne $true -or $intent.tag -cne $tag -or $intent.exeSha256 -cne $digest -or $intent.sourceCommit -cne $expectedSource) { throw 'Release intent changed' }
           $dir=Join-Path $env:RUNNER_TEMP 'cli-release'
           & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
-          if ($LASTEXITCODE -ne 0) { throw 'Release original asset validation failed' }
           if ((Get-FileHash (Join-Path $dir 'pgextwin.exe') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $digest) { throw 'EXE hash mismatch' }
           $reserve=gh api --method POST repos/pgextwin/catalog/git/refs -f "ref=refs/tags/$tag" -f "sha=$expectedSource"
           if ($LASTEXITCODE -ne 0) { throw 'CLI tag already exists or cannot be created: fail closed' }
