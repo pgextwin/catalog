@@ -99,7 +99,8 @@ static async Task<int> RunAsync(string[] args)
                     bootstrap?.CatalogPath ?? directory!,
                     bootstrap?.PolicyFile ?? policy!,
                     bootstrap is null ? policySha! : TrustedCatalogBootstrap.PolicySha256,
-                    pg, auto ? Directory.GetCurrentDirectory() : output!, downloader);
+                    pg, auto ? Directory.GetCurrentDirectory() : output!, downloader,
+                    usePinnedBrowserTransport: auto);
                 Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={batch.Count}\tBYTES={batch.Bytes}\t{batch.Directory}");
                 return 0;
             }
