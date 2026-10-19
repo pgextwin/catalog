@@ -2,12 +2,18 @@ name: CLI anonymous latest no-token acceptance
 on:
   pull_request:
     paths:
+      - 'dotnet/**'
+      - '.github/workflows/cli-anonymous-latest.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'dotnet/**'
       - '.github/workflows/cli-anonymous-latest.yml'
 permissions:
   contents: read
 jobs:
   anonymous-real-70:
-    name: Anonymous end-user Windows latest 70 ZIP acceptance (no GH_TOKEN)
+    name: Anonymous default-command Windows 70 ZIP acceptance (no GH_TOKEN)
     runs-on: windows-latest
     timeout-minutes: 35
     steps:
@@ -35,9 +41,9 @@ jobs:
           Push-Location $p
           try {
             $exe=Join-Path $env:RUNNER_TEMP 'anon-cli/pgextwin.exe'
-            $log=& $exe download-all --pg all --latest 2>&1 | Out-String
-            if ($LASTEXITCODE -ne 0) { throw "ANONYMOUS_LATEST=NO_GO; original error: $log" }
-            if ($log -notmatch 'ZIP_COUNT=70') { throw 'ANONYMOUS_LATEST=NO_GO; partial batch' }
+            $log=& $exe download-all --pg all 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) { throw "ANONYMOUS_DEFAULT_LATEST=NO_GO; original error: $log" }
+            if ($log -notmatch 'ZIP_COUNT=70') { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; partial batch' }
             $folder=Join-Path $p 'pgextwin-pg14-18'
             $manifest=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             if ($manifest.zipCount -ne 70 -or $manifest.signatureVerified -ne $false -or
@@ -52,5 +58,5 @@ jobs:
               $count++
             }
             if ($count -ne 70) { throw 'Anonymous wrong count' }
-            Write-Output 'ANONYMOUS_LATEST=PASS SHA256=70/70 NO_TOKEN=true'
+            Write-Output 'ANONYMOUS_DEFAULT_LATEST=PASS SHA256=70/70 NO_TOKEN=true'
           } finally { Pop-Location }
