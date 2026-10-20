@@ -56,6 +56,35 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
         self.assertTrue((ROOT / "scripts" / "propose_verified_wave3.py").is_file())
         self.assertTrue((ROOT / "tests" / "test_propose_verified_wave3.py").is_file())
 
+    def test_historic_catalog_fleet14_and_bilingual_oneoffs_are_inert(self):
+        # Exact original read-only canary and completed bilingual updater
+        # remain testable, but must never mint another write workflow token.
+        for name in ("catalog-fleet14-readonly-canary.yml",
+                     "historical-release-bilingual.yml"):
+            with self.subTest(name=name):
+                self.assertFalse((WORKFLOWS / name).exists())
+                self.assertTrue((ROOT / "tests/fixtures/historical-workflows" / name).is_file())
+        for path in ("scripts/catalog_fleet14_readonly.py",
+                     "scripts/bilingual_release_migration.py",
+                     "config/historical-release-bilingual.json",
+                     "tests/test_catalog_fleet14_readonly.py"):
+            self.assertTrue((ROOT / path).is_file())
+        # Keep the currently required Release verifier, managed Catalog
+        # ingestion, website notification and read-only drift monitoring.
+        for name in ("validate.yml", "sync-verified-release.yml",
+                     "verify-manual-release.yml", "notify-website.yml",
+                     "catalog-drift-readonly.yml", "issue112-p1-fleet-readonly.yml",
+                     "cli-anonymous-latest.yml", "cli-signed-catalog-feed.yml"):
+            self.assertTrue((WORKFLOWS / name).is_file())
+        validate = (WORKFLOWS / "validate.yml").read_text(encoding="utf-8")
+        self.assertIn("unittest discover -s tests -v", validate)
+        original = (ROOT / "tests/fixtures/historical-workflows/catalog-fleet14-readonly-canary.yml").read_text(encoding="utf-8")
+        self.assertIn("DRY_RUN_FLEET14_METADATA_ONLY", original)
+        self.assertNotIn("contents: write", original)
+        original_notes = (ROOT / "tests/fixtures/historical-workflows/historical-release-bilingual.yml").read_text(encoding="utf-8")
+        self.assertIn("Update ONLY existing public Release bodies", original_notes)
+        self.assertNotIn("pull_request_target:", original_notes)
+
     def test_historic_release_metadata_is_preserved(self):
         for version in ("v030", "v031", "v032"):
             self.assertTrue((ROOT / "config" /
