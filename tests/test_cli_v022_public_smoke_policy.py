@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-WORKFLOW=ROOT/".github/workflows/cli-v022-public-smoke.yml"
+WORKFLOW=ROOT/"tests/fixtures/historical-workflows/cli-v022-public-smoke.yml"
 
 
 class CliPublicSmokeTests(unittest.TestCase):

@@ -4,7 +4,7 @@ import json
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-WF=(ROOT/".github/workflows/cli-v021-release.yml").read_text(encoding="utf-8")
+WF=(ROOT/"tests/fixtures/historical-workflows/cli-v021-release.yml").read_text(encoding="utf-8")
 INTENT=json.loads((ROOT/"config/cli-v021-release-intent.json").read_text(encoding="utf-8"))
 SOURCE="79db0018cd930847330c024770328892eb46cf3c"
 EXE="78de25e4ac3b8d40ba173f3369a12cf92e97ee0e2a65695820390231e3d08aca"
