@@ -1,0 +1,54 @@
+name: Verify existing signed Release from protected Chat request (no writes)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/catalog-release-requests/**'
+      - '.github/workflows/catalog-chat-request.yml'
+      - 'scripts/catalog_chat_request.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-chat-public-release-verification
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+      pull-requests: read
+      attestations: read
+    steps:
+      - name: Check out protected exact main source without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Validate closed request and signature-verifier delegation
+        run: python -m unittest discover -s tests -p 'test_catalog_chat_request.py' -v
+      - name: Resolve exact one-file request and independently verify existing signed Release
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/catalog_chat_request.py
+      - name: Preserve only independently verified record for normal Chat protected PR
+        if: steps.verify.outputs.verified == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-catalog-chat-request
+          path: ${{ runner.temp }}/verified-catalog-chat-request
+          if-no-files-found: error
+          retention-days: 14
