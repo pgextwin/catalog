@@ -4,7 +4,7 @@ import json
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-WORKFLOW=ROOT/".github"/"workflows"/"cli-preview-release.yml"
+WORKFLOW=ROOT/"tests"/"fixtures"/"historical-workflows"/"cli-preview-release.yml"
 INTENT=ROOT/"config"/"cli-preview-release-intent.json"
 
 
