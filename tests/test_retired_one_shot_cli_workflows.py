@@ -41,6 +41,21 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
         self.assertIn("permission-contents: write", verified)
         self.assertIn("permission-pull-requests: write", verified)
 
+    def test_all_completed_cli_v01_v02_and_old_wave3_entrypoints_are_inert(self):
+        obsolete = ("cli-preview-release.yml", "cli-public-smoke.yml",
+                    "cli-v02-release.yml", "cli-v021-release.yml",
+                    "cli-v022-release.yml", "cli-v02-public-smoke.yml",
+                    "cli-v022-public-smoke.yml", "sync-wave3.yml")
+        archive = ROOT / "tests" / "fixtures" / "historical-workflows"
+        for name in obsolete:
+            with self.subTest(name=name):
+                self.assertFalse((WORKFLOWS / name).exists())
+                self.assertTrue((archive / name).is_file())
+        for name in ("cli-preview", "cli-v02", "cli-v021", "cli-v022"):
+            self.assertTrue((ROOT / "config" / (name + "-release-intent.json")).is_file())
+        self.assertTrue((ROOT / "scripts" / "propose_verified_wave3.py").is_file())
+        self.assertTrue((ROOT / "tests" / "test_propose_verified_wave3.py").is_file())
+
     def test_historic_release_metadata_is_preserved(self):
         for version in ("v030", "v031", "v032"):
             self.assertTrue((ROOT / "config" /
