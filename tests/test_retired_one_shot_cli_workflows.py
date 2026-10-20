@@ -31,6 +31,16 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertTrue((WORKFLOWS / name).is_file())
 
+    def test_old_plpgsql_only_catalog_ingestion_is_retired(self):
+        self.assertFalse((WORKFLOWS / "sync-release.yml").exists())
+        verified = (WORKFLOWS / "sync-verified-release.yml").read_text(encoding="utf-8")
+        self.assertIn("scripts/verify_signed_fleet_release.py", verified)
+        self.assertIn("          - plpgsql_check", verified)
+        for extension in ("pgtap", "pg_variables", "pg_store_plans"):
+            self.assertIn("          - " + extension, verified)
+        self.assertIn("permission-contents: write", verified)
+        self.assertIn("permission-pull-requests: write", verified)
+
     def test_historic_release_metadata_is_preserved(self):
         for version in ("v030", "v031", "v032"):
             self.assertTrue((ROOT / "config" /
