@@ -11,7 +11,11 @@ from unittest import TestCase, mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-import catalog_fleet14_readonly as fleet
+import importlib.util
+source = ROOT / "tests/fixtures/historical-scripts/catalog_fleet14_readonly.py"
+spec = importlib.util.spec_from_file_location("catalog_fleet14_readonly", source)
+fleet = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fleet)
 
 SHA = "a" * 40
 OTHER_SHA = "b" * 40

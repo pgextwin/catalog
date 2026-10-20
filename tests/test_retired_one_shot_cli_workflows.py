@@ -64,8 +64,8 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertFalse((WORKFLOWS / name).exists())
                 self.assertTrue((ROOT / "tests/fixtures/historical-workflows" / name).is_file())
-        for path in ("scripts/catalog_fleet14_readonly.py",
-                     "scripts/bilingual_release_migration.py",
+        for path in ("tests/fixtures/historical-scripts/catalog_fleet14_readonly.py",
+                     "tests/fixtures/historical-scripts/bilingual_release_migration.py",
                      "config/historical-release-bilingual.json",
                      "tests/test_catalog_fleet14_readonly.py"):
             self.assertTrue((ROOT / path).is_file())
@@ -84,6 +84,23 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
         original_notes = (ROOT / "tests/fixtures/historical-workflows/historical-release-bilingual.yml").read_text(encoding="utf-8")
         self.assertIn("Update ONLY existing public Release bodies", original_notes)
         self.assertNotIn("pull_request_target:", original_notes)
+
+    def test_completed_catalog_scripts_are_not_live(self):
+        # Previous audit and body-migration Actions have already been retired.
+        # Their byte-identical scripts are fixtures, never live publish tools.
+        for name in ("catalog_fleet14_readonly.py",
+                     "bilingual_release_migration.py"):
+            with self.subTest(name=name):
+                self.assertFalse((ROOT / "scripts" / name).exists())
+                self.assertTrue((ROOT / "tests/fixtures/historical-scripts" / name).is_file())
+        for filename in ("catalog_scheduled_readonly.py", "cli_signed_feed.py",
+                         "verify_signed_fleet_release.py", "validate_catalog.py",
+                         "verified_release_record.py", "propose_verified_release.py"):
+            self.assertTrue((ROOT / "scripts" / filename).is_file())
+        active = (WORKFLOWS / "validate.yml").read_text(encoding="utf-8")
+        self.assertIn("python -m unittest discover -s tests -v", active)
+        self.assertNotIn("scripts/catalog_fleet14_readonly.py", active)
+        self.assertNotIn("scripts/bilingual_release_migration.py", active)
 
     def test_historic_release_metadata_is_preserved(self):
         for version in ("v030", "v031", "v032"):
