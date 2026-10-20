@@ -1,0 +1,76 @@
+name: Repair historic GitHub Release notes English then Japanese (body-only)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/bilingual_release_migration.py'
+      - 'config/historical-release-bilingual.json'
+      - '.github/workflows/historical-release-bilingual.yml'
+  workflow_run:
+    workflows: ["Validate catalog"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: historical-bilingual-release-body-catalog
+  cancel-in-progress: false
+
+jobs:
+  audit-plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate every original release text and proposed EN -> JA note
+        run: python scripts/bilingual_release_migration.py --manifest config/historical-release-bilingual.json --mode plan
+      - name: Read-only public Release ID, tag, metadata, body and asset checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/bilingual_release_migration.py --manifest config/historical-release-bilingual.json --mode audit
+
+  update-historical-bodies:
+    if: ${{ github.repository == 'pgextwin/catalog' && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1 }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Authorize exact current protected main and required successful CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ github.event.workflow_run.head_sha }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="$(gh api repos/pgextwin/catalog/branches/main)"
+          [[ "$(jq -r .protected <<< "$branch")" == true ]]
+          [[ "$(jq -r .commit.sha <<< "$branch")" == "$SOURCE" ]] || { echo 'Main moved: deny writes'; exit 1; }
+          run="$(gh api "repos/pgextwin/catalog/actions/runs/$RUN_ID")"
+          jq -e --arg sha "$SOURCE" '.status=="completed" and .conclusion=="success" and .event=="push" and .head_branch=="main" and .run_attempt==1 and .head_sha==$sha' <<< "$run" >/dev/null
+          jobs="$(gh api --paginate "repos/pgextwin/catalog/actions/runs/$RUN_ID/jobs?per_page=100" --jq '.jobs[] | [.name,.conclusion] | @tsv')"
+          grep -Fx $'validate\tsuccess' <<< "$jobs"
+          commit="$(gh api "repos/pgextwin/catalog/commits/$SOURCE")"
+          jq -e '.commit.verification.verified==true and .commit.verification.reason=="valid"' <<< "$commit" >/dev/null
+          echo 'HISTORIC_BILINGUAL_PROTECTED_MAIN_REQUIRED_CI=PASS'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Read-only verify every source Release before any modification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/bilingual_release_migration.py --manifest config/historical-release-bilingual.json --mode plan
+          python scripts/bilingual_release_migration.py --manifest config/historical-release-bilingual.json --mode audit
+      - name: Update ONLY existing public Release bodies; verify all original assets and tags unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/bilingual_release_migration.py --manifest config/historical-release-bilingual.json --mode apply
