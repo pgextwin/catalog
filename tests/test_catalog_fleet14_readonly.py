@@ -174,7 +174,7 @@ class Fleet14Tests(TestCase):
                     self.assertEqual(fleet.main(), 2)
 
     def test_one_shot_workflow_is_exact_main_path_and_read_only(self):
-        txt = (ROOT / ".github/workflows/catalog-fleet14-readonly-canary.yml").read_text()
+        txt = (ROOT / "tests/fixtures/historical-workflows/catalog-fleet14-readonly-canary.yml").read_text()
         for expected in (
             "name: Catalog 14-extension read-only canary (Issue 75)",
             "on:\n  push:\n    branches:\n      - main",
