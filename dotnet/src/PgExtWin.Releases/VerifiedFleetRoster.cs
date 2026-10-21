@@ -20,11 +20,16 @@ internal static class VerifiedFleetRoster
         "pgtap", "pg_variables", "pg_store_plans"
     };
 
+    // One authoritative compiled roster. All public-intake and download
+    // capacity guards derive from this allowlist, not duplicate 14/17/70/85.
+    internal static int MinimumCount => Historical.Length;
+    internal static int MaximumCount => Historical.Length + Additional.Count;
+
     internal static int Require(IEnumerable<string> items)
     {
         var names = items.ToArray();
-        if (names.Length < Historical.Length ||
-            names.Length > Historical.Length + Additional.Count ||
+        if (names.Length < MinimumCount ||
+            names.Length > MaximumCount ||
             !names.SequenceEqual(names.Order(StringComparer.Ordinal)) ||
             names.Distinct(StringComparer.Ordinal).Count() != names.Length ||
             Historical.Any(name => !names.Contains(name, StringComparer.Ordinal)) ||
