@@ -86,7 +86,10 @@ jobs:
           $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
           if ($LASTEXITCODE -ne 0) { throw 'Catalog smoke failed' }
           $data = $jsonText | ConvertFrom-Json
-          if ($data.count -ne 14 -or @($data.records).Count -ne 14 -or $data.trust -cne 'UNVERIFIED' -or $data.signatureVerified -ne $false) { throw 'Unsafe listing' }
+          $index = Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'index.json') -Raw | ConvertFrom-Json
+          $expectedCount = @($index.extensions).Count
+          if ($index.schemaVersion -ne 2 -or $expectedCount -lt 14 -or $expectedCount -gt 17) { throw 'Unsupported protected Catalog fleet size' }
+          if ($data.count -ne $expectedCount -or @($data.records).Count -ne $expectedCount -or $data.trust -cne 'UNVERIFIED' -or $data.signatureVerified -ne $false) { throw 'Unsafe listing' }
           $search = & $exe search cron --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0 -or $search -notmatch 'pg_cron') { throw 'Search smoke failed' }
           $deny = & $exe verify pg_cron --pg 18 2>&1 | Out-String
