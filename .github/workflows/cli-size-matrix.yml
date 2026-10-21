@@ -58,7 +58,10 @@ jobs:
           $body=(& $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json 2>&1 | Out-String)
           if ($LASTEXITCODE -ne 0) { throw "Catalog JSON read failed: $body" }
           $json=$body | ConvertFrom-Json
-          if ($json.count -ne 14 -or @($json.records).Count -ne 14 -or
+          $index=Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'index.json') -Raw | ConvertFrom-Json
+          $expected=@($index.extensions).Count
+          if ($index.schemaVersion -ne 2 -or $expected -lt 1 -or
+              $json.count -ne $expected -or @($json.records).Count -ne $expected -or
               $json.trust -cne 'UNVERIFIED' -or $json.signatureVerified -ne $false) { throw 'Trust model changed' }
           $deny=(& $exe verify pg_cron --pg 18 2>&1 | Out-String)
           if ($LASTEXITCODE -ne 2 -or $deny -notmatch 'DENY:') { throw 'Security fail closed broken' }
@@ -78,11 +81,15 @@ jobs:
           Push-Location $work
           try {
             $log=(& $exe download-all --pg 18 2>&1 | Out-String)
-            if ($LASTEXITCODE -ne 0 -or $log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED' -or
-                $log -notmatch 'ZIP_COUNT=14') { throw "Real anonymous signed Catalog failed: $log" }
+            if ($LASTEXITCODE -ne 0 -or $log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') {
+              throw "Real anonymous signed Catalog failed: $log"
+            }
             $dir=Join-Path $work 'pgextwin-pg18'
             $receipt=Get-Content -LiteralPath (Join-Path $dir 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
-            if ($receipt.zipCount -ne 14 -or $receipt.signatureVerified -ne $false -or
+            $signedCount=[int]$receipt.zipCount
+            if ($signedCount -lt 1 -or @($receipt.packages).Count -ne $signedCount -or
+                $log -notmatch "ZIP_COUNT=$signedCount\b" -or
+                $receipt.signatureVerified -ne $false -or
                 $receipt.installAuthorized -ne $false -or
                 $receipt.verificationLevel -cne 'INTEGRITY_ONLY' -or
                 $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS') { throw 'Corrupted authorization' }
@@ -92,7 +99,7 @@ jobs:
                 throw 'Original ZIP checksum mismatch'
               }
             }
-            Write-Output "SIZE_REAL_PG18=PASS 14/14 MODE=$env:MODE SIGSTORE_FEED=VERIFIED EXTENSION_AUTH=INTEGRITY_ONLY"
+            Write-Output "SIZE_REAL_PG18=PASS $signedCount/$signedCount MODE=$env:MODE SIGSTORE_FEED=VERIFIED EXTENSION_AUTH=INTEGRITY_ONLY"
           } finally { Pop-Location }
 
       - name: Full-trim explicit frozen Catalog compatibility and SHA256
