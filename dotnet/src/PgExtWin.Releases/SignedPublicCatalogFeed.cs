@@ -88,7 +88,8 @@ public static class SignedPublicCatalogFeed
         if (!Sha40.IsMatch(commit) ||
             root.GetProperty("schemaVersion").GetString() != "pgextwin-signed-catalog-zip-feed/v1" ||
             root.GetProperty("repository").GetString() != "pgextwin/catalog" ||
-            (expectedCount < 14 || expectedCount > 17) ||
+            (expectedCount < VerifiedFleetRoster.MinimumCount ||
+             expectedCount > VerifiedFleetRoster.MaximumCount) ||
             root.GetProperty("zipCount").GetInt32() != expectedCount * Majors.Length ||
             root.GetProperty("extensionSignatureVerified").ValueKind != JsonValueKind.False ||
             root.GetProperty("publicationAuthorized").ValueKind != JsonValueKind.False ||

@@ -25,7 +25,9 @@ public static class BatchReleaseDownloader
         var records = CatalogReader.LoadLocal(catalogDirectory);
         // v0.2 operates on the exact 14-extension production fleet. Never silently
         // make a partial 'all' selection from a broken or incomplete Catalog.
-        if (records.Count != 14 || records.Select(r => r.Name).Distinct(StringComparer.Ordinal).Count() != 14)
+        if (records.Count != VerifiedFleetRoster.MinimumCount ||
+            records.Select(r => r.Name).Distinct(StringComparer.Ordinal).Count() !=
+                VerifiedFleetRoster.MinimumCount)
             throw new InvalidDataException("Batch requires an intact 14-extension Catalog");
         var majors = pgSelection == "all"
             ? new[] { "14", "15", "16", "17", "18" } : new[] { pgSelection };
@@ -67,11 +69,15 @@ public static class BatchReleaseDownloader
         string? sourceOverride = null, Action<string>? progress = null)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
-            pins.Count == 0 || pins.Count > 85 || downloadOne is null)
+            pins.Count == 0 || downloadOne is null)
             throw new InvalidDataException("Invalid batch selection");
         var majors = pgSelection == "all"
             ? new HashSet<string>(new[] { "14", "15", "16", "17", "18" }, StringComparer.Ordinal)
             : new HashSet<string>(new[] { pgSelection }, StringComparer.Ordinal);
+        // Bound the input by the authoritative trusted extension roster and
+        // selected major count; no new numeric ZIP ceiling for later extensions.
+        if (pins.Count > VerifiedFleetRoster.MaximumCount * majors.Count)
+            throw new InvalidDataException("Batch exceeds allowed fleet capacity");
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var pin in pins)
         {
