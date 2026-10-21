@@ -59,13 +59,16 @@ class ManualCatalogHandoff(unittest.TestCase):
         for required in (
             "not an existing publicly published stable Release",
             "formal Promotion did not finish successfully",
-            "gh(\"attestation\", \"verify\"",
+            'verified = gh(',
+            '"attestation", "verify", str(zip_path)',
             "verify_payload(folder, release, manifest, contract",
             "deny_catalog_rollback(original, release)",
             "recordChanged",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, VERIFIER)
+        self.assertIn("actual_sha = verify_release_attestations(", VERIFIER)
+        self.assertIn("signer_sha == actual_sha", VERIFIER)
 
 
 if __name__ == "__main__":
