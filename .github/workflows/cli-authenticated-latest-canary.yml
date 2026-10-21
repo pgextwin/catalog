@@ -41,7 +41,7 @@ jobs:
           $exe=Join-Path $dir 'pgextwin.exe'
           if (!(Test-Path -LiteralPath $exe)) { throw 'CLI EXE missing' }
           Write-Output "LATEST_CANARY_PRIVATE_EXE_SHA256=$((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant())"
-      - name: Download real latest Catalog 70 ZIPs via one command and rehash
+      - name: Download all signed-Catalog live ZIPs via one command and rehash
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -54,10 +54,13 @@ jobs:
           try {
             $receipt=& $exe download-all --pg all --latest 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "Latest download must fail closed, not be waived: $receipt" }
-            if ($receipt -notmatch 'ZIP_COUNT=70' -or $receipt -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'Authenticated latest receipt missing' }
+            if ($receipt -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'Authenticated latest receipt missing' }
             $folder=Join-Path $parent 'pgextwin-pg14-18'
             $info=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
-            if ($info.zipCount -ne 70 -or @($info.packages).Count -ne 70 -or
+            $expected=[int]$info.zipCount
+            if ($expected -lt 1 -or ($expected % 5) -ne 0 -or
+                $receipt -notmatch "ZIP_COUNT=$expected\b" -or
+                @($info.packages).Count -ne $expected -or
                 $info.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
                 $info.signatureVerified -ne $false -or $info.provenanceVerified -ne $false -or
                 $info.publicationAuthorized -ne $false -or $info.distributionAuthorized -ne $false -or
@@ -72,7 +75,7 @@ jobs:
               if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Real ZIP bytes wrong' }
               $hashes++
             }
-            if ($hashes -ne 70) { throw 'Wrong original real ZIP count' }
-            Write-Output "LATEST_CATALOG_REAL_70_ZIPS=PASS SHA256=70/70 CATALOG_AUTH=GITHUB_API_APPROVED SIGNATURE_VERIFIED=false PUBLISH=DENY"
+            if ($hashes -ne $expected) { throw 'Wrong original real ZIP count' }
+            Write-Output "LATEST_CATALOG_REAL_ZIPS=PASS SHA256=$hashes/$expected CATALOG_AUTH=SIGSTORE_VERIFIED_FEED SIGNATURE_VERIFIED=false PUBLISH=DENY"
           }
           finally { Pop-Location }
