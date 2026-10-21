@@ -67,7 +67,7 @@ public static class BatchReleaseDownloader
         string? sourceOverride = null, Action<string>? progress = null)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
-            pins.Count == 0 || pins.Count > 70 || downloadOne is null)
+            pins.Count == 0 || pins.Count > 85 || downloadOne is null)
             throw new InvalidDataException("Invalid batch selection");
         var majors = pgSelection == "all"
             ? new HashSet<string>(new[] { "14", "15", "16", "17", "18" }, StringComparer.Ordinal)
