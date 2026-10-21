@@ -23,16 +23,22 @@ from zipfile import ZipFile, BadZipFile
 
 if __package__:
     from .verified_release_record import (
-        INTAKE_ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
     )
 else:
     from verified_release_record import (
-        INTAKE_ALLOWED, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
     )
 
 SIGNER = "pgextwin/build/.github/workflows/build-extension-attested.yml"
+# Wave3 FIRST Release only: require the exact immutable Signer currently
+# referenced by its shared manual promotion source. Historical 14-member
+# Catalog intake is intentionally unchanged.
+WAVE3_SIGNER_SHA = "5756b3c5136a8bf4db710016cfe97555f0a71c6d"
+PROVENANCE = "https://slsa.dev/provenance/v1"
+SPDX = "https://spdx.dev/Document/v2.3"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 SUM_LINE = re.compile(r"^([0-9a-f]{64})  (?:\./)?([A-Za-z0-9_.-]+)$")
@@ -222,6 +228,91 @@ def verify_payload(folder, release, manifest, contract, source_commit, active):
     return asset_map, sums, run_id
 
 
+
+def unique_json_keys(pairs):
+    """Reject conflicting/duplicated keys inside a signed predicate."""
+    item = {}
+    for key, value in pairs:
+        require(key not in item, "duplicate key in attestation verification")
+        item[key] = value
+    return item
+
+
+def validate_wave3_verified_attestation(raw, *, predicate, zip_name, zip_sha,
+                                        expected_spdx=None):
+    """Consume ONLY JSON from a successful real gh attestation verify call.
+
+    This parser alone proves no cryptography: verification of Signer, source,
+    predicate and GitHub trust roots is performed by the strict CLI call.
+    Exactly one verified claim must bind the public ZIP digest; the signed
+    SPDX predicate must be the downloaded, SHA-checked public SPDX document.
+    """
+    require(predicate in (PROVENANCE, SPDX)
+            and isinstance(zip_name, str) and zip_name.endswith(".zip")
+            and isinstance(zip_sha, str) and HEX64.fullmatch(zip_sha),
+            "unknown signed Wave3 predicate or ZIP")
+    try:
+        claims = json.loads(raw, object_pairs_hook=unique_json_keys)
+    except (TypeError, ValueError) as exc:
+        raise Denied("malformed or duplicate-key signed Wave3 verification") from exc
+    require(type(claims) is list and len(claims) == 1
+            and type(claims[0]) is dict, "missing/ambiguous signed Wave3 claim")
+    verified = claims[0].get("verificationResult")
+    require(type(verified) is dict
+            and type(verified.get("statement")) is dict,
+            "missing GitHub-verified signed statement")
+    statement = verified["statement"]
+    subjects = statement.get("subject")
+    require(statement.get("predicateType") == predicate
+            and type(subjects) is list and len(subjects) == 1
+            and type(subjects[0]) is dict
+            and subjects[0].get("name") == zip_name
+            and subjects[0].get("digest") == {"sha256": zip_sha},
+            "signed statement does not bind exact public ZIP bytes")
+    if predicate == SPDX:
+        require(type(expected_spdx) is dict
+                and expected_spdx.get("spdxVersion") == "SPDX-2.3"
+                and statement.get("predicate") == expected_spdx,
+                "public SPDX differs from verified signed SPDX predicate")
+    else:
+        require(type(statement.get("predicate")) is dict,
+                "signed SLSA provenance predicate missing")
+
+
+def verify_wave3_attestations(zip_path, spdx_path, *, repo, source_commit):
+    """First Release: bind TWO signer-pinned claims to downloaded public bytes.
+
+    This is Catalog-only read/verification; it never issues PUBLISH or writes
+    a Release. Existing 14-extension verification retains its historical route.
+    """
+    require(isinstance(source_commit, str) and HEX40.fullmatch(source_commit)
+            and repo in {"pgextwin/" + n for n in FIRST_RELEASE_SOURCES},
+            "untrusted first-Release signer/source identity")
+    zip_sha, spdx_sha = digest(zip_path), digest(spdx_path)
+    try:
+        signed_spdx = json.loads(spdx_path.read_text(encoding="utf-8-sig"),
+                                 object_pairs_hook=unique_json_keys)
+    except (ValueError, TypeError) as exc:
+        raise Denied("unreadable/duplicate-key published SPDX") from exc
+    require(type(signed_spdx) is dict
+            and signed_spdx.get("spdxVersion") == "SPDX-2.3",
+            "invalid published SPDX identity")
+    for predicate in (PROVENANCE, SPDX):
+        # gh performs the cryptographic verification. Each pinned flag is a
+        # trust constraint; do not accept the JSON result without zero exit.
+        verified = gh(
+            "attestation", "verify", str(zip_path), "--repo", repo,
+            "--signer-workflow", SIGNER, "--signer-digest", WAVE3_SIGNER_SHA,
+            "--source-digest", source_commit, "--source-ref", "refs/heads/main",
+            "--predicate-type", predicate, "--format", "json")
+        validate_wave3_verified_attestation(
+            verified, predicate=predicate, zip_name=zip_path.name,
+            zip_sha=zip_sha, expected_spdx=signed_spdx if predicate == SPDX
+            else None)
+        require(digest(zip_path) == zip_sha and digest(spdx_path) == spdx_sha,
+                "public ZIP/SPDX bytes changed during signature verification")
+
+
 def deny_catalog_rollback(existing, release):
     """A valid old signature is not permission to replace newer public Catalog state."""
     current = (existing.get("latest") or {})
@@ -278,11 +369,17 @@ def generate(extension, tag, record):
         for major in active:
             stem = extension + "-" + source_map(manifest)[major]["ref"] + "-pg" + str(major) + "-windows-x64"
             zipped = str(folder / (stem + ".zip"))
-            gh("attestation", "verify", zipped, "--repo", repo,
-               "--signer-workflow", SIGNER)
-            gh("attestation", "verify", zipped, "--repo", repo,
-               "--signer-workflow", SIGNER,
-               "--predicate-type", "https://spdx.dev/Document/v2.3")
+            if extension in FIRST_RELEASE_SOURCES:
+                verify_wave3_attestations(
+                    Path(zipped), folder / (stem + ".spdx.json"),
+                    repo=repo, source_commit=source_commit)
+            else:
+                # Historical 14-member intake contract is unchanged.
+                gh("attestation", "verify", zipped, "--repo", repo,
+                   "--signer-workflow", SIGNER)
+                gh("attestation", "verify", zipped, "--repo", repo,
+                   "--signer-workflow", SIGNER,
+                   "--predicate-type", SPDX)
     # Existing records are updated. Only the three explicitly pre-registered
     # third-wave identities may be seeded on their FIRST genuinely signed,
     # public, independently verified Release. No placeholder is written.
