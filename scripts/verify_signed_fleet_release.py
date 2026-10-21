@@ -33,10 +33,11 @@ else:
     )
 
 SIGNER = "pgextwin/build/.github/workflows/build-extension-attested.yml"
-# Wave3 FIRST Release only: require the exact immutable Signer currently
-# referenced by its shared manual promotion source. Historical 14-member
-# Catalog intake is intentionally unchanged.
-WAVE3_SIGNER_SHA = "5756b3c5136a8bf4db710016cfe97555f0a71c6d"
+# The identical cryptographic checks apply to all seventeen identities.
+# The three first-Release candidates additionally require their currently
+# pre-registered immutable Signer SHA. Historic Releases may legitimately
+# name an earlier builder commit; bind it to the signed ZIP metadata instead.
+FIRST_RELEASE_SIGNER_SHA = "5756b3c5136a8bf4db710016cfe97555f0a71c6d"
 PROVENANCE = "https://slsa.dev/provenance/v1"
 SPDX = "https://spdx.dev/Document/v2.3"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -238,7 +239,7 @@ def unique_json_keys(pairs):
     return item
 
 
-def validate_wave3_verified_attestation(raw, *, predicate, zip_name, zip_sha,
+def validate_verified_attestation(raw, *, predicate, zip_name, zip_sha,
                                         expected_spdx=None):
     """Consume ONLY JSON from a successful real gh attestation verify call.
 
@@ -250,13 +251,13 @@ def validate_wave3_verified_attestation(raw, *, predicate, zip_name, zip_sha,
     require(predicate in (PROVENANCE, SPDX)
             and isinstance(zip_name, str) and zip_name.endswith(".zip")
             and isinstance(zip_sha, str) and HEX64.fullmatch(zip_sha),
-            "unknown signed Wave3 predicate or ZIP")
+            "unknown signed Release predicate or ZIP")
     try:
         claims = json.loads(raw, object_pairs_hook=unique_json_keys)
     except (TypeError, ValueError) as exc:
-        raise Denied("malformed or duplicate-key signed Wave3 verification") from exc
+        raise Denied("malformed or duplicate-key signed Release verification") from exc
     require(type(claims) is list and len(claims) == 1
-            and type(claims[0]) is dict, "missing/ambiguous signed Wave3 claim")
+            and type(claims[0]) is dict, "missing/ambiguous signed Release claim")
     verified = claims[0].get("verificationResult")
     require(type(verified) is dict
             and type(verified.get("statement")) is dict,
@@ -279,15 +280,44 @@ def validate_wave3_verified_attestation(raw, *, predicate, zip_name, zip_sha,
                 "signed SLSA provenance predicate missing")
 
 
-def verify_wave3_attestations(zip_path, spdx_path, *, repo, source_commit):
-    """First Release: bind TWO signer-pinned claims to downloaded public bytes.
+def signer_sha_from_package(zip_path, repo):
+    """Claimed signer commit from the immutable, SHA256-verified public ZIP.
 
-    This is Catalog-only read/verification; it never issues PUBLISH or writes
-    a Release. Existing 14-extension verification retains its historical route.
+    Not an independent signer approval. Cryptographic identity is verified by
+    the pinned GitHub CLI --signer-workflow / --signer-digest combination.
+    """
+    try:
+        with ZipFile(zip_path) as archive:
+            require(archive.namelist().count("PACKAGE-INFO.json") == 1,
+                    "missing/duplicate Release package identity")
+            info = json.loads(archive.read("PACKAGE-INFO.json")
+                              .decode("utf-8-sig"),
+                              object_pairs_hook=unique_json_keys)
+    except (BadZipFile, ValueError, KeyError, UnicodeError) as exc:
+        raise Denied("untrusted public Release package metadata") from exc
+    build = info.get("buildInfrastructure") if type(info) is dict else None
+    require(type(build) is dict
+            and build.get("repository") == "pgextwin/build"
+            and build.get("workflow") == ".github/workflows/build-extension-attested.yml"
+            and type(build.get("commit")) is str
+            and HEX40.fullmatch(build["commit"]),
+            "Release signer SHA or workflow identity not pinned in ZIP")
+    if repo.split("/")[-1] in FIRST_RELEASE_SOURCES:
+        require(build["commit"] == FIRST_RELEASE_SIGNER_SHA,
+                "first Release signer not at pre-registered immutable SHA")
+    return build["commit"]
+
+
+def verify_release_attestations(zip_path, spdx_path, *, repo, source_commit):
+    """All 17: two signer-pinned claims match the downloaded public bytes.
+
+    Catalog-only read and verification; no PUBLISH or Release write. Historical
+    builder commit SHAs are derived per verified ZIP, never globally repinned.
     """
     require(isinstance(source_commit, str) and HEX40.fullmatch(source_commit)
-            and repo in {"pgextwin/" + n for n in FIRST_RELEASE_SOURCES},
-            "untrusted first-Release signer/source identity")
+            and repo in {"pgextwin/" + n for n in INTAKE_ALLOWED},
+            "untrusted signed Release signer/source identity")
+    signer_sha = signer_sha_from_package(zip_path, repo)
     zip_sha, spdx_sha = digest(zip_path), digest(spdx_path)
     try:
         signed_spdx = json.loads(spdx_path.read_text(encoding="utf-8-sig"),
@@ -296,21 +326,22 @@ def verify_wave3_attestations(zip_path, spdx_path, *, repo, source_commit):
         raise Denied("unreadable/duplicate-key published SPDX") from exc
     require(type(signed_spdx) is dict
             and signed_spdx.get("spdxVersion") == "SPDX-2.3",
-            "invalid published SPDX identity")
+            "invalid public SPDX identity")
     for predicate in (PROVENANCE, SPDX):
         # gh performs the cryptographic verification. Each pinned flag is a
         # trust constraint; do not accept the JSON result without zero exit.
         verified = gh(
             "attestation", "verify", str(zip_path), "--repo", repo,
-            "--signer-workflow", SIGNER, "--signer-digest", WAVE3_SIGNER_SHA,
+            "--signer-workflow", SIGNER, "--signer-digest", signer_sha,
             "--source-digest", source_commit, "--source-ref", "refs/heads/main",
             "--predicate-type", predicate, "--format", "json")
-        validate_wave3_verified_attestation(
+        validate_verified_attestation(
             verified, predicate=predicate, zip_name=zip_path.name,
             zip_sha=zip_sha, expected_spdx=signed_spdx if predicate == SPDX
             else None)
         require(digest(zip_path) == zip_sha and digest(spdx_path) == spdx_sha,
                 "public ZIP/SPDX bytes changed during signature verification")
+    return signer_sha
 
 
 def deny_catalog_rollback(existing, release):
@@ -366,20 +397,16 @@ def generate(extension, tag, record):
         assets, sums, run_id = verify_payload(folder, release, manifest, contract,
                                                source_commit, active)
         verify_main_run(repo, run_id, source_commit)
+        signer_sha = None
         for major in active:
             stem = extension + "-" + source_map(manifest)[major]["ref"] + "-pg" + str(major) + "-windows-x64"
-            zipped = str(folder / (stem + ".zip"))
-            if extension in FIRST_RELEASE_SOURCES:
-                verify_wave3_attestations(
-                    Path(zipped), folder / (stem + ".spdx.json"),
-                    repo=repo, source_commit=source_commit)
-            else:
-                # Historical 14-member intake contract is unchanged.
-                gh("attestation", "verify", zipped, "--repo", repo,
-                   "--signer-workflow", SIGNER)
-                gh("attestation", "verify", zipped, "--repo", repo,
-                   "--signer-workflow", SIGNER,
-                   "--predicate-type", SPDX)
+            actual_sha = verify_release_attestations(
+                folder / (stem + ".zip"), folder / (stem + ".spdx.json"),
+                repo=repo, source_commit=source_commit)
+            if signer_sha is None:
+                signer_sha = actual_sha
+            require(signer_sha == actual_sha,
+                    "mixed immutable Signer workflow SHAs across PG-major assets")
     # Existing records are updated. Only the three explicitly pre-registered
     # third-wave identities may be seeded on their FIRST genuinely signed,
     # public, independently verified Release. No placeholder is written.
