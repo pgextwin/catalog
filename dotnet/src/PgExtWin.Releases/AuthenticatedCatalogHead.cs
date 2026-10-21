@@ -112,7 +112,8 @@ public static class AuthenticatedCatalogHead
             using var parsed = StrictJson.Parse(index);
             var arr = parsed.RootElement.GetProperty("extensions");
             if (parsed.RootElement.GetProperty("schemaVersion").GetInt32() != 2 ||
-                arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() < 14 || arr.GetArrayLength() > 17)
+                arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() < VerifiedFleetRoster.MinimumCount ||
+                arr.GetArrayLength() > VerifiedFleetRoster.MaximumCount)
                 throw new InvalidDataException("Unexpected Catalog v2 fleet");
             var names = arr.EnumerateArray().Select(x => x.GetString() ?? "").ToArray();
             if (names.Any(x => !Name.IsMatch(x)) ||
