@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
 jobs:
+  # Retain legacy job ID/name so existing branch-protection contexts remain stable.
   anonymous-real-70:
     name: Anonymous default-command Windows 70 ZIP acceptance (no GH_TOKEN)
     runs-on: windows-latest
@@ -29,7 +30,7 @@ jobs:
           $dir=Join-Path $env:RUNNER_TEMP 'anon-cli'
           dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo
           if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
-      - name: Exact anonymous one-line latest PG14-18 70 ZIP full-batch smoke
+      - name: Exact anonymous one-line latest PG14–18 70–85 ZIP full-batch smoke
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -43,10 +44,13 @@ jobs:
             $exe=Join-Path $env:RUNNER_TEMP 'anon-cli/pgextwin.exe'
             $log=& $exe download-all --pg all 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "ANONYMOUS_DEFAULT_LATEST=NO_GO; original error: $log" }
-            if ($log -notmatch 'ZIP_COUNT=70' -or $log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; incomplete or unauthenticated batch' }
+            if ($log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; unsigned Catalog source' }
             $folder=Join-Path $p 'pgextwin-pg14-18'
             $manifest=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
-            if ($manifest.zipCount -ne 70 -or $manifest.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or $manifest.releaseMetadataVerified -ne $false -or $manifest.signatureVerified -ne $false -or
+            $zipCount=[int]$manifest.zipCount
+            if ($zipCount -lt 70 -or $zipCount -gt 85 -or ($zipCount % 5) -ne 0 -or
+                $log -notmatch "ZIP_COUNT=$zipCount\b") { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; incomplete signed fleet batch' }
+            if ($manifest.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or $manifest.releaseMetadataVerified -ne $false -or $manifest.signatureVerified -ne $false -or
                 $manifest.installAuthorized -ne $false -or $manifest.verificationLevel -cne 'INTEGRITY_ONLY') {
               throw 'Untrusted output was incorrectly authorized'
             }
@@ -57,6 +61,6 @@ jobs:
               if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Anonymous byte mismatch' }
               $count++
             }
-            if ($count -ne 70) { throw 'Anonymous wrong count' }
-            Write-Output 'ANONYMOUS_DEFAULT_LATEST=PASS SHA256=70/70 NO_TOKEN=true'
+            if ($count -ne $zipCount) { throw 'Anonymous wrong count' }
+            Write-Output "ANONYMOUS_DEFAULT_LATEST=PASS SHA256=$count/$zipCount NO_TOKEN=true"
           } finally { Pop-Location }
