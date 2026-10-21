@@ -125,6 +125,26 @@ internal static class BatchDownloadTests
                   File.Exists(Path.Combine(multi.Directory, "pg14", Pin("pg_cron", "14").AssetName)) &&
                   File.Exists(Path.Combine(multi.Directory, "pg18", Pin("pg_cron", "18").AssetName)),
                   "Batch --pg all segregates original ZIPs by PostgreSQL version");
+
+            // Functional regression: the signed live Catalog can grow from 14
+            // to 17 entries (85 ZIPs) without changing the historical fixed-14 path.
+            var fleetParent = Path.Combine(root, "expanded-signed-fleet");
+            Directory.CreateDirectory(fleetParent);
+            var fleetPins = Enumerable.Range(0, 17)
+                .SelectMany(n => new[] { "14", "15", "16", "17", "18" }
+                    .Select(m => Pin("signedext" + n, m))).ToArray();
+            var fleet = await BatchReleaseDownloader.StageAsync(
+                fleetPins, "all", fleetParent, Download);
+            using (var receipt = JsonDocument.Parse(File.ReadAllText(
+                       Path.Combine(fleet.Directory, "DOWNLOAD-INFO.json"))))
+                check(fleet.Count == 85 &&
+                      receipt.RootElement.GetProperty("zipCount").GetInt32() == 85 &&
+                      receipt.RootElement.GetProperty("packages").GetArrayLength() == 85 &&
+                      !receipt.RootElement.GetProperty("signatureVerified").GetBoolean(),
+                      "Original signed-Catalog fleet 17 x PG14-18 stages 85 integrity-only ZIPs");
+            await Deny("Reject larger than 17-extension fleet",
+                fleetPins.Append(Pin("unapprovedextra", "18")).ToArray(), "all", Download);
+
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
     }
