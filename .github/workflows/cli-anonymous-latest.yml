@@ -12,8 +12,9 @@ on:
 permissions:
   contents: read
 jobs:
-  anonymous-real-fleet:
-    name: Anonymous default-command Windows 14–17-fleet ZIP acceptance (no GH_TOKEN)
+  # Retain legacy job ID/name so existing branch-protection contexts remain stable.
+  anonymous-real-70:
+    name: Anonymous default-command Windows 70 ZIP acceptance (no GH_TOKEN)
     runs-on: windows-latest
     timeout-minutes: 35
     steps:
