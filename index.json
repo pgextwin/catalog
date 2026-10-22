@@ -11,6 +11,7 @@
     "pg_qualstats",
     "pg_repack",
     "pg_stat_monitor",
+    "pg_store_plans",
     "pg_variables",
     "pgaudit",
     "pgtap",
