@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: '10.0.402'
-      - name: Build v0.3.3 trimmed private binary and SHA256
+      - name: Build versioned trimmed private binary and SHA256
         shell: pwsh
         run: |
           $dir = Join-Path $env:RUNNER_TEMP 'cli-candidate'
@@ -82,7 +82,7 @@ jobs:
           python scripts/cli_r6_candidate.py verify --binary $exe --receipt $receipt --source $sha --run-id $env:GITHUB_RUN_ID
           if ($LASTEXITCODE -ne 0) { throw 'Independent candidate verification failed' }
           $version = (& $exe --version 2>&1 | Out-String).Trim()
-          if ($LASTEXITCODE -ne 0 -or $version -cne '0.3.3') { throw 'Version smoke failed' }
+          if ($LASTEXITCODE -ne 0 -or $version -cne ([string]([xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)).Project.PropertyGroup.Version)) { throw 'Version smoke failed' }
           $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
           if ($LASTEXITCODE -ne 0) { throw 'Catalog smoke failed' }
           $data = $jsonText | ConvertFrom-Json
