@@ -9,6 +9,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import subprocess
 
 from distribution_manifest_v1 import Denied, require, strict_json, canonical
 from distribution_p1_formal_ledger_v5 import validate as validate_v5, V5, V4, PINS, FLEET
@@ -18,6 +19,17 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG_COMMIT = "ebe65013b35c18f0d545b9d350ab63f7968fb92c"
 MAJORS = (14, 15, 16, 17, 18)
 DENIED = "plpgsql_check"
+
+
+def read_pinned_index():
+    # This v1 ledger intentionally describes its sealed historical source,
+    # never today's growing distribution Catalog. Missing local Git history
+    # remains a denial; do not fetch or silently substitute the live index.
+    result = subprocess.run(
+        ["git", "-C", str(ROOT), "show", CATALOG_COMMIT + ":index.json"],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    require(result.returncode == 0, "pinned historical Catalog index unavailable")
+    return result.stdout
 
 
 def build(index_blob: bytes, v5_blob: bytes, v4_blob: bytes,
@@ -62,7 +74,7 @@ def main():
     parser.add_argument("--catalog-commit", default=CATALOG_COMMIT)
     args = parser.parse_args()
     try:
-        result = build((ROOT / "index.json").read_bytes(), V5.read_bytes(),
+        result = build(read_pinned_index(), V5.read_bytes(),
                        V4.read_bytes(), PINS.read_bytes(), FLEET.read_bytes(),
                        catalog_commit=args.catalog_commit)
     except (Denied, OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
