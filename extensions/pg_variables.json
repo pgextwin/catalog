@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 2,
+  "name": "pg_variables",
+  "displayName": "pg_variables",
+  "description": "Session variables for PostgreSQL",
+  "upstream": {
+    "repository": "postgrespro/pg_variables",
+    "version": "1.2.1"
+  },
+  "repository": "pgextwin/pg_variables",
+  "license": "PostgreSQL",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.2.1-windows.1",
+    "publishedAt": "2026-10-22T02:33:51Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_variables/releases/tag/v1.2.1-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
+  },
+  "postgresql": {
+    "14": {
+      "available": true,
+      "asset": "pg_variables-v1.2.1-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg14-windows-x64.zip",
+      "sha256": "667c01c8a7191c14e6cde839c292c173668f820e40659a98594df3992c690c52",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg14-windows-x64.spdx.json",
+          "sha256": "8b013c45691a2f83ba38c80528857b2cba458dbcc0df441cf11d97622d2ffecc"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "15b2bbc1064ae4d30aa5d2075861a8dc0a3ee72d62163be2898e7cb2d0df605e"
+        }
+      }
+    },
+    "15": {
+      "available": true,
+      "asset": "pg_variables-v1.2.1-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg15-windows-x64.zip",
+      "sha256": "4e40811f804c55e267479fab6a741cc61c17d3a3a094987a349a0760d11af203",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg15-windows-x64.spdx.json",
+          "sha256": "3c5a6808eff9fe31aa090d083507434766b17ce644ad67160bffa04adcad9351"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "9d05e0c421649fea707da9297b8b54d18d3ea9fa9eb3a0bdf311b912de3e532d"
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_variables-v1.2.1-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg16-windows-x64.zip",
+      "sha256": "706dc3bda5eb41785a3d0285efa38212eede21d420e7187e1907be3026b1cb8d",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg16-windows-x64.spdx.json",
+          "sha256": "0293841a6141f90f247b5f413206157c9ce96059ddf1857b862c02975b11ea9f"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "3e439abc8b624f907a4ca5fb2200bb34a3725b13a87977d762bfa513f0730335"
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_variables-v1.2.1-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg17-windows-x64.zip",
+      "sha256": "e95458168e6d6af28afd0f304a5f03c3f98b4c1df0ec1ff9488efc0b41a010fd",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg17-windows-x64.spdx.json",
+          "sha256": "cd405da73d9e3ca65b670334832765ce878b5a6de445561c292c3280844d45bd"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "34e1a17f1f92c4236849be747c667bab3f4dd176cdc007cd1cadb7fff7bb2bd1"
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_variables-v1.2.1-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg18-windows-x64.zip",
+      "sha256": "82bfd82167b94b3f03045c6d7a3463113bddaa792a82812008ddb660a83353ab",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg18-windows-x64.spdx.json",
+          "sha256": "fd5843c4e60665a61b467a223248ba3e8573194fb5416fa07e59fc7210eb479a"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_variables-v1.2.1-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_variables/releases/download/v1.2.1-windows.1/pg_variables-v1.2.1-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "5d11729f87d0c8b12e3567f724a96e41cefa03b489ef0e072e913a30d8ec5f3b"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "none",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "variable-transaction-and-sessions",
+        "description": "Check set/get, transaction rollback and separated backend sessions.",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_variables",
+    "path": "config/test-contract.json",
+    "commit": "3b9b3ae3196d2298a627161e883cd7e35642dadd"
+  }
+}
