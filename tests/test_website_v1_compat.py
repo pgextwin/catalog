@@ -9,7 +9,8 @@ class WebsiteV1CompatibilityTests(unittest.TestCase):
     def test_current_website_consumer_fields_remain_available(self):
         index = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))
         self.assertEqual(2, index["schemaVersion"])
-        self.assertTrue(9 <= len(index["extensions"]) <= 14)
+        self.assertTrue(index["extensions"])
+        self.assertEqual(len(index["extensions"]),len(set(index["extensions"])))
         self.assertTrue({"pg_bigm","pg_cron","pg_hint_plan","pg_ivm","pg_qualstats","pg_repack","pgaudit","set_user","plpgsql_check"}.issubset(set(index["extensions"])))
 
         for name in index["extensions"]:

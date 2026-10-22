@@ -8,14 +8,14 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from distribution_manifest_v1 import Denied, canonical
-from distribution_offline_major_inventory_v1 import build, CATALOG_COMMIT
+from distribution_offline_major_inventory_v1 import build, CATALOG_COMMIT, read_pinned_index
 from distribution_p1_formal_ledger_v5 import V5, V4, PINS, FLEET
 
 
 class InventoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.args = [(ROOT / "index.json").read_bytes(), V5.read_bytes(),
+        cls.args = [read_pinned_index(), V5.read_bytes(),
                     V4.read_bytes(), PINS.read_bytes(), FLEET.read_bytes()]
 
     def test_complete_matrix_denies_exact_five(self):
@@ -35,6 +35,15 @@ class InventoryTests(unittest.TestCase):
     def test_wrong_catalog_commit(self):
         with self.assertRaises(Denied):
             build(*self.args, catalog_commit="0" * 40)
+
+    def test_larger_live_roster_cannot_inherit_historical_acceptance(self):
+        args=list(self.args)
+        index=json.loads(args[0])
+        index["extensions"].append("pg_variables")
+        index["extensions"].sort()
+        args[0]=canonical(index)
+        with self.assertRaises(Denied):
+            build(*args,catalog_commit=CATALOG_COMMIT)
 
     def test_duplicate_catalog_extension(self):
         args = list(self.args)

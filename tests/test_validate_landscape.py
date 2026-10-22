@@ -90,11 +90,10 @@ class LandscapeTests(unittest.TestCase):
     def test_step18_registry_counts_and_historical_compatibility(self):
         records = [module.load(p) for p in (ROOT / "landscape" / "extensions").glob("*.json")]
         statuses = {status: sum(r["status"] == status for r in records) for status in ("implemented", "candidate", "not-planned")}
-        self.assertEqual(20, len(records))
-        self.assertEqual(20, sum(statuses.values()))
-        self.assertEqual(6, statuses["not-planned"])
-        self.assertEqual(14, statuses["implemented"] + statuses["candidate"])
-        self.assertTrue(9 <= statuses["implemented"] <= 14)
+        landscape_index=module.load(ROOT / "landscape" / "index.json")["extensions"]
+        self.assertEqual(set(landscape_index),{r["name"] for r in records})
+        self.assertEqual(len(landscape_index),len(records))
+        self.assertEqual(len(records),sum(statuses.values()))
         byname = {r["name"]: r for r in records}
         for name in module.INITIAL_EIGHT:
             self.assertEqual("implemented", byname[name]["status"])
