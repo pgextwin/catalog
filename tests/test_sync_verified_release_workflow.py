@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Regression guard for dependencies of the opt-in signed Release proposer."""
 import unittest
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import textwrap
 from pathlib import Path
 
 
@@ -9,6 +15,47 @@ WORKFLOW = ROOT / ".github" / "workflows" / "sync-verified-release.yml"
 
 
 class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
+    def test_verified_first_records_update_both_indexes_and_landscape(self):
+        workflow=WORKFLOW.read_text(encoding="utf-8")
+        step=workflow.split("name: Update index only after complete signed",1)[1].split("      - name:",1)[0]
+        code=textwrap.dedent(step.split("          python - <<'PY'\n",1)[1].rsplit("          PY",1)[0])
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            (root/"extensions").mkdir()
+            (root/"landscape/extensions").mkdir(parents=True)
+            for path in (root/"index.json",root/"landscape/index.json"):
+                path.write_text(json.dumps({"extensions":["pg_cron"]}))
+            for name in ("pgtap","pg_variables","pg_store_plans"):
+                record={"schemaVersion":2,"name":name,"displayName":name,
+                        "description":"Verified test record",
+                        "upstream":{"repository":"upstream/"+name},
+                        "latest":{"publishedAt":"2026-10-22T00:00:00Z",
+                                  "releaseUrl":"https://github.com/pgextwin/"+name+"/releases/tag/v1.0-windows.1"}}
+                (root/"extensions"/(name+".json")).write_text(json.dumps(record))
+                before=(root/"index.json").read_bytes()
+                wrong=dict(record,name="other")
+                (root/"extensions"/(name+".json")).write_text(json.dumps(wrong))
+                rejected=subprocess.run([sys.executable,"-c",code],cwd=root,
+                    env={**os.environ,"EXTENSION":name},capture_output=True,text=True)
+                self.assertNotEqual(rejected.returncode,0)
+                self.assertEqual((root/"index.json").read_bytes(),before)
+                self.assertFalse((root/"landscape/extensions"/(name+".json")).exists())
+                (root/"extensions"/(name+".json")).write_text(json.dumps(record))
+                done=subprocess.run([sys.executable,"-c",code],cwd=root,
+                    env={**os.environ,"EXTENSION":name},capture_output=True,text=True)
+                self.assertEqual(done.returncode,0,done.stderr)
+                landscape=json.loads((root/"landscape/extensions"/(name+".json")).read_text())
+                self.assertEqual(landscape["status"],"implemented")
+                self.assertEqual(landscape["pgextwinCatalogName"],name)
+                self.assertEqual(landscape["evidenceUrls"][0],record["latest"]["releaseUrl"])
+                self.assertEqual(json.loads((root/"index.json").read_text())["extensions"],
+                                 json.loads((root/"landscape/index.json").read_text())["extensions"])
+            before=(root/"index.json").read_bytes()
+            missing=subprocess.run([sys.executable,"-c",code],cwd=root,
+                env={**os.environ,"EXTENSION":"unregistered"},capture_output=True,text=True)
+            self.assertNotEqual(missing.returncode,0)
+            self.assertEqual((root/"index.json").read_bytes(),before)
+
     def test_jsonschema_installed_before_offline_tests_and_record_validation(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         install = workflow.index("name: Install Catalog JSON schema validator")

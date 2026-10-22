@@ -76,6 +76,12 @@ jobs:
             echo "base_record_sha=MISSING" >> "$GITHUB_OUTPUT"
           fi
           echo "base_index_sha=$(git hash-object index.json)" >> "$GITHUB_OUTPUT"
+          echo "base_landscape_index_sha=$(git hash-object landscape/index.json)" >> "$GITHUB_OUTPUT"
+          if [[ -f "landscape/extensions/$EXTENSION.json" ]]; then
+            echo "base_landscape_record_sha=$(git hash-object "landscape/extensions/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_landscape_record_sha=MISSING" >> "$GITHUB_OUTPUT"
+          fi
           python scripts/verify_signed_fleet_release.py \
             --extension "$EXTENSION" --release-tag "$RELEASE_TAG" \
             --record-output "extensions/$EXTENSION.json" \
@@ -99,6 +105,29 @@ jobs:
                   raise SystemExit("DENY: unknown first-Release Catalog identity")
               if not (Path("extensions") / (name + ".json")).is_file():
                   raise SystemExit("DENY: verifier did not generate the signed record")
+              record = json.loads((Path("extensions") / (name + ".json")).read_text(encoding="utf-8"))
+              if record.get("name") != name or record.get("schemaVersion") != 2:
+                  raise SystemExit("DENY: verified record identity mismatch")
+              registry_index = Path("landscape/index.json")
+              registry = json.loads(registry_index.read_text(encoding="utf-8"))
+              registry_path = Path("landscape/extensions") / (name + ".json")
+              landscape = (json.loads(registry_path.read_text(encoding="utf-8"))
+                           if registry_path.is_file() else {})
+              landscape.update(
+                  schemaVersion=1, name=name, displayName=record["displayName"],
+                  description=record["description"],
+                  upstreamRepository=record["upstream"]["repository"],
+                  status="implemented", pgextwinCatalogName=name,
+                  lastReviewed=record["latest"]["publishedAt"][:10],
+                  evidenceUrls=[record["latest"]["releaseUrl"],
+                                "https://github.com/" + record["upstream"]["repository"]],
+                  windowsBinarySources=[])
+              for key in ("candidateRationale", "roadmap", "notPlannedReason",
+                          "notPlannedReasonJa", "reasonCode"):
+                  landscape.pop(key, None)
+              registry["extensions"] = sorted(set(registry["extensions"]) | {name})
+              registry_path.write_text(json.dumps(landscape, indent=2) + "\n", encoding="utf-8")
+              registry_index.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
               names.append(name)
               data["extensions"] = sorted(names)
               path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
@@ -118,6 +147,8 @@ jobs:
           path: |
             extensions/${{ inputs.extension }}.json
             index.json
+            landscape/index.json
+            landscape/extensions/${{ inputs.extension }}.json
             ${{ runner.temp }}/verified-catalog-record.json
           if-no-files-found: error
           retention-days: 14
@@ -148,6 +179,8 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
           BASE_RECORD_SHA: ${{ steps.verify.outputs.base_record_sha }}
           BASE_INDEX_SHA: ${{ steps.verify.outputs.base_index_sha }}
+          BASE_LANDSCAPE_INDEX_SHA: ${{ steps.verify.outputs.base_landscape_index_sha }}
+          BASE_LANDSCAPE_RECORD_SHA: ${{ steps.verify.outputs.base_landscape_record_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -170,16 +203,29 @@ jobs:
             echo "::error::Catalog main record changed after signed verification; refuse stale overwrite"
             exit 1
           fi
+          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
+            [[ "$(git hash-object landscape/index.json)" == "$BASE_LANDSCAPE_INDEX_SHA" ]] || { echo 'Landscape index changed; refuse stale overwrite'; exit 1; }
+            if [[ "$BASE_LANDSCAPE_RECORD_SHA" == MISSING ]]; then
+              [[ ! -e "landscape/extensions/$EXTENSION.json" ]] || exit 1
+            else
+              [[ "$(git hash-object "landscape/extensions/$EXTENSION.json")" == "$BASE_LANDSCAPE_RECORD_SHA" ]] || exit 1
+            fi
+            cp ../landscape/index.json landscape/index.json
+            cp "../landscape/extensions/$EXTENSION.json" "landscape/extensions/$EXTENSION.json"
+          fi
           cp "../extensions/$EXTENSION.json" "extensions/$EXTENSION.json"
           cp ../index.json index.json
           git switch -c "$branch"
           git config user.name "pgextwin-catalog-proposer[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- "extensions/$EXTENSION.json" index.json
+          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
+            git add -- "landscape/extensions/$EXTENSION.json" landscape/index.json
+          fi
           actual="$(git diff --cached --name-only)"
           expected="extensions/$EXTENSION.json"
           if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
-            expected="$(printf 'extensions/%s.json\nindex.json' "$EXTENSION")"
+            expected="$(printf 'extensions/%s.json\nindex.json\nlandscape/extensions/%s.json\nlandscape/index.json' "$EXTENSION" "$EXTENSION")"
           fi
           if [[ "$actual" != "$expected" ]]; then
             echo "::error::Catalog PR files not exactly the verified record and permitted initial index"
