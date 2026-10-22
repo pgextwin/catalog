@@ -77,7 +77,7 @@ def build_feed(root, commit, load):
     index_bytes = source_bytes(root, "index.json")
     index = strict_object(index_bytes.decode("utf-8"))
     names = index["extensions"]
-    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not 14 <= len(names) <= 17 or (
+    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not len(HISTORICAL) <= len(names) <= len(HISTORICAL | WAVE3_INTAKE_ONLY) or (
         names != sorted(names) or len(names) != len(set(names)) or
         any(not isinstance(n, str) or not EXTENSION.fullmatch(n) for n in names) or
         not HISTORICAL.issubset(names) or
