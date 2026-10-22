@@ -1,6 +1,9 @@
 name: Propose fully verified manual signed Release to Catalog (17 verifier identities; opt-in)
 
 on:
+  schedule:
+    # Reuse the existing signed asset verifier, not a second Catalog writer.
+    - cron: '20 */6 * * *'
   workflow_dispatch:
     inputs:
       extension:
@@ -31,16 +34,54 @@ on:
         type: string
 
 concurrency:
-  group: catalog-propose-verified-${{ inputs.extension }}-${{ inputs.release_tag }}
+  group: catalog-propose-verified-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
+  discover:
+    name: Discover only new public stable Release tags (never signs or publishes)
+    if: github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      targets: ${{ steps.delta.outputs.targets }}
+      has_changes: ${{ steps.delta.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+      - name: Validate deterministic signed reconciliation controls
+        run: python tests/test_catalog_auto_delta.py
+      - name: Detect drift but never authorize a Catalog record
+        id: delta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_EXTENSION: ${{ inputs.extension }}
+          REQUEST_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            python scripts/catalog_auto_delta.py --manual-extension "$REQUEST_EXTENSION" --manual-tag "$REQUEST_TAG"
+          else
+            python scripts/catalog_auto_delta.py
+          fi
   propose:
     name: Independent exact-asset audit then optional App-owned Catalog record PR
-    if: github.ref == 'refs/heads/main'
+    needs: discover
+    if: github.ref == 'refs/heads/main' && needs.discover.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.discover.outputs.targets) }}
     runs-on: ubuntu-latest
     timeout-minutes: 55
     permissions:
@@ -63,8 +104,8 @@ jobs:
         id: verify
         env:
           GH_TOKEN: ${{ github.token }}
-          EXTENSION: ${{ inputs.extension }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          EXTENSION: ${{ matrix.extension }}
+          RELEASE_TAG: ${{ matrix.release_tag }}
         shell: bash
         run: |
           set -euo pipefail
@@ -87,7 +128,7 @@ jobs:
       - name: Update index only after complete signed first-Release verification
         if: steps.verify.outputs.changed == 'true'
         env:
-          EXTENSION: ${{ inputs.extension }}
+          EXTENSION: ${{ matrix.extension }}
         shell: bash
         run: |
           python - <<'PY'
@@ -143,10 +184,10 @@ jobs:
         with:
           name: verified-catalog-proposal
           path: |
-            extensions/${{ inputs.extension }}.json
+            extensions/${{ matrix.extension }}.json
             index.json
             landscape/index.json
-            landscape/extensions/${{ inputs.extension }}.json
+            landscape/extensions/${{ matrix.extension }}.json
             ${{ runner.temp }}/verified-catalog-record.json
           if-no-files-found: error
           retention-days: 14
@@ -173,8 +214,8 @@ jobs:
         if: steps.proposer-token.outcome == 'success'
         env:
           GH_TOKEN: ${{ steps.proposer-token.outputs.token }}
-          EXTENSION: ${{ inputs.extension }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          EXTENSION: ${{ matrix.extension }}
+          RELEASE_TAG: ${{ matrix.release_tag }}
           BASE_RECORD_SHA: ${{ steps.verify.outputs.base_record_sha }}
           BASE_INDEX_SHA: ${{ steps.verify.outputs.base_index_sha }}
           BASE_LANDSCAPE_INDEX_SHA: ${{ steps.verify.outputs.base_landscape_index_sha }}
