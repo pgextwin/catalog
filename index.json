@@ -13,6 +13,7 @@
     "pg_stat_monitor",
     "pg_variables",
     "pgaudit",
+    "pgtap",
     "plpgsql_check",
     "set_user",
     "wal2json"

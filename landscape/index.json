@@ -16,6 +16,7 @@
     "pg_variables",
     "pgaudit",
     "pgrouting",
+    "pgtap",
     "pgvector",
     "plpgsql_check",
     "postgis",
