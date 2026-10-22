@@ -78,7 +78,9 @@ finally { Directory.Delete(path, recursive:true); }
 if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
 {
     var records = CatalogReader.LoadLocal(Directory.GetCurrentDirectory());
-    Check(records.Count == 14, "actual local Catalog contains 14 records (untrusted)");
+    using var localIndex = StrictJson.Parse(File.ReadAllBytes("index.json"));
+    Check(records.Count == localIndex.RootElement.GetProperty("extensions").GetArrayLength(),
+        "actual local Catalog contains exactly its indexed records (untrusted)");
     Check(records.All(r => r.Versions.Count == 5), "local Catalog has 5 available majors each");
 }
 await ReleaseHttpTests.RunAsync(Check);
