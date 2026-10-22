@@ -18,7 +18,7 @@ NAMES = sorted(mod.INTAKE_ALLOWED)
 
 
 def fixture():
-    index = {"schemaVersion": 2, "extensions": NAMES}
+    index = {"schemaVersion": 2, "extensions": list(NAMES)}
     records = {name: {"schemaVersion": 2, "name": name,
                        "repository": "pgextwin/" + name,
                        "latest": {"releaseTag": "v1.0-windows.1",
