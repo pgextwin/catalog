@@ -56,19 +56,20 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
             self.assertNotEqual(missing.returncode,0)
             self.assertEqual((root/"index.json").read_bytes(),before)
 
-    def test_jsonschema_installed_before_offline_tests_and_record_validation(self):
+    def test_schema_dependency_precedes_real_record_validation_without_duplicate_ci(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         install = workflow.index("name: Install Catalog JSON schema validator")
         assert_dependency = workflow.index(
             'python -m pip install --disable-pip-version-check "jsonschema>=4,<5"'
         )
-        offline_tests = workflow.index("name: Run offline fail-closed test suite")
         record_validation = workflow.index(
             "name: Validate proposed record against Catalog schema and live sources"
         )
         self.assertLess(install, assert_dependency)
-        self.assertLess(assert_dependency, offline_tests)
-        self.assertLess(offline_tests, record_validation)
+        self.assertLess(assert_dependency, record_validation)
+        self.assertNotIn("Run offline fail-closed test suite",workflow)
+        required_ci=(ROOT/".github/workflows/validate.yml").read_text(encoding="utf-8")
+        self.assertIn("python -m unittest discover -s tests -v",required_ci)
 
     def test_proposer_stays_opt_in_and_never_merges_pr(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")

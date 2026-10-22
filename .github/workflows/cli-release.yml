@@ -172,26 +172,43 @@ jobs:
 
           Windows x64 CLI $env:VERSION は、登録拡張が増えた最新の署名付きCatalogに追従します。download-allの既定動作は、署名検証済みのCatalog登録後、pgTAP・pg_variables・pg_store_plansを含む各PostgreSQL向けZIPをまとめて取得します。--fixedは過去の固定版、--verboseは進捗表示です。Catalogフィードの署名と元ZIPのSHA256を確認し、個別拡張ZIPの検証レベルはINTEGRITY_ONLYです。
           "@ | Set-Content $notes -Encoding utf8
-          $files=@(Get-ChildItem $dir -File | ForEach-Object { $_.FullName })
-          gh release create $tag @files --repo pgextwin/catalog --verify-tag --target $env:SOURCE --draft --prerelease --latest=false --title "pgextwin CLI v$env:VERSION" --notes-file $notes
-          if ($LASTEXITCODE -ne 0) { throw 'Draft creation failed; occupied tag retained' }
-          $release=gh api "repos/pgextwin/catalog/releases/tags/$tag" | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or !$release.draft -or $release.target_commitish -cne $env:SOURCE) { throw 'Unexpected draft identity' }
-          $audit=Join-Path $env:RUNNER_TEMP 'draft-audit'
-          New-Item -ItemType Directory $audit | Out-Null
-          gh release download $tag --repo pgextwin/catalog --dir $audit
-          if ($LASTEXITCODE -ne 0) { throw 'Draft download failed' }
-          & ./scripts/cli_r7_asset_set.ps1 -Directory $audit
-          foreach ($file in Get-ChildItem $dir -File) {
-            if ((Get-FileHash $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash (Join-Path $audit $file.Name) -Algorithm SHA256).Hash) { throw 'Draft public asset bytes differ' }
+          $request=@{tag_name=$tag;target_commitish=$env:SOURCE;name="pgextwin CLI v$env:VERSION";draft=$true;prerelease=$true;make_latest='false';body=(Get-Content $notes -Raw)}
+          $requestFile=Join-Path $env:RUNNER_TEMP 'cli-draft-request.json'
+          $request | ConvertTo-Json -Depth 4 | Set-Content $requestFile -Encoding utf8
+          $release=gh api --method POST repos/pgextwin/catalog/releases --input $requestFile | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.id -le 0 -or !$release.draft -or
+              $release.tag_name -cne $tag -or $release.target_commitish -cne $env:SOURCE) { throw 'Unexpected newly created Draft ID' }
+          $files=@(Get-ChildItem $dir -File)
+          $names=@($files | ForEach-Object { $_.Name })
+          foreach ($file in $files) {
+            $url="https://uploads.github.com/repos/pgextwin/catalog/releases/$($release.id)/assets?name=$([Uri]::EscapeDataString($file.Name))"
+            $asset=Invoke-RestMethod -Method Post -Uri $url -Headers @{Authorization="Bearer $env:GH_TOKEN";Accept='application/vnd.github+json'} -ContentType 'application/octet-stream' -InFile $file.FullName -MaximumRedirection 0
+            $hash=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($asset.name -cne $file.Name -or $asset.state -cne 'uploaded' -or $asset.digest -cne "sha256:$hash") { throw 'Draft uploaded asset digest differs' }
           }
-          gh release edit $tag --repo pgextwin/catalog --draft=false --prerelease --latest=false
+          $draft=gh api "repos/pgextwin/catalog/releases/$($release.id)" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or !$draft.draft -or $draft.tag_name -cne $tag -or
+              $draft.target_commitish -cne $env:SOURCE -or @($draft.assets).Count -ne $names.Count) { throw 'Draft ID asset inventory incomplete' }
+          foreach ($asset in $draft.assets) {
+            if ($names -cnotcontains $asset.name) { throw 'Unexpected Draft asset' }
+            $hash=(Get-FileHash (Join-Path $dir $asset.name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($asset.digest -cne "sha256:$hash") { throw 'Draft asset digest changed' }
+          }
+          gh api --method PATCH "repos/pgextwin/catalog/releases/$($release.id)" -F draft=false
           if ($LASTEXITCODE -ne 0) { throw 'Draft publication failed' }
           $public=gh api "repos/pgextwin/catalog/releases/$($release.id)" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $public.draft -or $public.tag_name -cne $tag -or @($public.assets).Count -ne 5) { throw 'Public CLI identity incomplete' }
           foreach ($asset in $public.assets) {
             $hash=(Get-FileHash (Join-Path $dir $asset.name) -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($asset.digest -cne "sha256:$hash") { throw 'Public CLI asset digest mismatch' }
+          }
+          $audit=Join-Path $env:RUNNER_TEMP 'public-assets-audit'
+          New-Item -ItemType Directory $audit | Out-Null
+          gh release download $tag --repo pgextwin/catalog --dir $audit
+          if ($LASTEXITCODE -ne 0) { throw 'Public asset download failed' }
+          & ./scripts/cli_r7_asset_set.ps1 -Directory $audit
+          foreach ($file in $files) {
+            if ((Get-FileHash $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash (Join-Path $audit $file.Name) -Algorithm SHA256).Hash) { throw 'Public downloaded asset bytes differ' }
           }
           Write-Output "CLI_PUBLIC_RELEASE=PASS TAG=$tag EXE_SHA256=$env:DIGEST SOURCE=$env:SOURCE"
 
