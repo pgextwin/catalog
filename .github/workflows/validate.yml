@@ -86,6 +86,20 @@ jobs:
           Write-Output "PRIVATE_CLI_WIN_X64_SHA256=$digest SIZE=$($item.Length) PUBLISH=DENY"
           if ($item.Length -le 0) { throw 'Empty CLI binary' }
 
+      - name: Parse versioned CLI release PowerShell without executing publication
+        shell: pwsh
+        run: |
+          $text=Get-Content .github/workflows/cli-release.yml -Raw
+          $blocks=[regex]::Matches($text,'(?m)^        run: \|\r?\n(?<code>(?:^          .*\r?\n|^\r?\n)+)')
+          if ($blocks.Count -eq 0) { throw 'No release PowerShell blocks found' }
+          foreach ($block in $blocks) {
+            $code=$block.Groups['code'].Value -replace '(?m)^          ',''
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseInput($code,[ref]$tokens,[ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
+          Write-Output "CLI_RELEASE_POWERSHELL_PARSE=PASS BLOCKS=$($blocks.Count) NO_EXECUTION=true"
+
       - name: Smoke-check packaged CLI and negative trust path
         shell: pwsh
         run: |
@@ -95,7 +109,7 @@ jobs:
           if ($helpText -notmatch 'download-all') { throw 'Bulk download command absent' }
           if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'pgextwin list') { throw 'Help smoke failed' }
           $version = & $exe --version 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '0.3.2') { throw 'CLI preview version smoke failed' }
+          if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne '0.3.3') { throw 'CLI preview version smoke failed' }
           $index = Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'index.json') -Raw | ConvertFrom-Json
           $expectedCount = @($index.extensions).Count
           if ($index.schemaVersion -ne 2 -or $expectedCount -lt 14 -or $expectedCount -gt 17) { throw 'Unsupported protected Catalog fleet size' }
