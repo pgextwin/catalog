@@ -13,6 +13,7 @@
     "pg_repack",
     "pg_sphere",
     "pg_stat_monitor",
+    "pg_store_plans",
     "pg_variables",
     "pgaudit",
     "pgrouting",

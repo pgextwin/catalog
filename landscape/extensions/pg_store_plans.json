@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_store_plans",
+  "displayName": "pg_store_plans",
+  "description": "SQL execution plan statistics",
+  "upstreamRepository": "ossc-db/pg_store_plans",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_store_plans",
+  "lastReviewed": "2026-10-22",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_store_plans/releases/tag/v1.10-windows.1",
+    "https://github.com/ossc-db/pg_store_plans"
+  ],
+  "windowsBinarySources": []
+}

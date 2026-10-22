@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 2,
+  "name": "pg_store_plans",
+  "displayName": "pg_store_plans",
+  "description": "SQL execution plan statistics",
+  "upstream": {
+    "repository": "ossc-db/pg_store_plans",
+    "version": "1.10"
+  },
+  "repository": "pgextwin/pg_store_plans",
+  "license": "BSD-3-Clause",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.10-windows.1",
+    "publishedAt": "2026-10-22T02:40:24Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_store_plans/releases/tag/v1.10-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
+  },
+  "postgresql": {
+    "14": {
+      "available": true,
+      "asset": "pg_store_plans-1.10-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg14-windows-x64.zip",
+      "sha256": "2a966464a03ba39ab72ee9b848363469838a3a04028b80e0296204dbb4ef95f9",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg14-windows-x64.spdx.json",
+          "sha256": "5c1a67dd4013a38113510f586adaf0673c9060500ef83537e2ccdf2a904ca601"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "6f6c317fafe677d5b0eaccfc307aa3a511f2157bbf0b8ce9b3683631ad543c1a"
+        }
+      }
+    },
+    "15": {
+      "available": true,
+      "asset": "pg_store_plans-1.10-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg15-windows-x64.zip",
+      "sha256": "87bbfe7adce7e3d76e45289d0fc2f60bff40db641485cffb9023e3b7c8e97a35",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg15-windows-x64.spdx.json",
+          "sha256": "027e02eb9499f3233a99c51a391ad6d8bd2f3bb154231cd28d65f69cbcb50f79"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "61132297ffbb8d3f4575ad1bd6f50fdf54095fa6294e57a8c336a5fdc602f4fc"
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_store_plans-1.10-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg16-windows-x64.zip",
+      "sha256": "57dc70edc4a9c0bde8bdee18e65c11574b9f5d292b11b7d4e2dea38c923c45c0",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg16-windows-x64.spdx.json",
+          "sha256": "43a47b00dfc5787c99a5c854213b1f769978dff453498fe9514d4757f1f23b05"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "40178abc658eb11f270b282857036332be2137ebf64cf49159551949ec4e03f1"
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_store_plans-1.10-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg17-windows-x64.zip",
+      "sha256": "a0794580e76fe35c6cae432b779b1418365a53d3c82e5dbdc4e90f87d7c8be10",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg17-windows-x64.spdx.json",
+          "sha256": "799675aa9a36f5e885bce3edb349c99531dad46a1bf47aaaebb4b939ea05143a"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "552a7f387a241645859337f4faaaf5289ff0c60d0ea063127e4d50a1c190b8bb"
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_store_plans-1.10-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg18-windows-x64.zip",
+      "sha256": "00ff1bad070d0141a15696279f9277c34069f5f2623e40aa979779dcc144754d",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg18-windows-x64.spdx.json",
+          "sha256": "5e6cc1699ea9ac3a93fd4d0bbe095d85dae102d411827c003f6362a583f92d32"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_store_plans-1.10-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_store_plans/releases/download/v1.10-windows.1/pg_store_plans-1.10-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "e35aff6ad1de6dd302de76547f61f7ee6cb64f1a98d4a4aed14f91b4e2fb5794"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "pg_store_plans"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "shared",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "real-query-plan-capture",
+        "description": "Check recorded plan and calls for a real statement after shared preload.",
+        "evidence": [
+          "sql-result",
+          "query-plan"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_store_plans",
+    "path": "config/test-contract.json",
+    "commit": "15efd2cbcc4fcf52b7961d181c5f1bc1f468d4b0"
+  }
+}
