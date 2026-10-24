@@ -53,9 +53,12 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Match signed Release, exact PR SHA and latest validation before merge
+      - name: Reverify public signed Release and native App15368 PR CI before protected merge
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          # Only the read token is handed to public ZIP/Sigstore verification.
+          # The scoped merge App token is reserved for exact-HEAD GitHub GET/merge.
+          GH_READ_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF: ${{ github.ref }}
           PGEXTWIN_CATALOG_AUTOMERGE_ENABLED: ${{ vars.PGEXTWIN_CATALOG_AUTOMERGE_ENABLED }}
