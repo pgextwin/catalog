@@ -125,6 +125,50 @@ class ReconcileTests(unittest.TestCase):
             with self.assertRaises(mod.Denied):
                 mod.discover(index, records, published, prs)
 
+    def test_explicit_future_first_release_without_placeholder_record(self):
+        from unittest.mock import patch
+        with patch.dict(mod.INTAKE_ALLOWED, {"future_ext": "source/future_ext"}), \
+             patch.dict(mod.FIRST_RELEASE_SOURCES, {"future_ext": "source/future_ext"}), \
+             patch.dict(mod.FIRST_RELEASE, {
+                 "future_ext": ("Future", "Reviewed signed extension", "PostgreSQL")
+             }):
+            index, records, published, prs = fixture()
+            # Existing Catalog index/records remain untouched. Registered
+            # future identities do not require fake unsigned placeholders.
+            published["future_ext"] = []
+            self.assertEqual(mod.discover(index, records, published, prs),
+                             {"include": []})
+            published["future_ext"] = [
+                {"id": 818, "tag_name": "v1.0-windows.1",
+                 "draft": False, "prerelease": False,
+                 "published_at": "2026-10-24T12:00:00Z"}]
+            self.assertEqual(mod.discover(index, records, published, prs),
+                             {"include": [{"extension": "future_ext",
+                                           "release_tag": "v1.0-windows.1"}]})
+            prs.append({"state": "open",
+                        "headRef": "auto-catalog/future_ext-v1.0-windows.1"})
+            self.assertEqual(mod.discover(index, records, published, prs),
+                             {"include": []})
+            prs.clear()
+            published["future_ext"][0]["prerelease"] = True
+            self.assertEqual(mod.discover(index, records, published, prs),
+                             {"include": []})
+
+    def test_unseeded_missing_or_unregistered_record_never_auto_intakes(self):
+        from unittest.mock import patch
+        index, records, published, prs = fixture()
+        with patch.dict(mod.INTAKE_ALLOWED, {"future_ext": "source/future_ext"}):
+            published["future_ext"] = []
+            with self.assertRaises(mod.Denied):
+                mod.discover(index, records, published, prs)
+        missing = NAMES[0]
+        index["extensions"].remove(missing)
+        del records[missing]
+        # Removing a previously distributed/established extension cannot
+        # masquerade as a brand-new first Release.
+        with self.assertRaises(mod.Denied):
+            mod.discover(index, records, published, prs)
+
     def test_invalid_manual_release_target_rejected(self):
         x = fixture()
         for target in [("evil", "v1.0-windows.1"), ("orafce", "blah"),
