@@ -120,16 +120,10 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
             jobs["total_count"]==len(jobs["jobs"]) and
             0<len(jobs["jobs"])<100,
             "Publisher job inventory incomplete or paginated")
-    publishers=[job for job in jobs["jobs"] if
-                type(job) is dict and type(job.get("name")) is str and
-                (job["name"]==PUBLISH_JOB or
-                 job["name"].startswith(PUBLISH_JOB+" ("))]
-    # GitHub matrix may contain many distinct extension jobs; require the
-    # exact requested extension in this success job's matrix display suffix.
     extension=repository.split("/")[-1]
-    matching=[job for job in publishers
-              if job["name"].startswith(PUBLISH_JOB+" (") and
-              re.search(r"\b"+re.escape(extension)+r"\b",job["name"])]
+    exact_job=PUBLISH_JOB+" ("+extension+")"
+    matching=[job for job in jobs["jobs"]
+              if type(job) is dict and job.get("name")==exact_job]
     require(len(matching)==1 and
             type(matching[0].get("run_id")) is int and matching[0]["run_id"]==pub_id and
             type(matching[0].get("run_attempt")) is int and matching[0]["run_attempt"]==1 and
