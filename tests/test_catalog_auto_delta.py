@@ -94,6 +94,37 @@ class ReconcileTests(unittest.TestCase):
         with self.assertRaises(mod.Denied):
             mod.discover(*x)
 
+    def test_future_registered_extension_uses_same_exact_roster_without_fixed_count(self):
+        from unittest.mock import patch
+        with patch.dict(mod.INTAKE_ALLOWED, {"future_ext": "example/future_ext"}):
+            index, records, published, prs = fixture()
+            index["extensions"].append("future_ext")
+            records["future_ext"] = {
+                "schemaVersion": 2, "name": "future_ext",
+                "repository": "pgextwin/future_ext",
+                "latest": {"releaseTag": "v1.0-windows.1",
+                           "publishedAt": "2026-10-20T01:00:00Z"}}
+            published["future_ext"] = [{
+                "id": 500, "tag_name": "v1.0-windows.1",
+                "draft": False, "prerelease": False,
+                "published_at": "2026-10-20T01:00:00Z"}]
+            self.assertEqual(mod.discover(index, records, published, prs),
+                             {"include": []})
+            published["future_ext"].append({
+                "id": 501, "tag_name": "v1.1-windows.1",
+                "draft": False, "prerelease": False,
+                "published_at": "2026-10-23T01:00:00Z"})
+            self.assertEqual(mod.discover(index, records, published, prs),
+                             {"include": [{"extension": "future_ext",
+                                           "release_tag": "v1.1-windows.1"}]})
+            # No change may auto-register an unapproved, differently named repo.
+            index["extensions"].append("evil")
+            records["evil"] = dict(records["future_ext"], name="evil",
+                                   repository="pgextwin/evil")
+            published["evil"] = list(published["future_ext"])
+            with self.assertRaises(mod.Denied):
+                mod.discover(index, records, published, prs)
+
     def test_invalid_manual_release_target_rejected(self):
         x = fixture()
         for target in [("evil", "v1.0-windows.1"), ("orafce", "blah"),
