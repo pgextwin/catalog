@@ -30,6 +30,7 @@ def local():
         "requiredWorkflow": "validate.yml",
         "requiredCheckAppId": 15368,
         "expectedProposerLogin": "pgextwin-catalog-proposer[bot]",
+        "expectedProposerBotId": 341259304,
         "notes": "test only",
     }
 
@@ -59,14 +60,15 @@ def pr_fixture(name=NAME, tag=TAG):
     branch = "auto-catalog/" + name + "-" + tag
     pr = {
         "number": 71, "state": "open", "draft": False,
-        "user": {"login": "pgextwin-catalog-proposer[bot]", "type": "Bot"},
+        "user": {"login": "pgextwin-catalog-proposer[bot]", "type": "Bot",
+                 "id": 341259304},
         "head": {"ref": branch, "sha": SHA,
                  "repo": {"full_name": "pgextwin/catalog"}},
         "base": {"ref": "main"}, "commits": 1
     }
     files = [{"filename": "extensions/" + name + ".json",
               "status": "modified"}]
-    commits = [{"commit": {"message": "catalog: verified " + name + " " + tag}}]
+    commits = [{"commit": {"message": "catalog: verified operator release " + name + " " + tag}}]
     return pr, files, commits
 
 
@@ -107,6 +109,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             lambda a,b: a.update(enabled=False),
             lambda a,b: a.update(expectedRepository="evil/catalog"),
             lambda a,b: a.update(expectedProposerLogin="github-actions[bot]"),
+            lambda a,b: a.update(expectedProposerBotId=0),
             lambda a,b: a.update(requiredCheckAppId=999),
             lambda a,b: b.update(enabled=False),
             lambda a,b: b.update(automaticCatalogMerge=False),
@@ -136,15 +139,18 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             with self.subTest(name=name):
                 pr, files, commits = pr_fixture(name, "v1.2-windows.1")
                 out = mod.inspect_pr(pr, files, commits,
-                                     proposer_login=local()["expectedProposerLogin"])
+                                     proposer_login=local()["expectedProposerLogin"],
+                                     proposer_id=local()["expectedProposerBotId"])
                 self.assertEqual(out[3:], (name, "v1.2-windows.1"))
         p, f, c = pr_fixture()
         self.assertEqual(mod.inspect_pr(p, f, c,
-                         proposer_login=local()["expectedProposerLogin"]),
+                         proposer_login=local()["expectedProposerLogin"],
+                                     proposer_id=local()["expectedProposerBotId"]),
                          (71, SHA, BRANCH, NAME, TAG))
         mutations = (
             lambda p,f,c: p["user"].update(login="ShutenOishi", type="User"),
             lambda p,f,c: p["user"].update(type="User"),
+            lambda p,f,c: p["user"].update(id=1),
             lambda p,f,c: p["head"].update(sha="z"*40),
             lambda p,f,c: p["head"]["repo"].update(full_name="evil/catalog"),
             lambda p,f,c: p.update(commits=2),
@@ -160,7 +166,8 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             p, f, c = pr_fixture()
             mutate(p, f, c)
             with self.subTest(mutate=mutate), self.assertRaises(mod.AutoMergeDenied):
-                mod.inspect_pr(p, f, c, proposer_login=local()["expectedProposerLogin"])
+                mod.inspect_pr(p, f, c, proposer_login=local()["expectedProposerLogin"],
+                                     proposer_id=local()["expectedProposerBotId"])
 
     def test_exact_native_ci_latest_attempt_and_app(self):
         mod.validate_run([run_fixture()], SHA, BRANCH)
