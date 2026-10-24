@@ -15,7 +15,7 @@ import re
 import sys
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
-from verified_release_record import INTAKE_ALLOWED
+from verified_release_record import INTAKE_ALLOWED, FIRST_RELEASE, FIRST_RELEASE_SOURCES
 
 TAG = re.compile(r"^v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\.[1-9][0-9]*$")
 DATE = re.compile(r"^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
@@ -32,11 +32,19 @@ def require(value, reason):
 
 def discover(index, records, published, open_prs, *, manual=None):
     """Pure discovery; ALL returned rows still need full signed verification."""
-    require(type(index) is dict and index.get("schemaVersion") == 2
+    require(type(index) is dict and type(index.get("schemaVersion")) is int
+            and index["schemaVersion"] == 2
             and isinstance(index.get("extensions"), list)
-            and set(index["extensions"]) == set(INTAKE_ALLOWED)
-            and len(index["extensions"]) == len(INTAKE_ALLOWED),
-            "incomplete or unknown Catalog distribution roster")
+            and all(type(n) is str for n in index["extensions"])
+            and len(index["extensions"]) == len(set(index["extensions"])),
+            "invalid or duplicate Catalog distribution roster")
+    indexed = set(index["extensions"])
+    authorized = set(INTAKE_ALLOWED)
+    first_release = set(FIRST_RELEASE) & set(FIRST_RELEASE_SOURCES)
+    require(bool(indexed) and indexed.issubset(authorized)
+            and (authorized - indexed).issubset(first_release)
+            and set(FIRST_RELEASE).issubset(set(FIRST_RELEASE_SOURCES)),
+            "missing established Catalog record or unapproved first-Release identity")
     require(type(open_prs) is list and len(open_prs) < 100, "incomplete PR inventory")
     existing = set()
     for pr in open_prs:
@@ -50,26 +58,30 @@ def discover(index, records, published, open_prs, *, manual=None):
         require(name in INTAKE_ALLOWED and type(tag) is str and TAG.fullmatch(tag),
                 "manual target outside signed Catalog verifier allowlist")
         return {"include": [{"extension": name, "release_tag": tag}]}
-    require(type(records) is dict and set(records) == set(INTAKE_ALLOWED),
-            "missing or unexpected Catalog records")
+    require(type(records) is dict and set(records) == indexed,
+            "missing or unexpected existing Catalog records")
     require(type(published) is dict and set(published) == set(INTAKE_ALLOWED),
             "incomplete per-repository public Release inventory")
     result = []
     for name in sorted(INTAKE_ALLOWED):
-        record = records[name]
-        require(type(record) is dict and record.get("name") == name
-                and record.get("schemaVersion") == 2
-                and record.get("repository") == "pgextwin/" + name,
-                "invalid current Catalog record: " + name)
-        current = record.get("latest")
-        require(type(current) is dict and type(current.get("releaseTag")) is str
-                and TAG.fullmatch(current["releaseTag"])
-                and type(current.get("publishedAt")) is str
-                and DATE.fullmatch(current["publishedAt"]),
-                "missing or malformed current Catalog Release identity")
+        is_initial = name not in indexed
+        if not is_initial:
+            record = records[name]
+            require(type(record) is dict and record.get("name") == name
+                    and type(record.get("schemaVersion")) is int
+                    and record["schemaVersion"] == 2
+                    and record.get("repository") == "pgextwin/" + name,
+                    "invalid current Catalog record: " + name)
+            current = record.get("latest")
+            require(type(current) is dict and type(current.get("releaseTag")) is str
+                    and TAG.fullmatch(current["releaseTag"])
+                    and type(current.get("publishedAt")) is str
+                    and DATE.fullmatch(current["publishedAt"]),
+                    "missing or malformed current Catalog Release identity")
         collection = published[name]
-        require(type(collection) is list and 0 < len(collection) < 100,
-                "empty/paginated public Release inventory: " + name)
+        require(type(collection) is list and len(collection) < 100
+                and (bool(collection) or is_initial),
+                "empty/paginated existing public Release inventory: " + name)
         public = []
         ids = set()
         for r in collection:
@@ -85,13 +97,18 @@ def discover(index, records, published, open_prs, *, manual=None):
             require(type(r.get("published_at")) is str and DATE.fullmatch(r["published_at"]),
                     "invalid stable public Release timestamp")
             public.append(r)
+        if is_initial and not public:
+            # An explicitly registered future extension need not already have
+            # a Release. Never fabricate a tag or a blank Catalog record.
+            continue
         require(public, "no eligible public stable Releases: " + name)
         latest = max(public, key=lambda r: (r["published_at"], r["id"]))
         tag = latest["tag_name"]
-        if tag == current["releaseTag"]:
-            continue
-        require(latest["published_at"] > current["publishedAt"],
-                "would downgrade or replace newer Catalog record: " + name)
+        if not is_initial:
+            if tag == current["releaseTag"]:
+                continue
+            require(latest["published_at"] > current["publishedAt"],
+                    "would downgrade or replace newer Catalog record: " + name)
         if "auto-catalog/" + name + "-" + tag in existing:
             continue
         result.append({"extension": name, "release_tag": tag})
