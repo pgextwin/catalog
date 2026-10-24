@@ -22,6 +22,11 @@ import tempfile
 from zipfile import ZipFile, BadZipFile
 
 if __package__:
+    from . import automatic_publisher_provenance as automatic_provenance
+else:
+    import automatic_publisher_provenance as automatic_provenance
+
+if __package__:
     from .verified_release_record import (
         INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
@@ -105,7 +110,10 @@ def published_release_day(release):
     return published.date()
 
 
-def check_source_package(pkg, repo, source_commit, major, source):
+def check_source_package(pkg, repo, source_commit, major, source, *,
+                         expected_event="workflow_dispatch"):
+    require(expected_event in ("workflow_dispatch","push"),
+            "untrusted formal Release source event")
     """Fail closed on exact per-PG upstream and packaging/run identities."""
     require(type(pkg) is dict and pkg.get("schemaVersion") == 1
             and pkg.get("buildMode") == "release-attested", "unsigned build mode")
@@ -128,8 +136,10 @@ def check_source_package(pkg, repo, source_commit, major, source):
     run = pkg.get("workflowRun", {})
     require(type(run.get("id")) is int and run["id"] > 0
             and run.get("ref") == "refs/heads/main"
-            and run.get("event") == "workflow_dispatch",
-            "package not produced by an operator-only main Promotion")
+            and run.get("event") == expected_event
+            and (expected_event != "push" or
+                 (type(run.get("attempt")) is int and run["attempt"]==1)),
+            "signed package not from authenticated expected original main event")
     return run["id"]
 
 
@@ -168,7 +178,10 @@ def verify_release_tag(repo, tag, source_commit):
     raise Denied("too many tag-object indirections")
 
 
-def verify_payload(folder, release, manifest, contract, source_commit, active):
+def verify_payload(folder, release, manifest, contract, source_commit, active, *,
+                   expected_event="workflow_dispatch"):
+    require(expected_event in ("workflow_dispatch", "push"),
+            "unrecognized formal signed source event")
     """Validate downloaded bytes and ZIP metadata; attestations are checked by caller."""
     name = manifest["name"]
     repo = "pgextwin/" + name
@@ -218,7 +231,8 @@ def verify_payload(folder, release, manifest, contract, source_commit, active):
                             "optional BGW not proven by an actual MSVC DLL")
                 else:
                     require(dll not in zf.namelist(), "unexpected BGW DLL in SQL-only package")
-        ident = check_source_package(pkg, repo, source_commit, major, source)
+        ident = check_source_package(pkg, repo, source_commit, major, source,
+                                     expected_event=expected_event)
         run_id = run_id or ident
         require(run_id == ident, "mixed build workflow run IDs")
         spdx = json.loads(files[stem + ".spdx.json"].read_text(encoding="utf-8-sig"))
@@ -391,12 +405,27 @@ def generate(extension, tag, record):
     require(manifest.get("name") == extension
             and contract.get("extension") == extension
             and contract.get("contractVersion") == 2, "wrong immutable source/contract")
+    # The existing manual operator Release route remains unchanged. An
+    # automatic Release must carry a strict public *locator* and independently
+    # prove the completed source and distinct central scheduled Publisher Run;
+    # a marker by itself never verifies signing or authorizes Catalog.
+    body=release.get("body")
+    auto_marker=(automatic_provenance.parse(body)
+                 if isinstance(body,str) and
+                 automatic_provenance.PREFIX in body else None)
+    original_event="push" if auto_marker is not None else "workflow_dispatch"
     with tempfile.TemporaryDirectory() as tmp:
         gh("release", "download", tag, "--repo", repo, "--dir", tmp)
         folder = Path(tmp)
         assets, sums, run_id = verify_payload(folder, release, manifest, contract,
-                                               source_commit, active)
-        verify_main_run(repo, run_id, source_commit)
+                                               source_commit, active,
+                                               expected_event=original_event)
+        if auto_marker is None:
+            verify_main_run(repo, run_id, source_commit)
+        else:
+            automatic_provenance.verify(
+                release=release, repository=repo, tag=tag, sha=source_commit,
+                source_run_id=run_id, marker=auto_marker, api=api)
         signer_sha = None
         for major in active:
             stem = extension + "-" + source_map(manifest)[major]["ref"] + "-pg" + str(major) + "-windows-x64"
@@ -416,6 +445,9 @@ def generate(extension, tag, record):
     mapped = map_verified_release(original, release, manifest, contract,
                                 assets, sums, source_commit, active)
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
+                    "releaseProvenance": (
+                        "INDEPENDENT_AUTOMATIC_SIGNED_SCHEDULE"
+                        if auto_marker is not None else "VERIFIED_MANUAL_DISPATCH"),
                     "packagingCommit": source_commit, "promotionRunId": run_id,
                     "postgresqlMajors": active, "assetCount": len(assets),
                     "recordChanged": mapped != original}
