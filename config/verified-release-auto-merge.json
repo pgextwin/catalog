@@ -1,10 +1,11 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "enabled": false,
-  "extension": "plpgsql_check",
-  "recordPath": "extensions/plpgsql_check.json",
-  "requiredWorkflow": "validate.yml",
   "expectedRepository": "pgextwin/catalog",
   "centralPolicyRepository": "pgextwin/build",
-  "notes": "Opt-in only after independent GitHub App and branch-protection acceptance. Untrusted PR code must never be executed with the merge App token."
+  "requiredWorkflow": "validate.yml",
+  "requiredCheckAppId": 15368,
+  "expectedProposerLogin": "pgextwin-catalog-proposer[bot]",
+  "notes": "DENY until central, Catalog and App opt-ins are independently authorized. Only original App-owned exact-record protected PRs for already-registered signed Releases; no public Release creation and no first-Release index/landscape auto-merge.",
+  "expectedProposerBotId": 341259304
 }
