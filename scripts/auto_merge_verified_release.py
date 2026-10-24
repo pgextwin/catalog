@@ -62,7 +62,7 @@ def verify_policy(local, central):
     """Both independent protected opt-ins required; never infer from Release tags."""
     local_fields = {
         "schemaVersion", "enabled", "expectedRepository", "centralPolicyRepository",
-        "requiredWorkflow", "requiredCheckAppId", "expectedProposerLogin", "notes"
+        "requiredWorkflow", "requiredCheckAppId", "expectedProposerLogin", "expectedProposerBotId", "notes"
     }
     require(type(local) is dict and set(local) == local_fields
             and type(local.get("schemaVersion")) is int
@@ -73,7 +73,9 @@ def verify_policy(local, central):
             and local.get("requiredWorkflow") == "validate.yml"
             and type(local.get("requiredCheckAppId")) is int
             and local["requiredCheckAppId"] == 15368
-            and local.get("expectedProposerLogin") == "pgextwin-catalog-proposer[bot]",
+            and local.get("expectedProposerLogin") == "pgextwin-catalog-proposer[bot]"
+            and type(local.get("expectedProposerBotId")) is int
+            and local["expectedProposerBotId"] == 341259304,
             "Catalog-wide signed merge policy disabled or mismatched")
     central_fields = {
         "schemaVersion", "enabled", "mode", "releasePolicy",
@@ -111,7 +113,7 @@ def verify_policy(local, central):
     ), "central signed-release policy and Catalog downstream mode disagree")
 
 
-def inspect_pr(pr, files, commits, *, proposer_login):
+def inspect_pr(pr, files, commits, *, proposer_login, proposer_id):
     require(type(pr) is dict and pr.get("state") == "open"
             and pr.get("draft") is False and type(pr.get("number")) is int
             and pr["number"] > 0, "untrusted Catalog PR")
@@ -122,6 +124,7 @@ def inspect_pr(pr, files, commits, *, proposer_login):
     name, tag = match.groups()
     require(name in INTAKE_ALLOWED, "extension lacks protected signer identity")
     require((pr.get("user") or {}).get("login") == proposer_login
+            and (pr.get("user") or {}).get("id") == proposer_id
             and (pr.get("user") or {}).get("type") == "Bot"
             and (pr.get("base") or {}).get("ref") == "main"
             and (head.get("repo") or {}).get("full_name") == REPO
@@ -130,7 +133,7 @@ def inspect_pr(pr, files, commits, *, proposer_login):
     require(type(files) is list and len(files) == 1
             and files[0].get("filename") == path
             and files[0].get("status") == "modified", "Catalog PR is not record-only")
-    expected = "catalog: verified " + name + " " + tag
+    expected = "catalog: verified operator release " + name + " " + tag
     require(type(commits) is list and len(commits) == 1
             and (commits[0].get("commit") or {}).get("message", "").split("\n")[0] == expected,
             "Catalog proposal does not match signed-proposer commit contract")
@@ -241,7 +244,8 @@ def perform(config_path, dry_run=False):
     files = api("repos/" + REPO + "/pulls/" + str(number) + "/files?per_page=100")
     commits = api("repos/" + REPO + "/pulls/" + str(number) + "/commits?per_page=100")
     number, sha, branch, name, tag = inspect_pr(
-        pr, files, commits, proposer_login=local["expectedProposerLogin"])
+        pr, files, commits, proposer_login=local["expectedProposerLogin"],
+        proposer_id=local["expectedProposerBotId"])
     runs = api("repos/" + REPO +
                "/actions/workflows/validate.yml/runs?per_page=100&branch=" + branch)
     validate_run(runs.get("workflow_runs"), sha, branch)
