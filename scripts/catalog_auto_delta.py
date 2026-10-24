@@ -35,7 +35,7 @@ def discover(index, records, published, open_prs, *, manual=None):
     require(type(index) is dict and index.get("schemaVersion") == 2
             and isinstance(index.get("extensions"), list)
             and set(index["extensions"]) == set(INTAKE_ALLOWED)
-            and len(index["extensions"]) == len(INTAKE_ALLOWED) == 17,
+            and len(index["extensions"]) == len(INTAKE_ALLOWED),
             "incomplete or unknown Catalog distribution roster")
     require(type(open_prs) is list and len(open_prs) < 100, "incomplete PR inventory")
     existing = set()
