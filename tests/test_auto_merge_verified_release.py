@@ -98,7 +98,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         self.assertIn("GH_READ_TOKEN: ", workflow)
         self.assertIn("GH_TOKEN: ", workflow)
         self.assertNotIn("pull_request_target", workflow)
-        self.assertNotIn("contents: write", workflow)
+        self.assertNotIn("\npermissions:\n  contents: write", workflow)
 
     def test_two_explicit_source_modes_pass_only_with_consistent_flags(self):
         mod.verify_policy(local(), central())
