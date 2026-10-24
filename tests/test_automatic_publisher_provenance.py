@@ -14,7 +14,12 @@ import unittest
 
 from scripts import automatic_publisher_provenance as p
 from scripts import verify_signed_fleet_release as release
-from tests.test_verify_signed_fleet_release import fixture as signed_fixture
+import importlib.util
+TEST_FILE=Path(__file__).resolve().parent/"test_verify_signed_fleet_release.py"
+TEST_SPEC=importlib.util.spec_from_file_location("auto_source_fixture",TEST_FILE)
+TEST_MOD=importlib.util.module_from_spec(TEST_SPEC)
+TEST_SPEC.loader.exec_module(TEST_MOD)
+signed_fixture=TEST_MOD.fixture
 
 REPO="pgextwin/pg_hint_plan"
 TAG="v1.5.3-windows.2"
