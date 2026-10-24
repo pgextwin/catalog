@@ -17,7 +17,10 @@ import subprocess
 import sys
 import tempfile
 
-from verified_release_record import INTAKE_ALLOWED
+try:
+    from scripts.verified_release_record import INTAKE_ALLOWED
+except ModuleNotFoundError:
+    from verified_release_record import INTAKE_ALLOWED
 
 REPO = "pgextwin/catalog"
 CENTRAL = "pgextwin/build"
