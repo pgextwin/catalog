@@ -35,9 +35,11 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
         self.assertFalse((WORKFLOWS / "sync-release.yml").exists())
         verified = (WORKFLOWS / "sync-verified-release.yml").read_text(encoding="utf-8")
         self.assertIn("scripts/verify_signed_fleet_release.py", verified)
-        self.assertIn("          - plpgsql_check", verified)
-        for extension in ("pgtap", "pg_variables", "pg_store_plans"):
-            self.assertIn("          - " + extension, verified)
+        self.assertIn("scripts/catalog_auto_delta.py", verified)
+        self.assertIn("from scripts.verified_release_record import FIRST_RELEASE_SOURCES",verified)
+        self.assertIn("if name not in FIRST_RELEASE_SOURCES:", verified)
+        self.assertNotIn("          - plpgsql_check", verified)
+        self.assertNotIn("        type: choice", verified)
         self.assertIn("permission-contents: write", verified)
         self.assertIn("permission-pull-requests: write", verified)
 
