@@ -6,28 +6,12 @@ on:
     - cron: '20 */6 * * *'
   workflow_dispatch:
     inputs:
+    # Reuse the exact independent signed-Release allowlist; do not keep a separate
+    # manually maintained list of extension names in workflow inputs.
       extension:
-        description: Exactly one pgextwin extension
+        description: Exactly one registered pgextwin extension (verified against protected source identity registry)
         required: true
-        type: choice
-        options:
-          - pg_bigm
-          - pg_cron
-          - pg_hint_plan
-          - pgaudit
-          - set_user
-          - pg_repack
-          - pg_ivm
-          - pg_qualstats
-          - plpgsql_check
-          - hypopg
-          - wal2json
-          - pg_partman
-          - pg_stat_monitor
-          - orafce
-          - pgtap
-          - pg_variables
-          - pg_store_plans
+        type: string
       release_tag:
         description: Already public and operator-PUBLISH signed Release tag
         required: true
@@ -135,12 +119,13 @@ jobs:
           import json
           import os
           from pathlib import Path
+          from scripts.verified_release_record import FIRST_RELEASE_SOURCES
           name = os.environ["EXTENSION"]
           path = Path("index.json")
           data = json.loads(path.read_text(encoding="utf-8"))
           names = data["extensions"]
           if name not in names:
-              if name not in {"pgtap", "pg_variables", "pg_store_plans"}:
+              if name not in FIRST_RELEASE_SOURCES:
                   raise SystemExit("DENY: unknown first-Release Catalog identity")
               if not (Path("extensions") / (name + ".json")).is_file():
                   raise SystemExit("DENY: verifier did not generate the signed record")

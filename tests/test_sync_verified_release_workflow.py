@@ -19,6 +19,10 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
         workflow=WORKFLOW.read_text(encoding="utf-8")
         step=workflow.split("name: Update index only after complete signed",1)[1].split("      - name:",1)[0]
         code=textwrap.dedent(step.split("          python - <<'PY'\n",1)[1].rsplit("          PY",1)[0])
+        # Inline workflow code executes from the Catalog checkout in Actions;
+        # the isolated fixture uses a temporary working directory instead.
+        test_env={**os.environ,
+                  "PYTHONPATH":str(ROOT)+os.pathsep+os.environ.get("PYTHONPATH","")}
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
             (root/"extensions").mkdir()
@@ -36,13 +40,13 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                 wrong=dict(record,name="other")
                 (root/"extensions"/(name+".json")).write_text(json.dumps(wrong))
                 rejected=subprocess.run([sys.executable,"-c",code],cwd=root,
-                    env={**os.environ,"EXTENSION":name},capture_output=True,text=True)
+                    env={**test_env,"EXTENSION":name},capture_output=True,text=True)
                 self.assertNotEqual(rejected.returncode,0)
                 self.assertEqual((root/"index.json").read_bytes(),before)
                 self.assertFalse((root/"landscape/extensions"/(name+".json")).exists())
                 (root/"extensions"/(name+".json")).write_text(json.dumps(record))
                 done=subprocess.run([sys.executable,"-c",code],cwd=root,
-                    env={**os.environ,"EXTENSION":name},capture_output=True,text=True)
+                    env={**test_env,"EXTENSION":name},capture_output=True,text=True)
                 self.assertEqual(done.returncode,0,done.stderr)
                 landscape=json.loads((root/"landscape/extensions"/(name+".json")).read_text())
                 self.assertEqual(landscape["status"],"implemented")
@@ -52,7 +56,7 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                                  json.loads((root/"landscape/index.json").read_text())["extensions"])
             before=(root/"index.json").read_bytes()
             missing=subprocess.run([sys.executable,"-c",code],cwd=root,
-                env={**os.environ,"EXTENSION":"unregistered"},capture_output=True,text=True)
+                env={**test_env,"EXTENSION":"unregistered"},capture_output=True,text=True)
             self.assertNotEqual(missing.returncode,0)
             self.assertEqual((root/"index.json").read_bytes(),before)
 
@@ -86,8 +90,11 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
 
     def test_third_wave_requires_signed_first_record_verification(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        for name in ("pgtap", "pg_variables", "pg_store_plans"):
-            self.assertIn("          - " + name + "\n", workflow)
+        self.assertIn("from scripts.verified_release_record import FIRST_RELEASE_SOURCES",workflow)
+        self.assertIn("if name not in FIRST_RELEASE_SOURCES:",workflow)
+        self.assertNotIn('if name not in {"pgtap", "pg_variables", "pg_store_plans"}',workflow)
+        self.assertIn("        type: string",workflow)
+        self.assertNotIn("        type: choice",workflow)
         self.assertIn("base_record_sha=MISSING", workflow)
         self.assertIn("base_index_sha=", workflow)
         self.assertIn("steps.verify.outputs.changed == 'true'", workflow)
