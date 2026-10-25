@@ -91,9 +91,9 @@ class SignedFeedTests(unittest.TestCase):
         # The historic 14 cannot be dropped even if a new name is present.
         idx = self.root / "index.json"
         idx.write_text(json.dumps({"schemaVersion": 2,
-                                   "extensions": sorted(set(NAMES + ["new_future"]) |
-                                                        {"pgtap", "pg_variables", "pg_store_plans"} -
-                                                        {"pg_cron"})}))
+                                   "extensions": sorted((set(NAMES + ["new_future"]) |
+                                                         {"pgtap", "pg_variables", "pg_store_plans"}) -
+                                                         {"pg_cron"})}))
         with self.assertRaises(ValueError):
             self.generate()
 
