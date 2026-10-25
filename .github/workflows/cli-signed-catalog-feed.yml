@@ -29,14 +29,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Synthetics and exact 14–17 signed-feed plan without publication
+      - name: Synthetics and protected Catalog-sized signed-feed plan without publication
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
           python scripts/cli_signed_feed.py --catalog . --commit "$GITHUB_SHA" --output "$RUNNER_TEMP/catalog-latest.json"
-          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 17 and d['zipCount']==5*d['extensionCount'] and not d['extensionSignatureVerified']"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 128 and 1<=len(d['postgresqlMajors'])<=12 and d['zipCount']==len(d['postgresqlMajors'])*d['extensionCount'] and not d['extensionSignatureVerified']"
           echo 'CATALOG_FEED_PR_READONLY_DRYRUN=PASS NO_SIGN NO_TAG NO_RELEASE'
   gate:
     if: ${{ github.repository == 'pgextwin/catalog' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1 }}
@@ -89,7 +89,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
           python scripts/cli_signed_feed.py --catalog . --commit "$SOURCE" --output "$RUNNER_TEMP/catalog-latest.json"
-          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 17 and d['zipCount']==5*d['extensionCount'] and d['catalogCommit']==os.environ['SOURCE'] and not d['extensionSignatureVerified']"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 128 and 1<=len(d['postgresqlMajors'])<=12 and d['zipCount']==len(d['postgresqlMajors'])*d['extensionCount'] and d['catalogCommit']==os.environ['SOURCE'] and not d['extensionSignatureVerified']"
       - name: Mint genuine Sigstore keyless signed Catalog-feed attestation on main
         id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -145,7 +145,7 @@ jobs:
           p,s=sys.argv[1:]
           d=json.load(open(p))
           assert d["schemaVersion"]=="pgextwin-signed-catalog-zip-feed/v1"
-          assert d["catalogCommit"]==s and 14<=d["extensionCount"]<=17 and d["zipCount"]==5*d["extensionCount"]
+          assert d["catalogCommit"]==s and 14<=d["extensionCount"]<=128 and 1<=len(d["postgresqlMajors"])<=12 and d["zipCount"]==len(d["postgresqlMajors"])*d["extensionCount"]
           assert d["extensionSignatureVerified"] is False and d["publicationAuthorized"] is False and d["installAuthorized"] is False
           assert len(d["catalogSha256"])==d["extensionCount"]+1 and len(d["releases"])==d["extensionCount"]
           PY
