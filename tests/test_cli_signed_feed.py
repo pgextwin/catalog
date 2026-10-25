@@ -17,6 +17,9 @@ class SignedFeedTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         (self.root / "extensions").mkdir()
+        (self.root / "config").mkdir()
+        (self.root / "config" / "cli-feed-majors.json").write_text(json.dumps(
+            {"schemaVersion": 1, "postgresqlMajors": ["14", "15", "16", "17", "18"]}))
         (self.root / "index.json").write_text(json.dumps(
             {"schemaVersion": 2, "extensions": NAMES}), encoding="utf-8")
         self.assets = {}
@@ -76,6 +79,41 @@ class SignedFeedTests(unittest.TestCase):
                 self.assertFalse(feed["installAuthorized"])
                 self.assertEqual(len(feed["catalogSha256"]), 15 + len(additions))
                 self.assertEqual(len(feed["releases"]), 14 + len(additions))
+
+    def test_eighteenth_registered_extension_requires_real_index_record_and_release(self):
+        self.include_wave3("pgtap", "pg_variables", "pg_store_plans", "new_future")
+        feed = self.generate()
+        self.assertEqual(feed["extensionCount"], 18)
+        self.assertEqual(feed["zipCount"], 90)
+        self.assertEqual(len(feed["releases"]), 18)
+        self.assertFalse(feed["publicationAuthorized"])
+        self.assertFalse(feed["extensionSignatureVerified"])
+        # The historic 14 cannot be dropped even if a new name is present.
+        idx = self.root / "index.json"
+        idx.write_text(json.dumps({"schemaVersion": 2,
+                                   "extensions": sorted(set(NAMES + ["new_future"]) |
+                                                        {"pgtap", "pg_variables", "pg_store_plans"} -
+                                                        {"pg_cron"})}))
+        with self.assertRaises(ValueError):
+            self.generate()
+
+    def test_postgresql_cohort_is_declared_not_inferred_from_malicious_record(self):
+        config = self.root / "config" / "cli-feed-majors.json"
+        before = config.read_text()
+        for values in ([], ["14", "16"], ["14", "14"], ["14", "33"],
+                       ["014", "15"], ["14", 15], list(map(str, range(14, 27)))):
+            with self.subTest(majors=values):
+                config.write_text(json.dumps({"schemaVersion": 1, "postgresqlMajors": values}))
+                with self.assertRaises(ValueError):
+                    self.generate()
+        config.write_text(before)
+        # A protected policy change alone is insufficient: actual Catalog
+        # records and public-release bytes must agree for every major.
+        config.write_text(json.dumps({"schemaVersion": 1,
+                                      "postgresqlMajors": ["15", "16", "17", "18", "19"]}))
+        with self.assertRaises(ValueError):
+            self.generate()
+        config.write_text(before)
 
     def test_stage_reject_candidate_or_missing_original_release(self):
         self.include_wave3("pgtap")
