@@ -18,9 +18,9 @@ import sys
 import tempfile
 
 try:
-    from scripts.verified_release_record import INTAKE_ALLOWED
+    from scripts.verified_release_record import INTAKE_ALLOWED, FIRST_RELEASE_SOURCES
 except ModuleNotFoundError:
-    from verified_release_record import INTAKE_ALLOWED
+    from verified_release_record import INTAKE_ALLOWED, FIRST_RELEASE_SOURCES
 
 REPO = "pgextwin/catalog"
 CENTRAL = "pgextwin/build"
@@ -113,7 +113,7 @@ def verify_policy(local, central):
     ), "central signed-release policy and Catalog downstream mode disagree")
 
 
-def inspect_pr(pr, files, commits, *, proposer_login, proposer_id):
+def inspect_pr(pr, files, commits, *, proposer_login, proposer_id, initial=False):
     require(type(pr) is dict and pr.get("state") == "open"
             and pr.get("draft") is False and type(pr.get("number")) is int
             and pr["number"] > 0, "untrusted Catalog PR")
@@ -130,9 +130,22 @@ def inspect_pr(pr, files, commits, *, proposer_login, proposer_id):
             and (head.get("repo") or {}).get("full_name") == REPO
             and pr.get("commits") == 1, "Catalog PR not from dedicated proposer App")
     path = "extensions/" + name + ".json"
-    require(type(files) is list and len(files) == 1
-            and files[0].get("filename") == path
-            and files[0].get("status") == "modified", "Catalog PR is not record-only")
+    require(type(files) is list, "Catalog PR file inventory unavailable")
+    actual = {row.get("filename"): row.get("status") for row in files}
+    require(len(actual) == len(files), "duplicate Catalog PR file paths")
+    if initial:
+        require(name in FIRST_RELEASE_SOURCES
+                and actual.get(path) == "added"
+                and actual.get("index.json") == "modified"
+                and actual.get("landscape/extensions/" + name + ".json") in ("added", "modified")
+                and (set(actual) - {path, "index.json",
+                                   "landscape/extensions/" + name + ".json"}
+                     in (set(), {"landscape/index.json"}))
+                and actual.get("landscape/index.json", "modified") == "modified",
+                "first Catalog intake changes unapproved paths or statuses")
+    else:
+        require(actual == {path: "modified"},
+                "existing Catalog PR is not record-only")
     expected = "catalog: verified operator release " + name + " " + tag
     require(type(commits) is list and len(commits) == 1
             and (commits[0].get("commit") or {}).get("message", "").split("\n")[0] == expected,
@@ -173,32 +186,99 @@ def validate_checks(payload, sha):
                 "required App15368 native check not completed SUCCESS")
 
 
-def verify_record(name, tag, head_sha, *, read_token):
-    """Fresh public-byte/Sigstore/GitHub-source check with a READ-ONLY token."""
+def first_release_projection(name, verified):
+    """Recompute first-intake index and landscape from protected main, never PR code."""
+    require(name in FIRST_RELEASE_SOURCES
+            and verified.get("schemaVersion") == 2
+            and verified.get("name") == name
+            and verified.get("repository") == "pgextwin/" + name
+            and (verified.get("upstream") or {}).get("repository") == FIRST_RELEASE_SOURCES[name],
+            "unknown first-intake identity")
+    index = json.loads(Path("index.json").read_text(encoding="utf-8"))
+    require(index.get("schemaVersion") == 2
+            and type(index.get("extensions")) is list
+            and index["extensions"] == sorted(set(index["extensions"]))
+            and name not in index["extensions"],
+            "first-intake index is not a protected unregistered source")
+    index["extensions"] = sorted(index["extensions"] + [name])
+    li = json.loads(Path("landscape/index.json").read_text(encoding="utf-8"))
+    require(li.get("schemaVersion") == 1
+            and type(li.get("extensions")) is list
+            and li["extensions"] == sorted(set(li["extensions"])),
+            "invalid protected landscape registry")
+    previous = Path("landscape/extensions") / (name + ".json")
+    landscape = json.loads(previous.read_text(encoding="utf-8")) if previous.is_file() else {}
+    latest = verified.get("latest") or {}
+    release_url = latest.get("releaseUrl")
+    published_at = latest.get("publishedAt")
+    require(type(release_url) is str
+            and release_url.startswith("https://github.com/pgextwin/" + name + "/releases/tag/")
+            and type(published_at) is str and len(published_at) >= 10,
+            "missing independently verified public first-Release identity")
+    landscape.update(
+        schemaVersion=1, name=name, displayName=verified["displayName"],
+        description=verified["description"],
+        upstreamRepository=FIRST_RELEASE_SOURCES[name],
+        status="implemented", pgextwinCatalogName=name,
+        lastReviewed=published_at[:10],
+        evidenceUrls=[release_url, "https://github.com/" + FIRST_RELEASE_SOURCES[name]],
+        windowsBinarySources=[])
+    for key in ("candidateRationale", "roadmap", "notPlannedReason",
+                "notPlannedReasonJa", "reasonCode"):
+        landscape.pop(key, None)
+    li["extensions"] = sorted(set(li["extensions"]) | {name})
+    return {"index.json": index, "landscape/index.json": li,
+            "landscape/extensions/" + name + ".json": landscape}
+
+
+def verify_record(name, tag, head_sha, *, read_token, files=None):
+    """Reverify exact signed bytes before comparing an existing or FIRST Catalog PR."""
     require(name in INTAKE_ALLOWED and SHA.fullmatch(head_sha)
             and type(read_token) is str and len(read_token) > 10,
             "unsigned verifier input or read token missing")
     path = "extensions/" + name + ".json"
-    require(Path(path).is_file(), "no trusted existing Catalog record; initial import DENY")
+    initial = not Path(path).is_file()
+    require(not initial or name in FIRST_RELEASE_SOURCES,
+            "unauthorized first-intake Catalog identity")
     with tempfile.TemporaryDirectory() as directory:
         temp = Path(directory)
         (temp / "extensions").mkdir()
         candidate = temp / path
-        candidate.write_bytes(Path(path).read_bytes())
+        if not initial:
+            candidate.write_bytes(Path(path).read_bytes())
         env = dict(os.environ, GH_TOKEN=read_token)
         run = subprocess.run(
             (sys.executable, str(ROOT / "scripts" / "verify_signed_fleet_release.py"),
              "--extension", name, "--release-tag", tag, "--record-output", path),
             cwd=temp, env=env, text=True, capture_output=True
         )
-        require(run.returncode == 0,
+        require(run.returncode == 0 and candidate.is_file(),
                 "fresh signed public Release verification DENY: " + run.stderr[:300])
         verified = json.loads(candidate.read_text(encoding="utf-8"))
-    original = json.loads(Path(path).read_text(encoding="utf-8"))
-    require(verified != original, "signed Release already in Catalog/no-op")
+    if not initial:
+        original = json.loads(Path(path).read_text(encoding="utf-8"))
+        require(verified != original, "signed Release already in Catalog/no-op")
     proposed = unpack_content(api("repos/" + REPO + "/contents/" + path +
                                   "?ref=" + head_sha))
     require(proposed == verified, "PR record differs from independently signed public bytes")
+    if initial:
+        expected = first_release_projection(name, verified)
+        # The Landscape index may already register the extension as a prospect:
+        # then the proposer must NOT invent a no-op fourth diff.
+        changed = {path, "index.json", "landscape/extensions/" + name + ".json"}
+        old_li = json.loads(Path("landscape/index.json").read_text(encoding="utf-8"))
+        if expected["landscape/index.json"] != old_li:
+            changed.add("landscape/index.json")
+        if files is not None:
+            require({entry.get("filename") for entry in files} == changed,
+                    "first-intake PR file set differs from protected projection")
+        for item in expected:
+            if item not in changed:
+                continue
+            from_pr = unpack_content(api("repos/" + REPO + "/contents/" + item +
+                                         "?ref=" + head_sha))
+            require(from_pr == expected[item],
+                    "first-intake index/landscape differs from protected projection")
 
 
 def perform(config_path, dry_run=False):
@@ -243,15 +323,18 @@ def perform(config_path, dry_run=False):
     number = pr["number"]
     files = api("repos/" + REPO + "/pulls/" + str(number) + "/files?per_page=100")
     commits = api("repos/" + REPO + "/pulls/" + str(number) + "/commits?per_page=100")
+    match = BRANCH.fullmatch((pr.get("head") or {}).get("ref", ""))
+    require(match is not None, "unknown Catalog automation branch")
+    initial = not Path("extensions/" + match.group(1) + ".json").is_file()
     number, sha, branch, name, tag = inspect_pr(
         pr, files, commits, proposer_login=local["expectedProposerLogin"],
-        proposer_id=local["expectedProposerBotId"])
+        proposer_id=local["expectedProposerBotId"], initial=initial)
     runs = api("repos/" + REPO +
                "/actions/workflows/validate.yml/runs?per_page=100&branch=" + branch)
     validate_run(runs.get("workflow_runs"), sha, branch)
     check_runs = api("repos/" + REPO + "/commits/" + sha + "/check-runs?per_page=100")
     validate_checks(check_runs, sha)
-    verify_record(name, tag, sha, read_token=read_token)
+    verify_record(name, tag, sha, read_token=read_token, files=files)
     latest = api("repos/" + REPO + "/pulls/" + str(number))
     require(latest.get("state") == "open" and latest.get("draft") is False
             and (latest.get("head") or {}).get("sha") == sha

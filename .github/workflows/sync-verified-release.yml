@@ -249,7 +249,30 @@ jobs:
           actual="$(git diff --cached --name-only)"
           expected="extensions/$EXTENSION.json"
           if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
-            expected="$(printf 'extensions/%s.json\nindex.json\nlandscape/extensions/%s.json\nlandscape/index.json' "$EXTENSION" "$EXTENSION")"
+            # Landscape may already list a prospective extension: no phantom
+            # change to landscape/index.json is permitted in that case.
+            expected="$(printf 'extensions/%s.json\nindex.json\nlandscape/extensions/%s.json' "$EXTENSION" "$EXTENSION")"
+            if ! git diff --cached --quiet -- landscape/index.json; then
+              expected="$expected"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Catalog PR files not exactly the verified record and permitted initial index"
+            exit 1
+          fi
+          git commit -m "catalog: verified operator release $EXTENSION $RELEASE_TAG"
+          git push -u origin "$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "catalog: verified $EXTENSION $RELEASE_TAG" \
+            --body "Independent public ZIP/SPDX/Grype SHA256 rehash, GitHub attestations, full per-major source SHA pins, main-only operator-PUBLISH workflow and Catalog validators passed. This is a proposal ONLY. Protected native PR validate must pass at exact head before any merge. No auto-Release or auto-merge."
+          echo "Created App-owned signed Catalog PR; pending native protected PR CI and review of verification evidence." >> "$GITHUB_STEP_SUMMARY"
+      - name: Report record unchanged or proposer deliberately disabled
+        if: steps.verify.outputs.changed != 'true' || vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED != 'true'
+        env:
+          CHANGED: ${{ steps.verify.outputs.changed }}
+          ENABLED: ${{ vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED }}
+        run: |
+          echo "Signed Release verification completed. Record changed=$CHANGED; App-based PR proposer enabled=$ENABLED. No Catalog PR was pushed by this run." >> "$GITHUB_STEP_SUMMARY"
+\nlandscape/index.json'
+            fi
           fi
           if [[ "$actual" != "$expected" ]]; then
             echo "::error::Catalog PR files not exactly the verified record and permitted initial index"
