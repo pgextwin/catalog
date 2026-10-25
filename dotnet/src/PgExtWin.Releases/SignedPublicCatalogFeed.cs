@@ -24,21 +24,49 @@ public static class SignedPublicCatalogFeed
     private static readonly Regex Sha40 = new(@"\A[0-9a-f]{40}\z", RegexOptions.CultureInvariant);
     private static readonly Regex Sha64 = new(@"\A[0-9a-f]{64}\z", RegexOptions.CultureInvariant);
     private static readonly Regex SafeName = new(@"\A[a-z][a-z0-9_]*\z", RegexOptions.CultureInvariant);
-    private static readonly string[] Majors = ["14", "15", "16", "17", "18"];
+    private const int FirstSupportedMajor = 14;
+    private const int HighestPermittedMajor = 32;
+    private const int MaxSupportedCohort = 12;
+
+    private static string[] RequireSignedMajors(JsonElement root)
+    {
+        var raw = root.GetProperty("postgresqlMajors");
+        if (raw.ValueKind != JsonValueKind.Array ||
+            raw.GetArrayLength() is < 1 or > MaxSupportedCohort)
+            throw new InvalidDataException("Invalid signed-feed PG cohort");
+        var majors = raw.EnumerateArray().Select(item =>
+        {
+            if (item.ValueKind != JsonValueKind.String)
+                throw new InvalidDataException("Nonstring signed PG major");
+            return item.GetString() ?? "";
+        }).ToArray();
+        if (majors.Any(item => !Regex.IsMatch(item, @"\A[1-9][0-9]*\z")) ||
+            majors.Any(item => !int.TryParse(item, out var n) ||
+                               n < FirstSupportedMajor || n > HighestPermittedMajor))
+            throw new InvalidDataException("Unsupported signed PG major");
+        var start = int.Parse(majors[0]);
+        if (!majors.SequenceEqual(Enumerable.Range(start, majors.Length)
+                                  .Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture))))
+            throw new InvalidDataException("Signed PG cohort has gaps or duplicates");
+        return majors;
+    }
 
     public sealed class Session : IDisposable
     {
         public string Commit { get; }
         public string SourceReleaseTag { get; }
         public IReadOnlyList<ReleasePins> Pins { get; }
+        public IReadOnlyList<string> ApprovedMajors { get; }
         public string Directory { get; }
         public string CatalogPath => Path.Combine(Directory, "catalog");
-        internal Session(string directory, string commit, string tag, IReadOnlyList<ReleasePins> pins)
+        internal Session(string directory, string commit, string tag, IReadOnlyList<ReleasePins> pins,
+            IReadOnlyList<string> approvedMajors)
         {
             Directory = directory;
             Commit = commit;
             SourceReleaseTag = tag;
             Pins = pins;
+            ApprovedMajors = approvedMajors;
         }
         public void Dispose()
         {
@@ -51,7 +79,10 @@ public static class SignedPublicCatalogFeed
         HttpMessageHandler? handler = null, CancellationToken token = default,
         Action<string>? progress = null)
     {
-        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all"))
+        if (pgSelection != "all" &&
+            (!int.TryParse(pgSelection, out var requested) ||
+             requested < FirstSupportedMajor || requested > HighestPermittedMajor ||
+             requested.ToString(System.Globalization.CultureInfo.InvariantCulture) != pgSelection))
             throw new InvalidDataException("Unsupported signed Catalog PG selection");
         var parent = Path.GetFullPath(outputParent);
         if (!System.IO.Directory.Exists(parent))
@@ -85,12 +116,15 @@ public static class SignedPublicCatalogFeed
         var root = feed.RootElement;
         var commit = root.GetProperty("catalogCommit").GetString() ?? "";
         var expectedCount = root.GetProperty("extensionCount").GetInt32();
+        var majors = RequireSignedMajors(root);
+        if (pgSelection != "all" && !majors.Contains(pgSelection, StringComparer.Ordinal))
+            throw new InvalidDataException("Requested PG major is not in signer-approved Catalog cohort");
         if (!Sha40.IsMatch(commit) ||
             root.GetProperty("schemaVersion").GetString() != "pgextwin-signed-catalog-zip-feed/v1" ||
             root.GetProperty("repository").GetString() != "pgextwin/catalog" ||
             (expectedCount < VerifiedFleetRoster.MinimumCount ||
              expectedCount > VerifiedFleetRoster.MaximumCount) ||
-            root.GetProperty("zipCount").GetInt32() != expectedCount * Majors.Length ||
+            root.GetProperty("zipCount").GetInt32() != expectedCount * majors.Length ||
             root.GetProperty("extensionSignatureVerified").ValueKind != JsonValueKind.False ||
             root.GetProperty("publicationAuthorized").ValueKind != JsonValueKind.False ||
             root.GetProperty("installAuthorized").ValueKind != JsonValueKind.False ||
@@ -172,12 +206,13 @@ public static class SignedPublicCatalogFeed
                 progress?.Invoke($"CATALOG_RECORD_VERIFIED path={path} bytes={bytes.Length}");
             }
             var loaded = CatalogReader.LoadLocal(catalogue);
-            if (loaded.Count != expectedCount || loaded.Any(x => x.Versions.Count != 5) ||
+            if (loaded.Count != expectedCount || loaded.Any(x => x.Versions.Count != majors.Length ||
+                                  !x.Versions.Select(v => v.Major).SequenceEqual(majors)) ||
                 !loaded.Select(x => x.Name).SequenceEqual(
                     names.Order(StringComparer.Ordinal)))
                 throw new InvalidDataException("Signed Catalog fleet is incomplete");
 
-            var selected = pgSelection == "all" ? Majors : [pgSelection];
+            var selected = pgSelection == "all" ? majors : [pgSelection];
             var pins = new List<ReleasePins>();
             foreach (var info in releaseArray)
             {
@@ -195,9 +230,9 @@ public static class SignedPublicCatalogFeed
                     throw new InvalidDataException("Signed Catalog release identity invalid");
 
                 var zipRows = info.GetProperty("packages").EnumerateArray().ToArray();
-                if (zipRows.Length != 5 ||
+                if (zipRows.Length != majors.Length ||
                     !zipRows.Select(x => x.GetProperty("pgMajor").GetString())
-                        .SequenceEqual(Majors))
+                        .SequenceEqual(majors))
                     throw new InvalidDataException("Signed Catalog PG inventory incomplete");
                 foreach (var row in zipRows)
                 {
@@ -232,7 +267,7 @@ public static class SignedPublicCatalogFeed
             if (pins.Count != selected.Length * expectedCount)
                 throw new InvalidDataException("Incomplete Sigstore-signed Catalog selection");
             progress?.Invoke($"CATALOG_PINS_SELECTED count={pins.Count} pg={pgSelection} extension_auth=INTEGRITY_ONLY");
-            return new Session(stage, commit, tag, pins);
+            return new Session(stage, commit, tag, pins, majors);
         }
         catch
         {

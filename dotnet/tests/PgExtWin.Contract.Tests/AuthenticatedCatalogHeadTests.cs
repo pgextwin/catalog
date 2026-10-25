@@ -20,11 +20,13 @@ internal static class AuthenticatedCatalogHeadTests
         public int WaveThreeCount = 0;
         public bool DropHistorical = false;
         public bool AddUnknown = false;
+        public bool InvalidName = false;
         private static readonly string[] Wave3 = ["pgtap", "pg_variables", "pg_store_plans"];
         private string[] Inventory => Names
             .Concat(Wave3.Take(WaveThreeCount))
             .Where(n => !DropHistorical || n != "hypopg")
-            .Concat(AddUnknown ? ["untrusted_extension"] : Array.Empty<string>())
+            .Concat(AddUnknown ? ["future_registered"] : Array.Empty<string>())
+            .Concat(InvalidName ? ["../bad"] : Array.Empty<string>())
             .Order(StringComparer.Ordinal).ToArray();
         private static readonly string[] Names = new[]
         {
@@ -200,13 +202,22 @@ internal static class AuthenticatedCatalogHeadTests
                 check(rows.Count(x => x.Extension == "pgtap") == 5,
                     "staged candidate name has exact PG14-18 public-Release metadata fixture");
             }
-            foreach (var scenario in new[] { "missing-base", "unknown" })
+            // Future identities are authenticated by the protected Catalog main,
+            // not forbidden just because the CLI binary predates them.
+            using (var registered = new FixtureHandler { WaveThreeCount = 3, AddUnknown = true })
+            {
+                using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, registered);
+                var rows = await AuthenticatedLatestReleasePins.ResolveAsync(staged, "all", registered);
+                check(rows.Count == 90 && rows.Count(x => x.Extension == "future_registered") == 5,
+                    "18th protected-Catalog entry preserves all required historical identities");
+            }
+            foreach (var scenario in new[] { "missing-base", "invalid-name" })
             {
                 using var invalid = new FixtureHandler
                 {
                     WaveThreeCount = 1,
                     DropHistorical = scenario == "missing-base",
-                    AddUnknown = scenario == "unknown"
+                    InvalidName = scenario == "invalid-name"
                 };
                 var denied = false;
                 try

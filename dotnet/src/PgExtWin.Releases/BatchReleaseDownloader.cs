@@ -66,13 +66,22 @@ public static class BatchReleaseDownloader
         IReadOnlyList<ReleasePins> pins, string pgSelection, string outputParent,
         Func<ReleasePins, string, CancellationToken, Task<DownloadReceipt>> downloadOne,
         CancellationToken cancellationToken = default, bool metadataVerified = true,
-        string? sourceOverride = null, Action<string>? progress = null)
+        string? sourceOverride = null, Action<string>? progress = null,
+        IReadOnlyList<string>? approvedMajors = null)
     {
-        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
+        // Only the Sigstore-verified feed caller supplies a forward PG cohort.
+        // Legacy pinned policy and synthetic callers remain PG14-18 by default.
+        var accepted = approvedMajors?.ToArray() ?? ["14", "15", "16", "17", "18"];
+        if (accepted.Length is < 1 or > 12 ||
+            accepted.Any(x => !int.TryParse(x, out var n) || n < 14 || n > 32 ||
+                              n.ToString(System.Globalization.CultureInfo.InvariantCulture) != x) ||
+            !accepted.SequenceEqual(Enumerable.Range(int.Parse(accepted[0]), accepted.Length)
+                .Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture))) ||
+            (pgSelection != "all" && !accepted.Contains(pgSelection, StringComparer.Ordinal)) ||
             pins.Count == 0 || downloadOne is null)
-            throw new InvalidDataException("Invalid batch selection");
+            throw new InvalidDataException("Invalid batch selection or approved PG cohort");
         var majors = pgSelection == "all"
-            ? new HashSet<string>(new[] { "14", "15", "16", "17", "18" }, StringComparer.Ordinal)
+            ? new HashSet<string>(accepted, StringComparer.Ordinal)
             : new HashSet<string>(new[] { pgSelection }, StringComparer.Ordinal);
         // Bound the input by the authoritative trusted extension roster and
         // selected major count; no new numeric ZIP ceiling for later extensions.
@@ -98,7 +107,9 @@ public static class BatchReleaseDownloader
         for (DirectoryInfo? dir = new(parent); dir is not null; dir = dir.Parent)
             if ((dir.Attributes & FileAttributes.ReparsePoint) != 0)
                 throw new InvalidDataException("Batch output path may not contain links");
-        var outputName = pgSelection == "all" ? "pgextwin-pg14-18" : "pgextwin-pg" + pgSelection;
+        var outputName = pgSelection == "all"
+            ? "pgextwin-pg" + accepted[0] + "-" + accepted[^1]
+            : "pgextwin-pg" + pgSelection;
         var final = Path.Combine(parent, outputName);
         if (System.IO.Directory.EnumerateFileSystemEntries(parent).Any(
             path => string.Equals(Path.GetFileName(path), outputName,
