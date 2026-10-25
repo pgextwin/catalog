@@ -133,8 +133,12 @@ def probe_app(output):
     print("CATALOG_APP_SCOPE_VERIFIED; TOKEN_REVOKED_HTTP401; NO_REPOSITORY_WRITE; PUBLISH_DENY")
 
 
-def verify_policy(local, central):
-    """Both independent protected opt-ins required; never infer from Release tags."""
+def validate_local_policy(local):
+    """Validate a protected deployment declaration without granting merge authority.
+
+    Both disabled and explicitly enabled declarations use the same strict
+    identity grammar. Runtime, central, CI and signed-asset gates remain separate.
+    """
     local_fields = {
         "schemaVersion", "enabled", "expectedRepository", "centralPolicyRepository",
         "requiredWorkflow", "requiredCheckAppId", "expectedProposerLogin", "expectedProposerBotId", "notes"
@@ -142,7 +146,8 @@ def verify_policy(local, central):
     require(type(local) is dict and set(local) == local_fields
             and type(local.get("schemaVersion")) is int
             and local["schemaVersion"] == 2
-            and local.get("enabled") is True
+            and type(local.get("enabled")) is bool
+            and type(local.get("notes")) is str
             and local.get("expectedRepository") == REPO
             and local.get("centralPolicyRepository") == CENTRAL
             and local.get("requiredWorkflow") == "validate.yml"
@@ -151,7 +156,15 @@ def verify_policy(local, central):
             and local.get("expectedProposerLogin") == "pgextwin-catalog-proposer[bot]"
             and type(local.get("expectedProposerBotId")) is int
             and local["expectedProposerBotId"] == 341259304,
-            "Catalog-wide signed merge policy disabled or mismatched")
+            "Catalog signed merge deployment declaration mismatched")
+    return {"enabled": local["enabled"], "catalogMergeAuthorized": False,
+            "publicationAuthorized": False}
+
+
+def verify_policy(local, central):
+    """Both independent protected opt-ins required; never infer from Release tags."""
+    validate_local_policy(local)
+    require(local["enabled"] is True, "Catalog-wide signed merge policy disabled")
     central_fields = {
         "schemaVersion", "enabled", "mode", "releasePolicy",
         "automaticFormalRelease", "automaticCatalogMerge", "allowedExtensions",

@@ -30,3 +30,19 @@ must separately agree before the merge job can act. Existing exact-head native
 App15368 checks, genuine signed public Release verification, scoped App checks,
 expected-head squash, first-intake path restrictions and branch protection are
 unchanged. The read-only scope proof cannot satisfy these publication gates.
+
+## Protected local policy activation
+
+`validate_local_policy` validates either explicit boolean deployment state with
+the same pinned Catalog/proposer/workflow identity. It returns no merge or
+publication authority. `verify_policy` still requires local `enabled=true` plus
+the complete matching central declaration, and the workflow separately requires
+`PGEXTWIN_CATALOG_AUTOMERGE_ENABLED=true`, a scoped Catalog App token, exact-head
+App15368 checks and fresh independent public signed-asset verification.
+
+Required tests validate the actual deployment file and preserve the old disabled
+declaration in `tests/fixtures/catalog-auto-merge-disabled.json`; they no longer
+require the live policy to remain permanently disabled. This repair leaves the
+live local configuration unchanged. An authorized future protected activation
+can pass the same tests without weakening disabled-state or malformed-policy
+rejection. This parser is not a Release authorization or an implicit opt-in.
