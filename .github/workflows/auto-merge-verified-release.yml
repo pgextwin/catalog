@@ -18,14 +18,79 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  catalog-app-readonly-proof:
+    # Uses the already-installed Catalog App, never a new key or broader scope.
+    # This is capability evidence ONLY; all three merge opt-ins remain separate.
+    if: >-
+      github.repository == 'pgextwin/catalog' &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.run_attempt == 1 &&
+      vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted current Catalog main (no PR code)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Create existing Catalog-only App token for GET-only scope proof
+        id: proof-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.PGEXTWIN_CATALOG_PROPOSER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PGEXTWIN_CATALOG_PROPOSER_APP_PRIVATE_KEY }}
+          owner: pgextwin
+          repositories: catalog
+          permission-contents: write
+          permission-pull-requests: write
+          # The proof revokes explicitly and requires HTTP401 afterwards.
+          skip-token-revoke: true
+      - name: Require exact App and one-repository scope; revoke with HTTP401 proof
+        env:
+          GH_TOKEN: ${{ steps.proof-token.outputs.token }}
+          GH_READ_TOKEN: ${{ github.token }}
+          PGEXTWIN_CATALOG_APP_SLUG: ${{ steps.proof-token.outputs.app-slug }}
+          PGEXTWIN_CATALOG_APP_INSTALLATION_ID: ${{ steps.proof-token.outputs.installation-id }}
+        run: python scripts/auto_merge_verified_release.py --probe-app-output "$RUNNER_TEMP/catalog-app-scope.json"
+      - name: Revoke proof token even if checkout, proof or output fails
+        if: always() && steps.proof-token.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.proof-token.outputs.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Probe normally already revoked it; only HTTP401 is accepted as done.
+          if gh api installation/repositories >/dev/null 2>"$RUNNER_TEMP/catalog-token-status"; then
+            gh api --method DELETE installation/token >/dev/null
+          else
+            grep -F 'HTTP 401' "$RUNNER_TEMP/catalog-token-status" >/dev/null
+          fi
+      - name: Preserve nonpublishing scope and revocation evidence (no credentials)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: catalog-app-scope-nonpublishing
+          path: ${{ runner.temp }}/catalog-app-scope.json
+          if-no-files-found: error
+          retention-days: 30
+
   merge-record-only-pr:
-    # A dedicated installation token is REQUIRED. Disabled by default.
+    # The existing Catalog-dedicated App supplies a separate short-lived token.
+    # Proposer/merger share this Catalog principal; it is NOT the Release App.
+    # Local source, central source and runtime opt-ins are still mandatory.
     if: >-
       vars.PGEXTWIN_CATALOG_AUTOMERGE_ENABLED == 'true' &&
       (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
+      checks: read
     timeout-minutes: 25
     steps:
       - name: Checkout trusted Catalog main (never the PR code)
@@ -46,8 +111,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          client-id: ${{ vars.PGEXTWIN_CATALOG_MERGE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.PGEXTWIN_CATALOG_MERGE_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.PGEXTWIN_CATALOG_PROPOSER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PGEXTWIN_CATALOG_PROPOSER_APP_PRIVATE_KEY }}
           owner: pgextwin
           repositories: catalog
           permission-contents: write
@@ -62,4 +127,6 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF: ${{ github.ref }}
           PGEXTWIN_CATALOG_AUTOMERGE_ENABLED: ${{ vars.PGEXTWIN_CATALOG_AUTOMERGE_ENABLED }}
+          PGEXTWIN_CATALOG_APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          PGEXTWIN_CATALOG_APP_INSTALLATION_ID: ${{ steps.app-token.outputs.installation-id }}
         run: python scripts/auto_merge_verified_release.py --config config/verified-release-auto-merge.json
