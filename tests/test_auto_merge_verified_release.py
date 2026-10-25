@@ -169,6 +169,75 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                 mod.inspect_pr(p, f, c, proposer_login=local()["expectedProposerLogin"],
                                      proposer_id=local()["expectedProposerBotId"])
 
+    def test_first_release_is_not_record_only_but_is_strictly_scoped(self):
+        p, f, c = pr_fixture("pgtap", "v1.3.4-windows.1")
+        first_path = "extensions/pgtap.json"
+        landscape_path = "landscape/extensions/pgtap.json"
+        f = [{"filename": first_path, "status": "added"},
+             {"filename": "index.json", "status": "modified"},
+             {"filename": landscape_path, "status": "modified"}]
+        self.assertEqual(mod.inspect_pr(
+            p, f, c, proposer_login=local()["expectedProposerLogin"],
+            proposer_id=local()["expectedProposerBotId"], initial=True)[3], "pgtap")
+        mod.inspect_pr(p, f + [{"filename": "landscape/index.json", "status": "modified"}],
+                       c, proposer_login=local()["expectedProposerLogin"],
+                       proposer_id=local()["expectedProposerBotId"], initial=True)
+        for invalid in (
+            [{"filename": first_path, "status": "modified"}] + f[1:],
+            f + [{"filename": "unrelated.json", "status": "modified"}],
+            f + [{"filename": "landscape/index.json", "status": "removed"}],
+            f + [f[0]],
+            f[:2],
+        ):
+            with self.subTest(files=invalid), self.assertRaises(mod.AutoMergeDenied):
+                mod.inspect_pr(p, invalid, c,
+                               proposer_login=local()["expectedProposerLogin"],
+                               proposer_id=local()["expectedProposerBotId"], initial=True)
+        with self.assertRaises(mod.AutoMergeDenied):
+            mod.inspect_pr(p, f, c,
+                           proposer_login=local()["expectedProposerLogin"],
+                           proposer_id=local()["expectedProposerBotId"], initial=False)
+        with self.assertRaises(mod.AutoMergeDenied):
+            mod.inspect_pr(*pr_fixture("pg_cron", "v1.0.0-windows.1"),
+                           proposer_login=local()["expectedProposerLogin"],
+                           proposer_id=local()["expectedProposerBotId"], initial=True)
+
+    def test_first_release_projection_denies_unregistered_and_bad_identity(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "landscape" / "extensions").mkdir(parents=True)
+            (root / "index.json").write_text(json.dumps({
+                "schemaVersion": 2, "extensions": ["pg_cron"]}))
+            (root / "landscape" / "index.json").write_text(json.dumps({
+                "schemaVersion": 1, "extensions": ["pg_cron", "pgtap"]}))
+            record = {
+                "schemaVersion": 2, "name": "pgtap", "repository": "pgextwin/pgtap",
+                "upstream": {"repository": "theory/pgtap"},
+                "displayName": "pgTAP", "description": "PostgreSQL tests",
+                "latest": {"publishedAt": "2026-10-25T00:00:00Z",
+                           "releaseUrl": "https://github.com/pgextwin/pgtap/releases/tag/v1.3.4-windows.1"}
+            }
+            previous = os.getcwd()
+            try:
+                os.chdir(root)
+                projected = mod.first_release_projection("pgtap", record)
+                self.assertEqual(projected["index.json"]["extensions"], ["pg_cron", "pgtap"])
+                self.assertEqual(projected["landscape/index.json"]["extensions"], ["pg_cron", "pgtap"])
+                self.assertEqual(projected["landscape/extensions/pgtap.json"]["status"], "implemented")
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.first_release_projection("pg_cron", record)
+                bad = copy.deepcopy(record)
+                bad["upstream"]["repository"] = "attacker/other"
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.first_release_projection("pgtap", bad)
+                (root / "index.json").write_text(json.dumps({
+                    "schemaVersion": 2, "extensions": ["pg_cron", "pgtap"]}))
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.first_release_projection("pgtap", record)
+            finally:
+                os.chdir(previous)
+
     def test_exact_native_ci_latest_attempt_and_app(self):
         mod.validate_run([run_fixture()], SHA, BRANCH)
         original = run_fixture()
