@@ -27,7 +27,11 @@ HISTORICAL = frozenset((
     "pg_ivm", "pg_partman", "pg_qualstats", "pg_repack",
     "pg_stat_monitor", "pgaudit", "plpgsql_check", "set_user", "wal2json"
 ))
-WAVE3_INTAKE_ONLY = frozenset(("pgtap", "pg_variables", "pg_store_plans"))
+# Registered membership is the exact protected Catalog index used by its
+# authenticated, successful main CI and pinned signer; never a copied constant.
+# Preserve all historic names and bound future cohort size as a resource limit.
+MAX_FLEET = 128
+MAX_MAJOR = 32
 
 
 def strict_object(text):
@@ -70,18 +74,37 @@ def get_repo_json(repo, route, token=None):
     return strict_object(data.decode("utf-8"))
 
 
+def declared_majors(root):
+    """Fail-closed PG cohort configured in the protected, signed-feed source commit."""
+    raw = source_bytes(root, "config/cli-feed-majors.json")
+    matrix = strict_object(raw.decode("utf-8"))
+    if type(matrix) is not dict or set(matrix) != {"schemaVersion", "postgresqlMajors"} or (
+        type(matrix["schemaVersion"]) is not int or matrix["schemaVersion"] != 1
+    ):
+        raise ValueError("Unknown signed-feed PG support policy")
+    values = matrix["postgresqlMajors"]
+    if (type(values) is not list or not 1 <= len(values) <= 12 or
+        any(type(item) is not str or not re.fullmatch(r"[1-9][0-9]*", item)
+            for item in values) or
+        any(not 14 <= int(item) <= MAX_MAJOR for item in values) or
+        [int(item) for item in values] !=
+            list(range(int(values[0]), int(values[0]) + len(values)))):
+        raise ValueError("Unsafe or noncontiguous protected PostgreSQL cohort")
+    return tuple(values)
+
+
 def build_feed(root, commit, load):
     root = Path(root)
     if not SHA40.fullmatch(commit):
         raise ValueError("Full protected Catalog commit required")
+    majors = declared_majors(root)
     index_bytes = source_bytes(root, "index.json")
     index = strict_object(index_bytes.decode("utf-8"))
     names = index["extensions"]
-    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not len(HISTORICAL) <= len(names) <= len(HISTORICAL | WAVE3_INTAKE_ONLY) or (
+    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not len(HISTORICAL) <= len(names) <= MAX_FLEET or (
         names != sorted(names) or len(names) != len(set(names)) or
         any(not isinstance(n, str) or not EXTENSION.fullmatch(n) for n in names) or
         not HISTORICAL.issubset(names) or
-        not set(names).issubset(HISTORICAL | WAVE3_INTAKE_ONLY) or
         sorted(p.stem for p in (root / "extensions").glob("*.json")) != names
     ):
         raise ValueError("Catalog extension inventory incomplete")
@@ -92,6 +115,8 @@ def build_feed(root, commit, load):
         raw = source_bytes(root, location)
         source_hashes[location] = hashlib.sha256(raw).hexdigest()
         data = strict_object(raw.decode("utf-8"))
+        if type(data.get("postgresql")) is not dict or set(data["postgresql"]) != set(majors):
+            raise ValueError("Catalog major set differs from protected PG cohort")
         tag = data["latest"]["releaseTag"]
         repo = "pgextwin/" + name
         if (data["name"] != name or data["repository"] != repo or
@@ -124,7 +149,7 @@ def build_feed(root, commit, load):
         if "SHA256SUMS.txt" not in assets:
             raise ValueError("Published checksum asset missing")
         packages = []
-        for major in MAJORS:
+        for major in majors:
             pg = data["postgresql"][major]
             if pg.get("available") is not True:
                 raise ValueError("Incomplete Catalog PG14-18 availability")
@@ -153,9 +178,9 @@ def build_feed(root, commit, load):
         "repository": "pgextwin/catalog",
         "catalogCommit": commit,
         "catalogSha256": source_hashes,
-        "postgresqlMajors": list(MAJORS),
+        "postgresqlMajors": list(majors),
         "extensionCount": len(names),
-        "zipCount": len(names) * len(MAJORS),
+        "zipCount": len(names) * len(majors),
         "releases": records,
         "verificationLevel": "CATALOG_FEED_SIGNED_CLAIM_ONLY",
         "extensionSignatureVerified": False,
