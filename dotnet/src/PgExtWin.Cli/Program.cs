@@ -128,7 +128,7 @@ static async Task<int> RunAsync(string[] args)
                         (pin, folder, token) => browser.DownloadAsync(pin, folder, token, log),
                         metadataVerified: false,
                         sourceOverride: "SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS",
-                        progress: log);
+                        progress: log, approvedMajors: selected.ApprovedMajors);
                     Console.WriteLine($"CATALOG_COMMIT={selected.Commit} CATALOG_AUTH=SIGSTORE_VERIFIED_FEED RELEASE={selected.SourceReleaseTag}");
                     Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={latestBatch.Count}\tBYTES={latestBatch.Bytes}\t{latestBatch.Directory}");
                     return 0;
