@@ -162,7 +162,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         with self.assertRaises(ValueError):
             mod.unpack_content({"encoding": "base64", "content": wrapped + "!"})
 
-    def test_workflow_reuses_current_catalog_credentials_without_enabling_merge(self):
+    def test_workflow_reuses_existing_catalog_identity_and_separate_runtime_optin(self):
         workflow = (ROOT / ".github/workflows/auto-merge-verified-release.yml").read_text()
         self.assertNotIn("PGEXTWIN_CATALOG_MERGE_APP_PRIVATE_KEY", workflow)
         self.assertNotIn("PGEXTWIN_CATALOG_MERGE_APP_CLIENT_ID", workflow)
@@ -174,13 +174,20 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         self.assertIn("checks: read", workflow)
         self.assertNotIn("permission-actions: write", workflow)
         config = json.loads((ROOT / "config/verified-release-auto-merge.json").read_text())
-        self.assertIs(config["enabled"], False)
+        mod.validate_local_policy(config)
 
-    def test_default_production_gate_remains_off(self):
+    def test_actual_deployment_policy_obeys_its_explicit_protected_optin(self):
         current = json.loads((ROOT / "config" / "verified-release-auto-merge.json").read_text())
-        self.assertIs(current["enabled"], False)
-        with self.assertRaises(mod.AutoMergeDenied):
-            mod.verify_policy(current, central())
+        decision = mod.validate_local_policy(current)
+        self.assertEqual(decision["enabled"], current["enabled"])
+        self.assertIs(decision["catalogMergeAuthorized"], False)
+        self.assertIs(decision["publicationAuthorized"], False)
+        for mode in ("manual-dispatch", "automatic-signed-schedule"):
+            if current["enabled"]:
+                mod.verify_policy(current, central(mode))
+            else:
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.verify_policy(current, central(mode))
         workflow = (ROOT / ".github" / "workflows" /
                     "auto-merge-verified-release.yml").read_text()
         self.assertIn("vars.PGEXTWIN_CATALOG_AUTOMERGE_ENABLED == 'true'", workflow)
@@ -188,6 +195,44 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         self.assertIn("GH_TOKEN: ", workflow)
         self.assertNotIn("pull_request_target", workflow)
         self.assertNotIn("\npermissions:\n  contents: write", workflow)
+
+    def test_disabled_historical_declaration_never_authorizes_a_merge(self):
+        # Freeze the historical default as a fixture, not a forever-off rule on
+        # the live deployment file. A protected activation still needs central
+        # mode, runtime App opt-in, exact PR CI and independent signed assets.
+        disabled = json.loads((ROOT / "tests/fixtures/catalog-auto-merge-disabled.json").read_text())
+        self.assertIs(disabled["enabled"], False)
+        decision = mod.validate_local_policy(disabled)
+        self.assertFalse(decision["enabled"])
+        self.assertFalse(decision["catalogMergeAuthorized"])
+        for mode in ("manual-dispatch", "automatic-signed-schedule"):
+            with self.assertRaises(mod.AutoMergeDenied):
+                mod.verify_policy(disabled, central(mode))
+
+    def test_local_transition_validates_both_modes_and_rejects_ambiguous_optins(self):
+        for enabled in (False, True):
+            projected = local()
+            projected["enabled"] = enabled
+            result = mod.validate_local_policy(projected)
+            self.assertIs(result["enabled"], enabled)
+            self.assertIs(result["catalogMergeAuthorized"], False)
+            self.assertIs(result["publicationAuthorized"], False)
+        for mutate in (
+            lambda d: d.update(enabled=1),
+            lambda d: d.update(enabled="true"),
+            lambda d: d.update(enabled=None),
+            lambda d: d.pop("enabled"),
+            lambda d: d.update(schemaVersion=True),
+            lambda d: d.update(notes=None),
+            lambda d: d.update(expectedProposerBotId=True),
+            lambda d: d.update(requiredCheckAppId=True),
+            lambda d: d.update(expectedRepository="evil/catalog"),
+            lambda d: d.update(extra=True),
+        ):
+            projected = local()
+            mutate(projected)
+            with self.subTest(mutate=mutate), self.assertRaises(mod.AutoMergeDenied):
+                mod.validate_local_policy(projected)
 
     def test_two_explicit_source_modes_pass_only_with_consistent_flags(self):
         mod.verify_policy(local(), central())

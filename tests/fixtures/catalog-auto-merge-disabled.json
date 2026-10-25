@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 2,
+  "enabled": false,
+  "expectedRepository": "pgextwin/catalog",
+  "centralPolicyRepository": "pgextwin/build",
+  "requiredWorkflow": "validate.yml",
+  "requiredCheckAppId": 15368,
+  "expectedProposerLogin": "pgextwin-catalog-proposer[bot]",
+  "notes": "DENY until central, Catalog and App opt-ins are independently authorized. Only original App-owned exact-record protected PRs for already-registered signed Releases; no public Release creation and no first-Release index/landscape auto-merge.",
+  "expectedProposerBotId": 341259304
+}
