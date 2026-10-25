@@ -211,5 +211,13 @@ class SignedFeedTests(unittest.TestCase):
             self.generate()
 
 
+    def test_windows_cli_smoke_tracks_signed_feed_fleet_capacity(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
+        self.assertIn("$expectedCount -lt 14 -or $expectedCount -gt 128", workflow)
+        self.assertNotIn("$expectedCount -gt 17", workflow)
+
+
+
 if __name__ == "__main__":
     unittest.main()

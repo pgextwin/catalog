@@ -108,5 +108,27 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("gh pr merge", workflow)
 
 
+    def test_proposal_shell_syntax_and_single_safe_noop_step(self):
+        """Catch malformed YAML literal tails and missing nested bash 'fi' in PR."""
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        step_name = "      - name: Create immutable verified-record PR with native PR CI (never auto-merge)"
+        final_name = "      - name: Report record unchanged or proposer deliberately disabled"
+        self.assertEqual(workflow.count(step_name), 1)
+        self.assertEqual(workflow.count(final_name), 1)
+        step = workflow.split(step_name, 1)[1].split(final_name, 1)[0]
+        self.assertEqual(step.count("        run: |\n"), 1)
+        shell = step.split("        run: |\n", 1)[1]
+        self.assertTrue(all(not line or line.startswith("          ")
+                            for line in shell.splitlines()),
+                        "unindented workflow tail could be parsed as YAML metadata")
+        script = "\n".join(line[10:] for line in shell.splitlines()) + "\n"
+        result = subprocess.run(["bash", "-n"], input=script, text=True,
+                                capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('git diff --cached --quiet -- landscape/index.json', script)
+        self.assertIn('expected="$expected"', script)
+
+
+
 if __name__ == "__main__":
     unittest.main()
