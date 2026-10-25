@@ -142,8 +142,26 @@ internal static class BatchDownloadTests
                       receipt.RootElement.GetProperty("packages").GetArrayLength() == 85 &&
                       !receipt.RootElement.GetProperty("signatureVerified").GetBoolean(),
                       "Original signed-Catalog fleet 17 x PG14-18 stages 85 integrity-only ZIPs");
-            await Deny("Reject larger than 17-extension fleet",
-                fleetPins.Append(Pin("unapprovedextra", "18")).ToArray(), "all", Download);
+            // An 18th extension joins only through the signed Catalog intake.
+            // This adapter does not independently promote its Release or signature.
+            var expandedRoot = Path.Combine(root, "signed-fleet-18");
+            Directory.CreateDirectory(expandedRoot);
+            var expanded = await BatchReleaseDownloader.StageAsync(
+                fleetPins.Concat(new[] { "14", "15", "16", "17", "18" }
+                    .Select(pg => Pin("signedext17", pg))).ToArray(),
+                "all", expandedRoot, Download);
+            check(expanded.Count == 90, "Signer-approved 18th extension capacity is not hardcoded at 17");
+            await Deny("Reject fleet resource ceiling above 128 identities",
+                Enumerable.Range(0, 129).Select(n => Pin("synthetic" + n, "18")).ToArray(),
+                "18", Download);
+            var pg19Dir = Path.Combine(root, "signed-pg19-cohort");
+            Directory.CreateDirectory(pg19Dir);
+            var pg19 = await BatchReleaseDownloader.StageAsync(
+                new[] { Pin("futureext", "19") }, "19", pg19Dir, Download,
+                approvedMajors: new[] { "15", "16", "17", "18", "19" });
+            check(pg19.Count == 1 && File.Exists(Path.Combine(pg19.Directory, "pg19",
+                Pin("futureext", "19").AssetName)),
+                "Future PG19 succeeds only with an explicitly supplied verified major cohort");
 
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
