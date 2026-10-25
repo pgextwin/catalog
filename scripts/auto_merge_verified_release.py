@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Issue #75: fail-closed, fleet-wide merge of independently signed Catalog PRs.
 
-The private Catalog merge App can merge an existing, *fully reverified* record PR
+The existing Catalog-only App can merge an existing, *fully reverified* record PR
 only. It cannot publish a Windows Release. All code executed here is from the
 trusted Catalog main; PR code is NEVER checked out or executed. Default DENY.
 """
@@ -24,6 +24,9 @@ except ModuleNotFoundError:
 
 REPO = "pgextwin/catalog"
 CENTRAL = "pgextwin/build"
+CATALOG_ID = 1405939279
+CATALOG_APP = "pgextwin-catalog-proposer"
+CATALOG_INSTALLATION = "170516730"
 SHA = re.compile(r"^[0-9a-f]{40}$")
 BRANCH = re.compile(
     r"^auto-catalog/([a-z][a-z0-9_]{1,63})-(v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\.[1-9][0-9]*)$"
@@ -41,21 +44,93 @@ def require(condition, message):
         raise AutoMergeDenied(message)
 
 
-def gh(*args):
-    result = subprocess.run(("gh",) + args, capture_output=True, text=True)
+def gh(*args, env=None):
+    result = subprocess.run(("gh",) + args, capture_output=True, text=True, env=env)
     require(result.returncode == 0, "authenticated GitHub request denied: " +
             " ".join(args[:3]) + " " + result.stderr[:200])
     return result.stdout
 
 
 def api(path):
-    return json.loads(gh("api", path))
+    env = dict(os.environ)
+    if not path.startswith("installation/"):
+        # Status/Run/policy GETs use the workflow's independent read credential.
+        # The Catalog App token is reserved for scope inspection and PUT merge.
+        read_token = env.get("GH_READ_TOKEN")
+        require(type(read_token) is str and len(read_token) > 10,
+                "independent read credential unavailable")
+        env["GH_TOKEN"] = read_token
+    return json.loads(gh("api", path, env=env))
 
 
 def unpack_content(raw):
     require(type(raw) is dict and raw.get("encoding") == "base64"
             and type(raw.get("content")) is str, "trusted contents unavailable")
-    return json.loads(base64.b64decode(raw["content"], validate=True).decode("utf-8"))
+    # Contents API base64 is line-wrapped. Remove only transport newlines;
+    # retain strict validation so corrupt characters still fail closed.
+    content = raw["content"].replace("\r", "").replace("\n", "")
+    return json.loads(base64.b64decode(content, validate=True).decode("utf-8"))
+
+
+def verify_app_scope(payload, slug, installation):
+    """Pin the trusted token action's identity and its live installation scope."""
+    require(slug == CATALOG_APP and installation == CATALOG_INSTALLATION,
+            "unknown dedicated Catalog App identity")
+    require(type(payload) is dict and type(payload.get("total_count")) is int
+            and payload["total_count"] == 1
+            and type(payload.get("repositories")) is list
+            and len(payload["repositories"]) == 1,
+            "Catalog App token is not scoped to exactly one repository")
+    repo = payload["repositories"][0]
+    require(type(repo) is dict and type(repo.get("id")) is int
+            and repo["id"] == CATALOG_ID and repo.get("full_name") == REPO
+            and repo.get("private") is False,
+            "Catalog App token repository identity differs")
+
+
+def check_app_scope():
+    verify_app_scope(api("installation/repositories?per_page=100"),
+                     os.environ.get("PGEXTWIN_CATALOG_APP_SLUG"),
+                     os.environ.get("PGEXTWIN_CATALOG_APP_INSTALLATION_ID"))
+
+
+def revoke_and_confirm():
+    # Never print an API response, key or installation token, even on failure.
+    result = subprocess.run(("gh", "api", "--method", "DELETE", "installation/token"),
+                            capture_output=True, text=True)
+    require(result.returncode == 0, "Catalog App token revocation failed")
+    after = subprocess.run(("gh", "api", "installation/repositories?per_page=100"),
+                           capture_output=True, text=True)
+    require(after.returncode != 0 and "HTTP 401" in after.stderr,
+            "revoked Catalog App token did not return HTTP401")
+
+
+def probe_app(output):
+    """GET-only capability observation; revoke the token on both allow and deny."""
+    try:
+        require(os.environ.get("GITHUB_REPOSITORY") == REPO
+                and os.environ.get("GITHUB_REF") == "refs/heads/main"
+                and os.environ.get("GITHUB_EVENT_NAME") == "workflow_run",
+                "untrusted Catalog App proof event")
+        check_app_scope()
+        branch = api("repos/" + REPO + "/branches/main")
+        require(branch.get("protected") is True
+                and (branch.get("commit") or {}).get("sha") == os.environ.get("GITHUB_SHA")
+                and SHA.fullmatch(os.environ.get("GITHUB_SHA", "")),
+                "Catalog App proof is not bound to current protected main")
+    finally:
+        revoke_and_confirm()
+    record = {
+        "schemaVersion": 1, "repository": REPO, "repositoryId": CATALOG_ID,
+        "sourceSha": os.environ["GITHUB_SHA"], "appSlug": CATALOG_APP,
+        "installationId": int(CATALOG_INSTALLATION),
+        "requestedTokenPermissions": {"contents": "write", "pull_requests": "write"},
+        "scopeVerified": True, "tokenRevokedHttp401": True,
+        "repositoryWritePerformed": False, "protectedMergePerformed": False,
+        "publicationAuthorized": False, "catalogMergeAuthorized": False,
+    }
+    Path(output).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    print("CATALOG_APP_SCOPE_VERIFIED; TOKEN_REVOKED_HTTP401; NO_REPOSITORY_WRITE; PUBLISH_DENY")
 
 
 def verify_policy(local, central):
@@ -296,6 +371,7 @@ def perform(config_path, dry_run=False):
     central = unpack_content(api(
         "repos/" + CENTRAL + "/contents/metadata/manual-release-downstream.json?ref=main"))
     verify_policy(local, central)
+    check_app_scope()
     before = api("repos/" + REPO + "/branches/main")
     require(before.get("name") == "main" and before.get("protected") is True
             and SHA.fullmatch((before.get("commit") or {}).get("sha", "")),
@@ -360,9 +436,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config/verified-release-auto-merge.json")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--probe-app-output",
+                        help="GET-only scoped App proof; always revoke, never merge")
     args = parser.parse_args()
     try:
-        perform(args.config, args.dry_run)
+        if args.probe_app_output:
+            require(not args.dry_run, "do not combine App proof and merge modes")
+            probe_app(args.probe_app_output)
+        else:
+            perform(args.config, args.dry_run)
         return 0
     except (AutoMergeDenied, OSError, ValueError, TypeError, KeyError, IndexError) as error:
         print("CATALOG AUTOMERGE DENIED: " + str(error), file=sys.stderr)

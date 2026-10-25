@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch, Mock
 
@@ -89,6 +90,92 @@ def checks():
 
 
 class FleetSignedCatalogMerge(unittest.TestCase):
+    def test_dedicated_existing_app_and_exact_live_scope(self):
+        valid = {"total_count": 1, "repositories": [
+            {"id": mod.CATALOG_ID, "full_name": mod.REPO, "private": False}]}
+        mod.verify_app_scope(valid, mod.CATALOG_APP, mod.CATALOG_INSTALLATION)
+        for slug, installation in (("pgextwin-publisher", mod.CATALOG_INSTALLATION),
+                                   (mod.CATALOG_APP, "1"), (None, None)):
+            with self.subTest(slug=slug), self.assertRaises(mod.AutoMergeDenied):
+                mod.verify_app_scope(valid, slug, installation)
+        for mutate in (
+            lambda d: d.update(total_count=True),
+            lambda d: d.update(total_count=2),
+            lambda d: d["repositories"].append(copy.deepcopy(d["repositories"][0])),
+            lambda d: d["repositories"][0].update(id=True),
+            lambda d: d["repositories"][0].update(full_name="pgextwin/build"),
+            lambda d: d["repositories"][0].update(private=True),
+        ):
+            d = copy.deepcopy(valid)
+            mutate(d)
+            with self.subTest(mutate=mutate), self.assertRaises(mod.AutoMergeDenied):
+                mod.verify_app_scope(d, mod.CATALOG_APP, mod.CATALOG_INSTALLATION)
+
+    def test_scope_probe_always_revokes_and_never_grants_merge_authority(self):
+        env = {"GITHUB_REPOSITORY": mod.REPO, "GITHUB_REF": "refs/heads/main",
+               "GITHUB_EVENT_NAME": "workflow_run", "GITHUB_SHA": SHA}
+        with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, env), \
+             patch.object(mod, "check_app_scope"), \
+             patch.object(mod, "api", return_value={"protected": True, "commit": {"sha": SHA}}), \
+             patch.object(mod, "revoke_and_confirm") as revoke:
+            path = Path(temp) / "proof.json"
+            mod.probe_app(path)
+            revoke.assert_called_once_with()
+            d = json.loads(path.read_text())
+            self.assertTrue(d["tokenRevokedHttp401"])
+            for key in ("repositoryWritePerformed", "protectedMergePerformed",
+                        "publicationAuthorized", "catalogMergeAuthorized"):
+                self.assertIs(d[key], False)
+            self.assertNotIn("token", d)
+        with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, env), \
+             patch.object(mod, "check_app_scope", side_effect=mod.AutoMergeDenied("scope")), \
+             patch.object(mod, "revoke_and_confirm") as revoke:
+            path = Path(temp) / "proof.json"
+            with self.assertRaises(mod.AutoMergeDenied):
+                mod.probe_app(path)
+            revoke.assert_called_once_with()
+            self.assertFalse(path.exists())
+
+    def test_token_revocation_requires_actual_http401(self):
+        with patch.object(mod.subprocess, "run", side_effect=[
+                Mock(returncode=0), Mock(returncode=1, stderr="gh: Bad credentials (HTTP 401)")]):
+            mod.revoke_and_confirm()
+        for response in (Mock(returncode=0, stderr=""),
+                         Mock(returncode=1, stderr="HTTP 403"),
+                         Mock(returncode=1, stderr="network timeout")):
+            with self.subTest(response=response), patch.object(mod.subprocess, "run", side_effect=[
+                    Mock(returncode=0), response]), self.assertRaises(mod.AutoMergeDenied):
+                mod.revoke_and_confirm()
+
+    def test_all_noninstallation_reads_use_separate_read_credential(self):
+        with patch.dict(os.environ, {"GH_TOKEN": "write-credential", "GH_READ_TOKEN": "r"*32}), \
+             patch.object(mod.subprocess, "run", return_value=Mock(returncode=0, stdout="{}", stderr="")) as run:
+            mod.api("repos/pgextwin/catalog/commits/" + SHA + "/check-runs")
+            self.assertEqual(run.call_args.kwargs["env"]["GH_TOKEN"], "r"*32)
+            mod.api("installation/repositories?per_page=100")
+            self.assertEqual(run.call_args.kwargs["env"]["GH_TOKEN"], "write-credential")
+
+    def test_github_wrapped_base64_policy_is_accepted_but_corruption_is_denied(self):
+        raw = base64.b64encode(json.dumps(central()).encode()).decode()
+        wrapped = "\n".join(raw[i:i+60] for i in range(0, len(raw), 60)) + "\n"
+        self.assertEqual(mod.unpack_content({"encoding": "base64", "content": wrapped}), central())
+        with self.assertRaises(ValueError):
+            mod.unpack_content({"encoding": "base64", "content": wrapped + "!"})
+
+    def test_workflow_reuses_current_catalog_credentials_without_enabling_merge(self):
+        workflow = (ROOT / ".github/workflows/auto-merge-verified-release.yml").read_text()
+        self.assertNotIn("PGEXTWIN_CATALOG_MERGE_APP_PRIVATE_KEY", workflow)
+        self.assertNotIn("PGEXTWIN_CATALOG_MERGE_APP_CLIENT_ID", workflow)
+        self.assertEqual(workflow.count("private-key: ${{ secrets.PGEXTWIN_CATALOG_PROPOSER_APP_PRIVATE_KEY }}"), 2)
+        self.assertEqual(workflow.count("repositories: catalog"), 2)
+        self.assertIn("steps.app-token.outputs.app-slug", workflow)
+        self.assertIn("steps.app-token.outputs.installation-id", workflow)
+        self.assertIn("actions: read", workflow)
+        self.assertIn("checks: read", workflow)
+        self.assertNotIn("permission-actions: write", workflow)
+        config = json.loads((ROOT / "config/verified-release-auto-merge.json").read_text())
+        self.assertIs(config["enabled"], False)
+
     def test_default_production_gate_remains_off(self):
         current = json.loads((ROOT / "config" / "verified-release-auto-merge.json").read_text())
         self.assertIs(current["enabled"], False)
