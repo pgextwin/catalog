@@ -1,6 +1,9 @@
 import hashlib
 import json
 import tempfile
+import subprocess
+import sys
+import textwrap
 import unittest
 from pathlib import Path
 from scripts.cli_signed_feed import build_feed, canonical, SCHEMA
@@ -216,6 +219,38 @@ class SignedFeedTests(unittest.TestCase):
                     ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
         self.assertIn("$expectedCount -lt 14 -or $expectedCount -gt 128", workflow)
         self.assertNotIn("$expectedCount -gt 17", workflow)
+
+    def test_actual_release_note_formatter_tracks_signed_cohort_and_denies_false_claims(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/cli-signed-catalog-feed.yml").read_text()
+        code = textwrap.dedent(workflow.split("<<'FEED_NOTES_PY'\n", 1)[1].split("          FEED_NOTES_PY\n", 1)[0])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source, notes = root / "feed.json", root / "notes.md"
+            for count, majors in ((17, ["14", "15", "16", "17", "18"]),
+                                  (17, ["15", "16", "17", "18"]),
+                                  (18, ["14", "15", "16", "17", "18", "19"])):
+                feed = {"extensionCount": count, "postgresqlMajors": majors,
+                        "zipCount": count * len(majors), "extensionSignatureVerified": False,
+                        "publicationAuthorized": False, "installAuthorized": False}
+                source.write_text(json.dumps(feed))
+                run = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
+                                     text=True, capture_output=True)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                result = notes.read_text()
+                self.assertIn(f"{count} extensions and {count * len(majors)} original ZIPs", result)
+                self.assertIn("PostgreSQL majors " + ", ".join(majors), result)
+                self.assertIn(f"元ZIP計{count * len(majors)}件", result)
+                self.assertLess(result.index("## English"), result.index("## 日本語"))
+                self.assertIn("INTEGRITY_ONLY", result)
+            for change in ({"zipCount": 85}, {"publicationAuthorized": True},
+                           {"postgresqlMajors": ["14", "16"]}):
+                source.write_text(json.dumps({**feed, **change}))
+                notes.unlink(missing_ok=True)
+                run = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
+                                     text=True, capture_output=True)
+                self.assertNotEqual(run.returncode, 0)
+                self.assertFalse(notes.exists())
 
 
 

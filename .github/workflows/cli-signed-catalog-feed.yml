@@ -166,20 +166,29 @@ jobs:
           set -euo pipefail
           tag="catalog-feed-$SOURCE"
           dir="$RUNNER_TEMP/verified-catalog-feed"
+          python - "$dir/catalog-latest.json" "$RUNNER_TEMP/catalog-feed-notes.md" <<'FEED_NOTES_PY'
+          import json,sys
+          from pathlib import Path
+          source,destination=map(Path,sys.argv[1:])
+          feed=json.loads(source.read_text(encoding="utf-8"))
+          count=feed["extensionCount"]
+          majors=feed["postgresqlMajors"]
+          zip_count=feed["zipCount"]
+          assert type(count) is int and 14<=count<=128
+          assert type(majors) is list and 1<=len(majors)<=12
+          assert all(type(m) is str and m.isascii() and m.isdigit() and 14<=int(m)<=32 and str(int(m))==m for m in majors)
+          assert list(map(int,majors))==list(range(int(majors[0]),int(majors[0])+len(majors)))
+          assert type(zip_count) is int and zip_count==count*len(majors)
+          assert all(feed[key] is False for key in ("extensionSignatureVerified","publicationAuthorized","installAuthorized"))
+          notes=("# pgextwin signed Catalog ZIP selection feed\n\n## English\n\n"
+                 f"Metadata-only immutable selection of already-Catalog-approved {count} extensions and {zip_count} original ZIPs for PostgreSQL majors {', '.join(majors)}. "
+                 "Independently verifiable GitHub Actions Sigstore attestation is attached. Original extension ZIP bytes remain INTEGRITY_ONLY; this metadata-only feed does not grant an extension Release, installation or publication authorization.\n\n"
+                 "## 日本語\n\n"
+                 f"すでにCatalogで承認・登録された{count}拡張について、PostgreSQL {'・'.join(majors)}向けの元ZIP計{zip_count}件を選択する不変のメタデータ専用Releaseです。"
+                 "独立検証可能なGitHub ActionsのSigstore Attestationを添付します。個別の拡張ZIPはINTEGRITY_ONLYであり、元ZIPの真正署名・新規Release・インストール・配布／公開の認可を意味しません。\n")
+          destination.write_text(notes,encoding="utf-8")
+          FEED_NOTES_PY
           gh api --method POST repos/pgextwin/catalog/git/refs -f "ref=refs/tags/$tag" -f "sha=$SOURCE"
-          count="$(jq -r '.extensionCount' "$dir/catalog-latest.json")"
-          zip_count="$((count * 5))"
-          cat > "$RUNNER_TEMP/catalog-feed-notes.md" <<RELEASE_NOTES
-          # pgextwin signed Catalog ZIP selection feed
-
-          ## English
-
-          Metadata-only immutable selection of already-Catalog-approved ${count} extensions and ${zip_count} original PostgreSQL 14–18 ZIPs. Independently verifiable GitHub Actions Sigstore attestation is attached. Original extension ZIP bytes remain INTEGRITY_ONLY; this metadata-only feed does not grant an extension Release, installation or publication authorization.
-
-          ## 日本語
-
-          すでにCatalogで承認・登録された${count}拡張について、PostgreSQL 14～18向けの元ZIP計${zip_count}件を選択する不変のメタデータ専用Releaseです。独立検証可能なGitHub ActionsのSigstore Attestationを添付します。個別の拡張ZIPはINTEGRITY_ONLYであり、元ZIPの真正署名・新規Release・インストール・配布／公開の認可を意味しません。
-          RELEASE_NOTES
           gh release create "$tag" "$dir/catalog-latest.json" "$dir/catalog-latest.sigstore.json" \
             --repo pgextwin/catalog --verify-tag --draft --latest=false \
             --title "pgextwin Catalog signed ZIP feed $SOURCE" \
