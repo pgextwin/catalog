@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "name": "pg_store_plans",
+      "upstreamRepository": "ossc-db/pg_store_plans",
+      "displayName": "pg_store_plans",
+      "description": "SQL execution plan statistics",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "pg_variables",
+      "upstreamRepository": "postgrespro/pg_variables",
+      "displayName": "pg_variables",
+      "description": "Session variables for PostgreSQL",
+      "license": "PostgreSQL"
+    },
+    {
+      "name": "pgtap",
+      "upstreamRepository": "theory/pgtap",
+      "displayName": "pgTAP",
+      "description": "TAP-compatible PostgreSQL unit testing",
+      "license": "PostgreSQL"
+    }
+  ]
+}

@@ -7,6 +7,8 @@ verifier has checked actual remote asset bytes and provenance.
 """
 from __future__ import annotations
 import copy
+import json
+from pathlib import Path
 import re
 
 ALLOWED = {
@@ -26,14 +28,65 @@ ALLOWED = {
     "orafce": "orafce/orafce",
 }
 
-# Preserve the immutable published-14 roster for historical audit consumers.
-# New identities enter only the independent signed-Release Catalog intake.
-FIRST_RELEASE_SOURCES = {
+# First-Release identities are admitted only from protected Catalog metadata.
+# This manifest is NOT Publisher permission or independent signature evidence.
+SEALED_FIRST_RELEASE_UPSTREAM = {
     "pgtap": "theory/pgtap",
     "pg_variables": "postgrespro/pg_variables",
     "pg_store_plans": "ossc-db/pg_store_plans",
 }
+_NEW_NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+_NEW_UPSTREAM = re.compile(r"^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$")
+
+
+def load_first_release_registry(path):
+    path = Path(path)
+    if not path.is_file() or path.is_symlink() or not 0 < path.stat().st_size <= 65536:
+        raise ValueError("missing or oversized protected first-Release manifest")
+    def unique(pairs):
+        out = {}
+        for key, value in pairs:
+            if key in out:
+                raise ValueError("duplicate protected first-Release manifest field")
+            out[key] = value
+        return out
+    doc = json.loads(path.read_text("utf-8"), object_pairs_hook=unique)
+    if (type(doc) is not dict or set(doc) != {"schemaVersion", "entries"}
+            or type(doc["schemaVersion"]) is not int or doc["schemaVersion"] != 1):
+        raise ValueError("invalid first-Release manifest schema")
+    entries = doc["entries"]
+    if type(entries) is not list or not 3 <= len(entries) <= 128 - len(ALLOWED):
+        raise ValueError("unsafe protected first-Release manifest size")
+    sources, metadata = {}, {}
+    for row in entries:
+        if type(row) is not dict or set(row) != {
+            "name", "upstreamRepository", "displayName", "description", "license"
+        }:
+            raise ValueError("invalid first-Release manifest entry schema")
+        name, upstream = row["name"], row["upstreamRepository"]
+        if (type(name) is not str or not _NEW_NAME.fullmatch(name)
+                or name in ALLOWED or name in sources or type(upstream) is not str
+                or not _NEW_UPSTREAM.fullmatch(upstream)):
+            raise ValueError("unregistered or duplicate first-Release identity")
+        for field in ("displayName", "description", "license"):
+            value = row[field]
+            if (type(value) is not str or not 1 <= len(value) <= 500
+                    or any(ord(c) < 32 for c in value)):
+                raise ValueError("unsafe first-Release display metadata")
+        sources[name] = upstream
+        metadata[name] = (row["displayName"], row["description"], row["license"])
+    if (list(sources) != sorted(sources)
+            or any(sources.get(name) != upstream
+                   for name, upstream in SEALED_FIRST_RELEASE_UPSTREAM.items())):
+        raise ValueError("historical first-Release sources changed or registry unsorted")
+    return sources, metadata
+
+
+FIRST_RELEASE_SOURCES, FIRST_RELEASE = load_first_release_registry(
+    Path(__file__).resolve().parents[1] / "config/first-release-registry.json"
+)
 INTAKE_ALLOWED = {**ALLOWED, **FIRST_RELEASE_SOURCES}
+
 SHA = re.compile(r"^[0-9a-f]{40}$")
 DIGEST = re.compile(r"^[0-9a-f]{64}$")
 REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -98,15 +151,8 @@ def tag_for(ext, revision):
         stem="v"+latest["version"]
     return stem+"-windows."+revision
 
-# Only these new identities may bootstrap a Catalog record, and only AFTER the
-# independent Release verifier has rehashed public assets, verified both
-# attestations and checked an exact successful human main Promotion run.
-# This is a Catalog intake allowlist, NOT a Publisher permission grant.
-FIRST_RELEASE = {
-    "pgtap": ("pgTAP", "TAP-compatible PostgreSQL unit testing", "PostgreSQL"),
-    "pg_variables": ("pg_variables", "Session variables for PostgreSQL", "PostgreSQL"),
-    "pg_store_plans": ("pg_store_plans", "SQL execution plan statistics", "BSD-3-Clause"),
-}
+# The sole initial metadata seed is the protected first-release manifest.
+# Real public ZIP/SBOM/attestation and main-PUBLISH checks remain mandatory.
 
 
 def seed_verified_first_release(ext, contract):
