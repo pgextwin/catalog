@@ -269,7 +269,7 @@ jobs:
       - name: Report record unchanged or proposer deliberately disabled
         if: steps.verify.outputs.changed != 'true' || vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED != 'true'
         env:
-          CHANGED: \${{ steps.verify.outputs.changed }}
-          ENABLED: \${{ vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED }}
+          CHANGED: ${{ steps.verify.outputs.changed }}
+          ENABLED: ${{ vars.PGEXTWIN_CATALOG_PROPOSER_ENABLED }}
         run: |
           echo "Signed Release verification completed. Record changed=$CHANGED; App-based PR proposer enabled=$ENABLED. No Catalog PR was pushed by this run." >> "$GITHUB_STEP_SUMMARY"
