@@ -261,3 +261,25 @@ mandatory before v0.3.1 Release acceptance.
 The presence or absence of trimming changes **neither** the original ZIP
 `INTEGRITY_ONLY` status nor Issue #75 GO B/G4/G5 gates. See
 [the v0.3.1 release evidence](../docs/cli-v0.3.1-release-notes.md).
+
+## v0.3.5 — signed-feed PostgreSQL cohorts and expanding extension roster
+
+The 0.3.5 Windows CLI incorporates post-0.3.4 production changes already
+merged to the protected Catalog main. The latest-mode feed now carries a
+signer-approved, contiguous PostgreSQL-major cohort instead of assuming
+exactly PG14–18, and its batch output naming follows the authenticated cohort.
+A requested major outside the verified cohort fails closed. PostgreSQL 19 or
+later is **not** automatically available merely because the code recognizes
+future majors: signed Catalog metadata and published, hash-checked ZIPs are
+required first.
+
+The Catalog roster also grows from 14 to 17 registered extensions (including
+pgtap, pg_variables and pg_store_plans) without keeping a per-extension CLI
+allowlist. New names must first pass protected-Catalog and signed-feed checks.
+The existing --fixed historic 70-ZIP mode remains unchanged; latest-mode
+Sigstore authentication, original ZIP SHA256, atomic output, and
+INTEGRITY_ONLY / non-installation boundaries are preserved.
+
+The CLI is released by the existing protected-main Windows candidate workflow;
+only its completed signed public Release and real downloaded-ZIP acceptance
+can justify updating Website download links and published SHA256 values.
