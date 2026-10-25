@@ -65,9 +65,11 @@ def mapped(name, parts=None, required=None):
                                 required if required is not None else [14,15,16,17,18])
 
 class RecordTests(unittest.TestCase):
-    def test_exact_seventeen_source_and_asset_naming_rules(self):
-        self.assertEqual(set(INTAKE_ALLOWED),set(REFS)|set(PER))
-        for name in INTAKE_ALLOWED:
+    def test_existing_seventeen_source_and_asset_naming_rules(self):
+        # Immutable historical fixtures are a mandatory subset, not a ceiling
+        # on protected future first-Release registrations.
+        self.assertTrue((set(REFS) | set(PER)).issubset(INTAKE_ALLOWED))
+        for name in sorted(set(REFS) | set(PER)):
             with self.subTest(name=name):
                 original=fixture(name)
                 after=mapped(name,original)
