@@ -3,7 +3,7 @@ name: Propose fully verified manual signed Release to Catalog (17 verifier ident
 on:
   schedule:
     # Reuse the existing signed asset verifier, not a second Catalog writer.
-    - cron: '20 */6 * * *'
+    - cron: '20 * * * *'
   workflow_dispatch:
     inputs:
     # Reuse the exact independent signed-Release allowlist; do not keep a separate
