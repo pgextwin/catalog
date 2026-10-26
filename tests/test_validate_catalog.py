@@ -1,8 +1,10 @@
 import copy
+import json
 import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "validate_catalog.py"
@@ -38,6 +40,70 @@ class CatalogV2ValidationTests(unittest.TestCase):
             any(needle in error for error in errors),
             f"expected error containing {needle!r}; got:\n" + "\n".join(errors),
         )
+
+    def test_remote_check_uses_stored_authorized_tag_not_unverified_newest_tag(self):
+        """Keep a verified older Catalog entry while a newer Publisher run is DENIED."""
+        record = validate_catalog.load_json(ROOT / "extensions" / "hypopg.json")
+        latest = record["latest"]
+        tagged_url = (
+            "https://api.github.com/repos/pgextwin/hypopg/releases/tags/"
+            + latest["releaseTag"]
+        )
+        response = {
+            "tag_name": latest["releaseTag"],
+            "draft": False,
+            "prerelease": False,
+            "published_at": latest["publishedAt"],
+            "html_url": latest["releaseUrl"],
+            "assets": [],
+        }
+        with patch.object(
+            validate_catalog, "http_get",
+            return_value=(json.dumps(response).encode("utf-8"), {}),
+        ) as get:
+            errors = validate_catalog.verify_release(record, "synthetic-read-token")
+        get.assert_called_once_with(tagged_url, token="synthetic-read-token")
+        # The deliberately incomplete fixture is still REJECTED on checksums.
+        # This demonstrates pinned-tag lookup only; it is NOT publication proof.
+        self.assertEqual(
+            errors,
+            ["release is missing checksums asset 'SHA256SUMS.txt'"],
+        )
+
+    def test_remote_tagged_release_rejects_identity_and_publication_attacks(self):
+        record = validate_catalog.load_json(ROOT / "extensions" / "hypopg.json")
+        tag = record["latest"]["releaseTag"]
+        good = {
+            "tag_name": tag,
+            "draft": False,
+            "prerelease": False,
+            "published_at": record["latest"]["publishedAt"],
+            "html_url": record["latest"]["releaseUrl"],
+            "assets": [],
+        }
+        for mutate in (
+            lambda r: r.update(tag_name="v1.4.4-windows.1"),
+            lambda r: r.update(draft=True),
+            lambda r: r.update(prerelease=True),
+        ):
+            with self.subTest(mutate=mutate):
+                response = copy.deepcopy(good)
+                mutate(response)
+                with patch.object(
+                    validate_catalog, "http_get",
+                    return_value=(json.dumps(response).encode("utf-8"), {}),
+                ):
+                    errors = validate_catalog.verify_release(record, None)
+                self.assertTrue(errors)
+                self.assertNotIn("release is missing checksums asset", errors[0])
+        unsafe = copy.deepcopy(record)
+        unsafe["latest"]["releaseTag"] = "../latest"
+        with patch.object(validate_catalog, "http_get") as get:
+            self.assertEqual(
+                validate_catalog.verify_release(unsafe, None),
+                ["unsafe Catalog-pinned Release tag"],
+            )
+        get.assert_not_called()
 
     def test_step18_plpgsql_check_release_metadata(self):
         record = validate_catalog.load_json(ROOT / "extensions" / "plpgsql_check.json")
