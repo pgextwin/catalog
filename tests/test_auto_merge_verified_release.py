@@ -301,38 +301,71 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                 mod.inspect_pr(p, f, c, proposer_login=local()["expectedProposerLogin"],
                                      proposer_id=local()["expectedProposerBotId"])
 
-    def test_first_release_is_not_record_only_but_is_strictly_scoped(self):
+    def test_first_release_is_never_eligible_for_auto_merge_even_with_valid_signed_scope(self):
         p, f, c = pr_fixture("pgtap", "v1.3.4-windows.1")
         first_path = "extensions/pgtap.json"
         landscape_path = "landscape/extensions/pgtap.json"
-        f = [{"filename": first_path, "status": "added"},
-             {"filename": "index.json", "status": "modified"},
-             {"filename": landscape_path, "status": "modified"}]
-        self.assertEqual(mod.inspect_pr(
-            p, f, c, proposer_login=local()["expectedProposerLogin"],
-            proposer_id=local()["expectedProposerBotId"], initial=True)[3], "pgtap")
-        mod.inspect_pr(p, f + [{"filename": "landscape/index.json", "status": "modified"}],
-                       c, proposer_login=local()["expectedProposerLogin"],
-                       proposer_id=local()["expectedProposerBotId"], initial=True)
-        for invalid in (
-            [{"filename": first_path, "status": "modified"}] + f[1:],
-            f + [{"filename": "unrelated.json", "status": "modified"}],
-            f + [{"filename": "landscape/index.json", "status": "removed"}],
-            f + [f[0]],
-            f[:2],
-        ):
-            with self.subTest(files=invalid), self.assertRaises(mod.AutoMergeDenied):
-                mod.inspect_pr(p, invalid, c,
-                               proposer_login=local()["expectedProposerLogin"],
+        valid_first = [{"filename": first_path, "status": "added"},
+                       {"filename": "index.json", "status": "modified"},
+                       {"filename": landscape_path, "status": "modified"}]
+        for changed in (valid_first,
+                        valid_first + [{"filename": "landscape/index.json", "status": "modified"}],
+                        [{"filename": first_path, "status": "modified"}],
+                        [{"filename": first_path, "status": "added"},
+                         {"filename": "evil.json", "status": "modified"}]):
+            with self.subTest(files=changed), self.assertRaisesRegex(
+                    mod.AutoMergeDenied, "first Catalog Release auto-merge forbidden"):
+                mod.inspect_pr(p, changed, c, proposer_login=local()["expectedProposerLogin"],
                                proposer_id=local()["expectedProposerBotId"], initial=True)
-        with self.assertRaises(mod.AutoMergeDenied):
-            mod.inspect_pr(p, f, c,
-                           proposer_login=local()["expectedProposerLogin"],
-                           proposer_id=local()["expectedProposerBotId"], initial=False)
-        with self.assertRaises(mod.AutoMergeDenied):
-            mod.inspect_pr(*pr_fixture("pg_cron", "v1.0.0-windows.1"),
-                           proposer_login=local()["expectedProposerLogin"],
-                           proposer_id=local()["expectedProposerBotId"], initial=True)
+        # Existing record remains eligible only for its exact one-file modification.
+        p, f, c = pr_fixture("pg_cron", "v1.0.0-windows.1")
+        mod.inspect_pr(p, f, c, proposer_login=local()["expectedProposerLogin"],
+                       proposer_id=local()["expectedProposerBotId"], initial=False)
+
+    def test_first_release_is_excluded_even_when_a_lower_number_than_valid_update(self):
+        first, _, _ = pr_fixture("pgtap", "v1.3.4-windows.1")
+        first["number"] = 1
+        existing, _, _ = pr_fixture("pg_cron", "v1.0.0-windows.1")
+        existing["number"] = 2
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            (root/"extensions").mkdir()
+            (root/"extensions"/"pg_cron.json").write_text("{}")
+            (root/"index.json").write_text(json.dumps({
+                "schemaVersion": 2, "extensions": ["pg_cron"]}))
+            before = os.getcwd()
+            try:
+                os.chdir(root)
+                result = mod.eligible_existing_record_prs([first, existing])
+                self.assertEqual([p["number"] for p in result], [2])
+                self.assertEqual(mod.eligible_existing_record_prs([first]), [])
+                # A missing indexed record and an unindexed existing record DENY.
+                (root/"index.json").write_text(json.dumps({
+                    "schemaVersion": 2, "extensions": ["pg_cron", "pgtap"]}))
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.eligible_existing_record_prs([first])
+                (root/"index.json").write_text(json.dumps({
+                    "schemaVersion": 2, "extensions": []}))
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.eligible_existing_record_prs([existing])
+            finally:
+                os.chdir(before)
+
+    def test_no_external_verifier_invocation_for_first_release(self):
+        with tempfile.TemporaryDirectory() as t:
+            before = os.getcwd()
+            try:
+                os.chdir(t)
+                with patch.object(mod.subprocess, "run") as verifier, \\
+                     patch.object(mod, "api") as github:
+                    with self.assertRaisesRegex(
+                            mod.AutoMergeDenied, "first Catalog Release"):
+                        mod.verify_record("pgtap", "v1.3.4-windows.1", SHA,
+                                          read_token="r"*32)
+                    verifier.assert_not_called()
+                    github.assert_not_called()
+            finally:
+                os.chdir(before)
 
     def test_first_release_projection_denies_unregistered_and_bad_identity(self):
         import tempfile
