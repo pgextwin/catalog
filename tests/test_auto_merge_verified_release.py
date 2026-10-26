@@ -356,7 +356,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             before = os.getcwd()
             try:
                 os.chdir(t)
-                with patch.object(mod.subprocess, "run") as verifier, \\
+                with patch.object(mod.subprocess, "run") as verifier, \
                      patch.object(mod, "api") as github:
                     with self.assertRaisesRegex(
                             mod.AutoMergeDenied, "first Catalog Release"):
