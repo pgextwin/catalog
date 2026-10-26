@@ -338,7 +338,7 @@ def verify_release(record, token):
     # newest publicly visible Release. A newer failed scheduled Publisher run
     # must NOT force unsafe Catalog admission or block unrelated protected PRs.
     # Recheck the exact stored public tag, its assets and published checksums.
-    if not re.fullmatch(r"v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\\.[1-9][0-9]*", tag):
+    if not re.fullmatch(r"v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\.[1-9][0-9]*", tag):
         return ["unsafe Catalog-pinned Release tag"]
     api_url = f"https://api.github.com/repos/{repository}/releases/tags/{tag}"
     payload, _ = http_get(api_url, token=token)
