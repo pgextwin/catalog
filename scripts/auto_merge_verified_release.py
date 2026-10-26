@@ -221,19 +221,11 @@ def inspect_pr(pr, files, commits, *, proposer_login, proposer_id, initial=False
     require(type(files) is list, "Catalog PR file inventory unavailable")
     actual = {row.get("filename"): row.get("status") for row in files}
     require(len(actual) == len(files), "duplicate Catalog PR file paths")
-    if initial:
-        require(name in FIRST_RELEASE_SOURCES
-                and actual.get(path) == "added"
-                and actual.get("index.json") == "modified"
-                and actual.get("landscape/extensions/" + name + ".json") in ("added", "modified")
-                and (set(actual) - {path, "index.json",
-                                   "landscape/extensions/" + name + ".json"}
-                     in (set(), {"landscape/index.json"}))
-                and actual.get("landscape/index.json", "modified") == "modified",
-                "first Catalog intake changes unapproved paths or statuses")
-    else:
-        require(actual == {path: "modified"},
-                "existing Catalog PR is not record-only")
+    # First Release requires initial index/landscape changes and remains a
+    # manual protected-merge decision even when the runtime opt-in is true.
+    require(initial is False, "first Catalog Release auto-merge forbidden")
+    require(actual == {path: "modified"},
+            "existing Catalog PR is not record-only")
     expected = "catalog: verified operator release " + name + " " + tag
     require(type(commits) is list and len(commits) == 1
             and (commits[0].get("commit") or {}).get("message", "").split("\n")[0] == expected,
@@ -326,8 +318,7 @@ def verify_record(name, tag, head_sha, *, read_token, files=None):
             "unsigned verifier input or read token missing")
     path = "extensions/" + name + ".json"
     initial = not Path(path).is_file()
-    require(not initial or name in FIRST_RELEASE_SOURCES,
-            "unauthorized first-intake Catalog identity")
+    require(not initial, "first Catalog Release signed verification cannot authorize auto-merge")
     with tempfile.TemporaryDirectory() as directory:
         temp = Path(directory)
         (temp / "extensions").mkdir()
@@ -369,6 +360,34 @@ def verify_record(name, tag, head_sha, *, read_token, files=None):
                     "first-intake index/landscape differs from protected projection")
 
 
+def eligible_existing_record_prs(selected):
+    """Skip first-intake proposals, never blocking verified existing-record updates.
+
+    A signed first Release may generate a PR, but merging its index/landscape
+    changes is not an automated operation. Check protected main, not PR code.
+    Fail closed if a protected index and record disagree.
+    """
+    index = json.loads(Path("index.json").read_text(encoding="utf-8"))
+    names = index.get("extensions") if type(index) is dict else None
+    require(index.get("schemaVersion") == 2 and type(names) is list
+            and all(type(n) is str for n in names)
+            and names == sorted(set(names)),
+            "protected Catalog index missing or inconsistent")
+    eligible = []
+    for pr in selected:
+        branch = (pr.get("head") or {}).get("ref", "")
+        match = BRANCH.fullmatch(branch)
+        require(match is not None, "unknown automated Catalog PR branch")
+        name = match.group(1)
+        exists = (Path("extensions") / (name + ".json")).is_file()
+        indexed = name in names
+        require(exists == indexed,
+                "protected Catalog index and current record disagree")
+        if exists:
+            eligible.append(pr)
+    return eligible
+
+
 def perform(config_path, dry_run=False):
     require(os.environ.get("GITHUB_REPOSITORY") == REPO
             and os.environ.get("GITHUB_REF") == "refs/heads/main"
@@ -406,18 +425,24 @@ def perform(config_path, dry_run=False):
     if not selected:
         print("CATALOG_AUTOMERGE_NO_OP")
         return
-    # One immutable, checked PR per invocation; subsequent authentic events
-    # process the remaining eligible records without bypassing branch protection.
-    pr = min(selected, key=lambda row: row.get("number", 0))
+    eligible = eligible_existing_record_prs(selected)
+    if not eligible:
+        print("CATALOG_AUTOMERGE_FIRST_RELEASE_EXCLUDED; NO_MERGE")
+        return
+    # Never let an early first-intake PR block a subsequent eligible update.
+    # One immutable existing-record PR per genuine event; no index mutation.
+    pr = min(eligible, key=lambda row: row.get("number", 0))
     number = pr["number"]
     files = api("repos/" + REPO + "/pulls/" + str(number) + "/files?per_page=100")
     commits = api("repos/" + REPO + "/pulls/" + str(number) + "/commits?per_page=100")
     match = BRANCH.fullmatch((pr.get("head") or {}).get("ref", ""))
     require(match is not None, "unknown Catalog automation branch")
-    initial = not Path("extensions/" + match.group(1) + ".json").is_file()
+    # A second fail-closed gate immediately before any privileged merge.
+    require((Path("extensions") / (match.group(1) + ".json")).is_file(),
+            "first Catalog Release auto-merge forbidden before PR inspection")
     number, sha, branch, name, tag = inspect_pr(
         pr, files, commits, proposer_login=local["expectedProposerLogin"],
-        proposer_id=local["expectedProposerBotId"], initial=initial)
+        proposer_id=local["expectedProposerBotId"], initial=False)
     runs = api("repos/" + REPO +
                "/actions/workflows/validate.yml/runs?per_page=100&branch=" + branch)
     validate_run(runs.get("workflow_runs"), sha, branch)
