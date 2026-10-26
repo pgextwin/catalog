@@ -169,6 +169,35 @@ class ReconcileTests(unittest.TestCase):
         with self.assertRaises(mod.Denied):
             mod.discover(index, records, published, prs)
 
+    def test_mixed_failed_publisher_and_eligible_release_candidates_stay_independent(self):
+        """Discovery does not grant either tag admission; each matrix row is verified."""
+        x = fixture()
+        # The known failed Publisher-origin HypoPG tag is intentionally present.
+        # It must not authorize itself or suppress another future eligible tag.
+        newer(x, name="hypopg", tag="v1.4.4-windows.1")
+        newer(x, name="orafce", tag="v4.17.1-windows.1")
+        expected = [
+            {"extension": "hypopg", "release_tag": "v1.4.4-windows.1"},
+            {"extension": "orafce", "release_tag": "v4.17.1-windows.1"},
+        ]
+        self.assertEqual(mod.discover(*x)["include"], expected)
+        workflow = (ROOT / ".github" / "workflows" / "sync-verified-release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("fail-fast: false", workflow)
+        self.assertIn("max-parallel: 1", workflow)
+        self.assertIn("matrix: ${{ fromJSON(needs.discover.outputs.targets) }}", workflow)
+        self.assertIn("python scripts/verify_signed_fleet_release.py", workflow)
+        self.assertIn('--extension "$EXTENSION" --release-tag "$RELEASE_TAG"', workflow)
+        # If a HypoPG candidate has a pending record-only PR, only that exact
+        # row is deduplicated. The unrelated new stable update remains eligible
+        # for its *own* stringent signed provenance / public byte verification.
+        x[3].append({
+            "state": "open",
+            "headRef": "auto-catalog/hypopg-v1.4.4-windows.1",
+        })
+        self.assertEqual(mod.discover(*x)["include"], [expected[1]])
+
     def test_invalid_manual_release_target_rejected(self):
         x = fixture()
         for target in [("evil", "v1.0-windows.1"), ("orafce", "blah"),
