@@ -332,17 +332,27 @@ def verify_capability_source(record, token):
 
 def verify_release(record, token):
     repository = record["repository"]
-    api_url = f"https://api.github.com/repos/{repository}/releases/latest"
+    latest = record["latest"]
+    tag = latest["releaseTag"]
+    # The Catalog records the latest *authorized* Release, not necessarily the
+    # newest publicly visible Release. A newer failed scheduled Publisher run
+    # must NOT force unsafe Catalog admission or block unrelated protected PRs.
+    # Recheck the exact stored public tag, its assets and published checksums.
+    if not re.fullmatch(r"v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\\.[1-9][0-9]*", tag):
+        return ["unsafe Catalog-pinned Release tag"]
+    api_url = f"https://api.github.com/repos/{repository}/releases/tags/{tag}"
     payload, _ = http_get(api_url, token=token)
     release = json.loads(payload.decode("utf-8"))
 
     errors = []
-    latest = record["latest"]
-    if release.get("tag_name") != latest["releaseTag"]:
+    if release.get("tag_name") != tag:
         errors.append(
-            f"latest.releaseTag '{latest['releaseTag']}' is not current GitHub latest release "
+            f"Catalog-pinned releaseTag '{tag}' does not match GitHub "
             f"'{release.get('tag_name')}'"
         )
+        return errors
+    if release.get("draft") is not False or release.get("prerelease") is not False:
+        errors.append("Catalog-pinned Release must be public and stable")
         return errors
     if release.get("published_at") != latest["publishedAt"]:
         errors.append(
@@ -500,7 +510,7 @@ def main():
         "--verify-remote",
         action="store_true",
         help=(
-            "Verify pinned Test Contract snapshots and current GitHub Release metadata, "
+            "Verify pinned Test Contract snapshots and the exact Catalog-approved public Release, "
             "including the published SHA256SUMS.txt values."
         ),
     )
