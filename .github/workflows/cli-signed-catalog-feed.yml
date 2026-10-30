@@ -64,11 +64,22 @@ jobs:
           jq -e '.commit.verification.verified==true and .commit.verification.reason=="valid" and .committer.login=="web-flow" and .commit.committer.email=="noreply@github.com"' <<< "$commit" >/dev/null
           jobs="$(gh api --paginate "repos/pgextwin/catalog/actions/runs/$RUN_ID/jobs?per_page=100" --jq '.jobs[] | [.name,.conclusion] | @tsv')"
           grep -Fx $'validate\tsuccess' <<< "$jobs" >/dev/null
+          # Only an actual protected Catalog roster/record change may create a
+          # new public signed metadata feed. Workflow-only, test-only and
+          # Issue311 PREPARE-shadow merges must be successful no-ops.
+          # This is the authenticated GitHub commit's own changed-file list.
+          if ! jq -e '
+            any(.files[]?; .filename == "index.json" or (.filename | test("^extensions/[^/]+[.]json$")))
+          ' <<< "$commit" >/dev/null; then
+            echo "CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE HEAD=$RUN_SHA PUBLISH_DENY"
+            exit 0
+          fi
           echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"
           echo "CATALOG_FEED_GATE=PASS HEAD=$RUN_SHA ORIGINAL_VALIDATE_RUN=$RUN_ID"
 
   attest:
     needs: gate
+    if: needs.gate.outputs.source != ''
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -122,6 +133,7 @@ jobs:
 
   publish-metadata-only:
     needs: [gate, attest]
+    if: needs.gate.outputs.source != ''
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
