@@ -1,0 +1,30 @@
+name: Issue311 R09 native Catalog CLI feed shadow PR preview (NO RELEASE)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/issue311-r09-shadow-preview.yml'
+      - 'metadata/issue311-r09-shadow-nonpublishing.json'
+      - 'tests/test_issue311_r09_shadow_contract.py'
+permissions:
+  contents: read
+jobs:
+  private_preview:
+    name: R09 exact original evidence / native Catalog CLI feed test without publication
+    if: github.repository == 'pgextwin/catalog' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Check exact R08 source, shadow Catalog proposal and deny publication
+        run: python -m unittest discover -s tests -p 'test_issue311_r09_shadow_contract.py' -v
+      - name: Run existing native CLI signed Catalog feed tests without signing or releasing
+        run: python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
+      - name: Keep result strictly in PR scope
+        run: echo 'R09_01_NATIVE_CATALOG_CLI_FEED_PR_ONLY_PASS; PUBLISH_DENY; NO RELEASE; DO NOT MERGE TO PUBLIC FEED'
