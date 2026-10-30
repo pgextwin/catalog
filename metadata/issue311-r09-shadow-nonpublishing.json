@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "type": "pgextwin-nonpublishing-catalog-shadow",
+  "status": "BLOCKED_PREPARE_NOT_A_RELEASE",
+  "extension": "orafce",
+  "catalogBaseSha": "dc8390fd816aa7bf0bf3b541e822b1320a47846e",
+  "websiteBaseSha": "2eb3bd618f230cea424b99dac5148ca72d923cd7",
+  "source": {
+    "requestRawSha256": "174b48df34a82ef147b599b1b33a86964990ea6ee4fb6932b365e338dd23410f",
+    "stateGitBlobSha": "e588b93f5f607dc05e240e07c3351d75e1f34727",
+    "centralRunId": 41073991273,
+    "fleetRunId": 41074138918,
+    "signedLocalRunId": 41074341848,
+    "r09ReadOnlyRunId": 41082159167,
+    "r09ArtifactId": 12989134273,
+    "r09ArtifactActualZipSha256": "a6a9e5a02d45eb4dd71419726c8e1a55c701b9e4befa6935e7e3d7e8db698cb6",
+    "sourceKind": "APP_BOT_PREPARE_WORKFLOW_DISPATCH_SIGNED_BUILD_ONLY"
+  },
+  "pgMajors": [
+    "14",
+    "15",
+    "16",
+    "17",
+    "18"
+  ],
+  "historicalPublicReleaseTag": "v4.16.13-windows.1",
+  "publicReleaseAuthorized": false,
+  "proposedPublicRecord": false,
+  "writeOutcomeUnknown": false,
+  "catalogMainUpdateAuthorized": false,
+  "createPublicCatalogRecord": false,
+  "createTagOrRelease": false,
+  "generatePublicSignedFeed": false,
+  "runWebsitePublish": false,
+  "publisherTokenRequested": false,
+  "decision": "PUBLISH_DENY",
+  "next": "Native PR-only CI and EN JA preview; do not merge while feed publication workflow would trigger"
+}
