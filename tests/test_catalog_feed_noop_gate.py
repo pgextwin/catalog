@@ -13,10 +13,9 @@ class CatalogFeedPublicationGate(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
-        match = re.search(r"if ! jq -e '(?P<filter>[\\s\\S]*?)' <<< .*? >/dev/null;", cls.workflow)
-        if match is None:
-            raise AssertionError("Missing independent GitHub commit changed-file gate")
-        cls.filter = match.group("filter")
+        start = cls.workflow.index("if ! jq -e '") + len("if ! jq -e '")
+        end = cls.workflow.index("' <<< \"$commit\" >/dev/null;", start)
+        cls.filter = cls.workflow[start:end]
 
     def accepted(self, filenames):
         response = {"files": [{"filename": path, "status": "modified"} for path in filenames]}
