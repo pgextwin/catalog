@@ -13,7 +13,7 @@ class CatalogFeedPublicationGate(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
-        match = re.search(r'if ! jq -e \'(?P<filter>[\s\S]*?)\' <<< "\\$commit" >/dev/null;', cls.workflow)
+        match = re.search(r"if ! jq -e '(?P<filter>[\\s\\S]*?)' <<< .*? >/dev/null;", cls.workflow)
         if match is None:
             raise AssertionError("Missing independent GitHub commit changed-file gate")
         cls.filter = match.group("filter")
