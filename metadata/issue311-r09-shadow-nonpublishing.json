@@ -34,5 +34,18 @@
   "runWebsitePublish": false,
   "publisherTokenRequested": false,
   "decision": "PUBLISH_DENY",
-  "next": "Native PR-only CI and EN JA preview; do not merge while feed publication workflow would trigger"
+  "next": "Native protected shadow PR can be merged only after latest-head required CI; original protected Catalog feed gate proof 41135512679 prevents an unchanged-record public feed; no Catalog record or Website public write",
+  "safeFeedGateProof": {
+    "protectedCatalogMainSha": "8e1fca2987293768fc7d408513f95ec007a804b7",
+    "safetyPr": 180,
+    "originalValidateRunId": 41135419066,
+    "originalFeedWorkflowRunId": 41135512679,
+    "originalGateJobId": 124336856340,
+    "gateConclusion": "success",
+    "feedRunConclusion": "success",
+    "attestConclusion": "skipped",
+    "publishMetadataOnlyConclusion": "skipped",
+    "logMarker": "CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE",
+    "decision": "PUBLISH_DENY"
+  }
 }
