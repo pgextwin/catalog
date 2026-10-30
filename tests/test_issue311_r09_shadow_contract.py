@@ -42,7 +42,19 @@ class PrivatePreview(unittest.TestCase):
             "generatePublicSignedFeed","runWebsitePublish","publisherTokenRequested"):
             self.assertIs(self.e[key],False,key)
         self.assertEqual(self.e["extension"],"orafce")
-        self.assertEqual(self.e["next"],"Native PR-only CI and EN JA preview; do not merge while feed publication workflow would trigger")
+        proof=self.e["safeFeedGateProof"]
+        self.assertEqual(proof["protectedCatalogMainSha"],"8e1fca2987293768fc7d408513f95ec007a804b7")
+        self.assertEqual(proof["safetyPr"],180)
+        self.assertEqual(proof["originalValidateRunId"],41135419066)
+        self.assertEqual(proof["originalFeedWorkflowRunId"],41135512679)
+        self.assertEqual(proof["originalGateJobId"],124336856340)
+        for key in ("gateConclusion","feedRunConclusion"):
+            self.assertEqual(proof[key],"success")
+        for key in ("attestConclusion","publishMetadataOnlyConclusion"):
+            self.assertEqual(proof[key],"skipped")
+        self.assertEqual(proof["logMarker"],"CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE")
+        self.assertEqual(proof["decision"],"PUBLISH_DENY")
+        self.assertIn("no Catalog record or Website public write",self.e["next"])
     def test_existing_cli_feed_sources_present(self):
         self.assertIn("def build_feed(",(ROOT/"scripts/cli_signed_feed.py").read_text("utf8"))
         self.assertTrue((ROOT/"dotnet/src/PgExtWin.Cli/Program.cs").is_file())
