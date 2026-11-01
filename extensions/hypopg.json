@@ -5,145 +5,145 @@
   "description": "Hypothetical index planning without creating indexes",
   "upstream": {
     "repository": "HypoPG/hypopg",
-    "version": "1.4.3"
+    "version": "1.4.4"
   },
   "repository": "pgextwin/hypopg",
   "license": "PostgreSQL",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.4.3-windows.1",
-    "publishedAt": "2026-10-10T08:13:56Z",
-    "releaseUrl": "https://github.com/pgextwin/hypopg/releases/tag/v1.4.3-windows.1",
+    "releaseTag": "v1.4.4-windows.1",
+    "publishedAt": "2026-10-26T20:34:56Z",
+    "releaseUrl": "https://github.com/pgextwin/hypopg/releases/tag/v1.4.4-windows.1",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
-      "asset": "hypopg-1.4.3-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg14-windows-x64.zip",
-      "sha256": "4beddf3f8275a654eec5a08ea16060ce21c984662b663f3b22b44820fbf85bcb",
+      "asset": "hypopg-1.4.4-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg14-windows-x64.zip",
+      "sha256": "114a74c69c8552f68d373e364d2cb45c7902b2acb53766e59f7cfbc025b67765",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg14-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg14-windows-x64.spdx.json",
-          "sha256": "493a927999f80a1f19c4b6a2423bf40ef07016afcce60b40e3879398d26b1d65"
+          "asset": "hypopg-1.4.4-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg14-windows-x64.spdx.json",
+          "sha256": "e665e02e0e72b0b9391e5030dde1b04ab5fcfb0838185db8f8f806e80edabf57"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg14-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg14-windows-x64.vulnerabilities.json",
-          "sha256": "1b1210b9dcb4635598a40d6bf3012cfbaf2f24993360ccb4e03804b608c2f0ec"
+          "asset": "hypopg-1.4.4-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "cf2db473b586ea3a387eb401eeba979aa392c36eea1e400ce0e750d40f03a069"
         }
       }
     },
     "15": {
       "available": true,
-      "asset": "hypopg-1.4.3-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg15-windows-x64.zip",
-      "sha256": "2a32a2a73f7acba290d8caef39e42dd8e269dac7774cb8f5adcfa559c4af93fb",
+      "asset": "hypopg-1.4.4-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg15-windows-x64.zip",
+      "sha256": "12bba2aec37a46b191f63eba624bbe9ddd168baabaf8d622fb8f5f55fdf88ba9",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg15-windows-x64.spdx.json",
-          "sha256": "a3d07d5928f58f5ba02f7c3b4acf531622d0ab00074fec25d826b883290f60ae"
+          "asset": "hypopg-1.4.4-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg15-windows-x64.spdx.json",
+          "sha256": "aa81b0764cacc7a61ad1b5e118c345d3454f4dcec7775179a0d7d06b37a5be98"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "935f41616d50f11ff0b9c19ffdbea108ab52d857248e5ecb00211dc17bd7c38f"
+          "asset": "hypopg-1.4.4-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "8decf45e8ce2dfeb6746c1ca04b5b129d5382a7e2ff26a189ec479472a096250"
         }
       }
     },
     "16": {
       "available": true,
-      "asset": "hypopg-1.4.3-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg16-windows-x64.zip",
-      "sha256": "1615fb726a022c621b9c8b6af167995fda0a46306cb6ef1bf704493a490b5d0e",
+      "asset": "hypopg-1.4.4-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg16-windows-x64.zip",
+      "sha256": "c1f1c5732696c633f31a716cbb50c9d1f31dbd0dc0416a8b14e3b432cacd63c9",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg16-windows-x64.spdx.json",
-          "sha256": "eb5818c81192150e0f0fa36ffa1719abfd4e93961a031e72d1be967e8ccbedb9"
+          "asset": "hypopg-1.4.4-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg16-windows-x64.spdx.json",
+          "sha256": "664201b90c3d7272b43ef04efa957a5856f23af84cede8e8fd1b4a46dd5a53f6"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "69d0e8de3c5b1e3953c26e2279ccc6678c1511242fbb0077c9840081dc60abbe"
+          "asset": "hypopg-1.4.4-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "6573f92dcf7a2aea6cc5e1072bcbe788252fd6284e01fbb48d304628a08393f0"
         }
       }
     },
     "17": {
       "available": true,
-      "asset": "hypopg-1.4.3-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg17-windows-x64.zip",
-      "sha256": "076ed91b692a272ffb3457eed09886cdf4ec2f9bfcb079c92f6a23b06307b991",
+      "asset": "hypopg-1.4.4-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg17-windows-x64.zip",
+      "sha256": "dc8f6e7259c7af7838ebaffffe508e196ca3403a6646985841f1c3d5ddf9aa77",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg17-windows-x64.spdx.json",
-          "sha256": "3dac3372eef209e426110deadde843d2632847232d4830a3df6f74328ace97ab"
+          "asset": "hypopg-1.4.4-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg17-windows-x64.spdx.json",
+          "sha256": "7245998d25b5b20342eae404535bc62ca1a02fb9ad592ed443a4400fd2292c11"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "e75a984eca6aedd5e64b3cfae366ae06269246818c124be2940a22dee4ed9a16"
+          "asset": "hypopg-1.4.4-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "e27e82fc9125e14979e4cdf85241ca3ceb3ab530427333cd9be8a131ee56f0a7"
         }
       }
     },
     "18": {
       "available": true,
-      "asset": "hypopg-1.4.3-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg18-windows-x64.zip",
-      "sha256": "8a5b1a4c08b460c6a7e0669af3fdd7b17109cb71bc41a1ea1356acaf6d85b1ff",
+      "asset": "hypopg-1.4.4-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg18-windows-x64.zip",
+      "sha256": "686fd24362f185aeb774b851be9d4ca1c92dd0061f365db6c1390e50e9cbc3c0",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg18-windows-x64.spdx.json",
-          "sha256": "6df986716420acabef6e160f4b4217fd624d167e30ea8049e0a76fc375be5aaf"
+          "asset": "hypopg-1.4.4-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg18-windows-x64.spdx.json",
+          "sha256": "0033b6e82768b4d2fc7383db6f7aaf343577c06a50d90be45436812aca0e7cab"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "hypopg-1.4.3-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.3-windows.1/hypopg-1.4.3-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "76745b4fb97b8be10155f81357ac12ab554c6850b28e7edce260d7064135deb4"
+          "asset": "hypopg-1.4.4-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.4-windows.1/hypopg-1.4.4-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "18053efea5b784a643b4fcd3cd3f4122481421e49c4d786f76f24895db98cc33"
         }
       }
     }
@@ -183,6 +183,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/hypopg",
     "path": "config/test-contract.json",
-    "commit": "5f8d74540d153c7dfaf34aff6dac0bb02a355f2c"
+    "commit": "771ef1c84db382d070b22d03c22be142f24c7fee"
   }
 }
