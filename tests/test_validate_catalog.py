@@ -82,7 +82,7 @@ class CatalogV2ValidationTests(unittest.TestCase):
             "assets": [],
         }
         for mutate in (
-            lambda r: r.update(tag_name="v1.4.4-windows.1"),
+            lambda r: r.update(tag_name=tag + "-forged"),
             lambda r: r.update(draft=True),
             lambda r: r.update(prerelease=True),
         ):
