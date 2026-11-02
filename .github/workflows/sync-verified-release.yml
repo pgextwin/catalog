@@ -1,6 +1,8 @@
 name: Propose fully verified manual signed Release to Catalog (17 verifier identities; opt-in)
 
 on:
+  issue_comment:
+    types: [created]
   schedule:
     # Reuse the existing signed asset verifier, not a second Catalog writer.
     - cron: '20 * * * *'
@@ -27,10 +29,16 @@ permissions:
 jobs:
   discover:
     name: Discover only new public stable Release tags (never signs or publishes)
-    if: github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main'
+    if: >-
+      ${{ github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main' &&
+          (github.event_name != 'issue_comment' ||
+           (github.event.issue.number == 184 && github.actor == 'ShutenOishi' &&
+            github.triggering_actor == 'ShutenOishi' &&
+            startsWith(github.event.comment.body, '/pgextwin catalog '))) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: read
     outputs:
       targets: ${{ steps.delta.outputs.targets }}
       has_changes: ${{ steps.delta.outputs.has_changes }}
@@ -44,16 +52,22 @@ jobs:
           python-version: "3.13"
       - name: Validate deterministic signed reconciliation controls
         run: python tests/test_catalog_auto_delta.py
+      - name: Authenticate owner Issue #184 Catalog request (NO WRITE)
+        if: github.event_name == 'issue_comment'
+        id: owner
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/catalog-owner-command.py --github-output "$GITHUB_OUTPUT"
       - name: Detect drift but never authorize a Catalog record
         id: delta
         env:
           GH_TOKEN: ${{ github.token }}
-          REQUEST_EXTENSION: ${{ inputs.extension }}
-          REQUEST_TAG: ${{ inputs.release_tag }}
+          REQUEST_EXTENSION: ${{ steps.owner.outputs.extension || inputs.extension }}
+          REQUEST_TAG: ${{ steps.owner.outputs.release_tag || inputs.release_tag }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch || "$GITHUB_EVENT_NAME" == issue_comment ]]; then
             python scripts/catalog_auto_delta.py --manual-extension "$REQUEST_EXTENSION" --manual-tag "$REQUEST_TAG"
           else
             python scripts/catalog_auto_delta.py
