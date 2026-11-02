@@ -156,7 +156,7 @@ def main():
                 and os.environ.get("GITHUB_REF") == "refs/heads/main",
                 "Catalog reconciler only from protected main")
         event = os.environ.get("GITHUB_EVENT_NAME")
-        require(event in ("schedule", "workflow_dispatch"), "unsupported event")
+        require(event in ("schedule", "workflow_dispatch", "issue_comment"), "unsupported event")
         root = Path(args.catalog_root)
         index = json.loads((root / "index.json").read_text("utf-8"))
         records = {name: json.loads((root / "extensions" / (name + ".json")).read_text("utf-8"))
@@ -165,7 +165,7 @@ def main():
         prs = api.get("repos/pgextwin/catalog/pulls?state=open&base=main&per_page=100")
         pr_rows = [{"state": r["state"], "headRef": r["head"]["ref"]} for r in prs]
         manual = None
-        if event == "workflow_dispatch":
+        if event in ("workflow_dispatch","issue_comment"):
             require(args.manual_extension is not None and args.manual_tag is not None,
                     "manual trigger requires explicit extension and tag")
             manual = (args.manual_extension, args.manual_tag)
