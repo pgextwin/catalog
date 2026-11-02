@@ -15,7 +15,7 @@ from pathlib import Path
 ISSUE=184
 OWNER="ShutenOishi"
 OWNER_ID=27071164
-CMD=re.compile(r"^/pgextwin catalog ([a-z][a-z0-9_]*) (v[0-9]+(?:\\.[0-9]+){1,3}(?:-[0-9]{8})?-windows\\.[1-9][0-9]*)$")
+CMD=re.compile(r"^/pgextwin catalog ([a-z][a-z0-9_]*) (v[0-9]+(?:\.[0-9]+){1,3}(?:-[0-9]{8})?-windows\.[1-9][0-9]*)$")
 ISSUE_URL="https://api.github.com/repos/pgextwin/catalog/issues/184"
 class Denied(ValueError):pass
 def require(ok,msg):
@@ -80,8 +80,8 @@ def main():
             require(len(body)<32769,"oversized comment GET")
         name,tag=verify(event,json.loads(body))
         with open(args.github_output,"a",encoding="utf-8") as out:
-            out.write("extension="+name+"\\n")
-            out.write("release_tag="+tag+"\\n")
+            out.write("extension="+name+"\n")
+            out.write("release_tag="+tag+"\n")
         print("AUTHENTIC_OWNER_CATALOG_INPUT_ONLY: "+name+" "+tag)
         return 0
     except Exception as exc:
