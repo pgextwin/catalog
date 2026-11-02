@@ -33,6 +33,7 @@ OWNER_ID=27071164
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),
     "owner-dispatch": ("workflow_dispatch", "INDEPENDENT_LIVE_OWNER_DISPATCH_AND_SIGNED_SOURCE"),
+    "owner-issue-comment": ("issue_comment", "INDEPENDENT_LIVE_OWNER_COMMENT_AND_SIGNED_SOURCE"),
 }
 class Denied(ValueError): pass
 
@@ -53,7 +54,8 @@ def parse(body):
     try: obj=json.loads(lines[0][len(PREFIX):-len(SUFFIX)],object_pairs_hook=unique)
     except (ValueError,TypeError) as exc:
         raise Denied("malformed automatic locator") from exc
-    require(type(obj) is dict and set(obj)==FIELDS and
+    require(type(obj) is dict and set(obj)==
+            (FIELDS|{"requestCommentId"} if obj.get("authorizationMode")=="owner-issue-comment" else FIELDS) and
             type(obj.get("schemaVersion")) is int and obj["schemaVersion"]==1
             and type(obj.get("authorizationMode")) is str
             and obj["authorizationMode"] in ORIGINS
@@ -72,6 +74,9 @@ def parse(body):
             and type(obj.get("publisherAppId")) is int and obj["publisherAppId"]==5451798
             and obj.get("approvalProvenance")==ORIGINS[obj["authorizationMode"]][1],
             "unknown automatic source/Publisher origin")
+    if obj["authorizationMode"]=="owner-issue-comment":
+        require(type(obj.get("requestCommentId")) is int and obj["requestCommentId"]>0,
+                "missing exact owner comment ID")
     return obj
 
 def timestamp(value):
@@ -122,13 +127,31 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
             schedule.get("conclusion")=="success" and
             (schedule.get("repository") or {}).get("full_name")=="pgextwin/build",
             "genuine central Publisher did not succeed")
-    if expected_event=="workflow_dispatch":
+    if expected_event in ("workflow_dispatch","issue_comment"):
         for field in ("actor", "triggering_actor"):
             person=schedule.get(field)
             require(type(person) is dict and person.get("login")==OWNER_LOGIN
                     and type(person.get("id")) is int and person["id"]==OWNER_ID
                     and person.get("type")=="User",
                     "owner dispatch actor identity not authenticated")
+    if expected_event=="issue_comment":
+        cid=marker["requestCommentId"]
+        require(schedule.get("display_title")==f"Publisher-issue_comment-comment-{cid}",
+                "Publisher Run not linked to owner comment")
+        comment=api("repos/pgextwin/build/issues/comments/"+str(cid))
+        require(type(comment) is dict and comment.get("id")==cid
+                and type(comment.get("user")) is dict
+                and comment["user"].get("login")==OWNER_LOGIN
+                and type(comment["user"].get("id")) is int
+                and comment["user"]["id"]==OWNER_ID
+                and comment["user"].get("type")=="User"
+                and comment.get("body")==f"/pgextwin publish {repository}"
+                and comment.get("issue_url")=="https://api.github.com/repos/pgextwin/build/issues/311"
+                and comment.get("created_at")==comment.get("updated_at"),
+                "owner issue comment mutated or mismatched")
+        require(timestamp(source.get("created_at"))<=timestamp(comment["created_at"])
+                <=timestamp(schedule.get("created_at")),
+                "comment timestamp outside source/Publisher interval")
     jobs=api("repos/pgextwin/build/actions/runs/"+str(pub_id)+"/attempts/1/jobs?per_page=100")
     require(type(jobs) is dict and type(jobs.get("total_count")) is int and
             type(jobs.get("jobs")) is list and
@@ -157,6 +180,8 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
     return {
         "status":("INDEPENDENT_OWNER_DISPATCH_SIGNED_PUBLISHER_LIVE_MATCH"
                   if expected_event=="workflow_dispatch" else
+                  "INDEPENDENT_OWNER_COMMENT_SIGNED_PUBLISHER_LIVE_MATCH"
+                  if expected_event=="issue_comment" else
                   "INDEPENDENT_AUTOMATIC_SIGNED_PUBLISHER_LIVE_MATCH"),
         "repository":repository,"releaseTag":tag,"sourceRunId":source_run_id,
         "publisherRunId":pub_id,"publisherAppId":5451798,

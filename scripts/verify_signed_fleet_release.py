@@ -446,7 +446,9 @@ def generate(extension, tag, record):
                                 assets, sums, source_commit, active)
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
                     "releaseProvenance": (
-                        "INDEPENDENT_OWNER_DISPATCH_SIGNED"
+                        "INDEPENDENT_OWNER_COMMENT_SIGNED"
+                         if auto_marker is not None and auto_marker["authorizationMode"] == "owner-issue-comment"
+                         else "INDEPENDENT_OWNER_DISPATCH_SIGNED"
                         if auto_marker is not None and auto_marker["authorizationMode"] == "owner-dispatch"
                         else "INDEPENDENT_AUTOMATIC_SIGNED_SCHEDULE"
                         if auto_marker is not None else "VERIFIED_MANUAL_DISPATCH"),

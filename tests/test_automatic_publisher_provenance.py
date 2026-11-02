@@ -87,6 +87,8 @@ def verify(got):
         f"repos/pgextwin/build/actions/runs/{PUB_RUN}":got["publisher"],
         f"repos/pgextwin/build/actions/runs/{PUB_RUN}/attempts/1/jobs?per_page=100":got["jobs"],
     }
+    if "comment" in got:
+        endpoints[f"repos/pgextwin/build/issues/comments/{got['comment']['id']}"]=got["comment"]
     called=[]
     def api(path):
         called.append(path)
@@ -137,6 +139,44 @@ class PublicAutoOrigin(unittest.TestCase):
                 case=deepcopy(item)
                 mutate(case)
                 verify(case)
+
+    def test_owner_issue_comment_binds_real_run_and_unedited_owner_comment(self):
+        item=events()
+        new_marker=marker()
+        new_marker.update(authorizationMode="owner-issue-comment",
+            approvalProvenance="INDEPENDENT_LIVE_OWNER_COMMENT_AND_SIGNED_SOURCE",
+            requestCommentId=6578723847)
+        item["release"]["body"]=notes(new_marker)
+        item["publisher"].update(event="issue_comment",
+            display_title="Publisher-issue_comment-comment-6578723847",
+            actor={"login":p.OWNER_LOGIN,"id":p.OWNER_ID,"type":"User"},
+            triggering_actor={"login":p.OWNER_LOGIN,"id":p.OWNER_ID,"type":"User"})
+        item["comment"]={
+            "id":6578723847,
+            "user":{"login":p.OWNER_LOGIN,"id":p.OWNER_ID,"type":"User"},
+            "body":"/pgextwin publish "+REPO,
+            "issue_url":"https://api.github.com/repos/pgextwin/build/issues/311",
+            "created_at":"2026-10-24T08:45:00Z",
+            "updated_at":"2026-10-24T08:45:00Z"}
+        result,called=verify(item)
+        self.assertEqual(result["status"],
+                         "INDEPENDENT_OWNER_COMMENT_SIGNED_PUBLISHER_LIVE_MATCH")
+        self.assertEqual(len(called),4)
+        mutations=[
+            lambda x:x["publisher"].update(event="workflow_dispatch"),
+            lambda x:x["publisher"].update(display_title="Publisher-issue_comment-comment-1"),
+            lambda x:x["publisher"]["actor"].update(id=1),
+            lambda x:x["publisher"]["triggering_actor"].update(login="attacker"),
+            lambda x:x["comment"]["user"].update(id=1),
+            lambda x:x["comment"].update(body="/pgextwin publish pgextwin/hypopg"),
+            lambda x:x["comment"].update(updated_at="2026-10-24T08:45:01Z"),
+            lambda x:x["comment"].update(issue_url="https://api.github.com/repos/pgextwin/build/issues/75"),
+            lambda x:x["comment"].update(created_at="2026-10-24T09:45:00Z",updated_at="2026-10-24T09:45:00Z"),
+            lambda x:x["publisher"].update(run_attempt=2),
+        ]
+        for index,mutate in enumerate(mutations):
+            with self.subTest(index=index),self.assertRaises(p.Denied):
+                bad=deepcopy(item);mutate(bad);verify(bad)
 
     def test_dispatch_marker_cannot_claim_a_scheduled_authorization(self):
         wrong=marker()
