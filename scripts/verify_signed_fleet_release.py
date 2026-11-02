@@ -406,8 +406,8 @@ def generate(extension, tag, record):
             and contract.get("extension") == extension
             and contract.get("contractVersion") == 2, "wrong immutable source/contract")
     # The existing manual operator Release route remains unchanged. An
-    # automatic Release must carry a strict public *locator* and independently
-    # prove the completed source and distinct central scheduled Publisher Run;
+    # App Release must carry a strict public *locator* and independently
+    # prove the completed source and distinct central Publisher Run;
     # a marker by itself never verifies signing or authorizes Catalog.
     body=release.get("body")
     auto_marker=(automatic_provenance.parse(body)
@@ -446,7 +446,9 @@ def generate(extension, tag, record):
                                 assets, sums, source_commit, active)
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
                     "releaseProvenance": (
-                        "INDEPENDENT_AUTOMATIC_SIGNED_SCHEDULE"
+                        "INDEPENDENT_OWNER_DISPATCH_SIGNED"
+                        if auto_marker is not None and auto_marker["authorizationMode"] == "owner-dispatch"
+                        else "INDEPENDENT_AUTOMATIC_SIGNED_SCHEDULE"
                         if auto_marker is not None else "VERIFIED_MANUAL_DISPATCH"),
                     "packagingCommit": source_commit, "promotionRunId": run_id,
                     "postgresqlMajors": active, "assetCount": len(assets),
