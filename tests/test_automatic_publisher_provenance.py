@@ -107,6 +107,46 @@ class PublicAutoOrigin(unittest.TestCase):
         self.assertEqual(len(called),3)
         self.assertTrue(result["sigstoreReleaseBytesMustBeVerifiedSeparately"])
 
+    def test_owner_dispatch_is_distinct_and_binds_both_real_actor_identities(self):
+        item=events()
+        new_marker=marker()
+        new_marker.update(authorizationMode="owner-dispatch",
+            approvalProvenance="INDEPENDENT_LIVE_OWNER_DISPATCH_AND_SIGNED_SOURCE")
+        item["release"]["body"]=notes(new_marker)
+        item["publisher"].update(event="workflow_dispatch",
+            actor={"login":p.OWNER_LOGIN,"id":p.OWNER_ID,"type":"User"},
+            triggering_actor={"login":p.OWNER_LOGIN,"id":p.OWNER_ID,"type":"User"})
+        result,called=verify(item)
+        self.assertEqual(result["status"],
+                         "INDEPENDENT_OWNER_DISPATCH_SIGNED_PUBLISHER_LIVE_MATCH")
+        self.assertEqual(result["publisherRunId"],PUB_RUN)
+        self.assertEqual(len(called),3)
+        mutations=[
+            lambda x:x["publisher"].update(event="schedule"),
+            lambda x:x["publisher"].update(event="push"),
+            lambda x:x["publisher"]["actor"].update(login="attacker"),
+            lambda x:x["publisher"]["actor"].update(id=1),
+            lambda x:x["publisher"]["actor"].update(type="Bot"),
+            lambda x:x["publisher"]["triggering_actor"].update(id=1),
+            lambda x:x["publisher"].pop("triggering_actor"),
+            lambda x:x["publisher"].update(run_attempt=2),
+            lambda x:x["source"].update(event="workflow_dispatch"),
+        ]
+        for index,mutate in enumerate(mutations):
+            with self.subTest(index=index),self.assertRaises(p.Denied):
+                case=deepcopy(item)
+                mutate(case)
+                verify(case)
+
+    def test_dispatch_marker_cannot_claim_a_scheduled_authorization(self):
+        wrong=marker()
+        wrong["authorizationMode"]="owner-dispatch"
+        with self.assertRaises(p.Denied):
+            p.parse(notes(wrong))
+        wrong["authorizationMode"]=[]
+        with self.assertRaises(p.Denied):
+            p.parse(notes(wrong))
+
     def test_duplicate_or_malformed_marker_denied(self):
         value=notes()
         for candidate in (

@@ -4,7 +4,7 @@
 A Release-body marker is only an UNTRUSTED locator. Full original signed ZIP,
 SHA256, SPDX, Grype and both real Sigstore verifications are performed by the
 existing Catalog verifier; this module additionally authenticates the distinct
-completed source main/push and central scheduled Publisher, with the dedicated
+completed source main/push and central Publisher, with the dedicated
 App as Release author. Manual operator Releases use their separate unchanged
 check. Offline/mock fixtures are NEVER public Release acceptance.
 """
@@ -28,6 +28,12 @@ FIELDS={
 SOURCE=".github/workflows/update-watch.yml"
 PUBLISHER=".github/workflows/publisher-candidate-intake.yml"
 PUBLISH_JOB="Isolated Publisher App signed formal Release (create only)"
+OWNER_LOGIN="ShutenOishi"
+OWNER_ID=27071164
+ORIGINS={
+    "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),
+    "owner-dispatch": ("workflow_dispatch", "INDEPENDENT_LIVE_OWNER_DISPATCH_AND_SIGNED_SOURCE"),
+}
 class Denied(ValueError): pass
 
 def require(ok,reason):
@@ -49,7 +55,8 @@ def parse(body):
         raise Denied("malformed automatic locator") from exc
     require(type(obj) is dict and set(obj)==FIELDS and
             type(obj.get("schemaVersion")) is int and obj["schemaVersion"]==1
-            and obj.get("authorizationMode")=="automatic-schedule"
+            and type(obj.get("authorizationMode")) is str
+            and obj["authorizationMode"] in ORIGINS
             and type(obj.get("repository")) is str and REPO.fullmatch(obj["repository"])
             and type(obj.get("releaseTag")) is str and TAG.fullmatch(obj["releaseTag"])
             and type(obj.get("packagingCommit")) is str and SHA.fullmatch(obj["packagingCommit"])
@@ -63,7 +70,7 @@ def parse(body):
             and type(obj.get("publisherMainSha")) is str and SHA.fullmatch(obj["publisherMainSha"])
             and obj.get("publisherWorkflow")==PUBLISHER
             and type(obj.get("publisherAppId")) is int and obj["publisherAppId"]==5451798
-            and obj.get("approvalProvenance")=="INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE",
+            and obj.get("approvalProvenance")==ORIGINS[obj["authorizationMode"]][1],
             "unknown automatic source/Publisher origin")
     return obj
 
@@ -104,16 +111,24 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
             "original signed main/push Run is not completed successfully")
     pub_id=marker["publisherRunId"]
     schedule=api("repos/pgextwin/build/actions/runs/"+str(pub_id))
+    expected_event=ORIGINS[marker["authorizationMode"]][0]
     require(type(schedule) is dict and type(schedule.get("id")) is int and
             schedule["id"]==pub_id and type(schedule.get("run_attempt")) is int and
-            schedule["run_attempt"]==1 and schedule.get("event")=="schedule" and
+            schedule["run_attempt"]==1 and schedule.get("event")==expected_event and
             schedule.get("path")==PUBLISHER and
             schedule.get("head_sha")==marker["publisherMainSha"] and
             schedule.get("head_branch")=="main" and
             schedule.get("status")=="completed" and
             schedule.get("conclusion")=="success" and
             (schedule.get("repository") or {}).get("full_name")=="pgextwin/build",
-            "genuine scheduled central Publisher did not succeed")
+            "genuine central Publisher did not succeed")
+    if expected_event=="workflow_dispatch":
+        for field in ("actor", "triggering_actor"):
+            person=schedule.get(field)
+            require(type(person) is dict and person.get("login")==OWNER_LOGIN
+                    and type(person.get("id")) is int and person["id"]==OWNER_ID
+                    and person.get("type")=="User",
+                    "owner dispatch actor identity not authenticated")
     jobs=api("repos/pgextwin/build/actions/runs/"+str(pub_id)+"/attempts/1/jobs?per_page=100")
     require(type(jobs) is dict and type(jobs.get("total_count")) is int and
             type(jobs.get("jobs")) is list and
@@ -140,7 +155,9 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
     require(source_time<=schedule_time<=release_time<=end_time,
             "source/scheduled Publisher/Release timestamps out of order")
     return {
-        "status":"INDEPENDENT_AUTOMATIC_SIGNED_PUBLISHER_LIVE_MATCH",
+        "status":("INDEPENDENT_OWNER_DISPATCH_SIGNED_PUBLISHER_LIVE_MATCH"
+                  if expected_event=="workflow_dispatch" else
+                  "INDEPENDENT_AUTOMATIC_SIGNED_PUBLISHER_LIVE_MATCH"),
         "repository":repository,"releaseTag":tag,"sourceRunId":source_run_id,
         "publisherRunId":pub_id,"publisherAppId":5451798,
         "sigstoreReleaseBytesMustBeVerifiedSeparately":True,
