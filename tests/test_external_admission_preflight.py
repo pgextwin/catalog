@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,7 +69,6 @@ class AdmissionPreflightTests(unittest.TestCase):
             p.preflight(candidates, PILOT)
 
     def test_metadata_cannot_launder_license_source_or_download(self):
-        c = p.load_candidates()
         for field, value in (
             ("rightsReviewed", True),
             ("downloadAuthorized", True),
@@ -77,13 +77,17 @@ class AdmissionPreflightTests(unittest.TestCase):
             ("provenanceVerified", True),
             ("dependenciesVerified", True),
         ):
-            broken = copy.deepcopy(c[0])
-            broken[field] = value
-            merged = [broken, *c[1:]]
-            with self.assertRaises(ValueError):
-                # Validate in-memory boundary with the same rules as ingestion:
-                # Synthetic authority is never passed into an executable.
-                p.preflight(merged, PILOT) if field == "n/a" else _check_registry_claim(broken)
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as folder:
+                external = Path(folder) / "external"
+                external.mkdir()
+                for item in p.REGISTRIES:
+                    source = json.loads((ROOT / item).read_text(encoding="utf-8"))
+                    if item == p.REGISTRIES[0]:
+                        source["candidates"][0][field] = value
+                    (Path(folder) / item).write_text(
+                        json.dumps(source), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    p.load_candidates(Path(folder))
 
     def test_byte_pilot_cannot_launder_signature_or_mirror(self):
         for field in ("signatureVerified", "licenseApproved", "abiApproved",
@@ -100,16 +104,6 @@ class AdmissionPreflightTests(unittest.TestCase):
         self.assertNotIn("workflow_dispatch", source)
         self.assertNotIn("release/upload", source)
 
-
-def _check_registry_claim(c):
-    if (c["verificationState"] != "metadata-only"
-            or c["downloadAuthorized"] is not False
-            or c["originalSha256"] is not None
-            or c["rightsReviewed"] is not False
-            or c["provenanceVerified"] is not False
-            or c["compatibilityVerified"] is not False
-            or c["dependenciesVerified"] is not False):
-        raise ValueError("Metadata trust promotion denied")
 
 
 if __name__ == "__main__":
