@@ -1,0 +1,40 @@
+name: Issue112 OSGeo PostGIS Windows directory history (read-only)
+
+on:
+  pull_request:
+    paths:
+      - scripts/discover_osgeo_windows_bundles.py
+      - tests/test_discover_osgeo_windows_bundles.py
+      - docs/issue-112-external-windows-sources.md
+      - .github/workflows/issue112-osgeo-readonly.yml
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/discover_osgeo_windows_bundles.py
+      - tests/test_discover_osgeo_windows_bundles.py
+      - .github/workflows/issue112-osgeo-readonly.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact commit without retained credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline directory parser adversarial contract tests
+        run: python3 -m unittest tests.test_discover_osgeo_windows_bundles -v
+      - name: Read-only full directory + archive scan via public OSGeo mirror
+        run: |
+          python3 scripts/discover_osgeo_windows_bundles.py \
+            --index osu-mirror \
+            --output "$RUNNER_TEMP/issue112-osgeo-untrusted-index.json"
+          test -s "$RUNNER_TEMP/issue112-osgeo-untrusted-index.json"
+          # Directory listings only. No download/upload, attestation,
+          # Release/Publisher, signed-feed updates or installation.

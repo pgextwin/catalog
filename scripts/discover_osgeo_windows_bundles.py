@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""Bounded read-only OSGeo PostGIS Windows directory history discovery.
+
+Directory HTML is UNTRUSTED and exposes no ZIP, installer, license, SHA256,
+signature, dependency, ABI or publication authorization. No ZIP/EXE/MD5 GET.
+"""
+import argparse
+from concurrent.futures import ThreadPoolExecutor
+from html.parser import HTMLParser
+import json
+import os
+from pathlib import Path
+import re
+import urllib.request
+
+BASES = {
+    "osgeo-cache": "https://download-cache.osgeo.org/postgis/windows/",
+    "osu-mirror": "https://ftp2.osuosl.org/pub/osgeo/download/postgis/windows/",
+}
+PG_DIRECTORY = re.compile(r"pg[0-9]{2}/\Z")
+FILE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,200}\Z")
+BINARY_NAME = re.compile(r"postgis[^/]*\.(?:zip|exe)\Z", re.I)
+BUNDLE_ZIP = re.compile(
+    r"postgis-bundle-pg([0-9]{2})-([0-9]+\.[0-9]+\.[0-9]+)x64\.zip\Z")
+BUNDLE_EXE = re.compile(
+    r"postgis-bundle-pg([0-9]{2})x64-setup-([0-9]+\.[0-9]+\.[0-9]+)-[0-9]+\.exe\Z")
+MAX_DIRECTORY_ENTRIES = 4000
+MAX_LISTING_BYTES = 3_000_000
+MAX_PG_DIRECTORIES = 40
+
+
+class Links(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.links = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() != "a":
+            return
+        for key, value in attrs:
+            if key.lower() == "href" and isinstance(value, str):
+                self.links.append(value)
+
+
+def parse_listing(html):
+    if not isinstance(html, (bytes, str)) or len(html) > MAX_LISTING_BYTES:
+        raise ValueError("Directory listing is missing/oversized")
+    parser = Links()
+    parser.feed(html.decode("utf-8") if isinstance(html, bytes) else html)
+    if len(parser.links) > MAX_DIRECTORY_ENTRIES:
+        raise ValueError("Directory listing contains too many links")
+    found = set()
+    for href in parser.links:
+        if href in ("../", "./", "/", "?C=N;O=D"):
+            continue
+        # Reject paths, URL encodings, credentials, query strings and delimiters;
+        # no relative directory walking or non-OSGeo origin may be followed.
+        if not (href.endswith("/") and PG_DIRECTORY.fullmatch(href)
+                or href == "archive/"
+                or FILE_NAME.fullmatch(href)):
+            continue
+        if href in found:
+            raise ValueError("Duplicate directory entry")
+        found.add(href)
+    if not found:
+        raise ValueError("Directory listing has no eligible entries")
+    return sorted(found)
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
+        raise ValueError("Untrusted directory redirect")
+
+
+def fetch_index(root, directory):
+    if root not in BASES:
+        raise ValueError("Unknown pinned index mirror")
+    if directory not in ("",) and not (
+            PG_DIRECTORY.fullmatch(directory) or
+            re.fullmatch(r"pg[0-9]{2}/archive/", directory)):
+        raise ValueError("Untrusted index path")
+    url = BASES[root] + directory
+    opener = urllib.request.build_opener(NoRedirect())
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "pgextwin-osgeo-metadata-only/1",
+                      "Accept": "text/html"})
+    with opener.open(req, timeout=25) as response:
+        if response.status != 200 or response.url != url:
+            raise ValueError("Wrong directory response")
+        if not response.headers.get("Content-Type", "").lower().startswith("text/html"):
+            raise ValueError("Unexpected index MIME type")
+        body = response.read(MAX_LISTING_BYTES + 1)
+    return parse_listing(body)
+
+
+def normalize_major(pgdir):
+    n = int(pgdir[2:-1])
+    if n < 100 and n >= 80:
+        return str(n // 10) + "." + str(n % 10)
+    return str(n)
+
+
+def scan(root, fetch):
+    if root not in BASES:
+        raise ValueError("Untrusted mirror")
+    names = fetch("")
+    pgdirs = [name for name in names if PG_DIRECTORY.fullmatch(name)]
+    if not pgdirs or len(pgdirs) > MAX_PG_DIRECTORIES:
+        raise ValueError("Unexpected PG directory coverage")
+    dirs = {}
+    # Concurrent bounded discovery; each GET is a directory *index*, never a ZIP/EXE.
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(fetch, pgdirs))
+    for directory, links in zip(pgdirs, results):
+        if not links:
+            raise ValueError("Empty PostgreSQL directory index")
+        dirs[directory] = links
+    archive_dirs = [directory + "archive/" for directory in pgdirs
+                    if "archive/" in dirs[directory]]
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        archives = list(pool.map(fetch, archive_dirs))
+    for directory, links in zip(archive_dirs, archives):
+        if not links:
+            raise ValueError("Empty historical archive index")
+        dirs[directory] = links
+    candidates = []
+    all_filenames = set()
+    for directory in sorted(dirs):
+        major = normalize_major(directory.split("/")[0] + "/")
+        for filename in dirs[directory]:
+            if not BINARY_NAME.fullmatch(filename):
+                continue
+            source_key = directory + filename
+            if source_key in all_filenames:
+                raise ValueError("Duplicate directory ZIP identity")
+            all_filenames.add(source_key)
+            parsed = BUNDLE_ZIP.fullmatch(filename) or BUNDLE_EXE.fullmatch(filename)
+            parsed_major = normalize_major("pg" + parsed.group(1) + "/") if parsed else None
+            if parsed_major is not None and parsed_major != major:
+                raise ValueError("Bundle filename/PG directory mismatch")
+            entry = {
+                "sourceRelativePath": source_key,
+                "pgMajor": major,
+                "packagedPostgisVersion": parsed.group(2) if parsed else None,
+                "fileName": filename,
+                "artifactKind": "bundle-zip" if filename.lower().endswith(".zip")
+                                else "bundle-installer-exe",
+                "historicalDirectory": directory.endswith("archive/"),
+                "md5SidecarPresent": filename + ".md5" in dirs[directory],
+                "bundleContentsVerified": False,
+                "originalSha256Verified": False,
+                "licensesAndNoticesVerified": False,
+                "dependenciesAndAbiVerified": False,
+                "provenanceVerified": False,
+                "downloadAuthorized": False,
+                "mirrorAuthorized": False,
+            }
+            candidates.append(entry)
+    if not candidates:
+        raise ValueError("No OSGeo Windows bundle candidates")
+    return {
+        "schemaVersion": "pgextwin-osgeo-postgis-windows-directory-snapshot/v1",
+        "sourceIndex": BASES[root],
+        "sourceKind": "UNTRUSTED_DIRECTORY_METADATA_ONLY",
+        "publicationAuthorized": False,
+        "redistributionAuthorized": False,
+        "majorDirectories": len(pgdirs),
+        "archiveDirectories": len(archive_dirs),
+        "scannedIndexDirectories": 1 + len(dirs),
+        "bundleFiles": len(candidates),
+        "pgMajors": sorted({e["pgMajor"] for e in candidates}),
+        "candidates": sorted(candidates, key=lambda e: e["sourceRelativePath"]),
+    }
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--index", choices=sorted(BASES), default="osu-mirror")
+    p.add_argument("--output", type=Path, required=True)
+    args = p.parse_args()
+    report = scan(args.index, lambda directory: fetch_index(args.index, directory))
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                           encoding="utf-8")
+    summary = {k: v for k, v in report.items()
+               if k not in ("candidates", "pgMajors")}
+    summary["downloadAuthorized"] = False
+    summary["mirrorAuthorized"] = False
+    print(json.dumps(summary, sort_keys=True))
+    with open(os.environ.get("GITHUB_STEP_SUMMARY", os.devnull), "a",
+              encoding="utf-8") as out:
+        out.write("## OSGeo PostGIS bundle index (metadata-only)\n\n")
+        out.write("Directories: " + str(report["scannedIndexDirectories"]) +
+                  "; bundle files: " + str(report["bundleFiles"]) + "\n\n")
+        out.write("No downloaded binary, source-payload inspection, SHA256, signature, "
+                  "license, ABI or external distribution authority is claimed.\n")
+
+
+if __name__ == "__main__":
+    main()
