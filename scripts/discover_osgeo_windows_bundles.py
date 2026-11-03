@@ -112,12 +112,16 @@ def scan(root, fetch):
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(fetch, pgdirs))
     for directory, links in zip(pgdirs, results):
+        if not links:
+            raise ValueError("Empty PostgreSQL directory index")
         dirs[directory] = links
     archive_dirs = [directory + "archive/" for directory in pgdirs
                     if "archive/" in dirs[directory]]
     with ThreadPoolExecutor(max_workers=6) as pool:
         archives = list(pool.map(fetch, archive_dirs))
     for directory, links in zip(archive_dirs, archives):
+        if not links:
+            raise ValueError("Empty historical archive index")
         dirs[directory] = links
     candidates = []
     all_filenames = set()
