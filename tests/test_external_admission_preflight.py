@@ -24,7 +24,7 @@ class AdmissionPreflightTests(unittest.TestCase):
         self.assertFalse(report["publicationAuthorized"])
         self.assertFalse(report["downloadAuthorized"])
         self.assertFalse(report["mirrorAuthorized"])
-        self.assertEqual(203, report["missingGatesCount"]["fixed_upstream_source_commit"])
+        self.assertEqual(198, report["missingGatesCount"]["fixed_upstream_source_commit"])
         self.assertEqual(201, report["missingGatesCount"]["independent_original_zip_byte_hash"])
         self.assertEqual(203, report["missingGatesCount"]["per_file_license_notices_and_direct_link_rights"])
         self.assertEqual(203, report["missingGatesCount"]["exact_pg_distribution_arch_and_abi_runtime"])
