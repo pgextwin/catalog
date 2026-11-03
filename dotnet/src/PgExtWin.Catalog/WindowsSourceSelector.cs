@@ -11,7 +11,7 @@ namespace PgExtWin.Catalog;
 public sealed record WindowsSourceCandidate(
     string Extension, string UpstreamVersion, string PgMajor, string Architecture,
     string PgDistribution, string Abi, string BuildMethod, string ProviderType,
-    string Provider, string ReleaseTag, string AssetVersion, string? SourceCommitSha,
+    string Provider, string SourceRepo, string ReleaseTag, string AssetVersion, string? SourceCommitSha,
     long ReleaseId, long AssetId, string AssetUrl, string? OriginalSha256,
     string Lifecycle, bool Historical, bool CompatibilityVerified,
     bool DependenciesVerified, bool RightsReviewed, bool ProvenanceVerified,
@@ -72,6 +72,8 @@ public static class WindowsSourceSelector
             c.ProviderType is not ("upstream-official" or "community" or "pgextwin") ||
             (c.BuildMethod == "external" && c.ProviderType == "pgextwin") ||
             (c.BuildMethod != "external" && c.ProviderType != "pgextwin") ||
+            !Regex.IsMatch(c.SourceRepo, @"\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z") ||
+            (c.BuildMethod != "external" && c.SourceRepo != "pgextwin/" + c.Extension) ||
             !Sha40.IsMatch(c.SourceCommitSha ?? "") ||
             !Sha64.IsMatch(c.OriginalSha256 ?? "") ||
             c.ReleaseId <= 0 || c.AssetId <= 0 ||
@@ -84,7 +86,8 @@ public static class WindowsSourceSelector
         // bind authenticated repository/release/asset identity and original bytes.
         if (!Uri.TryCreate(c.AssetUrl, UriKind.Absolute, out var uri) ||
             uri.Scheme != Uri.UriSchemeHttps || uri.Host != "github.com" ||
-            !uri.AbsolutePath.Contains("/releases/download/", StringComparison.Ordinal) ||
+            !uri.AbsolutePath.StartsWith("/" + c.SourceRepo + "/releases/download/",
+                StringComparison.Ordinal) ||
             uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0)
             return false;
         return true;
