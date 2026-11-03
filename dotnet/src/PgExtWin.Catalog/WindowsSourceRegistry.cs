@@ -18,7 +18,23 @@ public static class WindowsSourceRegistry
     public static IReadOnlyList<ExternalWindowsListing> LoadLocal(string catalogDirectory)
     {
         var root = Path.GetFullPath(catalogDirectory);
-        var path = Path.Combine(root, "external", "windows-candidates-v1.json");
+        // Both files remain local UNVERIFIED discovery metadata, never signed download pins.
+        // An absent optional addendum is compatible with earlier catalog snapshots.
+        var rows = new List<ExternalWindowsListing>();
+        var uniqueIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in new[] { "windows-candidates-v1.json", "windows-candidates-portalcorp-v1.json" })
+        {
+            var path = Path.Combine(root, "external", name);
+            if (name != "windows-candidates-v1.json" && !File.Exists(path))
+                continue;
+            rows.AddRange(LoadOne(path, uniqueIds));
+        }
+        return rows;
+    }
+
+    private static IReadOnlyList<ExternalWindowsListing> LoadOne(
+        string path, HashSet<string> uniqueIds)
+    {
         var file = new FileInfo(path);
         if (!file.Exists || file.Length is < 1 or > 2_000_000 ||
             (file.Attributes & FileAttributes.ReparsePoint) != 0)
@@ -35,7 +51,6 @@ public static class WindowsSourceRegistry
             values.GetArrayLength() is < 1 or > 10000)
             throw new InvalidDataException("Invalid external source candidate count");
         var rows = new List<ExternalWindowsListing>();
-        var uniqueIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in values.EnumerateArray())
         {
             var name = Value(item, "extension");
