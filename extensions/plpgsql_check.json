@@ -5,145 +5,145 @@
   "description": "Static analysis and diagnostic checks for PL/pgSQL functions.",
   "upstream": {
     "repository": "okbob/plpgsql_check",
-    "version": "2.10.15"
+    "version": "2.10.16"
   },
   "repository": "pgextwin/plpgsql_check",
   "license": "MIT",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v2.10.15-windows.1",
-    "publishedAt": "2026-10-19T02:01:14Z",
-    "releaseUrl": "https://github.com/pgextwin/plpgsql_check/releases/tag/v2.10.15-windows.1",
+    "releaseTag": "v2.10.16-windows.1",
+    "publishedAt": "2026-11-03T07:50:39Z",
+    "releaseUrl": "https://github.com/pgextwin/plpgsql_check/releases/tag/v2.10.16-windows.1",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
-      "asset": "plpgsql_check-v2.10.15-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg14-windows-x64.zip",
-      "sha256": "7f7ddc79178f009c5074bb3bf4058437863ad7751ac59e9eab2284e7863e9515",
+      "asset": "plpgsql_check-v2.10.16-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg14-windows-x64.zip",
+      "sha256": "c515bfff5d6f0f0e6ec88d9fe4d3a36f12cc3a2886ec34292e0665831b9add8e",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg14-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg14-windows-x64.spdx.json",
-          "sha256": "383b1198172bfb91e6e90686b6d0ce69cf6b6d126decab2be2e0cdfb60b3a1df"
+          "asset": "plpgsql_check-v2.10.16-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg14-windows-x64.spdx.json",
+          "sha256": "1c1a9b4d3b67601e10b3c74d923b0653bf99d75bc36435daaeffdc5e2f166a9a"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg14-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg14-windows-x64.vulnerabilities.json",
-          "sha256": "fa61ddcd7ffb28f8b3c01367f64d9e487269576f0d405023448af8535748b6c2"
+          "asset": "plpgsql_check-v2.10.16-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "bb7f9c77d21b6d2104867454d27d227122c7b1f8a38039ca4ca34586139d457d"
         }
       }
     },
     "15": {
       "available": true,
-      "asset": "plpgsql_check-v2.10.15-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg15-windows-x64.zip",
-      "sha256": "e7c55cf66e4c0064aaaf920201714a9b96ccd6d6aae928d83716df31deff3fe9",
+      "asset": "plpgsql_check-v2.10.16-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg15-windows-x64.zip",
+      "sha256": "ba7e89599d3b02c93bb28edce58b205041009f24632067ab4aa21f34e77dee08",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg15-windows-x64.spdx.json",
-          "sha256": "053a770ece75f37226f5127931f4950d7f8b88113e02fff8e7b7588315f6715b"
+          "asset": "plpgsql_check-v2.10.16-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg15-windows-x64.spdx.json",
+          "sha256": "aca707642881181bc855b9ee61dcaf8f578035c35e70d76fdc27511cf891e2f9"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "89301ece2928b6f1ddcb5163185d5de0aa6e284b944a88b193b7e9fbb42f5a1c"
+          "asset": "plpgsql_check-v2.10.16-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "d62e08ef3948774569a34e513da2a918fb5441759d16c245b8f97233ebc443f2"
         }
       }
     },
     "16": {
       "available": true,
-      "asset": "plpgsql_check-v2.10.15-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg16-windows-x64.zip",
-      "sha256": "8d7824948f2e2ec46b068886242e5e5fe22fa76a1249f6930fccb0306ba4f0c2",
+      "asset": "plpgsql_check-v2.10.16-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg16-windows-x64.zip",
+      "sha256": "a93249b65ed92bc8121395368a230c5c09601985a679b0e3d0e32d78b70a6a9b",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg16-windows-x64.spdx.json",
-          "sha256": "325f52271a7d29fce75e279ce85dc15bcc4a148d475bab772656764d14369f9d"
+          "asset": "plpgsql_check-v2.10.16-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg16-windows-x64.spdx.json",
+          "sha256": "2604214736f3bd227d9bea66ae707817c03d9bd91eaa3fd1a63f4aa3d17dc4a0"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "ec800e6c0bf82110222c7941a05167cd44b45681e5784986f9c41d554e1df942"
+          "asset": "plpgsql_check-v2.10.16-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "43c0784c7913bf3b925f9d7bae08f98ba7f4bf8afbc14cbd26cf845dc3ab4562"
         }
       }
     },
     "17": {
       "available": true,
-      "asset": "plpgsql_check-v2.10.15-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg17-windows-x64.zip",
-      "sha256": "726ea6cdd5fcf7a825c3d6db44849ac42785bbe8c8e7c1dd4b1f9e8dca204456",
+      "asset": "plpgsql_check-v2.10.16-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg17-windows-x64.zip",
+      "sha256": "fcdf940ab39850f38cfbf8413fcc8edfc0e6d2e90321e20f9140f08556005ded",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg17-windows-x64.spdx.json",
-          "sha256": "ac6931b2b6bb02a7bbcb8c28e93b3ce00b7ad749bdaa57ebb47a1cd160c940e4"
+          "asset": "plpgsql_check-v2.10.16-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg17-windows-x64.spdx.json",
+          "sha256": "ef9330e92943287477051d7d684af47474f22eae15fa6cc6ba0155580aeb4373"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "17ed3c34eee0091d73aa9ed45065e8fad8f4ca9e78679a72bff5b0d75c78ef89"
+          "asset": "plpgsql_check-v2.10.16-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "ed8df009a4384cf579ff0da0d559ed6ede513b6d4e55bf42f4f6de82814b3a9d"
         }
       }
     },
     "18": {
       "available": true,
-      "asset": "plpgsql_check-v2.10.15-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg18-windows-x64.zip",
-      "sha256": "2d5951746f12fdbda71f8b1cb380640c1a0332e40958e509193ddb6598ab946e",
+      "asset": "plpgsql_check-v2.10.16-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg18-windows-x64.zip",
+      "sha256": "7c237a53cb21066031919a6d877792b0a75c0a195350e07eb42aed9c1b6e69ed",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg18-windows-x64.spdx.json",
-          "sha256": "fa4681d16d500c426cb30a64b619755492dcd15dc924f2fa3fa113ec0e9c1410"
+          "asset": "plpgsql_check-v2.10.16-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg18-windows-x64.spdx.json",
+          "sha256": "2dfd189b52b560b0c83d8c003c7cdb29a46b4ada9e5286703b804672851199e3"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "plpgsql_check-v2.10.15-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.15-windows.1/plpgsql_check-v2.10.15-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "1ffbf40f7b0045686427953d311c1d7a37137f6d55b349985e6bfc34339b067c"
+          "asset": "plpgsql_check-v2.10.16-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.10.16-windows.1/plpgsql_check-v2.10.16-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "79fd6b4483e7cb56b9e4eb0545f801d82f59f015e4315e3f87f6a430e0c019e7"
         }
       }
     }
