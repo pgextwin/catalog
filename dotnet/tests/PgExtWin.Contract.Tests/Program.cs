@@ -89,6 +89,7 @@ await TrustedBootstrapTests.RunAsync(Check);
 await AuthenticatedCatalogHeadTests.RunAsync(Check);
 await PinnedBrowserDownloadTests.RunAsync(Check);
 SyntheticBundleTests.Run(Check);
+WindowsSourceSelectorTests.Run(Check, Denies);
 P1HandoffTests.Run(Check);
 P1ReportCommandTests.Run(Check);
 Console.WriteLine($"PASS: {cases} local read-only contract checks. SIGNATURE_VERIFIED=0 PUBLISH=DENY");
