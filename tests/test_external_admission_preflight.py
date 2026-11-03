@@ -24,11 +24,13 @@ class AdmissionPreflightTests(unittest.TestCase):
         self.assertFalse(report["publicationAuthorized"])
         self.assertFalse(report["downloadAuthorized"])
         self.assertFalse(report["mirrorAuthorized"])
-        self.assertEqual(198, report["missingGatesCount"]["fixed_upstream_source_commit"])
+        self.assertNotIn("fixed_upstream_source_commit", report["missingGatesCount"])
+        self.assertEqual("PROPORTIONATE_NOT_PGEXTWIN_ARTIFACT_PARITY", report["providerEvidencePolicy"])
+        self.assertIn("upstream_spdx_sbom", report["upstreamArtifactsNotUniversallyRequired"])
         self.assertEqual(201, report["missingGatesCount"]["independent_original_zip_byte_hash"])
-        self.assertEqual(203, report["missingGatesCount"]["per_file_license_notices_and_direct_link_rights"])
+        self.assertEqual(203, report["missingGatesCount"]["license_and_applicable_notices_for_intended_use"])
         self.assertEqual(203, report["missingGatesCount"]["exact_pg_distribution_arch_and_abi_runtime"])
-        self.assertEqual(203, report["missingGatesCount"]["formal_publisher_download_authorization"])
+        self.assertEqual(203, report["missingGatesCount"]["formal_pgextwin_download_authorization"])
         self.assertEqual(203, len({(r["sourceRepo"], r["releaseId"], r["assetId"])
                                    for r in report["records"]}))
         matched = [r for r in report["records"] if r["reportedOriginalBytePilotSha256"]]
@@ -36,13 +38,29 @@ class AdmissionPreflightTests(unittest.TestCase):
                          {r["sourceRepo"] for r in matched})
         self.assertTrue(all(r["bytePilotScope"] == "BYTE_INTEGRITY_ONLY" and
                             r["downloadAuthorized"] is False and
-                            "formal_publisher_download_authorization" in r["missingGates"]
+                            "formal_pgextwin_download_authorization" in r["missingGates"]
                             for r in matched))
 
-    def test_attestation_claim_not_upgraded_by_raw_byte_pilot(self):
+    def test_provider_origin_review_required_but_upstream_attestation_not_universal(self):
         report = p.preflight(p.load_candidates(), PILOT)
+        self.assertTrue(all("reviewed_provider_release_origin" in r["missingGates"]
+                            for r in report["records"]))
         self.assertTrue(all("cryptographic_or_independently_approved_provenance"
-                            in r["missingGates"] for r in report["records"]))
+                            not in r["missingGates"] for r in report["records"]))
+        self.assertTrue(all("upstream_sigstore_attestation" not in r["missingGates"]
+                            and "upstream_spdx_sbom" not in r["missingGates"]
+                            for r in report["records"]))
+        official = next(r for r in report["records"] if r["sourceRepo"] == "laurenz/oracle_fdw"
+                        and r["assetId"] == 442625860)
+        self.assertEqual("upstream-official", official["providerType"])
+        self.assertEqual([], official["optionalProviderEvidenceToConsider"])
+        community = next(r for r in report["records"] if r["sourceRepo"] ==
+                         "andreiramani/pgvector_pgsql_windows" and r["assetId"] == 661612613)
+        self.assertEqual("community", community["providerType"])
+        self.assertIn("upstream_source_commit_if_available",
+                      community["optionalProviderEvidenceToConsider"])
+        self.assertFalse(official["downloadAuthorized"])
+        self.assertFalse(community["downloadAuthorized"])
 
     def test_reject_pilot_wrong_asset_version_and_duplicate_id(self):
         candidates = p.load_candidates()

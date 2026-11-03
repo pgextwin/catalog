@@ -95,23 +95,32 @@ def preflight(candidates, pilot):
     for c in sorted(candidates, key=identity):
         proof = pinned.get(identity(c))
         missing = []
-        if not isinstance(c["sourceCommitSha"], str) or not SHA40.fullmatch(c["sourceCommitSha"]):
-            missing.append("fixed_upstream_source_commit")
+        # Each provider's publication practices inform acceptable evidence.
+        # Mandatory checks concern the *usable binary*, not whether the
+        # upstream community produces pgextwin's own supply-chain artifacts.
         if proof is None:
             missing.append("independent_original_zip_byte_hash")
-        # Even a passing raw-byte pilot never proves source/Builder provenance,
-        # license NOTICE obligations, Windows runtime ABI, dependency closure
-        # or identity-bound release/mirror authorization.
+        # The metadata-only registry never establishes a reviewed provider
+        # identity. Authenticated release/asset IDs plus verified original bytes
+        # and a documented provider risk review MAY be sufficient; an upstream
+        # Sigstore signature or build attestation is not universally mandatory.
         if not c["provenanceVerified"]:
-            missing.append("cryptographic_or_independently_approved_provenance")
+            missing.append("reviewed_provider_release_origin")
         if not c["rightsReviewed"]:
-            missing.append("per_file_license_notices_and_direct_link_rights")
+            missing.append("license_and_applicable_notices_for_intended_use")
         if not c["compatibilityVerified"]:
             missing.append("exact_pg_distribution_arch_and_abi_runtime")
         if not c["dependenciesVerified"]:
             missing.append("runtime_dependency_closure")
+        # These are pgextwin's OWN consumer trust/authorization gates, not
+        # artifacts the external provider is required to manufacture.
         missing.extend(("authenticated_signed_catalog_pin",
-                        "formal_publisher_download_authorization"))
+                        "formal_pgextwin_download_authorization"))
+        optional = []
+        if not isinstance(c["sourceCommitSha"], str) or not SHA40.fullmatch(c["sourceCommitSha"]):
+            optional.append("upstream_source_commit_if_available")
+        # Never infer the presence or absence of an upstream signature/SBOM
+        # from the untrusted discovery registry; assess these per provider.
         gaps.update(missing)
         evidence.append({
             "sourceRepo": c["sourceRepo"],
@@ -119,10 +128,12 @@ def preflight(candidates, pilot):
             "extension": c["extension"],
             "version": c["upstreamVersion"], "pgMajor": c["pgMajor"],
             "assetName": c["assetName"],
+            "providerType": c["providerType"],
             "reportedOriginalBytePilotSha256": proof,
             "bytePilotScope": "BYTE_INTEGRITY_ONLY" if proof else "NO_ORIGINAL_BYTE_PROOF",
             "downloadAuthorized": False, "mirrorAuthorized": False,
             "missingGates": missing,
+            "optionalProviderEvidenceToConsider": optional,
         })
     if not evidence:
         raise ValueError("Empty external registry is not accepted")
@@ -135,6 +146,11 @@ def preflight(candidates, pilot):
         "candidates": len(evidence),
         "bytePilotsLinked": len(pinned),
         "blockedCandidates": len(evidence),
+        "providerEvidencePolicy": "PROPORTIONATE_NOT_PGEXTWIN_ARTIFACT_PARITY",
+        "upstreamArtifactsNotUniversallyRequired": [
+            "upstream_sigstore_attestation", "upstream_spdx_sbom",
+            "upstream_grype_report", "upstream_reproducible_build_proof",
+        ],
         "missingGatesCount": dict(sorted(gaps.items())),
         "records": evidence,
     }

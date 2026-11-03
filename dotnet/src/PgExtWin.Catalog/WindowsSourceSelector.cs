@@ -74,7 +74,14 @@ public static class WindowsSourceSelector
             (c.BuildMethod != "external" && c.ProviderType != "pgextwin") ||
             !Regex.IsMatch(c.SourceRepo, @"\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z") ||
             (c.BuildMethod != "external" && c.SourceRepo != "pgextwin/" + c.Extension) ||
-            !Sha40.IsMatch(c.SourceCommitSha ?? "") ||
+            // pgextwin builds always pin our source SHA. External providers
+            // may publish authentic binaries without build-source pin records:
+            // an absent external source SHA is acceptable only after separate
+            // release-origin review (ProvenanceVerified) and signed Catalog
+            // admission. A malformed supplied SHA is never acceptable.
+            (c.BuildMethod == "external"
+                ? c.SourceCommitSha is not null && !Sha40.IsMatch(c.SourceCommitSha)
+                : !Sha40.IsMatch(c.SourceCommitSha ?? "")) ||
             !Sha64.IsMatch(c.OriginalSha256 ?? "") ||
             c.ReleaseId <= 0 || c.AssetId <= 0 ||
             c.Lifecycle is not ("supported" or "eol") ||

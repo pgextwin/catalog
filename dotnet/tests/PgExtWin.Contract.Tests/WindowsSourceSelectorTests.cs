@@ -57,7 +57,16 @@ internal static class WindowsSourceSelectorTests
         check(Select(native, officialCurrent with { OriginalSha256 = null }) == native,
             "unknown byte digest excluded");
         check(Select(native, officialCurrent with { SourceCommitSha = "fake" }) == native,
-            "unfixed source ref excluded");
+            "malformed declared external source ref excluded");
+        var originReviewedExternalNoSha = officialCurrent with { SourceCommitSha = null };
+        check(Select(native, originReviewedExternalNoSha) == originReviewedExternalNoSha,
+            "reviewed external provider may omit source commit when SHA256 and trust gates pass");
+        check(Select(native, originReviewedExternalNoSha with { ProvenanceVerified = false }) == native,
+            "absent external source SHA never bypasses provider-origin review");
+        check(Select(native, originReviewedExternalNoSha with { DownloadAuthorized = false }) == native,
+            "absent external source SHA never bypasses authorized delivery");
+        denies(() => Select(native with { SourceCommitSha = null }),
+            "native pgextwin build must retain fixed source SHA");
         check(Select(native, officialCurrent with { SourceRepo = "evil/source" }) == native,
             "publisher source repository URL mismatch rejected");
         check(Select(native, officialCurrent with { ProviderType = "pgextwin" }) == native,
