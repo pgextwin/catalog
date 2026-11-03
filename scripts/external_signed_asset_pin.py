@@ -14,7 +14,7 @@ import re
 from external_admission_preflight import ROOT
 from external_direct_link_review import REVIEW, strict_read, validate_review
 
-SHA40 = re.compile(r"[0-9a-f]{40}\\Z")
+SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 
 
 def build_candidate(root=ROOT, commit=None, review=None):
@@ -90,7 +90,7 @@ def build_candidate(root=ROOT, commit=None, review=None):
 
 def canonical_bytes(data):
     return (json.dumps(data, ensure_ascii=False, sort_keys=True,
-                       separators=(",", ":"), allow_nan=False) + "\\n").encode("utf-8")
+                       separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
 
 
 def main():
