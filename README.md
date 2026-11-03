@@ -6,6 +6,15 @@ The [pgextwin website](https://pgextwin.github.io/website/en/) is the recommende
 
 This repository contains the download information used by that website. It is **not** where ZIP files are hosted. The binary packages and their release notes are on each extension's **GitHub Releases** page.
 
+## Binary sources and review details
+
+Users will see two provider groups: **external** (upstream/community binaries) and
+**pgextwin** (including our reference-adapted and native builds). Only independently
+verified and authorized downloads are offered as available. Historical/unverified
+external discoveries do **not** become downloadable merely by being indexed.
+For provenance, reference build choices, reasons to exclude a source, dependencies
+and verification evidence, see [external sources and selection policy](docs/issue-112-external-windows-sources.md).
+
 ## What you can check
 
 - Whether a package is published for your PostgreSQL major version.
