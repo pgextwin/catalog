@@ -55,6 +55,7 @@ static async Task<int> RunAsync(string[] args)
         string? policySha = null;
         string? output = null;
         string? format = null;
+        string? sourceGroup = null;
         bool? latest = null;
         while (i < args.Length)
         {
@@ -85,6 +86,10 @@ static async Task<int> RunAsync(string[] args)
                     if (policySha is not null || command is not ("download" or "download-all"))
                         throw new ArgumentException("Unexpected/duplicate --policy-sha256");
                     policySha = value; break;
+                case "--source":
+                    if (sourceGroup is not null || value is not ("external" or "pgextwin" or "all"))
+                        throw new ArgumentException("Invalid/duplicate --source");
+                    sourceGroup = value; break;
                 case "--format":
                     if (format is not null || command is "download" or "download-all" || value is not ("text" or "json"))
                         throw new ArgumentException("Invalid/duplicate --format");
@@ -98,6 +103,10 @@ static async Task<int> RunAsync(string[] args)
         }
         if (command is "download" or "download-all")
         {
+            // External source selection cannot be used to bypass the independently
+            // signed Catalog feed, original-asset verification, or Publisher policy.
+            if (sourceGroup is "external" or "all")
+                throw new InvalidDataException("External download is not yet authorized by an authenticated source feed; no fallback");
             if (pg is null || (command == "download" && query is null))
                 throw new ArgumentException(command + " requires --pg (and an extension for single download)");
             var auto = command == "download-all" &&
@@ -160,13 +169,14 @@ static async Task<int> RunAsync(string[] args)
         if (directory is null) throw new ArgumentException("--catalog-dir is mandatory");
 
         var records = CatalogReader.LoadLocal(directory);
+        var externalRows = new List<CliExternalSourceRow>();
         log?.Invoke($"CATALOG_LOCAL_LOADED records={records.Count} trust=UNVERIFIED");
         var outputJson = format == "json";
         if (!outputJson)
             Console.WriteLine("SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY");
         var rows = new List<CliCatalogRow>();
         var displayed = 0;
-        foreach (var entry in records)
+        if (sourceGroup != "external") foreach (var entry in records)
         {
             if (query is not null && !entry.Name.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                 !entry.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) &&
@@ -183,7 +193,33 @@ static async Task<int> RunAsync(string[] args)
                 displayed++;
             }
         }
-        if (outputJson)
+        if (sourceGroup is "external" or "all")
+        {
+            // Metadata discovery only. No SHA256, trust, permission or source promotion.
+            foreach (var entry in WindowsSourceRegistry.LoadLocal(directory))
+            {
+                if (query is not null && !entry.Extension.Contains(query, StringComparison.OrdinalIgnoreCase) &&
+                    !entry.Provider.Contains(query, StringComparison.OrdinalIgnoreCase) &&
+                    !entry.UpstreamVersion.Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
+                if (pg is not null && entry.PgMajor != pg) continue;
+                if (outputJson)
+                    externalRows.Add(new CliExternalSourceRow(entry.Extension, entry.PgMajor,
+                        entry.UpstreamVersion, entry.Provider, entry.ProviderType,
+                        entry.ReleaseTag, entry.AssetName, entry.Lifecycle, entry.Historical,
+                        entry.VerificationState, false));
+                else
+                    Console.WriteLine(entry.Extension + "\tPG" + entry.PgMajor + "\t" +
+                        entry.UpstreamVersion + "\tsource=external\tprovider=" + entry.Provider +
+                        "\t" + entry.VerificationState + "\tDOWNLOAD_DENY");
+                displayed++;
+            }
+        }
+        if (outputJson && sourceGroup is "external" or "all")
+            Console.WriteLine(JsonSerializer.Serialize(
+                new CliSourceListEnvelope("pgextwin-cli-source-discovery/v1",
+                    sourceGroup!, "UNVERIFIED", false, false, false, false,
+                    displayed, rows, externalRows), CliJsonContext.Default.CliSourceListEnvelope));
+        else if (outputJson)
             Console.WriteLine(JsonSerializer.Serialize(
                 new CliListEnvelope(
                     "pgextwin-cli-local-catalog/v1",
@@ -212,14 +248,15 @@ static void Usage()
     Console.Error.WriteLine("pgextwin verify-report EXTENSION --pg MAJOR --catalog-dir PATH --policy FILE");
     Console.Error.WriteLine("  --policy-sha256 HEX --trusted-root-sha256 HEX --p1-verifier-sha256 HEX");
     Console.Error.WriteLine("  --report FILE --signature FILE --authority-key PEM --authority-key-sha256 HEX");
-    Console.Error.WriteLine("pgextwin list --catalog-dir PATH [--pg MAJOR] [--format text|json]");
-    Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json]");
+    Console.Error.WriteLine("pgextwin list --catalog-dir PATH [--pg MAJOR] [--format text|json] [--source external|pgextwin|all]");
+    Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json] [--source external|pgextwin|all]");
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all [--fixed|--latest]");
     Console.Error.WriteLine("  Default/--latest: signed public Catalog feed (no GitHub REST); --fixed: immutable historical snapshot");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
+    Console.Error.WriteLine("Explicit --source external|all is discovery-only; no external download until independently authorized signed feed.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");
     Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
 }
