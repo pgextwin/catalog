@@ -34,8 +34,15 @@ public sealed class ReadOnlyReleaseDownloader : IDisposable
     public async Task<DownloadReceipt> DownloadAsync(ReleasePins pin, string outputDirectory,
         CancellationToken cancellationToken = default)
     {
+        // Native-only transport: source-specific external assets MUST use a
+        // separately authenticated Publisher-authorized adapter (not this API).
+        // Enforce the native asset contract even for direct library callers.
         if (!PinnedReleaseSelector.SafeAssetName(pin.Extension) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(pin.PgMajor, @"\A[1-9][0-9]*\z") ||
             !PinnedReleaseSelector.SafeAssetName(pin.AssetName) ||
+            !pin.AssetName.StartsWith(pin.Extension + "-", StringComparison.Ordinal) ||
+            !pin.AssetName.EndsWith("-pg" + pin.PgMajor + "-windows-x64.zip",
+                StringComparison.Ordinal) ||
             !PinnedReleaseSelector.SafeAssetName(pin.Tag) ||
             pin.RepositoryId <= 0 || pin.ReleaseId <= 0 ||
             pin.AssetIds.Count == 0 || !pin.AssetIds.TryGetValue(pin.AssetName, out var assetId) ||

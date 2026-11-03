@@ -1,0 +1,151 @@
+name: Issue112 external source-aware signed pin (nonpublishing)
+
+# PRs generate only unsigned candidate bytes; original protected-main Validate
+# may trigger a genuinely signed, short-lived PRIVATE Actions artifact.
+# This workflow cannot create Releases, mirror assets or authorize downloads.
+on:
+  pull_request:
+    paths:
+      - "scripts/external_signed_asset_pin.py"
+      - "tests/test_external_signed_asset_pin.py"
+      - ".github/workflows/issue112-external-signed-pin.yml"
+  workflow_run:
+    workflows: ["Validate catalog"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-candidate-only:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify hostile inputs, create only unsigned deny-only candidate
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_external_signed_asset_pin.py' -v
+          python3 scripts/external_signed_asset_pin.py --catalog . --commit "$HEAD_SHA" --output "$RUNNER_TEMP/external-asset-pin.json"
+          python3 - "$RUNNER_TEMP/external-asset-pin.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d["originalProviderAssets"]==2 and d["downloadDeniedCandidates"]==203
+          assert all(d[k] is False for k in ("publicationAuthorized","sourcePublisherAuthorized","downloadAuthorized","mirrorAuthorized","redistributionAuthorized","installAuthorized"))
+          assert all(x["downloadAuthorized"] is False for x in d["records"])
+          PY
+          echo 'EXTERNAL_ASSET_PIN_PR=PASS SIGNATURE=NONE PUBLISH_DENY DOWNLOAD_DENY MIRROR_DENY'
+
+  original-main-gate:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.repository == 'pgextwin/catalog' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.run_attempt == 1 &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    outputs:
+      source: ${{ steps.verify.outputs.source }}
+    steps:
+      - name: Authenticate exact protected main, original run and changed paths
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          branch="$(gh api repos/pgextwin/catalog/branches/main)"
+          [[ "$(jq -r '.protected' <<< "$branch")" == true ]]
+          [[ "$(jq -r '.commit.sha' <<< "$branch")" == "$RUN_SHA" ]] || { echo 'Main advanced: sign DENY'; exit 1; }
+          run="$(gh api "repos/pgextwin/catalog/actions/runs/$RUN_ID")"
+          jq -e --arg sha "$RUN_SHA" '.status=="completed" and .conclusion=="success" and .event=="push" and .path==".github/workflows/validate.yml" and .repository.full_name=="pgextwin/catalog" and .head_branch=="main" and .run_attempt==1 and .head_sha==$sha' <<< "$run" >/dev/null
+          commit="$(gh api "repos/pgextwin/catalog/commits/$RUN_SHA")"
+          jq -e '.commit.verification.verified==true and .commit.verification.reason=="valid" and .committer.login=="web-flow" and .commit.committer.email=="noreply@github.com"' <<< "$commit" >/dev/null
+          jobs="$(gh api --paginate "repos/pgextwin/catalog/actions/runs/$RUN_ID/jobs?per_page=100" --jq '.jobs[] | [.name,.conclusion] | @tsv')"
+          grep -Fx $'validate\tsuccess' <<< "$jobs" >/dev/null
+          if ! jq -e '
+            any(.files[]?;
+              .filename == "scripts/external_signed_asset_pin.py" or
+              .filename == "tests/test_external_signed_asset_pin.py" or
+              .filename == ".github/workflows/issue112-external-signed-pin.yml")
+          ' <<< "$commit" >/dev/null; then
+            echo 'EXTERNAL_PIN_NOOP: no candidate signer path changed'
+            exit 0
+          fi
+          echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"
+          echo "AUTHENTIC_ORIGINAL_MAIN_PIN_SIGNING=PASS HEAD=$RUN_SHA ORIGINAL_VALIDATE_RUN=$RUN_ID"
+
+  attest-private-candidate:
+    needs: original-main-gate
+    if: needs.original-main-gate.outputs.source != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout exact reviewed protected-main commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.original-main-gate.outputs.source }}
+          persist-credentials: false
+      - name: Produce exact-source deny-only pin candidate
+        env:
+          SOURCE: ${{ needs.original-main-gate.outputs.source }}
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_external_signed_asset_pin.py' -v
+          python3 scripts/external_signed_asset_pin.py --catalog . --commit "$SOURCE" --output "$RUNNER_TEMP/external-asset-pin.json"
+          python3 - "$RUNNER_TEMP/external-asset-pin.json" "$SOURCE" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d["catalogCommit"]==sys.argv[2]
+          assert d["originalProviderAssets"]==2 and d["downloadDeniedCandidates"]==203
+          assert all(d[k] is False for k in ("publicationAuthorized","sourcePublisherAuthorized","downloadAuthorized","mirrorAuthorized","redistributionAuthorized","installAuthorized"))
+          assert all(r["downloadAuthorized"] is False and r["sourcePublisherAuthorized"] is False for r in d["records"])
+          PY
+      - name: Genuine GitHub Actions Sigstore attestation of deny-only Catalog candidate
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/external-asset-pin.json
+      - name: Independently verify exact signer workflow, source SHA and private candidate bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.original-main-gate.outputs.source }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -f "$BUNDLE"
+          gh attestation verify "$RUNNER_TEMP/external-asset-pin.json" \
+            --repo pgextwin/catalog --bundle "$BUNDLE" \
+            --signer-workflow pgextwin/catalog/.github/workflows/issue112-external-signed-pin.yml \
+            --source-ref refs/heads/main --source-digest "$SOURCE" \
+            --deny-self-hosted-runners --format json > "$RUNNER_TEMP/verified-external-pin.json"
+          jq -e 'length>=1' "$RUNNER_TEMP/verified-external-pin.json"
+          cp "$BUNDLE" "$RUNNER_TEMP/external-asset-pin.sigstore.json"
+          echo 'EXTERNAL_PIN_SIGSTORE=PASS SOURCE_SPECIFIC_PUBLISHER=DENY DOWNLOAD_DENY=203 MIRROR_DENY=203'
+      - name: Retain verified proof as short-lived Actions artifact only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: issue112-external-pg18-signed-nonpublishing-pin
+          path: |
+            ${{ runner.temp }}/external-asset-pin.json
+            ${{ runner.temp }}/external-asset-pin.sigstore.json
+          if-no-files-found: error
+          retention-days: 1
