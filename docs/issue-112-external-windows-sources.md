@@ -47,7 +47,7 @@ searchable as *not yet available*, not offered as an approved download.
 ## Registry and security boundary
 
 - evidence/issue112-external-release-inventory-20261103.json contains the
-  complete two-page-per-source authenticated GitHub Release **metadata** GET
+  complete paginated authenticated GitHub Release **metadata** GET
   for three pilot providers. It is a finite, audited discovery snapshot, not
   proof of exhaustive external Internet coverage.
 - external/windows-candidates-v1.json flattens every identified Windows
@@ -111,3 +111,25 @@ pins only after full validation, extend the existing batch downloader to consume
 selected pins without source-specific bypasses, run actual Windows verified
 official + community ZIP pilots and original postmerge tests, then separately
 gate any mirror or formal Publisher publication. Do not rewrite old Releases.
+
+
+## Additional GitHub community provider (read-only, 2026-11-03)
+
+The independently enumerated `portalcorp/pgvector_compiled` source contains **6
+Releases / 6 Windows ZIPs**, all for PostgreSQL 16. The GitHub Release tags
+`v0.16.*` are build counters; release bodies indicate actual pgvector versions
+0.7.3, 0.7.4 and 0.8.0. These are older historical candidates, not current
+automatic selection. See `evidence/issue112-external-provider-portalcorp-20261103.json`
+and `external/windows-candidates-portalcorp-v1.json` for the exact six immutable
+asset IDs and metadata. This addendum is **metadata-only**: original ZIP digests,
+source commit pins, independent signature/provenance, dependency and ABI proof,
+redistribution evidence and formal approval are missing. Even though the
+repository declares an MIT license, that does not alone clear the included
+pgvector binary, its notices, or any bundled libraries. No external download is enabled.
+
+Not adopted as extension-only providers: `YukeonWayne/pg_pgvector_binary`
+(complete PostgreSQL server + pgvector bundle), `pgRouting/pgrouting`
+(GitHub ZIPs contain source rather than Windows compiled DLLs). PostGIS
+Windows OSGeo/StackBuilder bundles also require a dedicated multi-extension
+package adapter and per-file runtime/licensing review. No provider is labeled
+verified solely from a GitHub README, release title, SPDX tag, or digest.
