@@ -2,182 +2,21 @@
 
 [日本語](README_ja.md) | English
 
-Machine-readable distribution metadata for Windows x64 PostgreSQL extension binaries published by **pgextwin**.
+The [pgextwin website](https://pgextwin.github.io/website/en/) is the recommended place to find published **unofficial Windows x64 PostgreSQL extension binaries**.
 
-The catalog stores metadata only. Binary files, checksums, SBOMs, vulnerability reports, and attestations remain canonical in each extension repository's GitHub Release / GitHub Artifact Attestations.
+This repository contains the download information used by that website. It is **not** where ZIP files are hosted. The binary packages and their release notes are on each extension's **GitHub Releases** page.
 
-## Layout
+## What you can check
 
-```text
-index.json
-schema/
-  index.schema.json
-  extension.schema.json
-extensions/
-  <extension>.json
-scripts/
-  validate_catalog.py
-tests/
-  test_validate_catalog.py
-```
+- Whether a package is published for your PostgreSQL major version.
+- Direct download links and SHA-256 checksums for published ZIPs.
+- Installation requirements, including preload and any separately installed executable.
+- Availability of SPDX SBOMs, vulnerability reports, and signed build attestations, when included with a particular Release.
 
-## Catalog schema v2
+A published binary may remain available after the associated PostgreSQL version reaches end of support. Availability does not imply continued upstream support.
 
-Schema v2 keeps the v1 fields used by the current website and adds stable machine-readable distribution metadata for future Website/CLI consumers.
+## Install safely
 
-The following compatibility fields remain unchanged:
+Select the ZIP for your PostgreSQL major version, verify its checksum, and follow the extension's own installation instructions. Consult the upstream project for functionality and limitations. The pgextwin project is independent of PostgreSQL, EDB and the upstream extension authors.
 
-- `displayName`
-- `description`
-- `upstream`
-- `repository`
-- `license`
-- `architecture`
-- `latest.releaseTag`
-- `postgresql.<major>.available`
-- `postgresql.<major>.asset`
-
-New v2 metadata includes:
-
-- release publication time, canonical Release URL, and checksum asset name,
-- canonical direct download URL and SHA-256 for each available PostgreSQL-major ZIP,
-- per-major supply-chain evidence availability,
-- user-facing runtime requirements projected from Test Contract v2,
-- current CI capability coverage and functional scenario metadata,
-- an immutable `capabilitiesSource` pointing to the exact extension-repository commit.
-
-## Availability is not maintenance
-
-`postgresql.<major>.available` remains **historical binary availability**:
-
-- `true` means a published and verified Windows x64 binary asset exists for that PostgreSQL major,
-- `false` means such a verified published asset is not recorded,
-- it does **not** mean the PostgreSQL community currently maintains that major.
-
-PostgreSQL lifecycle dates and current maintenance state remain canonical only in [`pgextwin/build/metadata/postgresql.json`](https://github.com/pgextwin/build/blob/main/metadata/postgresql.json). Extension records deliberately contain no EOL date or date-dependent `maintained` boolean.
-
-Existing published binaries may remain available after PostgreSQL EOL as historical downloads.
-
-## Direct downloads and SHA-256
-
-For every `available: true` entry, schema v2 requires:
-
-```json
-{
-  "available": true,
-  "asset": "example-pg18-windows-x64.zip",
-  "downloadUrl": "https://github.com/pgextwin/example/releases/download/v1/example-pg18-windows-x64.zip",
-  "sha256": "<64 lowercase hex>"
-}
-```
-
-`downloadUrl` must match the record's repository, release tag, and asset filename. CI remote verification reads the **published `SHA256SUMS.txt`** from the current GitHub Release and checks the catalog SHA-256 against that file. GitHub's release-asset digest is also cross-checked when GitHub exposes it.
-
-## Runtime requirements
-
-`runtime.requirements` is the canonical user-facing runtime snapshot from Test Contract v2:
-
-- `extensionCreation`
-- `preload`
-- `backgroundWorker`
-- `clientExecutable.required`
-- `clientExecutable.packagePaths`
-
-`runtime.sharedPreloadLibraries` is retained only for backward compatibility with existing consumers. It must not be interpreted as proof that shared preload is mandatory.
-
-This distinction matters because CI test setup and user runtime requirements are intentionally separate. For example, CI may use `shared_preload_libraries` even when Test Contract v2 says the extension supports `either` shared/session preload or that preload is `optional`.
-
-## Test Contract-derived capabilities
-
-`capabilities` exposes what current pgextwin CI actually asserts without copying `smoke-test.ps1` implementation details:
-
-- Test Contract version,
-- CREATE EXTENSION coverage,
-- background-worker coverage,
-- client-executable coverage,
-- server-log assertion coverage,
-- upgrade coverage,
-- stable functional scenario IDs and descriptions,
-- evidence types,
-- optional PostgreSQL-major scope for a scenario.
-
-Coverage values retain Test Contract v2 semantics: `covered`, `not-covered`, and `not-applicable`.
-
-`capabilitiesSource` records the exact source:
-
-```json
-{
-  "repository": "pgextwin/pg_cron",
-  "path": "config/test-contract.json",
-  "commit": "<40-character commit SHA>"
-}
-```
-
-CI fetches this file at the immutable commit and verifies that the catalog runtime/capability snapshot still matches it. Mutable refs such as `main` are not accepted as source identity.
-
-## Supply-chain evidence
-
-Each available PostgreSQL-major binary has an `evidence` object for:
-
-- Build Provenance Attestation,
-- SPDX SBOM Release asset,
-- SBOM Attestation,
-- vulnerability-report Release asset.
-
-Attestations are not Release assets, so attestation states do not carry asset filenames.
-
-For SBOM and vulnerability-report assets, `available: true` requires an asset filename, canonical download URL, and SHA-256. `available: false` must not carry fictional asset metadata.
-
-The eight historical `.1` Releases from 2026-10-05/06 predate the Step 6-10 attested release path and contain only PostgreSQL 14-18 ZIPs plus `SHA256SUMS.txt`. Their original binary files and historical Release assets are preserved. A successor `.2` Release can be represented as the current distribution only **after** the complete five-major Windows attested build has passed, the complete public Release assets have been verified, and the independently validated Catalog record is merged. Never claim supply-chain evidence for a historical binary on the basis of a newer rebuild.
-
-Future Releases built by the Step 6-10-enabled release path can set the corresponding evidence fields to available when those artifacts/evidence actually exist.
-
-## Vulnerability reports are point-in-time evidence
-
-A vulnerability report records what a particular Grype scan observed for a particular SBOM and vulnerability database state. It is not a durable security verdict.
-
-The catalog intentionally does not define fields such as `secure`, `safe`, `trusted`, `vulnerabilityFree`, or a mutable current `vulnerabilities: 0` count.
-
-Step 10 remains a report-only baseline; Catalog schema v2 only exposes whether a release-specific vulnerability report exists.
-
-## GitHub-only signed Release → Catalog PR (no new App required)
-
-This is an **operator-assisted fallback**, not automatic publication. It never turns an unsigned candidate, an incomplete Promotion run or a partially staged Draft into a public Release.
-
-1. First require an **already published**, immutable operator-`PUBLISH` Release. A successful candidate/main Windows build is insufficient. Open [Verify signed manual Release (read-only)](https://github.com/pgextwin/catalog/actions/workflows/verify-manual-release.yml) on the protected `main`, choose the exact extension and public `release_tag`, and use GitHub's authenticated **Run workflow** action. No local host or private Writer is required for this verifier.
-2. Require the **entire** run to finish SUCCESS: independent public ZIP/SBOM/Grype byte rehash, GitHub artifact attestation checks, source-commit and main-only successful Promotion identity, Catalog/schema/offline/remote validation. Never waive a failed job or reuse an old artifact.
-3. Open that exact run's `verified-manual-release-record` artifact. Using the authenticated GitHub connector or UI, compare the single verified `extensions/<extension>.json` against current `catalog/main` and propose **one-record-only** protected PR. Refuse stale record hashes, rollback to an older Release, unrelated changes or conflicting open PRs. The read-only Workflow **never creates a PR** and does not grant publication approval; a separate proposer GitHub App is **optional** for this manual route.
-4. Require native Catalog PR CI (schema, remote Release, .NET and Windows smoke when applicable) at that exact head; merge safely with the existing branch protection, then inspect [Catalog → Website public audit](https://github.com/pgextwin/catalog/actions/workflows/notify-website.yml), deployed public JA/EN pages, direct downloads and SHA-256. A scheduled smoke or a success from another commit cannot substitute for current-head evidence.
-
-If `workflow_dispatch` is unavailable in the current Chat GitHub connection, the only unavoidable manual action is GitHub's authenticated **Run workflow** UI. **Do not** install a local VM, grant a new App, bypass a missing `PUBLISH` identity, or claim the Website is updated before the Catalog PR merges. Current limits are disclosed in the [Website footer](https://pgextwin.github.io/website/en/).
-
-## Validation
-
-Local validation:
-
-```text
-python scripts/validate_catalog.py
-python -m unittest discover -s tests -v
-```
-
-CI additionally runs:
-
-```text
-python scripts/validate_catalog.py --verify-remote
-```
-
-Remote verification uses immutable Test Contract commits and the current canonical GitHub Releases. It checks release identity, asset URLs, published `SHA256SUMS.txt` values, and the Test Contract-derived snapshot. Requests use bounded retries; GitHub API requests use the workflow token with `contents: read`.
-
-## Catalog v2 vs Website v2
-
-Catalog v2 is the machine-readable API contract. It does **not** implement Website v2.
-
-The current Website continues to consume the v1-compatible fields listed above and independently combines them with PostgreSQL lifecycle metadata. A later Website v2 may opt into direct-download integrity, runtime requirements, capability coverage, and supply-chain evidence fields without changing their meaning in the catalog.
-
-## Windows Extension Landscape Registry (independent v1)
-
-The distribution Catalog v2 (root `index.json`, `extensions/*.json`) remains **only published pgextwin binary metadata**. The independent `landscape/index.json` and `landscape/extensions/*.json` identify implemented packages (by catalog name reference), provisional future candidates, and not-planned projects with verified external acquisition routes. Landscape records **never** alter distribution availability, release hashes, or release assets.
-
-Each record has upstream/evidence URLs and `lastReviewed`, a review date rather than a guaranteed current fact. Sources distinguish upstream, community, vendor, package-manager, public vs limited commercial availability, and standard vs vendor/conda PostgreSQL compatibility. An existing Windows binary can coexist with candidate status. Not planned does **not** mean incompatible or unavailable. The registry is intentionally manually reviewed, with no automatic vendor-feed trust assumption.
-
-Run `python scripts/validate_landscape.py`; this validator and its tests run separately from `validate_catalog.py` in CI. Step 15 (2026-10-08) makes candidate-only `roadmap` the authoritative Second Wave selection. Decisions are `wave-2` (exactly three, uniquely ordered 1/2/3), `reserve`, or `research`; each has a decision date and rationale. `preliminaryPriority` remains a **historical Step 14 provisional signal** for backward compatibility, not the formal order. Semantic validation checks uniqueness and status/date invariants. Wave 2 new extensions start PG15–18; PG19 onboarding is a separate gate. See [selection evidence and pilot plan](https://github.com/pgextwin/build/blob/main/docs/second-wave-selection.md).
+[English catalog](https://pgextwin.github.io/website/en/) · [日本語カタログ](https://pgextwin.github.io/website/ja/)
