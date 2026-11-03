@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "pgextwin-external-direct-provider-publisher-policy/v1",
+  "sourceKind": "EXTERNAL_GITHUB_RELEASE_ASSET",
+  "mode": "DENY_PENDING_GITHUB_ADMIN_EVIDENCE",
+  "publisherEnvironment": "external-direct-provider-publisher",
+  "publisherAppId": null,
+  "publisherInstallationId": null,
+  "protectedEnvironmentVerified": false,
+  "leastPrivilegeAppVerified": false,
+  "originalMainIndependentSigstoreVerified": false,
+  "formalSourceSpecificAuthorization": false,
+  "approvedOperation": "NONE",
+  "mirrorAuthorized": false,
+  "redistributionAuthorized": false,
+  "records": [
+    {
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "releaseId": 419235203,
+      "assetId": 661612613,
+      "referenceReviewOnly": true,
+      "noticeRequirement": "SHOW_UNOFFICIAL_COMMUNITY_STATUS_AND_UPSTREAM_LICENSE",
+      "dependencyTreatment": "NO_THIRD_PARTY_DEPENDENCY_REDISTRIBUTION",
+      "sourcePublisherAuthorized": false,
+      "downloadAuthorized": false,
+      "mirrorAuthorized": false
+    },
+    {
+      "sourceRepo": "laurenz/oracle_fdw",
+      "releaseId": 335861225,
+      "assetId": 442625860,
+      "referenceReviewOnly": true,
+      "noticeRequirement": "SHOW_ORIGINAL_LICENSE_AND_SEPARATE_ORACLE_CLIENT_LICENSE",
+      "dependencyTreatment": "ORACLE_CLIENT_END_USER_OBTAINED_NEVER_REDISTRIBUTED",
+      "sourcePublisherAuthorized": false,
+      "downloadAuthorized": false,
+      "mirrorAuthorized": false
+    }
+  ]
+}
