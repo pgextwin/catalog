@@ -89,14 +89,20 @@ downloadable CLI release.
 - oracle_fdw upstream 2.9.0 publishes PG14-18 Windows ZIPs. PG18 Release ID
   335861225, Asset ID 442625860, and GitHub API SHA256
   ad1fc057888b89f968de34f14bd7088c2b05d674a8df4b40ba47ed772c317678
-  identify a **candidate**, but independent ZIP bytes, Oracle Instant Client
-  compatibility, license and signer provenance are not verified here.
+  identify a **candidate**, and independent SHA256/ZIP CRC bytes passed in the read-only
+  GitHub Actions pilot. Oracle Instant Client compatibility, license and
+  signer provenance are not verified.
 - A community pgvector Windows repository
   andreiramani/pgvector_pgsql_windows has version 0.8.7 ZIPs for PG13-18.
-  This is **unofficial** and similarly not an independently approved artifact.
-- In this chat's available read-only transport, original third-party GitHub
-  Release ZIP bytes could not be retrieved; **neither real ZIP pilot has
-  passed**. Metadata-only evidence must never be reported as raw-byte acceptance.
+  This is **unofficial**; its PG18 ZIP original SHA256 and CRC passed the
+  read-only GitHub Actions pilot, but signature, ABI and source provenance
+  acceptance remain blocked.
+- Read-only GitHub Actions Run 41638680503 (attempt 1) at commit
+  db39ed5ff289f1d6ada4817dcdb28f5a1d6e9acd verified the original ZIP
+  SHA256, CRC, member structure and bounds for **both** pilots. This is a
+  genuine byte-integrity check, NOT Sigstore/identity/ABI/license acceptance.
+  Evidence: evidence/issue112-external-original-byte-pilot-20261103.json.
+  Candidate admission remains blocked even after the bytes match.
 
 ## Remaining integration
 

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "pgextwin-external-windows-byte-pilot/v1",
+  "runId": 41638680503,
+  "runAttempt": 1,
+  "runUrl": "https://github.com/pgextwin/catalog/actions/runs/41638680503",
+  "sourceHead": "db39ed5ff289f1d6ada4817dcdb28f5a1d6e9acd",
+  "verification": "original downloaded bytes rehashed, ZIP member path/collision/bomb checks and CRC verified; no extraction/execution",
+  "signatureVerified": false,
+  "provenanceVerified": false,
+  "abiApproved": false,
+  "licenseApproved": false,
+  "downloadAuthorized": false,
+  "mirrorAuthorized": false,
+  "results": [
+    {
+      "extension": "oracle_fdw",
+      "provider": "laurenz/oracle_fdw",
+      "upstreamVersion": "2.9.0",
+      "pgMajor": "18",
+      "releaseId": 335861225,
+      "assetId": 442625860,
+      "bytes": 365101,
+      "sha256": "ad1fc057888b89f968de34f14bd7088c2b05d674a8df4b40ba47ed772c317678",
+      "zipMembers": 10,
+      "uncompressedBytes": 1318452,
+      "result": "ORIGINAL_ZIP_SHA256_AND_CRC_PASS"
+    },
+    {
+      "extension": "pgvector",
+      "provider": "andreiramani/pgvector_pgsql_windows",
+      "upstreamVersion": "0.8.7",
+      "pgMajor": "18",
+      "releaseId": 419235203,
+      "assetId": 661612613,
+      "bytes": 174796,
+      "sha256": "7c4ae0e2b2cb1e547779209a34a7d3f05b82fd7912818bf3d7042266eda87e7d",
+      "zipMembers": 56,
+      "uncompressedBytes": 417059,
+      "result": "ORIGINAL_ZIP_SHA256_AND_CRC_PASS"
+    }
+  ]
+}
