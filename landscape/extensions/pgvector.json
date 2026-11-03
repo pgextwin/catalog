@@ -22,5 +22,6 @@
   "evidenceUrls": [
     "https://github.com/pgvector/pgvector#installation"
   ],
-  "notPlannedReasonJa": "conda-forgeがWindows向けパッケージを公開し、上流もWindowsビルド手順を提供しています。ただし通常のEDB版への流用には互換性確認が必要です。"
+  "notPlannedReasonJa": "conda-forgeがWindows向けパッケージを公開し、上流もWindowsビルド手順を提供しています。ただし通常のEDB版への流用には互換性確認が必要です。",
+  "externalSourceRegistry": "external/windows-candidates-v1.json"
 }
