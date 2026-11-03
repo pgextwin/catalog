@@ -1,0 +1,52 @@
+name: Issue112 external PG18 original ZIP Windows runtime pilot (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112-external-windows-pilot.ps1
+      - .github/workflows/issue112-external-windows-pilot.yml
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/issue112-external-windows-pilot.ps1
+      - .github/workflows/issue112-external-windows-pilot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  pg18-original-external-binary:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact Catalog source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Reuse pgextwin build installer at immutable protected commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 500131e3ec5ea9bd1a10e9c703626c76e38b13f6
+          path: build-tools
+          persist-credentials: false
+
+      - name: Install pinned EDB PostgreSQL 18 with existing bounded fallback
+        shell: pwsh
+        run: |
+          ./build-tools/scripts/install-postgresql.ps1 -Major 18 -ChocolateyPackage postgresql18 -ChocolateyVersion 18.6.5 -TestPort 55443
+
+      - name: Inspect both original ZIPs and execute community vector SQL on Windows
+        shell: pwsh
+        run: |
+          ./scripts/issue112-external-windows-pilot.ps1
+
+      - name: Assert nonpublication outcome
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host 'NONPUBLISHING_PILOT=YES NO_ARTIFACT_UPLOAD=YES NO_RELEASE=YES NO_MIRROR=YES'
