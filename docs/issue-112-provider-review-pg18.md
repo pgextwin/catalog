@@ -70,9 +70,16 @@ or permission to republish third-party binaries.
   EDB PostgreSQL 18.6.5, executes `CREATE EXTENSION oracle_fdw` and
   no-argument `oracle_diag()`. **No remote Oracle DB or credential is
   needed**. CI outcome must be observed; code existence is not runtime PASS.
-- **Decision:** remain **DENY** until the actual isolated OCI smoke succeeds,
-  applicable notices and exact target dependencies are documented, and signed
-  Catalog/external feed and formal pgextwin download authorization are achieved.
+- **Observed OCI result:** original protected-main Run
+  [41661506504 attempt1](https://github.com/pgextwin/catalog/actions/runs/41661506504)
+  verified PostgreSQL 18.6.5 x64 with official Basic Light 23.26.4.0.0:
+  `CREATE EXTENSION oracle_fdw` and `SELECT oracle_diag()` PASS.
+  Remote Oracle database connectivity was intentionally NOT TESTED and is not
+  a condition for this pilot.
+- **Decision:** original Windows functionality passes, but **DOWNLOAD_DENY**
+  remains until an authenticated signed external Catalog pin and genuine formal
+  pgextwin Publisher authorization exist. Oracle Client redistribution remains
+  separately prohibited under this review.
 
 ## Admission boundary and next safe transition
 
@@ -96,3 +103,51 @@ candidates and existing native downloads unchanged.
 
 Website: only provider identity, target environment, dependencies, availability
 and approved action; keep detailed refusal/provenance in these docs.
+
+## Exact original-provider direct-link rights and NOTICE treatment
+
+A focused **reference-link-only** review now binds the two PG18 assets to
+their original provider Release URLs, numeric repository/Release/asset IDs,
+independently verified byte SHA256, tested PG18 environment, license sources,
+required dependency notices and original successful Windows Runs:
+
+- [Exact review ledger](../evidence/issue112-external-pg18-direct-link-review-v1.json)
+- [Read-only fail-closed validator](../scripts/external_direct_link_review.py)
+  and [adversarial tests](../tests/test_external_direct_link_review.py)
+
+**Operation reviewed:** a reference to the original, unmodified GitHub-hosted
+provider asset and its associated legal/dependency information. Neither a
+deep link nor a permissive source-code license authorizes pgextwin to
+republish, mirror, edit, bundle, serve or make an installed-binary security
+warranty. Do not redirect through pgextwin storage. A provider may change
+availability or terms; the exact origin, identity and hash must be checked
+again during genuine formally authorized automated retrieval.
+
+**oracle_fdw (upstream-official):** link the tagged original oracle_fdw LICENSE
+(including copyright, permission and warranty disclaimer) alongside the
+original-provider reference. Explain that Oracle Instant Client must be
+obtained by the user separately, with independently applicable Oracle terms;
+the original oracle_fdw ZIP must never be represented as including it.
+Dependency: Oracle Client >=11.2, matching x64 and target PG ABI. Original
+PG18 extension load and local oracle_diag() passed. No Oracle DB connection is
+required or claimed. No Oracle Client mirror.
+
+**pgvector (unofficial community):** clearly name
+`andreiramani/pgvector_pgsql_windows` as the compiler/provider, not the
+official pgvector project. The original ZIP has **no bundled LICENSE or
+NOTICE**. Provide a visible upstream pgvector v0.8.7 PostgreSQL License link
+with its copyright/permission/disclaimer when showing the direct-provider
+reference; do not append files or repackage this ZIP. PG18 SQL passed, but a
+working extension does not create an upstream endorsement or republishing
+permission.
+
+**Authorization boundary:** this is `CANDIDATE_ONLY`, not an authenticated
+signed source-asset pin or Publisher decision. The review ledger and offline
+validator must not be loaded by the .NET downloader as policy, and the
+discovery registry remains untrusted with every `downloadAuthorized=false`.
+All **203 discovery candidates retain DOWNLOAD_DENY/MIRROR_DENY**. In
+particular, the current signed Catalog v1 feed is limited to pgextwin-owned
+Releases and cannot be relabeled as a verified external feed. A later external
+admission must have a separately authenticated signed pin and formal
+source-specific Publisher approval, then preserve fail-closed original-byte,
+provider/Release/asset-ID and target environment checks; no fallback or mirror.
