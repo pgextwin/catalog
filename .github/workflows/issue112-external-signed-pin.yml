@@ -71,7 +71,7 @@ jobs:
           [[ "$(jq -r '.protected' <<< "$branch")" == true ]]
           [[ "$(jq -r '.commit.sha' <<< "$branch")" == "$RUN_SHA" ]] || { echo 'Main advanced: sign DENY'; exit 1; }
           run="$(gh api "repos/pgextwin/catalog/actions/runs/$RUN_ID")"
-          jq -e --arg sha "$RUN_SHA" '.status=="completed" and .conclusion=="success" and .event=="push" and .head_branch=="main" and .run_attempt==1 and .head_sha==$sha' <<< "$run" >/dev/null
+          jq -e --arg sha "$RUN_SHA" '.status=="completed" and .conclusion=="success" and .event=="push" and .path==".github/workflows/validate.yml" and .repository.full_name=="pgextwin/catalog" and .head_branch=="main" and .run_attempt==1 and .head_sha==$sha' <<< "$run" >/dev/null
           commit="$(gh api "repos/pgextwin/catalog/commits/$RUN_SHA")"
           jq -e '.commit.verification.verified==true and .commit.verification.reason=="valid" and .committer.login=="web-flow" and .commit.committer.email=="noreply@github.com"' <<< "$commit" >/dev/null
           jobs="$(gh api --paginate "repos/pgextwin/catalog/actions/runs/$RUN_ID/jobs?per_page=100" --jq '.jobs[] | [.name,.conclusion] | @tsv')"
