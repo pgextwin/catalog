@@ -311,3 +311,14 @@ The provided hashes and identities are precise observations, not implied
 upstream cryptographic signatures, package vulnerability clearances or
 redistribution authorizations. Successful historic CI is not rerun merely
 to generate additional provenance.
+
+
+## Current PG18 provider admission assessment
+
+The exact provider-origin matching, original pgvector ZIP README/NOTICE inventory,
+oracle_fdw/Instant Client licensing separation and minimal no-Oracle-DB OCI load
+acceptance are maintained in
+[PG18 provider review](issue-112-provider-review-pg18.md).
+That later evidence supersedes the earlier initial pilot gap descriptions above.
+All 203 discovery entries still remain DOWNLOAD_DENY / MIRROR_DENY; the dedicated
+OCI smoke is nonpublishing and does not grant signed feed or downloader authority.
