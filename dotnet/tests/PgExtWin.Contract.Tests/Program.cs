@@ -13,7 +13,7 @@ void Denies(Action action, string name)
 {
     var rejected = false;
     try { action(); }
-    catch (Exception e) when (e is InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException)
+    catch (Exception e) when (e is InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException)
     { rejected = true; }
     Check(rejected, name);
 }
