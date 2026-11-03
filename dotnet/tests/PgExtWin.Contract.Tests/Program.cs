@@ -90,6 +90,14 @@ await AuthenticatedCatalogHeadTests.RunAsync(Check);
 await PinnedBrowserDownloadTests.RunAsync(Check);
 SyntheticBundleTests.Run(Check);
 WindowsSourceSelectorTests.Run(Check, Denies);
+if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "external", "windows-candidates-v1.json")))
+{
+    var discovered = WindowsSourceRegistry.LoadLocal(Directory.GetCurrentDirectory());
+    Check(discovered.Count == 197, "complete external metadata registry loaded without download authority");
+    Check(discovered.All(x => !x.DownloadAuthorized), "metadata-only history never authorizes ZIP download");
+    Check(discovered.Any(x => x.PgMajor == "9.5" && x.Lifecycle == "eol"), "legacy PG history retained");
+}
+
 P1HandoffTests.Run(Check);
 P1ReportCommandTests.Run(Check);
 Console.WriteLine($"PASS: {cases} local read-only contract checks. SIGNATURE_VERIFIED=0 PUBLISH=DENY");
