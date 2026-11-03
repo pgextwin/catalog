@@ -9,8 +9,13 @@ internal static class WindowsSourceSelectorTests
         WindowsSourceCandidate Candidate(string version, string method, string providerType,
             string provider = "pgextwin") => new(
                 "hypopg", version, "18", "x64", "standard-postgresql", "msvc-x64",
-                method, providerType, provider, "release-tag-" + version, version,
-                sha40, 100, 200, "https://github.com/pgextwin/hypopg/releases/download/v1/hypopg.zip",
+                method, providerType, provider,
+                providerType == "pgextwin" ? "pgextwin/hypopg" :
+                providerType == "community" ? "andreiramani/pgvector_pgsql_windows" : "HypoPG/hypopg",
+                "release-tag-" + version, version,
+                sha40, 100, 200, "https://github.com/" + (providerType == "pgextwin" ? "pgextwin/hypopg" :
+                    providerType == "community" ? "andreiramani/pgvector_pgsql_windows" :
+                    "HypoPG/hypopg") + "/releases/download/v1/hypopg.zip",
                 sha64, "supported", false, true, true, true, true, true);
 
         var native = Candidate("1.4.5", "native", "pgextwin");
@@ -53,6 +58,8 @@ internal static class WindowsSourceSelectorTests
             "unknown byte digest excluded");
         check(Select(native, officialCurrent with { SourceCommitSha = "fake" }) == native,
             "unfixed source ref excluded");
+        check(Select(native, officialCurrent with { SourceRepo = "evil/source" }) == native,
+            "publisher source repository URL mismatch rejected");
         check(Select(native, officialCurrent with { ProviderType = "pgextwin" }) == native,
             "spoofed provider class rejected");
         check(Select(native, officialCurrent with { AssetVersion = "1.4.4" }) == native,
