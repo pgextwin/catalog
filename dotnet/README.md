@@ -1,5 +1,13 @@
 # pgextwin CLI — Issue #112 (nonpublishing, PR-2)
 
+**Experimental external discovery (not a downloadable CLI Release):**
+Run `pgextwin list --catalog-dir . --source external --pg 18` to inspect
+*untrusted metadata only*, or use `--source all` to show both provider groups.
+External download is deliberately denied until signed source pins and independent
+original-byte/provenance/rights/ABI checks are integrated. Omitted `--source`,
+existing `download-all` and `--fixed` retain their original behavior.
+See [external Windows source design](../docs/issue-112-external-windows-sources.md).
+
 .NET 10 local-only `list/search` and explicit **single-asset** GET-only `download`.
 This is not an installer, a signer, a fleet/bundle generator, a Publisher or a trusted
 Sigstore verification engine. The Python P0 Manifest v1 builder/Schema and P1
