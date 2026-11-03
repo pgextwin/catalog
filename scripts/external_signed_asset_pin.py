@@ -13,6 +13,7 @@ import re
 
 from external_admission_preflight import ROOT
 from external_direct_link_review import REVIEW, strict_read, validate_review
+from external_formal_publisher_policy import inspect_policy
 
 SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 
@@ -32,6 +33,9 @@ def build_candidate(root=ROOT, commit=None, review=None):
         raise ValueError("Unexpected pre-signature source review")
     if doc["evidenceCatalogCommit"] != "30929a791f7926c078034cc891a99244bffa9e4d":
         raise ValueError("Reviewed Catalog evidence lineage changed")
+    # Bind the candidate to the protected, deny-only source-kind policy.
+    # This is NOT permission to use the inherited native Publisher App/Environment.
+    source_policy = inspect_policy(root, review=doc)
     records = []
     for row in sorted(doc["records"], key=lambda x: (
             x["sourceRepo"], x["releaseId"], x["assetId"])):
@@ -84,6 +88,7 @@ def build_candidate(root=ROOT, commit=None, review=None):
         "mirrorAuthorized": False,
         "redistributionAuthorized": False,
         "installAuthorized": False,
+        "sourceSpecificPublisherPolicy": source_policy,
         "records": records,
     }
 
