@@ -78,3 +78,30 @@ claim a second real-byte provider fetch. The native-only REST/browser
 downloaders and the CLI `--source external|all` download denial are unchanged.
 The formally approved Publisher and separate signed client admission still
 must be established before any direct provider GET.
+
+## Separate external source-kind policy (protected candidate, still DENY)
+
+The protected [external source-specific Publisher policy](../config/issue112-external-publisher-policy.json)
+and strict [policy verifier](../scripts/external_formal_publisher_policy.py)
+introduce `EXTERNAL_GITHUB_RELEASE_ASSET` without inheriting the native
+`publisher` Environment, App identity, installation, or owner-comment signing
+source kind. The exact two original-source IDs, required licensing/NOTICE
+presentation, and Oracle Client nonredistribution are checked against the
+existing reviewed sources. Unknown inputs, duplicated JSON keys, substitutions,
+permission escalation, missing administrative proof, and attempts to reuse the
+native App or Environment fail closed. Synthetic hostile tests run in required CI.
+
+The candidate signer binds the **SHA256 of this DENY-only policy** into a genuinely
+original-main Sigstore-attested private pin artifact, only on a real protected
+Catalog main change and a successful original Validate Run. A signed candidate
+is still `SIGNED_NONPUBLISHING`: neither a public external feed nor a
+source-specific Publisher permission. The formal environment/App installation
+is not configured or verifiable through the linked Chat connector. The
+policy explicitly leaves their IDs null and all real authorization flags false.
+
+After genuine GitHub administrative configuration and verification, a separate
+protected revision of the central Publisher can consume this policy and perform
+its own original ZIP byte verification and formal source-specific acceptance.
+Do not flip boolean fields as a substitute for deployment protection or App
+permission verification. Native Publisher, CLI, Website and original ZIP
+DOWNLOAD_DENY/MIRROR_DENY are unchanged by this PR.
