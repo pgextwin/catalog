@@ -22,5 +22,6 @@
   "evidenceUrls": [
     "https://github.com/laurenz/oracle_fdw#building-oracle_fdw-on-windows"
   ],
-  "notPlannedReasonJa": "上流公式ReleaseがPG14〜18用のWindows ZIPを提供しています。Oracle Instant Clientなどの導入前提を確認してください。"
+  "notPlannedReasonJa": "上流公式ReleaseがPG14〜18用のWindows ZIPを提供しています。Oracle Instant Clientなどの導入前提を確認してください。",
+  "externalSourceRegistry": "external/windows-candidates-v1.json"
 }
