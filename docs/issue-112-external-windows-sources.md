@@ -221,3 +221,40 @@ bundle files must not be repackaged into individual pgRouting or pgSphere ZIPs
 merely because those binaries are present: this changes distribution and
 license scope. The current signed feed/CLI and all existing native packages
 are unchanged; **OSGeo bundle download/mirror/install = DENY**.
+
+## Fail-closed individual external admission preflight
+
+`scripts/external_admission_preflight.py --output PATH` is an **offline
+gap reporter**, not a publishable Catalog authority. It joins the existing
+two explicit source-registry files against the exact original-byte pilot Run
+41638680503 using **repository + Release ID + Asset ID**, then verifies the
+extension name, upstream version, target PostgreSQL major and reported SHA256
+against any matching GitHub API digest. Its report preserves independent
+`BYTE_INTEGRITY_ONLY` pilot identity and enumerates missing proof conditions
+per candidate, without modifying trusted download pins.
+
+Distinct required evidence stages include immutable upstream source SHA,
+independently rehashed original ZIP, authentic source/build provenance,
+component-level licensing and included NOTICE review, specific Windows x64
+PostgreSQL distribution/ABI runtime E2E, dependency closure, authenticated
+signed Catalog feed pin and the existing formal Publisher download permission.
+Mirroring requires its own redistribution rights and authorization. Reported
+green booleans in unsigned JSON cannot replace cryptographic verification,
+independent checks or protected Publisher gates. Neither external Release
+metadata nor a prior successful ZIP byte pilot is an approval.
+
+Current initial registry: **203 discovery candidates remain blocked**.
+The original 2 pilot assets are merely linked as byte-integrity observations;
+they still lack independent signature/provenance and other conditions.
+Future valid candidates should be admitted only through a separately reviewed,
+protected PR carrying genuine evidence, verified signed feed and authorized
+Publisher. The untrusted discovery JSON must not be rewritten in place to
+turn a `downloadAuthorized` boolean on.
+
+Run this preflight from the Catalog checkout:
+
+```sh
+python3 scripts/external_admission_preflight.py --output /tmp/external-admission-untrusted.json
+```
+
+The output is local-only; no ZIP download, extension install or new Release.
