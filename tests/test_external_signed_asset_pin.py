@@ -30,6 +30,12 @@ class ExternalSignedAssetPinTests(unittest.TestCase):
         self.assertEqual(2, data["originalProviderAssets"])
         self.assertEqual(203, data["discoveryCandidates"])
         self.assertEqual(203, data["downloadDeniedCandidates"])
+        policy = data["sourceSpecificPublisherPolicy"]
+        self.assertEqual("EXTERNAL_GITHUB_RELEASE_ASSET", policy["sourceKind"])
+        self.assertEqual("external-direct-provider-publisher", policy["publisherEnvironment"])
+        self.assertIs(policy["formalAdmissionReady"], False)
+        self.assertIs(policy["downloadAuthorized"], False)
+        self.assertIs(policy["mirrorAuthorized"], False)
         self.assertEqual(
             [("andreiramani/pgvector_pgsql_windows", 419235203, 661612613),
              ("laurenz/oracle_fdw", 335861225, 442625860)],
