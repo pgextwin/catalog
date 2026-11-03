@@ -14,8 +14,21 @@ internal sealed record CliListEnvelope(
     bool PublicationAuthorized, bool DistributionAuthorized,
     int Count, List<CliCatalogRow> Records);
 
+internal sealed record CliExternalSourceRow(
+    string Extension, string PgMajor, string UpstreamVersion, string Provider,
+    string ProviderType, string ReleaseTag, string AssetName, string Lifecycle,
+    bool Historical, string Trust, bool DownloadAuthorized);
+
+internal sealed record CliSourceListEnvelope(
+    string SchemaVersion, string Source, string Trust,
+    bool CatalogAuthenticated, bool SignatureVerified,
+    bool PublicationAuthorized, bool DistributionAuthorized,
+    int Count, List<CliCatalogRow> PgextwinRecords,
+    List<CliExternalSourceRow> ExternalCandidates);
+
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(CliListEnvelope))]
+[JsonSerializable(typeof(CliSourceListEnvelope))]
 internal partial class CliJsonContext : JsonSerializerContext
 {
 }

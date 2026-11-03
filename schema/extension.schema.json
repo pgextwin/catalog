@@ -215,6 +215,11 @@
           "pattern": "^[0-9a-f]{40}$"
         }
       }
+    },
+    "externalSourceRegistry": {
+      "type": "string",
+      "const": "external/windows-candidates-v1.json",
+      "description": "Optional companion source registry; unsigned discovery is not admitted to signed Catalog ZIP pins"
     }
   },
   "$defs": {

@@ -198,6 +198,11 @@
           }
         }
       ]
+    },
+    "externalSourceRegistry": {
+      "type": "string",
+      "const": "external/windows-candidates-v1.json",
+      "description": "Optional link to the nonpublishing metadata-only candidate registry; never download authority"
     }
   },
   "$defs": {
