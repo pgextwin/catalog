@@ -12,7 +12,7 @@ $root = [IO.Path]::GetFullPath($env:PGROOT)
 $pgConfig = Join-Path $root 'bin/pg_config.exe'
 if (-not (Test-Path -LiteralPath $pgConfig)) { throw 'PostgreSQL binary missing' }
 $ver = (& $pgConfig --version | Out-String).Trim()
-if ($LASTEXITCODE -ne 0 -or $ver -notmatch '^PostgreSQL 18(?:[.]|\\s)') {
+if ($LASTEXITCODE -ne 0 -or $ver -notmatch '^PostgreSQL 18(?:[.]|\s)') {
     throw "Wrong PostgreSQL installation: $ver"
 }
 Add-Type -AssemblyName System.IO.Compression
@@ -64,7 +64,7 @@ function Inspect-Package([string]$file, [string]$extensionName) {
         [long]$expanded = 0
         foreach ($entry in $archive.Entries) {
             $name = $entry.FullName
-            if (-not $name -or $name.StartsWith('/') -or $name.Contains('\\') -or
+            if (-not $name -or $name.StartsWith('/') -or $name.Contains('\') -or
                 $name.Contains(':') -or $name -match '(^|/)[.][.]?(/|$)' -or
                 -not $names.Add($name)) {
                 throw "Unsafe or duplicate ZIP path: $name"
