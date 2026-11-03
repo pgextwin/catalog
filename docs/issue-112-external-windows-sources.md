@@ -133,3 +133,33 @@ Not adopted as extension-only providers: `YukeonWayne/pg_pgvector_binary`
 Windows OSGeo/StackBuilder bundles also require a dedicated multi-extension
 package adapter and per-file runtime/licensing review. No provider is labeled
 verified solely from a GitHub README, release title, SPDX tag, or digest.
+
+### Automatic all-page discovery and admission rule
+
+The protected source allowlist in `external/discovery-providers-v1.json` is
+scanned by `scripts/discover_external_windows_releases.py`. Its read-only
+GitHub API loop requires an explicit terminal empty page, checks release/asset
+IDs, filenames, owner/repository-bound HTTPS URLs, duplicate IDs, bytes and
+API SHA256 formatting, then reports additions/removals/metadata modifications
+against **two pinned historical baseline snapshots**. The optional Actions
+workflow `issue112-external-discovery.yml` runs on relevant PR/main changes
+or on an explicit workflow dispatch. It does not add recurring cron, commit to
+main, upload a Release, update the signed feed, or automatically authorize
+downloads. A newly discovered source requires an allowlist change through
+protected CI; new upstream Release versions are flagged when the scan is
+next invoked. No claim of continuous off-platform monitoring is made.
+
+**Adoption policy:** when source/payload/third-party-license terms and required
+NOTICEs permit the intended action, exact upstream release and source commit
+are pinned, original ZIP bytes are independently rehashed and structurally
+checked, signer/attestation provenance is verified or an independently approved
+equivalent proof is established, Windows PostgreSQL major/distribution/ABI and
+runtime dependencies are verified, and the existing protected Catalog,
+signed-feed and formal Publisher gates succeed, the eligible external asset
+can be admitted for the precise target environment without an additional
+discretionary review step. Direct original-asset download and redistribution
+or mirroring are **separate permissions**; a license that permits use does not
+by itself prove provenance, or authorize repackaging. Missing or conflicting
+evidence is a fail-closed DENY, never a basis to silently substitute another
+provider. Promotion happens only in an independently reviewed protected PR
+and the authenticated existing pipeline, not in the discovery snapshot.
