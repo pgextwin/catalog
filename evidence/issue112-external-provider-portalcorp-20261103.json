@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "pgextwin-external-windows-release-inventory/v1",
+  "observedDate": "2026-11-03",
+  "scope": "Read-only authenticated GitHub Release API two-page full-history inventory for portalcorp pgvector Windows; metadata only, no trust or authorization",
+  "repositories": [
+    {
+      "repo": "portalcorp/pgvector_compiled",
+      "providerType": "community",
+      "pagesScanned": 2,
+      "releasesSeen": 6,
+      "releasesWithWindowsAssets": 6,
+      "windowsAssets": 6,
+      "windowsAssetsMissingDigest": 6,
+      "releases": [
+        {
+          "releaseId": 182821763,
+          "tag": "v0.16.105",
+          "publishedAt": "2024-10-31T00:16:52Z",
+          "draft": false,
+          "prerelease": false,
+          "assetCount": 6,
+          "windowsAssets": [
+            {
+              "assetId": 203009337,
+              "name": "pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "size": 163732,
+              "digest": null,
+              "url": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.105/pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "state": "uploaded"
+            }
+          ]
+        },
+        {
+          "releaseId": 168822449,
+          "tag": "v0.16.19",
+          "publishedAt": "2024-08-06T03:57:11Z",
+          "draft": false,
+          "prerelease": false,
+          "assetCount": 6,
+          "windowsAssets": [
+            {
+              "assetId": 184132450,
+              "name": "pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "size": 158519,
+              "digest": null,
+              "url": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.19/pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "state": "uploaded"
+            }
+          ]
+        },
+        {
+          "releaseId": 168792384,
+          "tag": "v0.16.17",
+          "publishedAt": "2024-08-05T21:33:58Z",
+          "draft": false,
+          "prerelease": false,
+          "assetCount": 6,
+          "windowsAssets": [
+            {
+              "assetId": 184070010,
+              "name": "pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "size": 158521,
+              "digest": null,
+              "url": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.17/pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "state": "uploaded"
+            }
+          ]
+        },
+        {
+          "releaseId": 167944600,
+          "tag": "v0.16.12",
+          "publishedAt": "2024-07-30T23:14:10Z",
+          "draft": false,
+          "prerelease": false,
+          "assetCount": 6,
+          "windowsAssets": [
+            {
+              "assetId": 182860319,
+              "name": "pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "size": 158070,
+              "digest": null,
+              "url": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.12/pgvector-x86_64-pc-windows-msvc-pg16.zip",
+              "state": "uploaded"
+            }
+          ]
+        },
+        {
+          "releaseId": 167942162,
+          "tag": "v0.16.11",
+          "publishedAt": "2024-07-30T22:49:13Z",
+          "draft": false,
+          "prerelease": false,
+          "assetCount": 3,
+          "windowsAssets": [
+            {
+              "assetId": 182857574,
+              "name": "pgvector-Windows-pg16.zip",
+              "size": 156690,
+              "digest": null,
+              "url": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.11/pgvector-Windows-pg16.zip",
+              "state": "uploaded"
+            }
+          ]
+        },
+        {
+          "releaseId": 167928075,
+          "tag": "v0.16.10",
+          "publishedAt": "2024-07-30T20:54:47Z",
+          "draft": false,
+          "prerelease": false,
+          "assetCount": 3,
+          "windowsAssets": [
+            {
+              "assetId": 182830547,
+              "name": "pgvector-Windows-pg16.zip",
+              "size": 157016,
+              "digest": null,
+              "url": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.10/pgvector-Windows-pg16.zip",
+              "state": "uploaded"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

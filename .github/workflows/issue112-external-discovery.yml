@@ -1,0 +1,42 @@
+name: Issue112 read-only external Windows provider discovery
+
+on:
+  pull_request:
+    paths:
+      - external/discovery-providers-v1.json
+      - external/windows-candidates-portalcorp-v1.json
+      - scripts/discover_external_windows_releases.py
+      - tests/test_discover_external_windows_releases.py
+      - .github/workflows/issue112-external-discovery.yml
+  push:
+    branches:
+      - main
+    paths:
+      - external/discovery-providers-v1.json
+      - scripts/discover_external_windows_releases.py
+      - .github/workflows/issue112-external-discovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    # This is an untrusted metadata scan. No Releases, push, tags, or signing.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source revision without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile discovery tests
+        run: python3 -m unittest tests.test_discover_external_windows_releases -v
+      - name: Authenticated all-page GET and metadata-only delta against pinned snapshots
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/discover_external_windows_releases.py \
+            --output "$RUNNER_TEMP/issue112-discovery-untrusted.json"
+          test -s "$RUNNER_TEMP/issue112-discovery-untrusted.json"
+          # No upload, commit, release, signed feed mutation or distribution authorization.

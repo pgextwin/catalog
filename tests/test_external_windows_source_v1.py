@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = json.loads((ROOT / "schema/external-windows-source-v1.schema.json").read_text())
 REGISTRY = json.loads((ROOT / "external/windows-candidates-v1.json").read_text())
 INVENTORY = json.loads((ROOT / "evidence/issue112-external-release-inventory-20261103.json").read_text())
+ADDITION = json.loads((ROOT / "external/windows-candidates-portalcorp-v1.json").read_text())
+ADDITION_INVENTORY = json.loads((ROOT / "evidence/issue112-external-provider-portalcorp-20261103.json").read_text())
 
 
 class ExternalSourceRegistryTests(unittest.TestCase):
@@ -44,6 +46,35 @@ class ExternalSourceRegistryTests(unittest.TestCase):
         for repo in INVENTORY["repositories"]:
             self.assertEqual(2, repo["pagesScanned"])
             self.assertEqual(repo["releasesSeen"], len(repo["releases"]))
+
+    def test_additional_provider_is_lossless_and_untrusted(self):
+        self.assertEqual([], list(Draft202012Validator(
+            SCHEMA, format_checker=FormatChecker()).iter_errors(ADDITION)))
+        source = ADDITION_INVENTORY["repositories"][0]
+        self.assertEqual("portalcorp/pgvector_compiled", source["repo"])
+        self.assertEqual(2, source["pagesScanned"])
+        self.assertEqual(6, source["releasesSeen"])
+        self.assertEqual(6, source["windowsAssets"])
+        self.assertEqual(6, source["windowsAssetsMissingDigest"])
+        indexed = {(c["releaseId"], c["assetId"], c["assetName"]) for c in ADDITION["candidates"]}
+        observed = {(r["releaseId"], a["assetId"], a["name"])
+                    for r in source["releases"] for a in r["windowsAssets"]}
+        self.assertEqual(observed, indexed)
+        self.assertEqual(6, len(indexed))
+        self.assertEqual({"0.8.0", "0.7.4", "0.7.3"},
+                         {c["upstreamVersion"] for c in ADDITION["candidates"]})
+        for c in ADDITION["candidates"]:
+            self.assertEqual("16", c["pgMajor"])
+            self.assertTrue(c["historical"])
+            self.assertFalse(c["downloadAuthorized"])
+            self.assertFalse(c["rightsReviewed"])
+            self.assertIsNone(c["sourceCommitSha"])
+            self.assertIsNone(c["originalSha256"])
+
+    def test_addendum_cannot_claim_download_authority(self):
+        payload = copy.deepcopy(ADDITION)
+        payload["candidates"][0]["downloadAuthorized"] = True
+        self.assertTrue(list(Draft202012Validator(SCHEMA).iter_errors(payload)))
 
     def test_missing_digest_is_retained_not_promoted(self):
         missing = [c for c in REGISTRY["candidates"] if c["apiDigest"] is None]

@@ -21,7 +21,10 @@
       "format": "date"
     },
     "sourceInventory": {
-      "const": "evidence/issue112-external-release-inventory-20261103.json"
+      "enum": [
+        "evidence/issue112-external-release-inventory-20261103.json",
+        "evidence/issue112-external-provider-portalcorp-20261103.json"
+      ]
     },
     "trust": {
       "const": "UNVERIFIED_METADATA_ONLY"
