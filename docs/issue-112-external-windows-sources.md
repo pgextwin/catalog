@@ -149,20 +149,29 @@ downloads. A newly discovered source requires an allowlist change through
 protected CI; new upstream Release versions are flagged when the scan is
 next invoked. No claim of continuous off-platform monitoring is made.
 
-**Adoption policy:** when source/payload/third-party-license terms and required
-NOTICEs permit the intended action, exact upstream release and source commit
-are pinned, original ZIP bytes are independently rehashed and structurally
-checked, signer/attestation provenance is verified or an independently approved
-equivalent proof is established, Windows PostgreSQL major/distribution/ABI and
-runtime dependencies are verified, and the existing protected Catalog,
-signed-feed and formal Publisher gates succeed, the eligible external asset
-can be admitted for the precise target environment without an additional
-discretionary review step. Direct original-asset download and redistribution
-or mirroring are **separate permissions**; a license that permits use does not
-by itself prove provenance, or authorize repackaging. Missing or conflicting
-evidence is a fail-closed DENY, never a basis to silently substitute another
-provider. Promotion happens only in an independently reviewed protected PR
-and the authenticated existing pipeline, not in the discovery snapshot.
+**Adoption policy (provider-proportionate):** external publishers do **not**
+have to reproduce pgextwin's internal build outputs. Preserve the authentic
+provider Release + asset identity, independently verified original bytes and a
+documented origin/risk assessment; a fixed source commit is valuable when
+available, but is not a universal prerequisite for third-party binaries.
+Likewise upstream Sigstore, SBOM, Grype and reproducible-build records are
+optional supporting evidence, **not a mandatory uniform checklist**.
+Authenticated GitHub Release/asset identity and independently hashed immutable
+bytes may support an origin decision where upstream signing is absent; a
+community repository is **not** automatically upstream-official or trusted.
+Do not substitute an unreviewed README claim, mutable tag or unsigned checksum
+for a verified original binary.
+
+Every admitted asset still needs complete extension payload, archive safety,
+exact Windows PostgreSQL major/distribution/architecture/ABI runtime evidence,
+required runtime dependencies, terms for the intended use plus *applicable*
+license notices, and an authenticated signed Catalog pin and formal **pgextwin**
+download authorization. Direct links to original third-party Releases are
+different from pgextwin-hosted reupload, redistribution or repackaging; the
+latter requires a separate rights and publication decision. Reject conflicting
+or missing **essential** evidence without silently selecting another provider.
+Promotion uses a protected PR and the existing authenticated pipeline; an
+untrusted discovery snapshot never grants authority.
 
 ## OSGeo PostGIS / pgRouting / pgSphere Windows bundle adapter
 
@@ -233,15 +242,22 @@ against any matching GitHub API digest. Its report preserves independent
 `BYTE_INTEGRITY_ONLY` pilot identity and enumerates missing proof conditions
 per candidate, without modifying trusted download pins.
 
-Distinct required evidence stages include immutable upstream source SHA,
-independently rehashed original ZIP, authentic source/build provenance,
-component-level licensing and included NOTICE review, specific Windows x64
-PostgreSQL distribution/ABI runtime E2E, dependency closure, authenticated
-signed Catalog feed pin and the existing formal Publisher download permission.
-Mirroring requires its own redistribution rights and authorization. Reported
-green booleans in unsigned JSON cannot replace cryptographic verification,
-independent checks or protected Publisher gates. Neither external Release
-metadata nor a prior successful ZIP byte pilot is an approval.
+The gap reporter distinguishes **essential** requirements from evidence
+that may be useful but is not uniformly available. Essential conditions are
+independent original ZIP bytes, reviewed provider Release origin/attribution,
+applicable license and NOTICE terms for the intended use, actual Windows
+PostgreSQL ABI testing, dependency closure, authenticated signed Catalog pin
+and formal pgextwin download authorization. The upstream source commit is
+recorded when it exists but is **not** an unconditional blocker; upstream
+signature, SBOM, Grype and reproducibility reports are not required merely
+because pgextwin publishes them. The provider's maturity and delivery practice
+determine the evidence used to establish origin and risk, not whether runtime
+compatibility or exact asset bytes can be skipped.
+
+Mirroring still requires separate redistribution rights and authorization.
+Reported green booleans in unsigned JSON cannot replace independent checks
+or protected pgextwin Publisher gates. Neither external Release metadata nor
+a prior successful ZIP byte pilot alone constitutes admission.
 
 Current initial registry: **203 discovery candidates remain blocked**.
 The original 2 pilot assets are merely linked as byte-integrity observations;
@@ -258,3 +274,40 @@ python3 scripts/external_admission_preflight.py --output /tmp/external-admission
 ```
 
 The output is local-only; no ZIP download, extension install or new Release.
+
+
+## Proportionate pilot assessment: original provider bytes, not pgextwin output parity
+
+A practical admission review asks whether the downloaded package is a usable,
+attributable PostgreSQL extension for its declared target, not whether the
+provider builds a pgextwin-style SBOM/attestation/scan bundle. The **required
+payload** depends on the extension: the DLL, control/SQL files, any helper EXE
+or runtime DLL actually needed, and enough installation/dependency instructions
+to avoid installing into the wrong PostgreSQL environment.
+
+| Pilot | Established independent evidence | Essential evidence still missing |
+| --- | --- | --- |
+| Official `laurenz/oracle_fdw` 2.9.0 PG18, asset 442625860 | Authenticated upstream Release and source tag commit `3ea9a4522c445c15c741d4f2bc89bccde740d283`; independent original 365101-byte ZIP SHA256 `ad1fc057888b89f968de34f14bd7088c2b05d674a8df4b40ba47ed772c317678` and CRC pilot | Assess actual ZIP file inventory and notices, Oracle Client (>=11.2, user-supplied rather than mirrored), runtime ABI on Windows PostgreSQL 18, reviewed provider-to-binary attribution, signed pin and pgextwin authorization |
+| Community `andreiramani/pgvector_pgsql_windows` 0.8.7 PG18, asset 661612613 | Authenticated community Release (explicitly unofficial) and independent original 174796-byte ZIP SHA256 `7c4ae0e2b2cb1e547779209a34a7d3f05b82fd7912818bf3d7042266eda87e7d` and CRC pilot | Complete payload and license notices, demonstrate Windows 18 ABI/SQL/vector behavior, document community origin and compiler/runtime risk, signed pin and pgextwin authorization |
+
+For oracle_fdw, the upstream source LICENSE permits copying and distribution
+provided its copyright and disclaimer text is retained. This does **not**
+automatically clear every embedded binary or Oracle Instant Client licensing;
+the upstream README explicitly requires Oracle Client 11.2 or newer and
+matching PostgreSQL/Oracle architectures. Do not bundle Oracle's runtime
+without a separate rights review. See the exact upstream
+[`LICENSE`](https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE)
+and [`README.oracle_fdw`](https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/README.oracle_fdw).
+
+For pgvector, the community provider calls its binaries unofficial; the
+upstream pgvector project documents compiling Windows binaries with MSVC
+and does not certify this community ZIP merely by publishing source code.
+See the [provider README](https://github.com/andreiramani/pgvector_pgsql_windows)
+and [upstream Windows instructions](https://github.com/pgvector/pgvector#readme).
+
+**Current decision: both remain DENY for real downloader use.** Neither has
+a completed Windows runtime and dependency review or formal approved feed.
+The provided hashes and identities are precise observations, not implied
+upstream cryptographic signatures, package vulnerability clearances or
+redistribution authorizations. Successful historic CI is not rerun merely
+to generate additional provenance.
