@@ -112,7 +112,7 @@ def published_release_day(release):
 
 def check_source_package(pkg, repo, source_commit, major, source, *,
                          expected_event="workflow_dispatch"):
-    require(expected_event in ("workflow_dispatch","push"),
+    require(expected_event in ("workflow_dispatch","push","issue_comment"),
             "untrusted formal Release source event")
     """Fail closed on exact per-PG upstream and packaging/run identities."""
     require(type(pkg) is dict and pkg.get("schemaVersion") == 1
@@ -137,7 +137,7 @@ def check_source_package(pkg, repo, source_commit, major, source, *,
     require(type(run.get("id")) is int and run["id"] > 0
             and run.get("ref") == "refs/heads/main"
             and run.get("event") == expected_event
-            and (expected_event != "push" or
+            and (expected_event not in ("push","issue_comment") or
                  (type(run.get("attempt")) is int and run["attempt"]==1)),
             "signed package not from authenticated expected original main event")
     return run["id"]
@@ -180,7 +180,7 @@ def verify_release_tag(repo, tag, source_commit):
 
 def verify_payload(folder, release, manifest, contract, source_commit, active, *,
                    expected_event="workflow_dispatch"):
-    require(expected_event in ("workflow_dispatch", "push"),
+    require(expected_event in ("workflow_dispatch", "push", "issue_comment"),
             "unrecognized formal signed source event")
     """Validate downloaded bytes and ZIP metadata; attestations are checked by caller."""
     name = manifest["name"]
@@ -413,7 +413,11 @@ def generate(extension, tag, record):
     auto_marker=(automatic_provenance.parse(body)
                  if isinstance(body,str) and
                  automatic_provenance.PREFIX in body else None)
-    original_event="push" if auto_marker is not None else "workflow_dispatch"
+    original_event=("issue_comment"
+                    if auto_marker is not None and
+                       auto_marker["authorizationMode"]=="owner-signed-main-issue-comment"
+                    else "push" if auto_marker is not None
+                    else "workflow_dispatch")
     with tempfile.TemporaryDirectory() as tmp:
         gh("release", "download", tag, "--repo", repo, "--dir", tmp)
         folder = Path(tmp)
@@ -446,7 +450,9 @@ def generate(extension, tag, record):
                                 assets, sums, source_commit, active)
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
                     "releaseProvenance": (
-                        "INDEPENDENT_OWNER_COMMENT_SIGNED"
+                        "INDEPENDENT_OWNER_MAIN_SIGNED_PUBLISHER"
+                         if auto_marker is not None and auto_marker["authorizationMode"] == "owner-signed-main-issue-comment"
+                         else "INDEPENDENT_OWNER_COMMENT_SIGNED"
                          if auto_marker is not None and auto_marker["authorizationMode"] == "owner-issue-comment"
                          else "INDEPENDENT_OWNER_DISPATCH_SIGNED"
                         if auto_marker is not None and auto_marker["authorizationMode"] == "owner-dispatch"
