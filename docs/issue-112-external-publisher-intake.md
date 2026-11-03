@@ -59,3 +59,22 @@ SPDX, Grype, or fixed source SHA requirement on other providers.
 pins; **203/203 DOWNLOAD_DENY and MIRROR_DENY**. A future protected PR can
 consume the comparator as one check, but it must not treat its output as
 Publisher approval. No existing successful Run needs to be repeated.
+
+
+## Offline original ZIP verifier for the future authorized external path
+
+The isolated `dotnet/src/PgExtWin.Releases/ExternalOriginalZipIntegrity.cs`
+checks *caller-supplied* original ZIP bytes and their **exact expected SHA256
+and byte length**, then checks archive structure, bounded decompression,
+nonempty payload, duplicate members, ZIP traversal/Windows ADS paths and
+symlink entries. Synthetic hostile fixtures are included in the .NET contract
+runner. This verifier makes **no HTTP request**, writes **no file**, extracts
+or installs nothing and cannot authorize any external download. The expected
+digest is not independently trusted until verified from a separately
+authenticated, formally authorized external signed feed.
+
+This does not replace the existing Windows PG18 actual runtime evidence or
+claim a second real-byte provider fetch. The native-only REST/browser
+downloaders and the CLI `--source external|all` download denial are unchanged.
+The formally approved Publisher and separate signed client admission still
+must be established before any direct provider GET.
