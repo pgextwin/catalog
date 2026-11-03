@@ -75,7 +75,7 @@ static async Task<int> RunAsync(string[] args)
                     if (directory is not null) throw new ArgumentException("Duplicate --catalog-dir");
                     directory = value; break;
                 case "--pg":
-                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, @"\A[1-9][0-9]*\z")) || (value == "all" && command != "download-all"))
+                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, command is "list" or "search" ? @"\A[1-9][0-9]*(?:\.[0-9]+)?\z" : @"\A[1-9][0-9]*\z")) || (value == "all" && command != "download-all"))
                         throw new ArgumentException("Invalid/duplicate --pg");
                     pg = value; break;
                 case "--policy":
