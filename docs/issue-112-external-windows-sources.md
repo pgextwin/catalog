@@ -163,3 +163,61 @@ by itself prove provenance, or authorize repackaging. Missing or conflicting
 evidence is a fail-closed DENY, never a basis to silently substitute another
 provider. Promotion happens only in an independently reviewed protected PR
 and the authenticated existing pipeline, not in the discovery snapshot.
+
+## OSGeo PostGIS / pgRouting / pgSphere Windows bundle adapter
+
+This is a **separate distribution format**, not an extra GitHub Release or
+three independent extension ZIPs. The PostGIS project directs Windows users
+to OSGeo ZIP and StackBuilder installers:
+https://postgis.net/documentation/getting_started/install_windows/released_versions/
+The official released bundle 3.6.2 (PG14–18) includes PostGIS 3.6.2,
+pgRouting 4.0.1, pgSphere 1.5.2, and substantial GEOS/PROJ/GDAL/SFCGAL
+and other runtime components. Its source-content and binary-dependency
+version constraints cannot be inferred from the bundle's PostGIS version.
+
+### Historical discovery
+
+`scripts/discover_osgeo_windows_bundles.py` enumerates exactly
+`https://ftp2.osuosl.org/pub/osgeo/download/postgis/windows/` (public
+OSGeo mirror) or the pinned `https://download-cache.osgeo.org/postgis/windows/`
+index by explicit `--index`. It strictly accepts only `pgNN/` directories
+plus their immediate optional `archive/`; no general crawl, recursive links,
+source/extras trees, redirects or arbitrary origin. It parses all matching
+PostGIS ZIP and setup EXE filenames while preserving unparsed archive filename
+identities. For historical `pg80`–`pg96` paths, the PG major is normalized
+to 8.0–9.6, **not** 80–96. New `pg19` path presence does not certify GA.
+It records whether an MD5 sidecar appears but never accepts MD5 as SHA256,
+signature, provenance or original-byte validation.
+
+The scanner emits local **metadata-only** JSON to the Actions runner temp
+folder; on PR/main changes and explicit dispatch the read-only
+`issue112-osgeo-readonly.yml` workflow runs hostile offline tests and the
+finite online index scan. No ZIP/EXE/MD5 body download, unpacking, install,
+signed Catalog feed mutation, publication, mirror or stateful scheduled task
+is performed. This directory scanner is **not** a GitHub Release adapter and
+does not grant source-chooser priority to any particular extension.
+
+### Admission, rights and required evidence
+
+For each exact external bundle and each included extension, record:
+- Exact target PG major, vendor/EDB Windows distribution, x64 MSVC ABI, ZIP/EXE
+  identity, original independently verified SHA256, and package source identity.
+- Bundle **component manifest** with distinct versions and file inventory:
+  PostGIS core, pgRouting, pgSphere, supporting extensions, GEOS, PROJ, GDAL,
+  SFCGAL and other shared DLLs. Record which files and licenses/NOTICES are
+  necessary for a *direct-download link* versus *pgextwin redistribution*.
+- Legitimate source and build provenance, authentic signatures/attestations
+  or separately reviewed equivalent independent trustworthy evidence, runtime
+  tests for PG major/vendor ABI, dependencies, upgrade/collision behavior and
+  adverse extraction cases.
+- Reviewer-readable exact proof refs and protected Catalog signed-feed/Pubisher
+  authorization *for the intended operation*. Direct download and mirroring
+  are independent gates. A directory name, MD5 sidecar, liberal source license
+  or an official provider label cannot authorize a binary.
+
+Only independently **admitted package-specific files** may later enter a
+versioned signed feed and the existing fail-closed .NET downloader. PostGIS
+bundle files must not be repackaged into individual pgRouting or pgSphere ZIPs
+merely because those binaries are present: this changes distribution and
+license scope. The current signed feed/CLI and all existing native packages
+are unchanged; **OSGeo bundle download/mirror/install = DENY**.
