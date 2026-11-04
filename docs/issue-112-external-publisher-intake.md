@@ -105,3 +105,9 @@ its own original ZIP byte verification and formal source-specific acceptance.
 Do not flip boolean fields as a substitute for deployment protection or App
 permission verification. Native Publisher, CLI, Website and original ZIP
 DOWNLOAD_DENY/MIRROR_DENY are unchanged by this PR.
+
+## Protected external App proof: credential acceptance only
+
+Authenticated original build/main [run 41817355221 attempt1](https://github.com/pgextwin/build/actions/runs/41817355221) at source commit `22c6de651c4ec844292cbf1efb1cbc8b21871b53` succeeded after the real GitHub Environment reviewer gate. The isolated job validated dedicated App ID 5609317 and installation 178510512, selected `pgextwin/catalog` with Metadata read, Contents/Pull requests write, an unreferenced Git blob write (no ref, Release or public output), short-lived token and same-token 401 revocation. Build Environment `external-direct-provider-publisher` ID 26208765001 was limited to protected main. No key material appears in this document.
+
+The v2 exact policy binds those **audit references**, not a locally invented `authorized=true` flag. Its validator remains strictly `PUBLISH_DENY`, and external original binary bytes, source-specific legal/NOTICE restrictions, independent Sigstore/current-main approval, formal signed public metadata and client downloads are still separate gates. An untrusted copy of the policy or Run ID is not authentication. All 203 candidates remain `DOWNLOAD_DENY`/`MIRROR_DENY`; neither pilot has an authorized public direct-download operation.

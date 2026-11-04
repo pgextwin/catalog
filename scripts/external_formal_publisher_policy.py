@@ -18,12 +18,13 @@ from external_direct_link_review import (
 )
 
 POLICY = "config/issue112-external-publisher-policy.json"
-SCHEMA = "pgextwin-external-direct-provider-publisher-policy/v1"
+SCHEMA = "pgextwin-external-direct-provider-publisher-policy/v2"
 SOURCE_KIND = "EXTERNAL_GITHUB_RELEASE_ASSET"
 ENVIRONMENT = "external-direct-provider-publisher"
 ROOT_KEYS = {
     "schemaVersion", "sourceKind", "mode", "publisherEnvironment",
     "publisherAppId", "publisherInstallationId",
+    "publisherEnvironmentId", "publisherAppProof",
     "protectedEnvironmentVerified", "leastPrivilegeAppVerified",
     "originalMainIndependentSigstoreVerified",
     "formalSourceSpecificAuthorization", "approvedOperation",
@@ -65,12 +66,13 @@ def inspect_policy(root=ROOT, policy=None, review=None):
     for k, expected in (
         ("schemaVersion", SCHEMA),
         ("sourceKind", SOURCE_KIND),
-        ("mode", "DENY_PENDING_GITHUB_ADMIN_EVIDENCE"),
+        ("mode", "APP_CREDENTIAL_PROOF_VERIFIED_NONPUBLISHING"),
         ("publisherEnvironment", ENVIRONMENT),
-        ("publisherAppId", None),
-        ("publisherInstallationId", None),
-        ("protectedEnvironmentVerified", False),
-        ("leastPrivilegeAppVerified", False),
+        ("publisherAppId", 5609317),
+        ("publisherInstallationId", 178510512),
+        ("publisherEnvironmentId", 26208765001),
+        ("protectedEnvironmentVerified", True),
+        ("leastPrivilegeAppVerified", True),
         ("originalMainIndependentSigstoreVerified", False),
         ("formalSourceSpecificAuthorization", False),
         ("approvedOperation", "NONE"),
@@ -79,6 +81,24 @@ def inspect_policy(root=ROOT, policy=None, review=None):
     ):
         require(type(doc[k]) is type(expected) and doc[k] == expected,
                 "unexpected or elevated boundary field: " + k)
+    proof = doc["publisherAppProof"]
+    require(type(proof) is dict and set(proof) == {
+        "repository", "workflow", "runId", "runAttempt", "sourceCommit",
+        "conclusion", "operation",
+    }, "missing or unknown independent App proof fields")
+    for field, expected in (
+        ("repository", "pgextwin/build"),
+        ("workflow", ".github/workflows/external-direct-provider-app-proof.yml"),
+        ("runId", 41817355221),
+        ("runAttempt", 1),
+        ("sourceCommit", "22c6de651c4ec844292cbf1efb1cbc8b21871b53"),
+        ("conclusion", "success"),
+        ("operation", "UNREFERENCED_GIT_BLOB_WRITE_AND_SAME_TOKEN_401_REVOKE"),
+    ):
+        require(type(proof[field]) is type(expected) and proof[field] == expected,
+                "forged or stale nonpublishing credential evidence: " + field)
+    # These immutable references are audit pointers, not a live GitHub
+    # authentication substitute or publication receipt.
     rows = doc["records"]
     require(type(rows) is list and len(rows) == 2, "unknown or absent source policy")
     reviewed = {
@@ -117,12 +137,13 @@ def inspect_policy(root=ROOT, policy=None, review=None):
         "schemaVersion": SCHEMA,
         "sourceKind": SOURCE_KIND,
         "publisherEnvironment": ENVIRONMENT,
+        "appProofRunId": 41817355221,
         "policySha256": hashlib.sha256(raw).hexdigest(),
         "formalAdmissionReady": False,
         "sourcePublisherAuthorized": False,
         "downloadAuthorized": False,
         "mirrorAuthorized": False,
-        "status": "SOURCE_POLICY_REVIEW_ONLY_PUBLISH_DENY",
+        "status": "EXTERNAL_APP_KEY_SCOPE_VERIFIED_PUBLISH_DENY",
     }
 
 

@@ -1,12 +1,12 @@
 {
-  "schemaVersion": "pgextwin-external-direct-provider-publisher-policy/v1",
+  "schemaVersion": "pgextwin-external-direct-provider-publisher-policy/v2",
   "sourceKind": "EXTERNAL_GITHUB_RELEASE_ASSET",
-  "mode": "DENY_PENDING_GITHUB_ADMIN_EVIDENCE",
+  "mode": "APP_CREDENTIAL_PROOF_VERIFIED_NONPUBLISHING",
   "publisherEnvironment": "external-direct-provider-publisher",
-  "publisherAppId": null,
-  "publisherInstallationId": null,
-  "protectedEnvironmentVerified": false,
-  "leastPrivilegeAppVerified": false,
+  "publisherAppId": 5609317,
+  "publisherInstallationId": 178510512,
+  "protectedEnvironmentVerified": true,
+  "leastPrivilegeAppVerified": true,
   "originalMainIndependentSigstoreVerified": false,
   "formalSourceSpecificAuthorization": false,
   "approvedOperation": "NONE",
@@ -35,5 +35,15 @@
       "downloadAuthorized": false,
       "mirrorAuthorized": false
     }
-  ]
+  ],
+  "publisherEnvironmentId": 26208765001,
+  "publisherAppProof": {
+    "repository": "pgextwin/build",
+    "workflow": ".github/workflows/external-direct-provider-app-proof.yml",
+    "runId": 41817355221,
+    "runAttempt": 1,
+    "sourceCommit": "22c6de651c4ec844292cbf1efb1cbc8b21871b53",
+    "conclusion": "success",
+    "operation": "UNREFERENCED_GIT_BLOB_WRITE_AND_SAME_TOKEN_401_REVOKE"
+  }
 }
