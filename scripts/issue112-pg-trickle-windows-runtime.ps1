@@ -42,6 +42,38 @@ $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnore
 $dllCount=0; $controlCount=0; $sqlCount=0
 try {
   if ($archive.Entries.Count -lt 4 -or $archive.Entries.Count -gt 2500) { throw 'Member count outside bounds' }
+  # The upstream release.yml embeds a self-declared candidate commit and LICENSE.
+  # Verify the fields in the independently rehashed original bytes, not a local fixture.
+  # An embedded JSON document is NOT a cryptographically authenticated build attestation.
+  $candidate=$archive.GetEntry($prefix+'release-candidate.json')
+  $license=$archive.GetEntry($prefix+'LICENSE')
+  if ($null -eq $candidate -or $candidate.Length -lt 80 -or $candidate.Length -gt 4096) {
+    throw 'Missing or unbounded upstream release-candidate metadata'
+  }
+  if ($null -eq $license -or $license.Length -lt 5000 -or $license.Length -gt 30000) {
+    throw 'Missing or unbounded upstream LICENSE'
+  }
+  $reader=[IO.StreamReader]::new($candidate.Open(),[Text.UTF8Encoding]::new($false,$true))
+  try { $candidateText=$reader.ReadToEnd() } finally { $reader.Dispose() }
+  $declared=$candidateText | ConvertFrom-Json -AsHashtable
+  if ($null -eq $declared -or
+      $declared.candidate_commit -cne 'ce709f06327b4801f79fc48934bc96107b450907' -or
+      $declared.build_kind -cne 'exact-release' -or
+      $declared.feature_scope -cne 'default-release' -or
+      $declared.build_provenance.workflow -cne 'release.yml' -or
+      $declared.build_provenance.cargo_profile -cne 'release' -or
+      $declared.build_provenance.instrumentation -cne 'none') {
+    throw 'Upstream self-declared release candidate/source metadata mismatch'
+  }
+  $reader=[IO.StreamReader]::new($license.Open(),[Text.UTF8Encoding]::new($false,$true))
+  try { $licenseText=$reader.ReadToEnd() } finally { $reader.Dispose() }
+  if (-not $licenseText.Contains('Apache License') -or
+      -not $licenseText.Contains('Version 2.0, January 2004') -or
+      -not $licenseText.Contains('TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION')) {
+    throw 'Original package LICENSE does not identify expected Apache-2.0 text'
+  }
+  Write-Host 'UPSTREAM_EMBEDDED_ORIGIN=SOURCE_DECLARATION_MATCH SOURCE_SHA=ce709f06327b4801f79fc48934bc96107b450907 LICENSE_IN_ORIGINAL_ZIP=APACHE_2_0_PRESENT'
+  Write-Host 'INDEPENDENT_SOURCE_TO_BINARY_ATTESTATION=NOT_VERIFIED THIRD_PARTY_NOTICE_CLOSURE=NOT_VERIFIED'
   foreach ($e in $archive.Entries) {
     $name=$e.FullName
     if (-not $name -or -not $name.StartsWith($prefix,[StringComparison]::Ordinal) -or
