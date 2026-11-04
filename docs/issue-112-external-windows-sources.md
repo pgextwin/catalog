@@ -322,3 +322,44 @@ acceptance are maintained in
 That later evidence supersedes the earlier initial pilot gap descriptions above.
 All 203 discovery entries still remain DOWNLOAD_DENY / MIRROR_DENY; the dedicated
 OCI smoke is nonpublishing and does not grant signed feed or downloader authority.
+
+## pg_trickle official Windows Release discovery — 2026-11-04 JST
+
+Authenticated, read-only GitHub REST GET of `trickle-labs/pg-trickle`
+(`/releases?per_page=100&page=1..3`) returned **100 / 39 / 0**
+Releases (139 total); each has one uploaded Windows ZIP, and every Windows
+asset currently has a GitHub API `sha256:` digest. **137** ZIP names match
+`pg_trickle-X.Y.Z-pg18-windows-amd64.zip`. The two earliest archives are
+named `pg_stream-0.1.0/0.1.1-pg18-windows-amd64.zip`; they are
+**deliberately excluded** from automatic `pg_trickle` discovery because
+their former name/extension identity needs separate review.
+
+The newest observed Release is
+[`v0.108.3`](https://github.com/trickle-labs/pg-trickle/releases/tag/v0.108.3),
+published 2026-10-06 UTC, Release ID `404988260`, Windows Asset ID
+`616203967`, `7029107` bytes and *API-reported* SHA256
+`c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b`.
+This hash was read from release metadata, **not independently computed
+from downloaded ZIP bytes**. The repository advertises Apache-2.0 licensing;
+package license notices and any bundled dependencies remain to be reviewed.
+
+The declarative allowlist now adds only
+`trickle-labs/pg-trickle`, marked `upstream-official` for this
+upstream-owned repository and restricted to exact PG18 Windows amd64 ZIP
+names. Reuse the existing all-page release scanner and metadata-only
+comparison; no extra scripts, triggers, candidate admission, or public
+distribution path are added. Existing 203 persisted metadata-only candidates
+are unchanged; the 137 newly discoverable matches **are not 137 newly
+admitted binaries**. Upstream's Release Process describes the Windows amd64
+build as best-effort/build-only, not evidence of verified Windows runtime.
+
+**Still missing before any pgextwin user-byte operation:** independently
+rehash each intended original ZIP and check archive safety/payload, identify
+source-to-Release and compiled binary provenance, review applicable Apache-2.0
+and dependency notices, demonstrate Windows PG18 x64 ABI/runtime behavior,
+and complete the signed source-specific Catalog plus genuine owner-event
+Publisher and independent formal authorization. A GitHub API digest, a
+passing metadata-discovery CI job, and this documentation are not approval.
+All existing and newly discoverable external assets remain
+**DOWNLOAD_DENY / MIRROR_DENY**; no external Release, signed public feed,
+CLI download or Website user-byte acceptance is changed.
