@@ -135,26 +135,18 @@ foreach ($destDir in @($lib,$sharedir)) {
 }
 $prefix='pg_bigm-postgresql-18.0-x64/'
 $payload=@($members | Where-Object {
-  $_.NormalizedName -cmatch '^pg_bigm-postgresql-18[.]0-x64/(?:lib/pg_bigm[.]dll|(?:share/)?extension/pg_bigm[.]control|(?:share/)?extension/pg_bigm--[A-Za-z0-9._-]+[.]sql)
-Write-Host 'APPROVED_OPERATION=NONE DOWNLOAD_DENY=YES MIRROR_DENY=YES'
-
+  $_.NormalizedName -cmatch '^pg_bigm-postgresql-18[.]0-x64/(?:lib/pg_bigm[.]dll|(?:share/)?extension/pg_bigm[.]control|(?:share/)?extension/pg_bigm--[A-Za-z0-9._-]+[.]sql)$'
 })
 $dlls=@($payload | Where-Object { $_.NormalizedName -ceq ($prefix+'lib/pg_bigm.dll') })
-$ctrls=@($payload | Where-Object { $_.NormalizedName -cmatch '/extension/pg_bigm[.]control
-Write-Host 'APPROVED_OPERATION=NONE DOWNLOAD_DENY=YES MIRROR_DENY=YES'
- })
-$sqls=@($payload | Where-Object { $_.NormalizedName -cmatch '/extension/pg_bigm--[A-Za-z0-9._-]+[.]sql
-Write-Host 'APPROVED_OPERATION=NONE DOWNLOAD_DENY=YES MIRROR_DENY=YES'
- })
+$ctrls=@($payload | Where-Object { $_.NormalizedName -cmatch '/extension/pg_bigm[.]control$' })
+$sqls=@($payload | Where-Object { $_.NormalizedName -cmatch '/extension/pg_bigm--[A-Za-z0-9._-]+[.]sql$' })
 if ($dlls.Count -ne 1 -or $ctrls.Count -ne 1 -or $sqls.Count -lt 1) { throw 'Required exact PG18 DLL/control/SQL entries absent' }
 $stage=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18-vetted'
 New-Item -Path $stage -ItemType Directory -Force | Out-Null
 $destExt=Join-Path $sharedir 'extension'
 foreach ($m in $payload) {
   $baseName=[IO.Path]::GetFileName($m.NormalizedName)
-  if (-not $baseName -or $baseName -notmatch '^pg_bigm(?:--[A-Za-z0-9._-]+[.]sql|[.]control|[.]dll)
-Write-Host 'APPROVED_OPERATION=NONE DOWNLOAD_DENY=YES MIRROR_DENY=YES'
-) { throw 'Unexpected staged basename' }
+  if (-not $baseName -or $baseName -notmatch '^pg_bigm(?:--[A-Za-z0-9._-]+[.]sql|[.]control|[.]dll)$') { throw 'Unexpected staged basename' }
   $destFolder=if ($baseName -ceq 'pg_bigm.dll') {$lib} else {$destExt}
   $dest=Join-Path $destFolder $baseName
   if (Test-Path -LiteralPath $dest) { throw "Refusing existing extension file: $dest" }
@@ -173,16 +165,12 @@ $vswhere=Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft 
 if (-not (Test-Path -LiteralPath $vswhere)) { throw 'VS dependency tool missing' }
 $vsroot=(& $vswhere -latest -property installationPath | Out-String).Trim()
 $dumpbin=@(Get-ChildItem -LiteralPath (Join-Path $vsroot 'VC/Tools/MSVC') -Filter dumpbin.exe -Recurse -File |
-  Where-Object { $_.FullName -match 'Hostx64[\\/]x64[\\/]dumpbin[.]exe
-Write-Host 'APPROVED_OPERATION=NONE DOWNLOAD_DENY=YES MIRROR_DENY=YES'
- })
+  Where-Object { $_.FullName -match 'Hostx64[\\/]x64[\\/]dumpbin[.]exe$' })
 if ($dumpbin.Count -lt 1) { throw 'x64 dumpbin absent' }
 $deps=@(& $dumpbin[0].FullName /DEPENDENTS (Join-Path $lib 'pg_bigm.dll'))
 if ($LASTEXITCODE -ne 0) { throw 'pg_bigm PE import inspection failed' }
 $imports=@($deps | ForEach-Object {
-  if ($_ -match '^\s*([A-Za-z0-9_.-]+[.]dll)\s*
-Write-Host 'APPROVED_OPERATION=NONE DOWNLOAD_DENY=YES MIRROR_DENY=YES'
-) { $matches[1].ToLowerInvariant() }
+  if ($_ -match '^\s*([A-Za-z0-9_.-]+[.]dll)\s*$') { $matches[1].ToLowerInvariant() }
 } | Sort-Object -Unique)
 if ($imports.Count -lt 1) { throw 'pg_bigm import names unavailable' }
 Write-Host "HIRAOKA_PG18_STATIC_DEPENDENCIES=$($imports -join ',') TRANSITIVE_DYNAMIC_DEPENDENCIES=NOT_FULLY_VERIFIED"
