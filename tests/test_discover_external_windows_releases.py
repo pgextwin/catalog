@@ -29,8 +29,10 @@ def sample(repo="portalcorp/pgvector_compiled", name="pgvector-Windows-pg16.zip"
 
 class DiscoveryTests(unittest.TestCase):
     def test_pinned_baselines_all_match_explicit_windows_patterns(self):
-        self.assertEqual(4, len(PROVIDERS))
+        self.assertEqual(5, len(PROVIDERS))
         for p in PROVIDERS:
+            if p["repo"] == "trickle-labs/pg-trickle":
+                continue  # New provider has no pinned historical baseline yet.
             historical = next(repo for b in BASELINES for repo in b["repositories"]
                               if repo["repo"] == p["repo"])
             names = [a["name"] for r in historical["releases"] for a in r["windowsAssets"]]
@@ -103,6 +105,47 @@ class DiscoveryTests(unittest.TestCase):
         modified["repositories"][0]["releases"][0]["windowsAssets"][0]["size"] += 1
         self.assertEqual(1, d.compare(modified, [old])["changed"])
         self.assertFalse(modified["publicationAuthorized"])
+
+    def test_pg_trickle_exact_upstream_windows_name_stays_untrusted(self):
+        provider = next(p for p in PROVIDERS if p["repo"] == "trickle-labs/pg-trickle")
+        self.assertEqual("upstream-official", provider["providerType"])
+        self.assertEqual("pg_trickle", provider["extension"])
+        latest = {
+            "id": 404988260, "tag_name": "v0.108.3",
+            "published_at": "2026-10-06T17:39:38Z",
+            "draft": False, "prerelease": False,
+            "assets": [{
+                "id": 616203967,
+                "name": "pg_trickle-0.108.3-pg18-windows-amd64.zip",
+                "size": 7029107,
+                "digest": "sha256:c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b",
+                "state": "uploaded",
+                "browser_download_url":
+                    "https://github.com/trickle-labs/pg-trickle/releases/download/v0.108.3/"
+                    "pg_trickle-0.108.3-pg18-windows-amd64.zip",
+            }],
+        }
+        snapshot = d.scan([provider], lambda repo, page: [latest] if page == 1 else [])
+        row = snapshot["repositories"][0]
+        self.assertEqual(1, row["windowsAssets"])
+        self.assertEqual(0, row["windowsAssetsMissingDigest"])
+        self.assertFalse(snapshot["publicationAuthorized"])
+        self.assertFalse(snapshot["redistributionAuthorized"])
+        self.assertEqual("UNVERIFIED_METADATA_ONLY", snapshot["trust"])
+        self.assertNotIn("downloadAuthorized", row["releases"][0]["windowsAssets"][0])
+
+    def test_pg_trickle_excludes_old_name_and_other_pg_major(self):
+        provider = next(p for p in PROVIDERS if p["repo"] == "trickle-labs/pg-trickle")
+        pattern = re.compile(provider["assetPattern"])
+        self.assertIsNone(pattern.fullmatch("pg_stream-0.1.1-pg18-windows-amd64.zip"))
+        self.assertIsNone(pattern.fullmatch("pg_trickle-0.108.3-pg17-windows-amd64.zip"))
+        self.assertIsNone(pattern.fullmatch("pg_trickle-0.108.3-pg18-linux-amd64.tar.gz"))
+        self.assertIsNotNone(pattern.fullmatch("pg_trickle-0.108.3-pg18-windows-amd64.zip"))
+        row = sample(repo=provider["repo"],
+                     name="pg_trickle-0.108.3-pg18-windows-amd64.zip")
+        row["assets"][0]["browser_download_url"] = "https://evil.invalid/replacement.zip"
+        with self.assertRaises(ValueError):
+            d.summarize_pages(provider, [[row], []])
 
     def test_readonly_and_no_publisher_imports(self):
         source = (ROOT / "scripts/discover_external_windows_releases.py").read_text()
