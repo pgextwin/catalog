@@ -108,6 +108,21 @@ try {
   if ($LASTEXITCODE -ne 0 -or $installed -cne '0.108.3') { throw "Installed version unexpected: $installed" }
   $namespace=(& $psql @args -c "SELECT count(*) FROM pg_namespace WHERE nspname='pgtrickle';" | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or $namespace -ne '1') { throw 'SQL schema absent' }
+  # Full SQL-facing behaviour: source table, stream table, INSERT/UPDATE/DELETE, explicit refresh.
+  # Each psql invocation commits separately, exercising CDC across transactions.
+  & $psql @args -c "CREATE TABLE issue112_orders (id integer PRIMARY KEY, region text NOT NULL, amount numeric NOT NULL); INSERT INTO issue112_orders VALUES (1,'US',100),(2,'US',300),(3,'EU',200);"
+  if ($LASTEXITCODE -ne 0) { throw 'Stream source setup failed' }
+  & $psql @args -c "SELECT pgtrickle.create_stream_table(name => 'issue112_stream', query => 'SELECT region, SUM(amount) AS total, COUNT(*) AS order_count FROM issue112_orders GROUP BY region', schedule => '1m', refresh_mode => 'DIFFERENTIAL');"
+  if ($LASTEXITCODE -ne 0) { throw 'Stream table creation failed' }
+  $initial=(& $psql @args -c "SELECT CASE WHEN (SELECT total FROM issue112_stream WHERE region='US')=400 AND (SELECT order_count FROM issue112_stream WHERE region='US')=2 AND (SELECT total FROM issue112_stream WHERE region='EU')=200 THEN 1 ELSE 0 END;" | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0 -or $initial -cne '1') { throw "Stream initial materialization failed: $initial" }
+  & $psql @args -c "INSERT INTO issue112_orders VALUES (4,'US',50); UPDATE issue112_orders SET amount=250 WHERE id=3; DELETE FROM issue112_orders WHERE id=1;"
+  if ($LASTEXITCODE -ne 0) { throw 'Stream CDC source mutations failed' }
+  & $psql @args -c "SELECT pgtrickle.refresh_stream_table('issue112_stream');"
+  if ($LASTEXITCODE -ne 0) { throw 'Manual differential refresh failed' }
+  $after=(& $psql @args -c "SELECT CASE WHEN (SELECT total FROM issue112_stream WHERE region='US')=350 AND (SELECT order_count FROM issue112_stream WHERE region='US')=2 AND (SELECT total FROM issue112_stream WHERE region='EU')=250 AND (SELECT order_count FROM issue112_stream WHERE region='EU')=1 THEN 1 ELSE 0 END;" | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0 -or $after -cne '1') { throw "Stream SQL CDC output mismatch: $after" }
+  Write-Host 'PG_TRICKLE_PG18_STREAM_FUNCTIONAL=PASS CREATE=YES INITIAL=YES INSERT=YES UPDATE=YES DELETE=YES DIFFERENTIAL_REFRESH=YES SQL_VALUES=PASS'
   Write-Host "PG18_WINDOWS_RUNTIME=PASS EXTVERSION=$installed PRELOAD=YES LOAD=YES SQL_SCHEMA=YES"
 } catch {
   Write-Host "PG18_WINDOWS_RUNTIME=FAIL DETAIL=$($_.Exception.Message)"

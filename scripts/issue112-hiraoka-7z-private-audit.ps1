@@ -118,5 +118,107 @@ if ($sourceVersion -cne '1.2') { throw 'Unexpected bundled pg_bigm upstream vers
 $licenses=@($members | Where-Object { $_.NormalizedName -match '(^|/)(LICENSE|LICENCE|NOTICE)([.][A-Za-z0-9_-]+)?$' })
 Write-Host "HIRAOKA_PG18_EXTENSION_VERSION=$sourceVersion SOURCE_BUILD_COMMIT=NOT_VERIFIED"
 Write-Host "HIRAOKA_PACKAGE_RIGHTS_FILES=$(@($licenses | ForEach-Object { $_.Name }) -join ',') COPYRIGHT_NOTICE_REVIEW=NOT_COMPLETE"
-Write-Host 'HIRAOKA_PER_PG_ABI=NOT_VERIFIED DLL_DEPENDENCIES=NOT_VERIFIED FORMAL_AUTHORIZATION=FALSE'
+# Native PG18 smoke is private and uses only individually vetted PG18 entries.
+if (-not $env:PGROOT) { throw 'PGROOT missing from disposable PG18 runner' }
+$root=[IO.Path]::GetFullPath($env:PGROOT)
+$bin=Join-Path $root 'bin'
+$pgConfig=Join-Path $bin 'pg_config.exe'
+if (-not (Test-Path -LiteralPath $pgConfig)) { throw 'PG18 pg_config absent' }
+$pgVersion=(& $pgConfig --version | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or $pgVersion -notmatch '^PostgreSQL 18(?:[.]|\s)') { throw "Wrong PG ABI: $pgVersion" }
+$lib=(& $pgConfig --pkglibdir | Out-String).Trim()
+$sharedir=(& $pgConfig --sharedir | Out-String).Trim()
+foreach ($destDir in @($lib,$sharedir)) {
+  if (-not ([IO.Path]::GetFullPath($destDir)).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) {
+    throw 'pg_config location outside exact disposable PG18'
+  }
+}
+$prefix='pg_bigm-postgresql-18.0-x64/'
+$payload=@($members | Where-Object {
+  $_.NormalizedName -cmatch '^pg_bigm-postgresql-18[.]0-x64/(?:lib/pg_bigm[.]dll|(?:share/)?extension/pg_bigm[.]control|(?:share/)?extension/pg_bigm--[A-Za-z0-9._-]+[.]sql)$'
+})
+$dlls=@($payload | Where-Object { $_.NormalizedName -ceq ($prefix+'lib/pg_bigm.dll') })
+$ctrls=@($payload | Where-Object { $_.NormalizedName -cmatch '/extension/pg_bigm[.]control$' })
+$sqls=@($payload | Where-Object { $_.NormalizedName -cmatch '/extension/pg_bigm--[A-Za-z0-9._-]+[.]sql$' })
+if ($dlls.Count -ne 1 -or $ctrls.Count -ne 1 -or $sqls.Count -lt 1) { throw 'Required exact PG18 DLL/control/SQL entries absent' }
+$stage=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18-vetted'
+New-Item -Path $stage -ItemType Directory -Force | Out-Null
+$destExt=Join-Path $sharedir 'extension'
+foreach ($m in $payload) {
+  $baseName=[IO.Path]::GetFileName($m.NormalizedName)
+  if (-not $baseName -or $baseName -notmatch '^pg_bigm(?:--[A-Za-z0-9._-]+[.]sql|[.]control|[.]dll)$') { throw 'Unexpected staged basename' }
+  $destFolder=if ($baseName -ceq 'pg_bigm.dll') {$lib} else {$destExt}
+  $dest=Join-Path $destFolder $baseName
+  if (Test-Path -LiteralPath $dest) { throw "Refusing existing extension file: $dest" }
+  & $seven e "-o$stage" -y $file $m.Name | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'Known exact 7z member extraction failed' }
+  $staged=Join-Path $stage $baseName
+  if (-not (Test-Path -LiteralPath $staged) -or (Get-Item -LiteralPath $staged).Length -ne $m.Size) {
+    throw "Vetted member extraction length failed: $baseName"
+  }
+  Copy-Item -LiteralPath $staged -Destination $dest -ErrorAction Stop
+  Remove-Item -LiteralPath $staged -Force
+}
+Write-Host "HIRAOKA_PG18_VETTED_STAGE=PASS DLLS=$($dlls.Count) SQL=$($sqls.Count) NO_UNKNOWN_MEMBER_EXTRACTION=YES"
+
+$vswhere=Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio/Installer/vswhere.exe'
+if (-not (Test-Path -LiteralPath $vswhere)) { throw 'VS dependency tool missing' }
+$vsroot=(& $vswhere -latest -property installationPath | Out-String).Trim()
+$dumpbin=@(Get-ChildItem -LiteralPath (Join-Path $vsroot 'VC/Tools/MSVC') -Filter dumpbin.exe -Recurse -File |
+  Where-Object { $_.FullName -match 'Hostx64[\\/]x64[\\/]dumpbin[.]exe$' })
+if ($dumpbin.Count -lt 1) { throw 'x64 dumpbin absent' }
+$deps=@(& $dumpbin[0].FullName /DEPENDENTS (Join-Path $lib 'pg_bigm.dll'))
+if ($LASTEXITCODE -ne 0) { throw 'pg_bigm PE import inspection failed' }
+$imports=@($deps | ForEach-Object {
+  if ($_ -match '^\s*([A-Za-z0-9_.-]+[.]dll)\s*$') { $matches[1].ToLowerInvariant() }
+} | Sort-Object -Unique)
+if ($imports.Count -lt 1) { throw 'pg_bigm import names unavailable' }
+Write-Host "HIRAOKA_PG18_STATIC_DEPENDENCIES=$($imports -join ',') TRANSITIVE_DYNAMIC_DEPENDENCIES=NOT_FULLY_VERIFIED"
+
+$data=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18-data'
+$log=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18.log'
+$initdb=Join-Path $bin 'initdb.exe'; $pgctl=Join-Path $bin 'pg_ctl.exe'; $psql=Join-Path $bin 'psql.exe'
+$started=$false
+Write-Host 'HIRAOKA_PG18_SQL_PHASE=START'
+try {
+  Write-Host 'HIRAOKA_PG18_INITDB_BEGIN'
+  & $initdb -D $data -A trust -U postgres --no-instructions
+  if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
+  Write-Host 'HIRAOKA_PG18_INITDB_PASS'
+  & $pgctl -D $data -l $log -o '-h 127.0.0.1 -p 55448' -w start
+  if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL startup failed' }
+  $started=$true
+  Write-Host 'HIRAOKA_PG18_SERVER_STARTED'
+  $env:PGCONNECT_TIMEOUT='5'
+  $env:PGOPTIONS='-c statement_timeout=15000 -c lock_timeout=5000'
+  Write-Host 'HIRAOKA_PG18_SQL_BOUNDED_STATEMENT_TIMEOUT_MS=15000'
+  $psqlArgs=@('-X','-A','-t','-v','ON_ERROR_STOP=1','-h','127.0.0.1','-p','55448','-U','postgres','-d','postgres')
+  & $psql @psqlArgs -c 'CREATE EXTENSION pg_bigm;'
+  if ($LASTEXITCODE -ne 0) { throw 'Hiraoka pg_bigm CREATE EXTENSION failed' }
+  $version=(& $psql @psqlArgs -c "SELECT extversion FROM pg_extension WHERE extname='pg_bigm';" | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0 -or $version -cne '1.2') { throw "Wrong installed pg_bigm version: $version" }
+  $sql=@'
+CREATE TABLE issue112_bigm (id integer PRIMARY KEY, val text NOT NULL);
+INSERT INTO issue112_bigm VALUES (1,'applepie'),(2,'pineapple'),(3,'banana');
+CREATE INDEX issue112_bigm_idx ON issue112_bigm USING gin (val gin_bigm_ops);
+'@
+  & $psql @psqlArgs -c $sql
+  if ($LASTEXITCODE -ne 0) { throw 'pg_bigm test table/index setup failed' }
+  $count=(& $psql @psqlArgs -c "SELECT COUNT(*) FROM issue112_bigm WHERE val LIKE likequery('apple');" | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0 -or $count -cne '2') { throw "Wrong pg_bigm indexed SQL result: $count" }
+  $explain=(& $psql @psqlArgs -c "SET enable_seqscan=off; EXPLAIN SELECT val FROM issue112_bigm WHERE val LIKE likequery('apple');" | Out-String)
+  if ($LASTEXITCODE -ne 0 -or $explain -notmatch 'Bitmap Index Scan on issue112_bigm_idx') { throw 'pg_bigm GIN plan not observed' }
+  Write-Host "HIRAOKA_PG18_NATIVE_SQL=PASS VERSION=$version CREATE_EXTENSION=YES GIN_SEARCH=PASS INDEX_PLAN=PASS"
+} catch {
+  Write-Host "HIRAOKA_PG18_NATIVE_SQL=FAIL DETAIL=$($_.Exception.Message)"
+  if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Tail 70 | ForEach-Object { Write-Host $_ } }
+  throw
+} finally {
+  if ($started) {
+    & $pgctl -D $data -m immediate -w stop | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Warning 'Disposable PG18 shutdown failed' }
+  }
+}
+Write-Host 'HIRAOKA_ORIGINAL_PACKAGE_NOTICE_MISSING=YES RIGHTS_REVIEW=NOT_COMPLETE SOURCE_BUILD_PROVENANCE=NOT_VERIFIED'
+Write-Host 'HIRAOKA_PG18_NATIVE_BASIC_RUNTIME=PASS DYNAMIC_DEPENDENCY_CLOSURE=NOT_VERIFIED FORMAL_AUTHORIZATION=FALSE'
 Write-Host 'APPROVED_OPERATION=NONE DOWNLOAD_DENY=YES MIRROR_DENY=YES'

@@ -17,7 +17,7 @@ permissions:
 jobs:
   original-hiraoka-7z-private-audit:
     runs-on: windows-latest
-    timeout-minutes: 12
+    timeout-minutes: 40
     permissions:
       contents: read
     steps:
@@ -25,7 +25,19 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Original 7z SHA256, safe member listing, hostile fixtures, CRC, PG18 control and notices
+      - name: Reuse pinned PostgreSQL installer for disposable native test
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 500131e3ec5ea9bd1a10e9c703626c76e38b13f6
+          path: build-tools
+          persist-credentials: false
+      - name: Install EDB PostgreSQL 18 in disposable Windows CI
+        shell: pwsh
+        run: |
+          ./build-tools/scripts/install-postgresql.ps1 -Major 18 -ChocolateyPackage postgresql18 -ChocolateyVersion 18.6.5 -TestPort 55448
+      - name: Original 7z CRC, vetted PG18 DLL/SQL, PE imports and native GIN SQL (private)
+        timeout-minutes: 5
         shell: pwsh
         run: ./scripts/issue112-hiraoka-7z-private-audit.ps1
       - name: No external authorization or publication
