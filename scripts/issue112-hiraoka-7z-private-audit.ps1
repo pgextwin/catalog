@@ -66,7 +66,7 @@ function Assert-SafeMembers([object[]]$entries) {
     $canonical=$n.Replace('\','/')
     if (-not $canonical -or $canonical -match '^(/|[A-Za-z]:)' -or
       $canonical.Contains(':') -or $canonical -match '(^|/)[.][.]?(/|$)' -or
-      -not $seen.Add($canonical) -or $canonical -notmatch '^[A-Za-z0-9._/-]+ { throw "Unsafe or duplicated 7z path: $n" }
+      -not $seen.Add($canonical) -or $canonical -notmatch '^[A-Za-z0-9._/-]+$') { throw "Unsafe or duplicated 7z path: $n" }
     if ($entry.Encrypted -eq '+' -or $entry.Attributes -match '[Ll]') { throw "Encrypted or linked 7z entry: $n" }
     if ($entry.Size -lt 0 -or $entry.Size -gt 20000000) { throw "Oversized 7z member: $n" }
     $expanded += $entry.Size
