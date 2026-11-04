@@ -29,9 +29,9 @@ def sample(repo="portalcorp/pgvector_compiled", name="pgvector-Windows-pg16.zip"
 
 class DiscoveryTests(unittest.TestCase):
     def test_pinned_baselines_all_match_explicit_windows_patterns(self):
-        self.assertEqual(5, len(PROVIDERS))
+        self.assertEqual(6, len(PROVIDERS))
         for p in PROVIDERS:
-            if p["repo"] == "trickle-labs/pg-trickle":
+            if p["repo"] in ("trickle-labs/pg-trickle", "HiraokaHyperTools/pg_bigm"):
                 continue  # New provider has no pinned historical baseline yet.
             historical = next(repo for b in BASELINES for repo in b["repositories"]
                               if repo["repo"] == p["repo"])
@@ -146,6 +146,38 @@ class DiscoveryTests(unittest.TestCase):
         row["assets"][0]["browser_download_url"] = "https://evil.invalid/replacement.zip"
         with self.assertRaises(ValueError):
             d.summarize_pages(provider, [[row], []])
+
+    def test_hiraoka_bigm_archives_remain_untrusted_multimajor_metadata(self):
+        provider = next(p for p in PROVIDERS if p["repo"] == "HiraokaHyperTools/pg_bigm")
+        self.assertEqual("community", provider["providerType"])
+        self.assertEqual("pg_bigm", provider["extension"])
+        pattern = re.compile(provider["assetPattern"])
+        self.assertIsNotNone(pattern.fullmatch("20260107.7z"))
+        for forbidden in ("20260107.zip", "../20260107.7z",
+                          "20260107.7z.exe", "pg_bigm-18.zip",
+                          "20260107.7z/evil", "2026017.7z"):
+            self.assertIsNone(pattern.fullmatch(forbidden))
+        release = sample(repo=provider["repo"], name="20260107.7z")
+        release["id"] = 274728862
+        release["tag_name"] = "v20260107"
+        asset = release["assets"][0]
+        asset["id"] = 337322081
+        asset["size"] = 139599
+        asset["digest"] = ("sha256:"
+                           "4d627c5373886a37414b775f11f2bd4e78262a9b641cc155f0edf332fed132e5")
+        asset["browser_download_url"] = (
+            "https://github.com/HiraokaHyperTools/pg_bigm/releases/download/v20260107/20260107.7z")
+        row = d.summarize_pages(provider, [[release], []])
+        self.assertEqual(1, row["windowsAssets"])
+        self.assertEqual(0, row["windowsAssetsMissingDigest"])
+        self.assertFalse(d.scan([provider], lambda repo, page: [release] if page == 1 else [])
+                         ["publicationAuthorized"])
+        self.assertNotIn("downloadAuthorized", row["releases"][0]["windowsAssets"][0])
+        modified = copy.deepcopy(release)
+        modified["assets"][0]["browser_download_url"] = (
+            "https://attacker.invalid/20260107.7z")
+        with self.assertRaises(ValueError):
+            d.summarize_pages(provider, [[modified], []])
 
     def test_readonly_and_no_publisher_imports(self):
         source = (ROOT / "scripts/discover_external_windows_releases.py").read_text()
