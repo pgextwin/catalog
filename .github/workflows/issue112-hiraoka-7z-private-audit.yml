@@ -1,0 +1,35 @@
+name: Issue112 Hiraoka original 7z private safety and source review
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112-hiraoka-7z-private-audit.ps1
+      - .github/workflows/issue112-hiraoka-7z-private-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112-hiraoka-7z-private-audit.ps1
+      - .github/workflows/issue112-hiraoka-7z-private-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  original-hiraoka-7z-private-audit:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact candidate without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Original 7z SHA256, safe member listing, hostile fixtures, CRC, PG18 control and notices
+        shell: pwsh
+        run: ./scripts/issue112-hiraoka-7z-private-audit.ps1
+      - name: No external authorization or publication
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host 'METADATA_AND_PRIVATE_EVIDENCE_ONLY=YES NO_UPLOAD=YES NO_RELEASE=YES NO_MIRROR=YES DOWNLOAD_DENY=YES'

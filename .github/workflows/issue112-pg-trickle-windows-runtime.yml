@@ -1,0 +1,46 @@
+name: Issue112 pg_trickle Windows PG18 original runtime (private)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112-pg-trickle-windows-runtime.ps1
+      - .github/workflows/issue112-pg-trickle-windows-runtime.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112-pg-trickle-windows-runtime.ps1
+      - .github/workflows/issue112-pg-trickle-windows-runtime.yml
+
+permissions:
+  contents: read
+
+jobs:
+  private-windows-pg18-runtime:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact candidate with no retained credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reuse existing pinned PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 500131e3ec5ea9bd1a10e9c703626c76e38b13f6
+          path: build-tools
+          persist-credentials: false
+      - name: Install proven EDB PostgreSQL 18 on disposable Windows runner
+        shell: pwsh
+        run: |
+          ./build-tools/scripts/install-postgresql.ps1 -Major 18 -ChocolateyPackage postgresql18 -ChocolateyVersion 18.6.5 -TestPort 55447
+      - name: Rehash original ZIP, inspect static dependencies, preload and CREATE EXTENSION
+        shell: pwsh
+        run: ./scripts/issue112-pg-trickle-windows-runtime.ps1
+      - name: Enforce nonpublishing boundary
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host 'NO_ARTIFACT_UPLOAD=YES NO_RELEASE=YES NO_MIRROR=YES DOWNLOAD_DENY=YES PUBLISH_DENY=YES'
