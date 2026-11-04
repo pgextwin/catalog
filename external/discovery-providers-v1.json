@@ -28,6 +28,12 @@
       "assetPattern": "^pg_trickle-[0-9]+(?:\\.[0-9]+){2}-pg18-windows-amd64\\.zip$"
     },
     {
+      "repo": "HiraokaHyperTools/pg_bigm",
+      "providerType": "community",
+      "extension": "pg_bigm",
+      "assetPattern": "^[0-9]{8}\\.7z$"
+    },
+    {
       "repo": "portalcorp/pgvector_compiled",
       "providerType": "community",
       "extension": "pgvector",

@@ -1,0 +1,28 @@
+name: Issue112 pg_trickle independent original ZIP inspection (private)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112-pg-trickle-byte-review.py
+      - scripts/issue112-external-zip-pilot.py
+      - tests/test_issue112_pg_trickle_byte_review.py
+      - .github/workflows/issue112-pg-trickle-byte-review.yml
+
+permissions:
+  contents: read
+
+jobs:
+  private-original-zip-inspection:
+    # This PR check is neither the external source-specific owner-event nor
+    # a Publisher admission. No credentials, Release, mirror or upload.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout proposed code without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile ZIP and source identity tests
+        run: python3 -m unittest tests.test_issue112_pg_trickle_byte_review -v
+      - name: Read-only independent upstream PG18 Windows ZIP audit
+        run: python3 scripts/issue112-pg-trickle-byte-review.py
