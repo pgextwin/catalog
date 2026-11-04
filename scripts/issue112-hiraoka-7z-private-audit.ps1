@@ -179,6 +179,9 @@ $data=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18-data'
 $log=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18.log'
 $initdb=Join-Path $bin 'initdb.exe'; $pgctl=Join-Path $bin 'pg_ctl.exe'; $psql=Join-Path $bin 'psql.exe'
 $started=$false
+$env:PGCONNECT_TIMEOUT='5'
+$env:PGOPTIONS='-c statement_timeout=15000 -c lock_timeout=5000'
+Write-Host 'HIRAOKA_PG18_SQL_PHASE=START BOUNDED_STATEMENT_TIMEOUT_MS=15000'
 try {
   & $initdb -D $data -A trust -U postgres --no-instructions | Out-Null
   if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
