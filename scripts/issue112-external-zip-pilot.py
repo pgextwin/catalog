@@ -59,10 +59,10 @@ class PinnedRedirects(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(request, fp, code, msg, headers, newurl)
 
 
-def audit_zip(contents):
+def audit_zip(contents, *, max_members=200, max_expanded_bytes=MAX_EXPANDED_BYTES):
     with zipfile.ZipFile(io.BytesIO(contents)) as z:
         infos = z.infolist()
-        if not infos or len(infos) > 200:
+        if not infos or len(infos) > max_members:
             raise ValueError("Invalid ZIP member count")
         names = set()
         total = 0
@@ -77,7 +77,7 @@ def audit_zip(contents):
             if stat.S_ISLNK(entry.external_attr >> 16):
                 raise ValueError("ZIP symlink prohibited")
             total += entry.file_size
-            if (total > MAX_EXPANDED_BYTES or
+            if (total > max_expanded_bytes or
                     entry.file_size > max(entry.compress_size, 1) * 200):
                 raise ValueError("ZIP expansion budget exceeded")
         if not any(name.endswith(".dll") for name in names):
