@@ -21,7 +21,7 @@ class ExternalFormalPublisherPolicyTests(unittest.TestCase):
         self.assertEqual("external-direct-provider-publisher",
                          receipt["publisherEnvironment"])
         self.assertEqual(64, len(receipt["policySha256"]))
-        self.assertEqual("SOURCE_POLICY_REVIEW_ONLY_PUBLISH_DENY", receipt["status"])
+        self.assertEqual("EXTERNAL_APP_KEY_SCOPE_VERIFIED_PUBLISH_DENY", receipt["status"])
         for key in ("formalAdmissionReady", "sourcePublisherAuthorized",
                     "downloadAuthorized", "mirrorAuthorized"):
             self.assertIs(receipt[key], False)
@@ -32,8 +32,9 @@ class ExternalFormalPublisherPolicyTests(unittest.TestCase):
             "publisherEnvironment": "publisher",
             "publisherAppId": 5451798,
             "publisherInstallationId": 174720074,
-            "protectedEnvironmentVerified": True,
-            "leastPrivilegeAppVerified": True,
+            "publisherEnvironmentId": 1,
+            "protectedEnvironmentVerified": False,
+            "leastPrivilegeAppVerified": False,
             "originalMainIndependentSigstoreVerified": True,
             "formalSourceSpecificAuthorization": True,
             "approvedOperation": "DIRECT_DOWNLOAD",
@@ -85,6 +86,8 @@ class ExternalFormalPublisherPolicyTests(unittest.TestCase):
             ("leastPrivilegeAppVerified", 0),
             ("publisherAppId", False),
             ("publisherInstallationId", ""),
+            ("publisherEnvironmentId", None),
+            ("publisherAppProof", []),
             ("formalSourceSpecificAuthorization", None),
         ):
             with self.subTest(field=field):
@@ -93,6 +96,32 @@ class ExternalFormalPublisherPolicyTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     inspect_policy(ROOT, doc)
 
+
+    def test_exact_genuine_app_proof_pointer_cannot_be_substituted(self):
+        for field, value in (
+            ("repository", "pgextwin/catalog"),
+            ("workflow", "publisher-app-proof.yml"),
+            ("runId", 1),
+            ("runAttempt", 2),
+            ("sourceCommit", "0" * 40),
+            ("conclusion", "skipped"),
+            ("operation", "CREATE_RELEASE"),
+        ):
+            with self.subTest(field=field):
+                doc = copy.deepcopy(self.policy)
+                doc["publisherAppProof"][field] = value
+                with self.assertRaises(ValueError):
+                    inspect_policy(ROOT, doc)
+
+    def test_administrative_proof_is_not_source_specific_admission(self):
+        receipt = inspect_policy(ROOT)
+        self.assertEqual(41817355221, receipt["appProofRunId"])
+        self.assertFalse(receipt["formalAdmissionReady"])
+        for key in ("sourcePublisherAuthorized", "downloadAuthorized", "mirrorAuthorized"):
+            self.assertFalse(receipt[key])
+        self.assertFalse(self.policy["formalSourceSpecificAuthorization"])
+        self.assertFalse(self.policy["originalMainIndependentSigstoreVerified"])
+        self.assertEqual("NONE", self.policy["approvedOperation"])
 
 if __name__ == "__main__":
     unittest.main()
