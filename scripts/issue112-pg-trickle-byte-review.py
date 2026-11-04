@@ -40,7 +40,7 @@ def pe_machine(blob):
     if len(blob) < 0x40 or blob[:2] != b"MZ":
         raise ValueError("Invalid Windows DLL DOS header")
     pe_offset = struct.unpack_from("<I", blob, 0x3C)[0]
-    if pe_offset > len(blob) - 26 or blob[pe_offset:pe_offset + 4] != b"PE\\x00\\x00":
+    if pe_offset > len(blob) - 26 or blob[pe_offset:pe_offset + 4] != b"PE\x00\x00":
         raise ValueError("Invalid Windows DLL PE header")
     machine = struct.unpack_from("<H", blob, pe_offset + 4)[0]
     magic = struct.unpack_from("<H", blob, pe_offset + 24)[0]
@@ -76,13 +76,21 @@ def examine_package(data):
 
 
 def read_limited(url, max_bytes):
-    pilot.safe_url(url)
+    # Only these exact constructed REST endpoints bypass the CDN host allowlist.
+    is_api = url in (API_BASE + "/releases/tags/" + TAG,
+                     API_BASE + "/git/ref/tags/" + TAG)
+    if not is_api:
+        pilot.safe_url(url)
     opener = urllib.request.build_opener(pilot.PinnedRedirects())
     request = urllib.request.Request(
         url, headers={"User-Agent": "pgextwin-issue112-private-byte-audit/1",
                       "Accept": "application/vnd.github+json"})
     with opener.open(request, timeout=50) as response:
-        pilot.safe_url(response.url)
+        if is_api:
+            if response.url != url:
+                raise ValueError("Unexpected API redirect")
+        else:
+            pilot.safe_url(response.url)
         if response.status != 200:
             raise ValueError("Unexpected upstream HTTP status")
         data = response.read(max_bytes + 1)
