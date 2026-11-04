@@ -179,15 +179,19 @@ $data=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18-data'
 $log=Join-Path $env:RUNNER_TEMP 'issue112-hiraoka-pg18.log'
 $initdb=Join-Path $bin 'initdb.exe'; $pgctl=Join-Path $bin 'pg_ctl.exe'; $psql=Join-Path $bin 'psql.exe'
 $started=$false
-$env:PGCONNECT_TIMEOUT='5'
-$env:PGOPTIONS='-c statement_timeout=15000 -c lock_timeout=5000'
-Write-Host 'HIRAOKA_PG18_SQL_PHASE=START BOUNDED_STATEMENT_TIMEOUT_MS=15000'
+Write-Host 'HIRAOKA_PG18_SQL_PHASE=START'
 try {
-  & $initdb -D $data -A trust -U postgres --no-instructions | Out-Null
+  Write-Host 'HIRAOKA_PG18_INITDB_BEGIN'
+  & $initdb -D $data -A trust -U postgres --no-instructions
   if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
-  & $pgctl -D $data -l $log -o '-h 127.0.0.1 -p 55448' -w start | Out-Null
+  Write-Host 'HIRAOKA_PG18_INITDB_PASS'
+  & $pgctl -D $data -l $log -o '-h 127.0.0.1 -p 55448' -w start
   if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL startup failed' }
   $started=$true
+  Write-Host 'HIRAOKA_PG18_SERVER_STARTED'
+  $env:PGCONNECT_TIMEOUT='5'
+  $env:PGOPTIONS='-c statement_timeout=15000 -c lock_timeout=5000'
+  Write-Host 'HIRAOKA_PG18_SQL_BOUNDED_STATEMENT_TIMEOUT_MS=15000'
   $psqlArgs=@('-X','-A','-t','-v','ON_ERROR_STOP=1','-h','127.0.0.1','-p','55448','-U','postgres','-d','postgres')
   & $psql @psqlArgs -c 'CREATE EXTENSION pg_bigm;'
   if ($LASTEXITCODE -ne 0) { throw 'Hiraoka pg_bigm CREATE EXTENSION failed' }
