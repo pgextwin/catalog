@@ -90,6 +90,7 @@ await AuthenticatedCatalogHeadTests.RunAsync(Check);
 await PinnedBrowserDownloadTests.RunAsync(Check);
 await ExternalProviderIsolationTests.RunAsync(Check);
 ExternalOriginalZipIntegrityTests.Run(Check, Denies);
+ExternalOriginalZipBatchTests.Run(Check);
 SyntheticBundleTests.Run(Check);
 WindowsSourceSelectorTests.Run(Check, Denies);
 if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "external", "windows-candidates-v1.json")))

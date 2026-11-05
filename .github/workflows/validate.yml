@@ -160,6 +160,42 @@ jobs:
           if ($LASTEXITCODE -ne 2 -or $reportDenial -notmatch 'DENY:') { throw 'Unauthenticated report was not rejected' }
           $unsupportedVerify = & $exe verify pg_cron --pg 18 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $unsupportedVerify -notmatch 'DENY:') { throw 'Unsupported Sigstore verify was accepted' }
+          # Positive Windows self-contained EXE E2E for local external ZIP batch verification.
+          $bulkRoot = Join-Path $env:RUNNER_TEMP 'pgextwin-external-verify-synthetic'
+          $bulkFolder = Join-Path $bulkRoot 'originals/pg18/oracle_fdw'
+          New-Item -ItemType Directory -Force -Path $bulkFolder | Out-Null
+          $bulkZip = Join-Path $bulkFolder 'oracle_fdw-2.9.0-pg18-win64.zip'
+          Add-Type -AssemblyName System.IO.Compression
+          $archive = [System.IO.Compression.ZipFile]::Open($bulkZip, [System.IO.Compression.ZipArchiveMode]::Create)
+          try {
+            $entry = $archive.CreateEntry('README.txt')
+            $writer = [System.IO.StreamWriter]::new($entry.Open())
+            try { $writer.Write('synthetic original ZIP: not for distribution') } finally { $writer.Dispose() }
+          } finally { $archive.Dispose() }
+          $digest = (Get-FileHash -LiteralPath $bulkZip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $size = (Get-Item -LiteralPath $bulkZip).Length
+          $ledgerFile = Join-Path $bulkRoot 'review.json'
+          $ledgerDoc = @{
+            schemaVersion = 'pgextwin-external-original-link-review/v1'
+            scope = 'REFERENCE_TO_UNMODIFIED_PROVIDER_RELEASE_ASSET_ONLY'
+            rightsReview = 'SOURCE_AND_NOTICE_REFERENCES_REVIEWED_NOT_DISTRIBUTION_APPROVAL'
+            publicationAuthorized = $false; downloadAuthorized = $false
+            mirrorAuthorized = $false; redistributionAuthorized = $false; signedExternalCatalogPin = $false
+            records = @(@{
+              extension = 'oracle_fdw'; pgMajor = '18'; sourceRepo = 'laurenz/oracle_fdw'
+              repositoryId = 14332609; releaseId = 335861225; assetId = 442625860
+              releaseTag = 'ORACLE_FDW_2_9_0'; assetName = 'oracle_fdw-2.9.0-pg18-win64.zip'
+              originalProviderUrl = 'https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg18-win64.zip'
+              originalBytes = $size; originalSha256 = $digest
+              referenceLinkReviewed = $true; downloadAuthorized = $false; mirrorAuthorized = $false
+            })
+          }
+          $ledgerDoc | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ledgerFile -Encoding utf8
+          $bulkResult = & $exe verify-external-all --ledger $ledgerFile --input-dir (Join-Path $bulkRoot 'originals') --pg 18 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $bulkResult -notmatch 'ZIP_COUNT=1' -or $bulkResult -notmatch 'DOWNLOAD_AUTHORIZED=FALSE PUBLISH=DENY') { throw 'External local batch verification EXE smoke failed' }
+          $bulkDenied = & $exe verify-external-all --ledger $ledgerFile --input-dir (Join-Path $bulkRoot 'originals') --pg 17 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $bulkDenied -notmatch 'DENY:') { throw 'Unreviewed external PG major was not denied' }
+          Write-Output 'EXTERNAL_LOCAL_BULK_WIN_X64_EXE_E2E=PASS NETWORK_GET=0 PUBLISH=DENY'
           Write-Output 'CLI_R2A_NO_TRUST_ELEVATION_NEGATIVE_SMOKE=PASS'
           Write-Output 'CLI_WIN_X64_PRIVATE_SMOKE=PASS VERSION_JSON_LIST_$expectedCount_SEARCH_DENY_UNTRUSTED_NO_RELEASE'
           # Negative tests intentionally exit 2; clear the native process code only after all assertions pass.
