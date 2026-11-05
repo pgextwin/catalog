@@ -137,9 +137,22 @@ public sealed class PinnedBrowserDownloader : IDisposable
                 throw new InvalidDataException("Untrusted original Release browser redirect");
             if (!visited.Add(next.AbsoluteUri))
                 throw new InvalidDataException("ZIP browser redirect cycle");
-            using var request = new HttpRequestMessage(HttpMethod.Get, next);
-            var response = await http.SendAsync(request,
-                HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            // Retry only transient upstream HTTP 502/503/504 on the SAME
+            // already-approved URL. Never retry redirects, 403/429, invalid
+            // content, wrong digests or any other trust/authorization failure.
+            HttpResponseMessage response;
+            for (var attempt = 0; ; attempt++)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, next);
+                response = await http.SendAsync(request,
+                    HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                if (response.StatusCode is not (HttpStatusCode.BadGateway or
+                    HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout) ||
+                    attempt == 2)
+                    break;
+                response.Dispose();
+                await Task.Delay(TimeSpan.FromSeconds(attempt + 1), cancellationToken);
+            }
             if (response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.MovedPermanently
                 or HttpStatusCode.RedirectMethod or HttpStatusCode.TemporaryRedirect
                 or HttpStatusCode.PermanentRedirect)
