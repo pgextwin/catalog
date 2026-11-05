@@ -37,7 +37,7 @@ static async Task<int> RunAsync(string[] args)
         {
             Usage(); return 0;
         }
-        if (args.Length < 1 || args[0] is not ("list" or "search" or "download" or "download-all"))
+        if (args.Length < 1 || args[0] is not ("list" or "search" or "download" or "download-all" or "verify-external-all"))
             throw new ArgumentException("Only list/search and explicit GET-only download/download-all are available");
         var command = args[0];
         log?.Invoke($"COMMAND_START command={command} publish=DENY");
@@ -56,6 +56,8 @@ static async Task<int> RunAsync(string[] args)
         string? output = null;
         string? format = null;
         string? sourceGroup = null;
+        string? reviewLedger = null;
+        string? inputDir = null;
         bool? latest = null;
         while (i < args.Length)
         {
@@ -75,7 +77,7 @@ static async Task<int> RunAsync(string[] args)
                     if (directory is not null) throw new ArgumentException("Duplicate --catalog-dir");
                     directory = value; break;
                 case "--pg":
-                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, command is "list" or "search" ? @"\A[1-9][0-9]*(?:\.[0-9]+)?\z" : @"\A[1-9][0-9]*\z")) || (value == "all" && command != "download-all"))
+                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, command is "list" or "search" ? @"\A[1-9][0-9]*(?:\.[0-9]+)?\z" : @"\A[1-9][0-9]*\z")) || (value == "all" && command is not ("download-all" or "verify-external-all")))
                         throw new ArgumentException("Invalid/duplicate --pg");
                     pg = value; break;
                 case "--policy":
@@ -86,6 +88,14 @@ static async Task<int> RunAsync(string[] args)
                     if (policySha is not null || command is not ("download" or "download-all"))
                         throw new ArgumentException("Unexpected/duplicate --policy-sha256");
                     policySha = value; break;
+                case "--ledger":
+                    if (reviewLedger is not null || command != "verify-external-all")
+                        throw new ArgumentException("Unexpected/duplicate --ledger");
+                    reviewLedger = value; break;
+                case "--input-dir":
+                    if (inputDir is not null || command != "verify-external-all")
+                        throw new ArgumentException("Unexpected/duplicate --input-dir");
+                    inputDir = value; break;
                 case "--source":
                     if (sourceGroup is not null || value is not ("external" or "pgextwin" or "all"))
                         throw new ArgumentException("Invalid/duplicate --source");
@@ -100,6 +110,18 @@ static async Task<int> RunAsync(string[] args)
                     output = value; break;
                 default: throw new ArgumentException("Unknown option: " + option);
             }
+        }
+        if (command == "verify-external-all")
+        {
+            if (reviewLedger is null || inputDir is null || pg is null ||
+                directory is not null || sourceGroup is not null || policy is not null ||
+                policySha is not null || output is not null || format is not null || latest is not null)
+                throw new ArgumentException("verify-external-all requires --ledger, --input-dir and --pg only");
+            // Local-only ZIP integrity verification. No network or source admission.
+            var verified = ExternalOriginalZipBatch.VerifyLocal(reviewLedger, inputDir, pg);
+            Console.WriteLine($"EXTERNAL_BULK_INTEGRITY_ONLY ZIP_COUNT={verified.Count} BYTES={verified.Bytes} MEMBERS={verified.Members} " +
+                "SIGNATURE_VERIFIED=FALSE DOWNLOAD_AUTHORIZED=FALSE PUBLISH=DENY");
+            return 0;
         }
         if (command is "download" or "download-all")
         {
@@ -248,6 +270,8 @@ static void Usage()
     Console.Error.WriteLine("pgextwin verify-report EXTENSION --pg MAJOR --catalog-dir PATH --policy FILE");
     Console.Error.WriteLine("  --policy-sha256 HEX --trusted-root-sha256 HEX --p1-verifier-sha256 HEX");
     Console.Error.WriteLine("  --report FILE --signature FILE --authority-key PEM --authority-key-sha256 HEX");
+    Console.Error.WriteLine("pgextwin verify-external-all --ledger REVIEW_FILE --input-dir ORIGINAL_ZIP_ROOT --pg MAJOR|all");
+    Console.Error.WriteLine("  Offline-only integrity check: original ZIPs in INPUT/pgMAJOR/EXTENSION/ASSET; never authorizes network download.");
     Console.Error.WriteLine("pgextwin list --catalog-dir PATH [--pg MAJOR] [--format text|json] [--source external|pgextwin|all]");
     Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json] [--source external|pgextwin|all]");
     Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
