@@ -34,6 +34,12 @@ OWNER_PUBLISH_JOB="Isolated original owner signed-main formal Publisher (create 
 OWNER_ADMIT_JOB="Authenticate owner formal-source request and reverify original (DENY)"
 OWNER_LOGIN="ShutenOishi"
 OWNER_ID=27071164
+# Protected, source-specific sign-main issue binding. No generic owner-comments.
+# Expansion requires a reviewed protected policy change and hostile tests.
+OWNER_SIGNING_ISSUES={
+    "pgextwin/plpgsql_check":78,
+    "pgextwin/set_user":60,
+}
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),
     "owner-dispatch": ("workflow_dispatch", "INDEPENDENT_LIVE_OWNER_DISPATCH_AND_SIGNED_SOURCE"),
@@ -133,12 +139,13 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
             (source.get("repository") or {}).get("full_name")==repository,
             "original signed main/push Run is not completed successfully")
     if owner_signed:
-        # Pilot is strictly the registered local owner signer; expanding
-        # beyond the pilot requires an independently reviewed issue binding.
-        require(repository=="pgextwin/plpgsql_check"
+        # Source-specific, protected repository/issue binding. The exact
+        # GitHub owner actor and original immutable comment are checked below.
+        issue=OWNER_SIGNING_ISSUES.get(repository)
+        require(type(issue) is int and issue>0
                 and source.get("display_title")==
                     f"Chat-main-sign-comment-{marker['sourceSigningCommentId']}",
-                "owner signing Run not the unique registered protected pilot")
+                "owner signing Run not the registered protected issue-bound source")
         for field in ("actor","triggering_actor"):
             person=source.get(field)
             require(type(person) is dict and person.get("login")==OWNER_LOGIN
@@ -156,7 +163,7 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
                 and signed["user"].get("type")=="User"
                 and signed.get("body")=="/pgextwin sign-main"
                 and signed.get("issue_url")==
-                    "https://api.github.com/repos/pgextwin/plpgsql_check/issues/78"
+                    f"https://api.github.com/repos/{repository}/issues/{issue}"
                 and signed.get("created_at")==signed.get("updated_at")
                 and timestamp(signed.get("created_at"))<=timestamp(source.get("created_at")),
                 "original owner signer command edited, moved or faked")
