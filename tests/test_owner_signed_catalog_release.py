@@ -17,6 +17,7 @@ TAG="v2.10.16-windows.1"
 OWNER={"login":"ShutenOishi","id":27071164,"type":"User"}
 
 def fixture():
+    owner={"login":"ShutenOishi","id":27071164,"type":"User"}
     marker={"schemaVersion":1,"authorizationMode":"owner-signed-main-issue-comment",
             "repository":REPO,"releaseTag":TAG,"packagingCommit":SHA,
             "sourceRunId":SRC,"sourceRunAttempt":1,
@@ -31,18 +32,18 @@ def fixture():
             "run_attempt":1,"head_sha":SHA,"head_branch":"main",
             "status":"completed","conclusion":"success",
             "display_title":f"Chat-main-sign-comment-{SIGN}",
-            "repository":{"full_name":REPO},"actor":OWNER,"triggering_actor":OWNER,
+            "repository":{"full_name":REPO},"actor":dict(owner),"triggering_actor":dict(owner),
             "created_at":"2026-11-02T16:56:43Z"}
     publisher={"id":PUB,"event":"issue_comment","path":p.PUBLISHER,
             "run_attempt":1,"head_sha":PUBSHA,"head_branch":"main",
             "status":"completed","conclusion":"success",
             "display_title":f"Publisher-issue_comment-comment-{REQUEST}",
             "repository":{"full_name":"pgextwin/build"},
-            "actor":OWNER,"triggering_actor":OWNER,
+            "actor":dict(owner),"triggering_actor":dict(owner),
             "created_at":"2026-11-02T18:00:00Z",
             "updated_at":"2026-11-02T18:25:00Z"}
     def comment(id,body,repo,issue,time):
-        return {"id":id,"user":OWNER,"body":body,
+        return {"id":id,"user":dict(owner),"body":body,
                 "issue_url":f"https://api.github.com/repos/{repo}/issues/{issue}",
                 "created_at":time,"updated_at":time}
     signing=comment(SIGN,"/pgextwin sign-main",REPO,78,"2026-11-02T16:55:00Z")
