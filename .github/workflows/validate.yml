@@ -33,6 +33,11 @@ jobs:
       - name: Run validator tests
         run: python -m unittest discover -s tests -v
 
+      - name: Independently verify any genuine public original GET-only metadata pins
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/validate_public_get_pin.py --catalog .
+
       - name: Validate independent Windows Extension Landscape
         run: python scripts/validate_landscape.py
 
