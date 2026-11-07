@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: cli-r6-private-candidate
           path: ${{ runner.temp }}/cli-independent
@@ -110,7 +110,7 @@ jobs:
       artifact-metadata: write
     steps:
       - name: Download exact current-run candidate
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: cli-r6-private-candidate
           path: ${{ runner.temp }}/cli-signed
@@ -145,7 +145,7 @@ jobs:
       contents: read
     steps:
       - name: Download same-run candidate to distinct clean verifier
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: cli-r6-private-candidate
           path: ${{ runner.temp }}/cli-verified
