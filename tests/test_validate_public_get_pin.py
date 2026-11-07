@@ -114,13 +114,14 @@ class Tests(unittest.TestCase):
                 mod.scan(t, now=NOW, online=False)
 
     def test_integration_is_required_in_catalog_validate_job(self):
-        import yaml
-        data = yaml.load((ROOT / ".github/workflows/validate.yml").read_text("utf-8"),
-                         Loader=yaml.BaseLoader)
-        steps = data["jobs"]["validate"]["steps"]
-        found = [s for s in steps if "scripts/validate_public_get_pin.py" in s.get("run", "")]
-        self.assertEqual(len(found), 1)
-        self.assertIn("GH_TOKEN", found[0]["env"])
+        workflow = (ROOT / ".github/workflows/validate.yml").read_text("utf-8")
+        # Existing required validate job has no PyYAML; no new dependency.
+        self.assertIn(
+            "run: python scripts/validate_public_get_pin.py --catalog .",
+            workflow)
+        self.assertIn("GH_TOKEN: "+chr(36)+"{{ github.token }}", workflow)
+        self.assertEqual(
+            workflow.count("scripts/validate_public_get_pin.py --catalog ."), 1)
 
 if __name__ == "__main__":
     unittest.main()
