@@ -37,10 +37,10 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         http.DefaultRequestHeaders.UserAgent.ParseAdd("pgextwin-external-original-nonpublishing/1");
     }
 
-    internal async Task<DownloadReceipt> DownloadAsync(
-        ExternalOriginalPin pin, string outputDirectory, CancellationToken token = default)
+    // Reused by the all-or-nothing external batch preflight. This is pin
+    // shape validation only, NEVER independent signed admission.
+    internal static void ValidatePin(ExternalOriginalPin pin)
     {
-        // Validate all caller-supplied fields before the first HTTP request.
         if (!Extension.IsMatch(pin.Extension) ||
             !Regex.IsMatch(pin.PgMajor, @"\A1[4-8]\z") ||
             !Repo.IsMatch(pin.SourceRepo) ||
@@ -54,6 +54,12 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
             pin.OriginalProviderUrl != "https://github.com/" + pin.SourceRepo +
                 "/releases/download/" + pin.Tag + "/" + pin.AssetName)
             throw new InvalidDataException("Invalid or unpinned external original asset");
+    }
+
+    internal async Task<DownloadReceipt> DownloadAsync(
+        ExternalOriginalPin pin, string outputDirectory, CancellationToken token = default)
+    {
+        ValidatePin(pin);
 
         var folder = Path.GetFullPath(outputDirectory);
         if (!Directory.Exists(folder))

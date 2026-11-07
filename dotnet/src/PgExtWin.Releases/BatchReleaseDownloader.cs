@@ -101,26 +101,14 @@ public static class BatchReleaseDownloader
                 throw new InvalidDataException("Unsafe, duplicate, or mismatched batch ZIP");
         }
 
-        var parent = Path.GetFullPath(outputParent);
-        if (!System.IO.Directory.Exists(parent))
-            throw new DirectoryNotFoundException("Batch output parent must already exist");
-        for (DirectoryInfo? dir = new(parent); dir is not null; dir = dir.Parent)
-            if ((dir.Attributes & FileAttributes.ReparsePoint) != 0)
-                throw new InvalidDataException("Batch output path may not contain links");
         var outputName = pgSelection == "all"
             ? "pgextwin-pg" + accepted[0] + "-" + accepted[^1]
             : "pgextwin-pg" + pgSelection;
-        var final = Path.Combine(parent, outputName);
-        if (System.IO.Directory.EnumerateFileSystemEntries(parent).Any(
-            path => string.Equals(Path.GetFileName(path), outputName,
-                StringComparison.OrdinalIgnoreCase)))
-            throw new IOException("Batch output already exists; no overwrite");
-
-        var stage = Path.Combine(parent, ".pgextwin-batch-" + Guid.NewGuid().ToString("N"));
-        System.IO.Directory.CreateDirectory(stage);
-        progress?.Invoke($"BATCH_START pg={pgSelection} zip_count={pins.Count} trust=INTEGRITY_ONLY");
+        var transaction = new AtomicOriginalBatchDirectory(outputParent, outputName);
+        var stage = transaction.StageDirectory;
         try
         {
+            progress?.Invoke($"BATCH_START pg={pgSelection} zip_count={pins.Count} trust=INTEGRITY_ONLY");
             var rows = new List<BatchPackage>();
             long total = 0;
             foreach (var pin in pins)
@@ -168,17 +156,13 @@ public static class BatchReleaseDownloader
                 InstallAuthorized: false, rows.Count, rows);
             var receiptPath = Path.Combine(stage, "DOWNLOAD-INFO.json");
             await File.WriteAllTextAsync(receiptPath, JsonSerializer.Serialize(info, BatchReceiptJsonContext.Default.BatchDownloadInfo), cancellationToken);
-            // Directory rename on the same volume: no partially visible final batch.
-            if (File.Exists(final) || System.IO.Directory.Exists(final))
-                throw new IOException("Batch output was created concurrently; no overwrite");
-            System.IO.Directory.Move(stage, final);
+            var final = transaction.Commit();
             progress?.Invoke($"BATCH_COMPLETE zip_count={rows.Count} bytes={total} trust=INTEGRITY_ONLY");
             return new BatchResult(final, rows.Count, total);
         }
         finally
         {
-            if (System.IO.Directory.Exists(stage))
-                System.IO.Directory.Delete(stage, recursive: true);
+            transaction.Dispose();
         }
     }
 }
