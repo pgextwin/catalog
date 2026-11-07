@@ -37,9 +37,12 @@ Current source-specific policy is still
 - A verified original is written to a unique \`.part\` file in an existing
   physical output folder and atomically renamed without overwriting a
   pre-existing file. Failed checks leave no output bytes.
-- This single-file transport is **not** the native atomic bulk transaction.
-  External bulk staging, authenticated signed source pins, CLI selection and
-  authorized Windows provider real-byte E2E remain separate work.
+- This single-file transport uses the existing strict ZIP verifier. The
+  nonpublishing external bulk stager and native batches now also share
+  `AtomicOriginalBatchDirectory`: originals are committed with a single
+  same-volume directory rename, only if every selected ZIP passes.
+  Authenticated signed source pins, CLI selection and authorized Windows
+  provider real-byte E2E remain separate work.
 
 ## Contract test coverage
 
@@ -49,15 +52,19 @@ repository-ID substitution, asset-ID substitution, tampered bytes, off-host
 redirects, HTTP 403, URL forgery, and destination collision. Tests never
 contact those providers, so a green CI must not be reported as a real external
 provider GET, provider rights approval, external signature validation, or
-PUBLIC_COMPLETE.
+PUBLIC_COMPLETE. Additional synthetic bulk tests exercise three original
+provider names, rollback on a second-provider failure, strict preflight,
+receipt substitution, tampered archive and pre-existing destination denial.
+These tests do not perform an authorized external GET.
 
 ## Exit criteria for next independently useful unit
 
 1. A protected and independently signed external Catalog pin/admission format
    that binds one real provider's identity, bytes, rights, runtime and source-
    specific authorization without changing the existing two-provider P3 hold.
-2. Shared all-or-nothing batch staging with externally named original assets,
-   authenticated pin readback and strict no-mirror behavior.
+2. Connect the already-implemented all-or-nothing original batch staging
+   to authenticated pin readback, signed source-specific admission and strict
+   no-mirror behavior.
 3. Genuine Windows authorized real-provider GET E2E and hostile regressions.
 4. Required PR CI, protected merge, original postmerge, then any applicable
    independent signature and Publisher checks; no publish on a skipped gate.
