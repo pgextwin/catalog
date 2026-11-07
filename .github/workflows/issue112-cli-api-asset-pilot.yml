@@ -1,0 +1,120 @@
+name: Issue112 anonymous REST asset-ID GET Windows pilot (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/issue112-cli-api-asset-pilot.yml'
+permissions:
+  contents: read
+
+jobs:
+  api-asset-single-zip:
+    name: Native PG18 original ZIP via API asset ID, SHA256 and fail-closed host check
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test only an alternative public GET endpoint, never a Release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          if ($env:GH_TOKEN -or $env:GITHUB_TOKEN) { throw 'Anonymous pilot received a token' }
+          $record = Get-Content -LiteralPath 'extensions/pg_cron.json' -Raw | ConvertFrom-Json
+          $tag = [string]$record.latest.releaseTag
+          $pg = $record.postgresql.'18'
+          $assetName = [string]$pg.asset
+          $expectedHash = [string]$pg.sha256
+          if ($tag -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or
+              $assetName -cnotmatch '^pg_cron-[A-Za-z0-9._-]+-pg18-windows-x64[.]zip$' -or
+              $expectedHash -cnotmatch '^[0-9a-f]{64}$') {
+            throw 'Unpinned pilot Catalog record'
+          }
+          $handler = [System.Net.Http.SocketsHttpHandler]::new()
+          $handler.AllowAutoRedirect = $false
+          $handler.UseCookies = $false
+          $handler.AutomaticDecompression = [System.Net.DecompressionMethods]::None
+          $client = [System.Net.Http.HttpClient]::new($handler)
+          $client.Timeout = [TimeSpan]::FromSeconds(90)
+          function Request-Get([Uri]$uri, [string]$accept) {
+            $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $uri)
+            $request.Headers.UserAgent.ParseAdd('pgextwin-nonpublishing-api-pilot/1')
+            $request.Headers.Accept.ParseAdd($accept)
+            try {
+              return $client.SendAsync($request,
+                [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+            } finally { $request.Dispose() }
+          }
+          try {
+            $metaUri = [Uri]("https://api.github.com/repos/pgextwin/pg_cron/releases/tags/$tag")
+            $metaResponse = Request-Get $metaUri 'application/vnd.github+json'
+            try {
+              if ([int]$metaResponse.StatusCode -ne 200) {
+                throw "Exact Release metadata GET failed: $([int]$metaResponse.StatusCode)"
+              }
+              $meta = $metaResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+            } finally { $metaResponse.Dispose() }
+            if ($meta.draft -or [string]$meta.tag_name -cne $tag -or
+                [string]::IsNullOrEmpty([string]$meta.published_at)) {
+              throw 'Release identity/publication mismatch'
+            }
+            $rows = @($meta.assets | Where-Object { $_.name -ceq $assetName })
+            if ($rows.Count -ne 1 -or [long]$rows[0].id -le 0 -or
+                [long]$rows[0].size -lt 4 -or [long]$rows[0].size -gt 67108864 -or
+                [string]$rows[0].state -cne 'uploaded' -or
+                [string]$rows[0].digest -cne "sha256:$expectedHash" -or
+                [string]$rows[0].browser_download_url -cne
+                  "https://github.com/pgextwin/pg_cron/releases/download/$tag/$assetName") {
+              throw 'Exact asset ID/size/digest/url mismatch'
+            }
+            $assetId = [long]$rows[0].id
+            $start = "https://api.github.com/repos/pgextwin/pg_cron/releases/assets/$assetId"
+            $uri = [Uri]$start
+            $visited = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $success = $false
+            for ($hop = 0; $hop -lt 4; $hop++) {
+              if ($uri.Scheme -cne 'https' -or $uri.Port -ne 443 -or
+                  $uri.UserInfo.Length -ne 0 -or $uri.Fragment.Length -ne 0 -or
+                  ($hop -eq 0 -and $uri.AbsoluteUri -cne $start) -or
+                  ($hop -gt 0 -and $uri.Host -cnotin @(
+                    'release-assets.githubusercontent.com',
+                    'objects.githubusercontent.com',
+                    'github-releases.githubusercontent.com')) -or
+                  -not $visited.Add($uri.AbsoluteUri)) {
+                throw 'Forbidden REST asset redirect'
+              }
+              $response = Request-Get $uri 'application/octet-stream'
+              try {
+                $status = [int]$response.StatusCode
+                if ($status -in @(301,302,303,307,308)) {
+                  $next = $response.Headers.Location
+                  if ($null -eq $next -or -not $next.IsAbsoluteUri) { throw 'Unsafe relative redirect' }
+                  $uri = $next
+                  continue
+                }
+                if ($status -ne 200) { throw "REST asset-ID GET status $status" }
+                $media = [string]$response.Content.Headers.ContentType.MediaType
+                if ($media -in @('application/json','text/html','text/plain')) {
+                  throw 'REST endpoint returned metadata instead of ZIP bytes'
+                }
+                $bytes = $response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+                if ($bytes.Length -ne [long]$rows[0].size -or $bytes.Length -gt 67108864 -or
+                    $bytes[0] -ne 0x50 -or $bytes[1] -ne 0x4b -or
+                    $bytes[2] -ne 0x03 -or $bytes[3] -ne 0x04) {
+                  throw 'Original ZIP size or magic mismatch'
+                }
+                $actual = [Convert]::ToHexString(
+                  [System.Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+                if ($actual -cne $expectedHash) { throw 'Original ZIP SHA256 mismatch' }
+                Write-Output "API_ASSET_ID_SINGLE_ZIP=PASS EXT=pg_cron PG=18 ASSET_ID=$assetId BYTES=$($bytes.Length) SHA256=$actual GETS=$($hop+1) PUBLISH=DENY SIGNATURE_VERIFIED=FALSE"
+                $success = $true
+                break
+              } finally { $response.Dispose() }
+            }
+            if (-not $success) { throw 'Too many redirects; no alternative verified bytes' }
+          } finally {
+            $client.Dispose()
+            $handler.Dispose()
+          }
