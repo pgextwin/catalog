@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "pgextwin-external-direct-get-intake/v1",
+  "sourceKind": "EXTERNAL_GITHUB_RELEASE_ASSET",
+  "intendedOperation": "ORIGINAL_PROVIDER_GET_ONLY",
+  "reviewStatus": "CANDIDATE_ONLY",
+  "authorizationIssuer": "NONE",
+  "independentSignedAdmission": false,
+  "publicationAuthorized": false,
+  "downloadAuthorized": false,
+  "mirrorAuthorized": false,
+  "redistributionAuthorized": false,
+  "records": [
+    {
+      "sourceGroup": "external",
+      "providerType": "upstream-official",
+      "extension": "pg_trickle",
+      "pgMajor": "18",
+      "targetEnvironment": "EDB PostgreSQL 18.6.5 Windows x64",
+      "upstreamVersion": "0.108.3",
+      "sourceRepo": "trickle-labs/pg-trickle",
+      "repositoryId": 1164857056,
+      "releaseId": 404988260,
+      "releaseTag": "v0.108.3",
+      "assetId": 616203967,
+      "assetName": "pg_trickle-0.108.3-pg18-windows-amd64.zip",
+      "originalProviderUrl": "https://github.com/trickle-labs/pg-trickle/releases/download/v0.108.3/pg_trickle-0.108.3-pg18-windows-amd64.zip",
+      "originalBytes": 7029107,
+      "originalSha256": "c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b",
+      "licenseSpdx": "Apache-2.0",
+      "licenseUrl": "https://github.com/trickle-labs/pg-trickle/blob/v0.108.3/LICENSE",
+      "noticeTreatment": "The original ZIP includes the Apache-2.0 LICENSE, but transitive third-party NOTICE/license closure has NOT been formally accepted; preserve original bytes and show upstream LICENSE.",
+      "dependencyTreatment": "Original disposable Windows PG18 runtime succeeded, but independent package-wide dependency closure and deployment prerequisites are still pending formal source-specific review.",
+      "runtimeEvidence": {
+        "repository": "pgextwin/catalog",
+        "runId": 41870312567,
+        "runAttempt": 1,
+        "event": "push",
+        "headSha": "47b8351250c283a923b5e4f6d0ed74f9d7db6d10",
+        "conclusion": "success",
+        "scope": "Disposable EDB Windows PG18 original ZIP and SQL runtime"
+      },
+      "sourcePublisherAuthorized": false,
+      "downloadAuthorized": false,
+      "mirrorAuthorized": false
+    }
+  ]
+}
