@@ -90,6 +90,7 @@ await AuthenticatedCatalogHeadTests.RunAsync(Check);
 await PinnedBrowserDownloadTests.RunAsync(Check);
 await ExternalProviderIsolationTests.RunAsync(Check);
 await ExternalProviderAssetTransportTests.RunAsync(Check);
+        await ExternalSignedDirectGetAdmissionTests.RunAsync(Check);
 await ExternalOriginalBatchStagerTests.RunAsync(Check);
 ExternalOriginalZipIntegrityTests.Run(Check, Denies);
 ExternalOriginalZipBatchTests.Run(Check);
