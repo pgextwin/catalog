@@ -89,6 +89,7 @@ await TrustedBootstrapTests.RunAsync(Check);
 await AuthenticatedCatalogHeadTests.RunAsync(Check);
 await PinnedBrowserDownloadTests.RunAsync(Check);
 await ExternalProviderIsolationTests.RunAsync(Check);
+await ExternalProviderAssetTransportTests.RunAsync(Check);
 ExternalOriginalZipIntegrityTests.Run(Check, Denies);
 ExternalOriginalZipBatchTests.Run(Check);
 SyntheticBundleTests.Run(Check);
