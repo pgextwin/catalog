@@ -109,7 +109,6 @@ public static class BatchReleaseDownloader
         try
         {
             progress?.Invoke($"BATCH_START pg={pgSelection} zip_count={pins.Count} trust=INTEGRITY_ONLY");
-        {
             var rows = new List<BatchPackage>();
             long total = 0;
             foreach (var pin in pins)
