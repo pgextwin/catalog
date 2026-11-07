@@ -58,7 +58,7 @@ internal static class ExternalSignedDirectGetAdmissionTests
 
     private static byte[] Mutate(Action<JsonNode> mutate)
     {
-        var doc = JsonNode.Parse(Fixture())!;
+        var doc = JsonNode.Parse(Encoding.UTF8.GetString(Fixture()))!;
         mutate(doc);
         return Encoding.UTF8.GetBytes(doc.ToJsonString());
     }
