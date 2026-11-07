@@ -83,7 +83,7 @@ jobs:
             --output "$RUNNER_TEMP/issue112-plpgsql-event-canonical.json"
       - name: Preserve candidate Event canonical snapshot only
         if: ${{ steps.plpgsql_event.outcome == 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: issue112-plpgsql-event-observation-${{ github.sha }}
           path: ${{ runner.temp }}/issue112-plpgsql-event-canonical.json
@@ -99,7 +99,7 @@ jobs:
             --output "$RUNNER_TEMP/issue112-plpgsql-original-recovery-observation.json"
       - name: Preserve original plpgsql read-only diagnostic only
         if: ${{ steps.plpgsql_original.outcome == 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: issue112-plpgsql-original-diagnostic-${{ github.sha }}
           path: ${{ runner.temp }}/issue112-plpgsql-original-recovery-observation.json
@@ -121,7 +121,7 @@ jobs:
           echo 'Original per-PG source receipts live alongside P1 receipts in the same nonpublishing output; absence/failure is BLOCKED.'
       - name: Preserve machine-readable receipts (not original Release proof)
         if: ${{ always() && steps.actual.outcome != 'skipped' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: issue112-p1-readonly-receipts-${{ github.sha }}
           path: ${{ runner.temp }}/issue112-p1-receipts/
