@@ -6,8 +6,9 @@ using System.Text.RegularExpressions;
 namespace PgExtWin.Releases;
 
 /// <summary>
-/// Alternative GitHub public Release browser transport: uses ONLY the exact
-/// asset URL and SHA256 from the independently baked immutable P1 policy.
+/// GitHub original Release browser transport: uses the exact pinned asset
+/// URL/SHA256; after bounded 502/503/504 it may use only the same native
+/// repository's exact pinned numeric GitHub REST asset-ID GET endpoint.
 /// GitHub REST rate limits cannot block it. Numeric IDs are policy PINNED,
 /// not live REST verified: the manifest must explicitly report that boundary.
 /// Original extension Sigstore signatures are NOT verified.
@@ -60,7 +61,7 @@ public sealed class PinnedBrowserDownloader : IDisposable
             Guid.NewGuid().ToString("N") + ".part");
         try
         {
-            using var response = await GetPublicAssetAsync(source, cancellationToken);
+            using var response = await GetPublicAssetAsync(source, pin.Extension, assetId, cancellationToken);
             var media = response.Content.Headers.ContentType?.MediaType;
             if (media is "application/json" or "text/html" or "text/plain")
                 throw new InvalidDataException("GitHub browser asset is not ZIP bytes");
@@ -122,9 +123,14 @@ public sealed class PinnedBrowserDownloader : IDisposable
     }
 
     private async Task<HttpResponseMessage> GetPublicAssetAsync(Uri initial,
-        CancellationToken cancellationToken)
+        string extension, long assetId, CancellationToken cancellationToken)
     {
+        // This endpoint is derived ONLY from the already verified native pin,
+        // never from a response Location or an untrusted external source.
+        var apiAsset = new Uri("https://api.github.com/repos/pgextwin/" + extension +
+            "/releases/assets/" + assetId);
         Uri next = initial;
+        bool apiAttempted = false;
         var visited = new HashSet<string>(StringComparer.Ordinal);
         for (var hop = 0; hop < 5; hop++)
         {
@@ -133,13 +139,40 @@ public sealed class PinnedBrowserDownloader : IDisposable
                 !(next.Host == "github.com" && hop == 0 ||
                   hop > 0 && (next.Host == "release-assets.githubusercontent.com" ||
                     next.Host == "objects.githubusercontent.com" ||
-                    next.Host == "github-releases.githubusercontent.com")))
+                    next.Host == "github-releases.githubusercontent.com" ||
+                    apiAttempted && next.AbsoluteUri == apiAsset.AbsoluteUri)))
                 throw new InvalidDataException("Untrusted original Release browser redirect");
             if (!visited.Add(next.AbsoluteUri))
                 throw new InvalidDataException("ZIP browser redirect cycle");
-            using var request = new HttpRequestMessage(HttpMethod.Get, next);
-            var response = await http.SendAsync(request,
-                HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            // Retry only transient upstream HTTP 502/503/504 on the SAME
+            // already-approved URL. Never retry redirects, 403/429, invalid
+            // content, wrong digests or any other trust/authorization failure.
+            HttpResponseMessage response;
+            // API admission is one GET; only the existing browser/CDN leg
+            // retains its previously bounded three-attempt transient policy.
+            var maxRetries = next.Host == "api.github.com" ? 0 : 2;
+            for (var attempt = 0; ; attempt++)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, next);
+                if (next.Host == "api.github.com")
+                    request.Headers.Accept.ParseAdd("application/octet-stream");
+                response = await http.SendAsync(request,
+                    HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                if (response.StatusCode is not (HttpStatusCode.BadGateway or
+                    HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout) ||
+                    attempt == maxRetries)
+                    break;
+                response.Dispose();
+                await Task.Delay(TimeSpan.FromSeconds(attempt + 1), cancellationToken);
+            }
+            if (!apiAttempted && response.StatusCode is (HttpStatusCode.BadGateway or
+                HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout))
+            {
+                response.Dispose();
+                apiAttempted = true;
+                next = apiAsset;
+                continue;
+            }
             if (response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.MovedPermanently
                 or HttpStatusCode.RedirectMethod or HttpStatusCode.TemporaryRedirect
                 or HttpStatusCode.PermanentRedirect)
