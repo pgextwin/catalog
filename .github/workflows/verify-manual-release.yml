@@ -95,7 +95,7 @@ jobs:
             echo "This read-only run cannot create, authorize, merge or publish a Release or Catalog PR; no App, Secret or write permission is used."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Store proposed verified Catalog record (not a PR)
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: verified-manual-release-record
           path: |
