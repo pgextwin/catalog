@@ -42,7 +42,7 @@ internal static class PinnedBrowserDownloadTests
                 try
                 {
                     var receipt = await client.DownloadAsync(pin, folder);
-                    check(scenario is Scenario.Success or Scenario.TransientGateway &&
+                    check(scenario is Scenario.Success or Scenario.TransientGateway or Scenario.ApiRecover &&
                           receipt.Sha256 == sha && receipt.RepositoryId == 100001 &&
                           receipt.ReleaseId == 100002 && receipt.AssetId == 100003 &&
                           receipt.VerificationLevel == "INTEGRITY_ONLY" &&
@@ -51,13 +51,19 @@ internal static class PinnedBrowserDownloadTests
                 }
                 catch (Exception e) when (e is InvalidDataException or IOException
                     or HttpRequestException or OperationCanceledException) { rejected = true; }
-                var shouldPass = scenario is Scenario.Success or Scenario.TransientGateway;
+                var shouldPass = scenario is Scenario.Success or Scenario.TransientGateway or Scenario.ApiRecover;
                 check((shouldPass && !rejected) ||
                       (!shouldPass && rejected && Directory.GetFiles(folder).Length == 0),
                       label + " strictly accepts/rejects and cleans partial ZIP files");
-                if (scenario is Scenario.TransientGateway or Scenario.PersistentGateway)
+                if (scenario is Scenario.TransientGateway or Scenario.PersistentGateway or
+                    Scenario.ApiRecover or Scenario.ApiJson or Scenario.ApiEvilRedirect)
                     check(fake.AssetRequests == 3,
-                          "Bounded transient HTTP retry uses at most three GETs of same CDN URL");
+                          "Browser CDN transient GET remains bounded to three attempts");
+                if (scenario is Scenario.PersistentGateway or Scenario.ApiRecover or
+                    Scenario.ApiJson or Scenario.ApiEvilRedirect)
+                    check(fake.ApiRequests == 1, "Only one pinned native API asset-ID GET");
+                if (scenario is Scenario.Deny or Scenario.TransientGateway)
+                    check(fake.ApiRequests == 0, "No fallback on 403 or recovered transient");
                 if (scenario == Scenario.Deny)
                     check(fake.AssetRequests == 1, "HTTP 403 is never retried");
                 return (rejected, folder);
@@ -69,6 +75,9 @@ internal static class PinnedBrowserDownloadTests
             await TryDownload("Binary HTTP 403 fails closed", Scenario.Deny);
             await TryDownload("Two transient HTTP 504 replies recover on same verified URL", Scenario.TransientGateway);
             await TryDownload("Three persistent HTTP 504 replies fail closed", Scenario.PersistentGateway);
+            await TryDownload("Verified native API asset-ID fallback obtains exact original ZIP", Scenario.ApiRecover);
+            await TryDownload("API metadata JSON cannot masquerade as ZIP", Scenario.ApiJson);
+            await TryDownload("API fallback never follows an untrusted redirect", Scenario.ApiEvilRedirect);
             await TryDownload("HTTP 302 redirect loop fails closed", Scenario.Loop);
 
             var dest = Path.Combine(root, "final-batch");
@@ -90,12 +99,17 @@ internal static class PinnedBrowserDownloadTests
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
     }
 
-    private enum Scenario { Success, Corrupt, EvilRedirect, JsonBody, Deny, Loop, TransientGateway, PersistentGateway }
+    private enum Scenario { Success, Corrupt, EvilRedirect, JsonBody, Deny, Loop, TransientGateway, PersistentGateway, ApiRecover, ApiJson, ApiEvilRedirect }
     private sealed class FakeHandler(byte[] expected, Scenario scenario) : HttpMessageHandler
     {
         private static readonly Uri Target = new(
             "https://release-assets.githubusercontent.com/synthetic/original.zip");
+        private static readonly Uri ApiAsset = new(
+            "https://api.github.com/repos/pgextwin/pg_cron/releases/assets/100003");
+        private static readonly Uri ApiTarget = new(
+            "https://release-assets.githubusercontent.com/synthetic/via-api.zip");
         public int AssetRequests { get; private set; }
+        public int ApiRequests { get; private set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage req,
             CancellationToken token)
         {
@@ -116,9 +130,37 @@ internal static class PinnedBrowserDownloadTests
                 };
                 return Task.FromResult(result);
             }
+            if (url == ApiAsset)
+            {
+                ApiRequests++;
+                if (!req.Headers.Accept.Any(x => x.MediaType == "application/octet-stream"))
+                    throw new InvalidDataException("API fallback did not request binary bytes");
+                if (scenario == Scenario.ApiRecover)
+                {
+                    var redirect = new HttpResponseMessage(HttpStatusCode.Redirect);
+                    redirect.Headers.Location = ApiTarget;
+                    return Task.FromResult(redirect);
+                }
+                if (scenario == Scenario.ApiJson)
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new StringContent("{\"metadata\":true}", Encoding.UTF8, "application/json")
+                    });
+                if (scenario == Scenario.ApiEvilRedirect)
+                {
+                    var redirect = new HttpResponseMessage(HttpStatusCode.Redirect);
+                    redirect.Headers.Location = new Uri("https://evil.example.invalid/asset");
+                    return Task.FromResult(redirect);
+                }
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.GatewayTimeout));
+            }
+            if (url == ApiTarget)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(expected)
+                });
             if (url != Target) throw new InvalidDataException("Unknown redirected CDN");
             AssetRequests++;
-            if (scenario == Scenario.PersistentGateway ||
+            if (scenario is Scenario.PersistentGateway or Scenario.ApiRecover or Scenario.ApiJson or
+                Scenario.ApiEvilRedirect ||
                 (scenario == Scenario.TransientGateway && AssetRequests <= 2))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.GatewayTimeout));
             if (scenario == Scenario.Deny)
