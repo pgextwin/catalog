@@ -12,7 +12,7 @@ namespace PgExtWin.Releases;
 /// No local JSON, existing deny-only pin, unsigned review or Catalog discovery
 /// can authorize this path. The issuer workflow identity is pinned in code.
 /// </summary>
-internal static class ExternalSignedDirectGetAdmission
+public static class ExternalSignedDirectGetAdmission
 {
     private const string SignerSan =
         "https://github.com/pgextwin/build/.github/workflows/external-direct-get-issuer.yml@refs/heads/main";
@@ -179,4 +179,31 @@ internal static class ExternalSignedDirectGetAdmission
             "wrong signed source commit, signer or provenance");
         return pins;
     }
+    /// <summary>
+    /// Only user-local GET of original bytes, after independent signed admission.
+    /// No upload, mirror, repackage, install or fallback is possible here.
+    /// </summary>
+    public static async Task<BatchReleaseDownloader.BatchResult> StageVerifiedAsync(
+        string admissionFile, string bundleFile, string pgSelection,
+        string outputParent, CancellationToken token = default)
+    {
+        static byte[] ReadSmallFile(string path)
+        {
+            var file = new FileInfo(path);
+            if (!file.Exists || (file.Attributes & FileAttributes.ReparsePoint) != 0 ||
+                file.Length is <= 0 or > MaxBytes)
+                throw new InvalidDataException("Missing, linked or oversized external admission proof");
+            return File.ReadAllBytes(file.FullName);
+        }
+
+        var admission = ReadSmallFile(admissionFile);
+        var bundle = ReadSmallFile(bundleFile);
+        var pins = await VerifyAsync(admission, bundle, pgSelection, token);
+        using var transport = new ExternalProviderAssetTransport();
+        return await ExternalOriginalBatchStager.StageAsync(
+            pins, pgSelection, outputParent,
+            (pin, directory, cancellation) => transport.DownloadAsync(
+                pin, directory, cancellation), token);
+    }
+
 }
