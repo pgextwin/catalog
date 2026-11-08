@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import importlib.util
 import sys
@@ -40,6 +41,93 @@ class CatalogV2ValidationTests(unittest.TestCase):
             any(needle in error for error in errors),
             f"expected error containing {needle!r}; got:\n" + "\n".join(errors),
         )
+
+
+    def test_public_release_gateway_fallback_gets_anonymous_real_bytes(self):
+        # All requests in this test are mocked; the PR's --verify-remote job
+        # supplies the separate genuine networked byte-read acceptance.
+        repository, tag = "pgextwin/hypopg", "v1.4.1-windows.1"
+        data = b"1" * 64 + b"  example.zip\n"
+        asset = {
+            "name": "SHA256SUMS.txt",
+            "id": 123456,
+            "size": len(data),
+            "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+            "browser_download_url":
+                f"https://github.com/{repository}/releases/download/{tag}/SHA256SUMS.txt",
+        }
+        api_url = f"https://api.github.com/repos/{repository}/releases/assets/123456"
+        calls = []
+
+        def get(url, *, token=None, accept="application/vnd.github+json"):
+            calls.append((url, token, accept))
+            if url == asset["browser_download_url"]:
+                raise RuntimeError("remote request failed after 3 attempts: HTTP Error 504: Gateway Time-out")
+            self.assertEqual(url, api_url)
+            return data, {"Content-Type": "application/octet-stream"}
+
+        with patch.object(validate_catalog, "http_get", side_effect=get):
+            parsed = validate_catalog.read_public_release_checksums(repository, tag, asset)
+        self.assertEqual(parsed, {"example.zip": "1" * 64})
+        self.assertEqual(calls, [
+            (asset["browser_download_url"], None, "text/plain"),
+            (api_url, None, "application/octet-stream"),
+        ])
+
+    def test_public_release_fallback_rejects_rest_json_even_if_metadata_hash_matches(self):
+        repo, tag = "pgextwin/hypopg", "v1.4.1-windows.1"
+        data = b'{"name":"SHA256SUMS.txt"}'
+        asset = {
+            "name": "SHA256SUMS.txt", "id": 123456, "size": len(data),
+            "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+            "browser_download_url": f"https://github.com/{repo}/releases/download/{tag}/SHA256SUMS.txt",
+        }
+        with patch.object(validate_catalog, "http_get", side_effect=[
+            RuntimeError("HTTP Error 504: Gateway Time-out"),
+            (data, {"Content-Type": "application/json"}),
+        ]) as mock_get:
+            with self.assertRaisesRegex(ValueError, "JSON metadata"):
+                validate_catalog.read_public_release_checksums(repo, tag, asset)
+        self.assertEqual(mock_get.call_count, 2)
+
+    def test_public_release_fallback_never_hides_404(self):
+        repo, tag = "pgextwin/hypopg", "v1.4.1-windows.1"
+        asset = {
+            "name": "SHA256SUMS.txt", "id": 123456, "size": 77,
+            "digest": None,
+            "browser_download_url": f"https://github.com/{repo}/releases/download/{tag}/SHA256SUMS.txt",
+        }
+        with patch.object(validate_catalog, "http_get", side_effect=RuntimeError("HTTP Error 404: Not Found")) as mock_get:
+            with self.assertRaisesRegex(RuntimeError, "HTTP Error 404"):
+                validate_catalog.read_public_release_checksums(repo, tag, asset)
+        mock_get.assert_called_once()
+
+    def test_public_release_fallback_rejects_corrupt_primary_without_alternate(self):
+        repo, tag = "pgextwin/hypopg", "v1.4.1-windows.1"
+        data = b"1" * 64 + b"  example.zip\n"
+        asset = {
+            "name": "SHA256SUMS.txt", "id": 123456, "size": len(data),
+            "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+            "browser_download_url": f"https://github.com/{repo}/releases/download/{tag}/SHA256SUMS.txt",
+        }
+        with patch.object(validate_catalog, "http_get", return_value=(b"2" * len(data), {})) as mock_get:
+            with self.assertRaisesRegex(ValueError, "SHA256 differs"):
+                validate_catalog.read_public_release_checksums(repo, tag, asset)
+        mock_get.assert_called_once()
+
+    def test_public_release_fallback_rejects_wrong_byte_length(self):
+        repo, tag = "pgextwin/hypopg", "v1.4.1-windows.1"
+        asset = {
+            "name": "SHA256SUMS.txt", "id": 123456, "size": 99,
+            "digest": None,
+            "browser_download_url": f"https://github.com/{repo}/releases/download/{tag}/SHA256SUMS.txt",
+        }
+        with patch.object(validate_catalog, "http_get", side_effect=[
+            RuntimeError("HTTP Error 503: Service Unavailable"),
+            (b"short", {"Content-Type": "application/octet-stream"}),
+        ]):
+            with self.assertRaisesRegex(ValueError, "byte length differs"):
+                validate_catalog.read_public_release_checksums(repo, tag, asset)
 
     def test_remote_check_uses_stored_authorized_tag_not_unverified_newest_tag(self):
         """Keep a verified older Catalog entry while a newer Publisher run is DENIED."""

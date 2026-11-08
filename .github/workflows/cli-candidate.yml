@@ -6,6 +6,9 @@ on:
       - 'dotnet/**'
       - 'scripts/cli_r6_candidate.py'
       - 'tests/test_cli_r6_candidate.py'
+      # The exact required remote-byte gate changes with this validator.
+      - 'scripts/validate_catalog.py'
+      - 'tests/test_validate_catalog.py'
       - '.github/workflows/cli-candidate.yml'
   pull_request:
     paths:
@@ -13,6 +16,9 @@ on:
       - '.github/workflows/cli-candidate.yml'
       - 'scripts/cli_r6_candidate.py'
       - 'tests/test_cli_r6_candidate.py'
+      # The exact required remote-byte gate changes with this validator.
+      - 'scripts/validate_catalog.py'
+      - 'tests/test_validate_catalog.py'
 permissions:
   contents: read
 jobs:
