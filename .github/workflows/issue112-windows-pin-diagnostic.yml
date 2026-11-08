@@ -1,0 +1,64 @@
+name: Issue112 Windows pin diagnostic (read-only, no publication)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-windows-pin-diagnostic.yml
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact PR revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare exact signed bytes and diagnose the existing verifier
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          @'
+          import base64, hashlib, importlib.util, json, pathlib, subprocess
+          from datetime import datetime, timezone
+          root = pathlib.Path.cwd()
+          rel = "external/signed-direct-get/pg_trickle/run-42427732887"
+          admission = root / rel / "external-get-admission.json"
+          bundle = root / rel / "attestation.json"
+          raw = admission.read_bytes()
+          original = subprocess.run(
+              ["git", "show", "HEAD:" + rel + "/external-get-admission.json"],
+              capture_output=True, check=True, timeout=30).stdout
+          payload = json.loads(base64.b64decode(
+              json.loads(bundle.read_bytes())["dsseEnvelope"]["payload"]))
+          subject = payload["subject"][0]["digest"]["sha256"]
+          config = subprocess.run(
+              ["git", "config", "--get", "core.autocrlf"],
+              capture_output=True, timeout=30).stdout.decode("ascii", "replace").strip()
+          print("DIAG_CORE_AUTOCRLF=" + (config or "UNSET"))
+          print("DIAG_CHECKOUT_SIZE=" + str(len(raw)))
+          print("DIAG_REPOSITORY_SIZE=" + str(len(original)))
+          print("DIAG_CHECKOUT_SHA256=" + hashlib.sha256(raw).hexdigest())
+          print("DIAG_REPOSITORY_SHA256=" + hashlib.sha256(original).hexdigest())
+          print("DIAG_SIGNED_SUBJECT_SHA256=" + subject)
+          print("DIAG_CHECKOUT_EQUALS_REPOSITORY=" + str(raw == original))
+          print("DIAG_CHECKOUT_EQUALS_SIGNED_SUBJECT=" + str(hashlib.sha256(raw).hexdigest() == subject))
+          print("DIAG_CRLF_COUNT=" + str(raw.count(bytes([13,10]))))
+          spec = importlib.util.spec_from_file_location(
+              "diagnosed_public_pin", root / "scripts/validate_public_get_pin.py")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          try:
+              rows = module.scan(root, now=datetime.now(timezone.utc), online=True)
+              print("DIAG_UNCHANGED_VALIDATOR=PASS ACTIVE=" + str(
+                  sum(row["status"] == "ACTIVE" for row in rows)))
+          except module.Denied as exc:
+              print("DIAG_UNCHANGED_VALIDATOR=DENY REASON=" + str(exc))
+              raise SystemExit(2)
+          except Exception as exc:
+              print("DIAG_UNCHANGED_VALIDATOR=ERROR TYPE=" + type(exc).__name__)
+              raise SystemExit(1)
+          '@ | Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'diagnose-pin.py') -Encoding utf8NoBOM
+          python (Join-Path $env:RUNNER_TEMP 'diagnose-pin.py')
+          if ($LASTEXITCODE -ne 0) { throw 'Read-only diagnostic did not validate; no provider GET or publication' }
