@@ -18,5 +18,5 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Independently hash official and community original ZIP bytes (nonpublishing)
-        run: python3 scripts/issue112-external-zip-pilot.py
+      - name: Inspect exact portalcorp PG16 original ZIP bytes (candidate only, nonpublishing)
+        run: python3 scripts/issue112-external-zip-pilot.py --source portalcorp-pgvector-pg16

@@ -4,6 +4,7 @@
 Only independently rehash and inspect two public third-party ZIPs.
 No extraction, execution, mirroring, publication, signature trust or install.
 """
+import argparse
 import hashlib
 import io
 import json
@@ -34,6 +35,21 @@ SOURCES = (
         "sha256": "7c4ae0e2b2cb1e547779209a34a7d3f05b82fd7912818bf3d7042266eda87e7d",
     },
 )
+# The source publishes no API digest. A prior genuine private PR CI observed
+# the SHA256 below; this revision verifies it again against original bytes.
+# An exact hash is integrity evidence, NOT authorization or provenance.
+PORTALCORP = {
+    "name": "portalcorp-pgvector-pg16",
+    "repo": "portalcorp/pgvector_compiled",
+    "tag": "v0.16.105",
+    "asset": "pgvector-x86_64-pc-windows-msvc-pg16.zip",
+    "releaseId": 182821763,
+    "assetId": 203009337,
+    "bytes": 163732,
+    "sha256": "a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571",
+}
+SOURCES += (PORTALCORP,)
+
 ALLOWED_HOSTS = {
     "github.com",
     "release-assets.githubusercontent.com",
@@ -87,9 +103,41 @@ def audit_zip(contents, *, max_members=200, max_expanded_bytes=MAX_EXPANDED_BYTE
         return {"zipMembers": len(infos), "uncompressedBytes": total}
 
 
-def run():
+def verify_observation_identity(opener, item):
+    """Match immutable release/asset IDs before observing an unpinned ZIP."""
+    url = ("https://api.github.com/repos/" + item["repo"] +
+           "/releases/tags/" + item["tag"])
+    req = urllib.request.Request(
+        url, headers={"Accept": "application/vnd.github+json",
+                      "User-Agent": "pgextwin-issue112-readonly-pilot/1"})
+    with opener.open(req, timeout=40) as response:
+        raw = response.read(512_001)
+    if len(raw) > 512_000:
+        raise ValueError("Provider metadata response oversized")
+    release = json.loads(raw)
+    matches = [asset for asset in release.get("assets", [])
+               if asset.get("id") == item["assetId"]]
+    if (release.get("id") != item["releaseId"] or
+            release.get("tag_name") != item["tag"] or
+            release.get("draft") is not False or
+            release.get("prerelease") is not False or
+            len(matches) != 1 or
+            matches[0].get("name") != item["asset"] or
+            matches[0].get("size") != item["bytes"] or
+            matches[0].get("state") != "uploaded" or
+            matches[0].get("digest") is not None):
+        raise ValueError("Unpinned original provider release identity changed")
+
+
+def run(source="all"):
+    selected = SOURCES if source == "all" else tuple(
+        item for item in SOURCES if item["name"] == source)
+    if not selected:
+        raise ValueError("Unsupported read-only ZIP pilot source")
     opener = urllib.request.build_opener(PinnedRedirects())
-    for item in SOURCES:
+    for item in selected:
+        if item["name"] == PORTALCORP["name"]:
+            verify_observation_identity(opener, item)
         url = safe_url("https://github.com/" + item["repo"] +
                        "/releases/download/" + item["tag"] + "/" + item["asset"])
         request = urllib.request.Request(url, headers={"User-Agent": "pgextwin-issue112-readonly-pilot/1"})
@@ -99,19 +147,25 @@ def run():
         if len(data) != item["bytes"] or len(data) > MAX_BYTES:
             raise ValueError(item["name"] + ": source ZIP size mismatch")
         digest = hashlib.sha256(data).hexdigest()
-        if digest != item["sha256"]:
+        if item["sha256"] is not None and digest != item["sha256"]:
             raise ValueError(item["name"] + ": original ZIP SHA256 mismatch")
         zip_info = audit_zip(data)
         print(json.dumps({
             "pilot": item["name"], "result": "ORIGINAL_ZIP_SHA256_AND_CRC_PASS",
             "releaseId": item["releaseId"], "assetId": item["assetId"],
             "size": len(data), "sha256": digest, **zip_info,
+            "sha256Pinned": item["sha256"] is not None,
+            "candidateOnlyObservation": item["name"] == PORTALCORP["name"],
             "signatureVerified": False, "provenanceVerified": False,
             "licenseApproved": False, "abiApproved": False,
             "downloadAuthorized": False, "mirrorAuthorized": False,
         }, sort_keys=True))
-    print("PASS: two read-only original-byte pilots; FORMAL_DISTRIBUTION=DENY")
+    print("PASS: bounded read-only original-byte inspection; "
+          "CANDIDATE_ONLY_FOR_UNPINNED=YES FORMAL_DISTRIBUTION=DENY")
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source", default="all",
+                        choices=["all"] + [item["name"] for item in SOURCES])
+    run(parser.parse_args().source)
