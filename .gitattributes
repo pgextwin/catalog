@@ -1,0 +1,2 @@
+# Signed metadata must retain the exact bytes issued and verified by Sigstore.
+external/signed-direct-get/** -text
