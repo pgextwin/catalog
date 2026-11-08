@@ -35,8 +35,9 @@ SOURCES = (
         "sha256": "7c4ae0e2b2cb1e547779209a34a7d3f05b82fd7912818bf3d7042266eda87e7d",
     },
 )
-# Discovery-only: no upstream digest or independently pinned SHA256 exists yet.
-# The CI must report measured bytes, NEVER convert that observation to GET admission.
+# The source publishes no API digest. A prior genuine private PR CI observed
+# the SHA256 below; this revision verifies it again against original bytes.
+# An exact hash is integrity evidence, NOT authorization or provenance.
 PORTALCORP = {
     "name": "portalcorp-pgvector-pg16",
     "repo": "portalcorp/pgvector_compiled",
@@ -45,7 +46,7 @@ PORTALCORP = {
     "releaseId": 182821763,
     "assetId": 203009337,
     "bytes": 163732,
-    "sha256": None,
+    "sha256": "a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571",
 }
 SOURCES += (PORTALCORP,)
 
@@ -135,7 +136,7 @@ def run(source="all"):
         raise ValueError("Unsupported read-only ZIP pilot source")
     opener = urllib.request.build_opener(PinnedRedirects())
     for item in selected:
-        if item["sha256"] is None:
+        if item["name"] == PORTALCORP["name"]:
             verify_observation_identity(opener, item)
         url = safe_url("https://github.com/" + item["repo"] +
                        "/releases/download/" + item["tag"] + "/" + item["asset"])
@@ -154,7 +155,7 @@ def run(source="all"):
             "releaseId": item["releaseId"], "assetId": item["assetId"],
             "size": len(data), "sha256": digest, **zip_info,
             "sha256Pinned": item["sha256"] is not None,
-            "candidateOnlyObservation": item["sha256"] is None,
+            "candidateOnlyObservation": item["name"] == PORTALCORP["name"],
             "signatureVerified": False, "provenanceVerified": False,
             "licenseApproved": False, "abiApproved": False,
             "downloadAuthorized": False, "mirrorAuthorized": False,
