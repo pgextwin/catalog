@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 8
     outputs:
       source: ${{ steps.gate.outputs.source }}
+      provider: ${{ steps.gate.outputs.provider }}
     steps:
       - name: Authenticate real exact-head protected main Validate and new signed files
         id: gate
@@ -56,7 +57,7 @@ jobs:
           if ! jq -e '
             ([.files[]? | select(
               (.status=="added") and
-              (.filename | test("^external/signed-direct-get/pg_trickle/run-[0-9]+/(external-get-admission|attestation)\\.json$"))
+              (.filename | test("^external/signed-direct-get/(pg_trickle|hypopg)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))
             )] | length==2)
             or
             (([.files[]? | select(
@@ -69,6 +70,20 @@ jobs:
             echo 'NO_NEW_SIGNED_PIN_OR_E2E_WORKFLOW_CHANGE; no provider GET'
             exit 0
           fi
+          cohort="$(jq -r '.files[]? | select(.status=="added") | .filename |
+            select(test("^external/signed-direct-get/(pg_trickle|hypopg)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
+            sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\1/\2#' | sort -u)"
+          if [ -z "$cohort" ]; then
+            echo 'WORKFLOW_ONLY_NO_NEW_SIGNED_COHORT; PROVIDER_GET=SKIPPED'
+            exit 0
+          fi
+          if [ "$(printf '%s\n' "$cohort" | wc -l)" -ne 1 ]; then
+            echo 'Mixed signed cohorts in one commit; DENY'
+            exit 1
+          fi
+          provider="${cohort%%/*}"
+          case "$provider" in pg_trickle|hypopg) ;; *) exit 1 ;; esac
+          echo "provider=$provider" >> "$GITHUB_OUTPUT"
           echo "source=$CATALOG_SHA" >> "$GITHUB_OUTPUT"
           echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
 
@@ -153,45 +168,11 @@ jobs:
             throw 'Public CLI independent Sigstore provenance verification failed'
           }
           Write-Output "PUBLIC_CLI_BYTES_AND_SIGSTORE=PASS VERSION=$version SHA256=$actual SOURCE=$source"
-      - name: Run actual provider-original bytes GET, SHA256 and atomic disk E2E
+      - name: Run exact provider original source bytes GET and atomic CLI E2E
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          PIN_PROVIDER: ${{ needs.authenticate-original-main.outputs.provider }}
         run: |
           $ErrorActionPreference='Stop'
-          $root=Join-Path $env:GITHUB_WORKSPACE 'external/signed-direct-get/pg_trickle'
-          $now=[DateTimeOffset]::UtcNow
-          $active=@(Get-ChildItem -LiteralPath $root -Directory | Where-Object {
-            $doc=Get-Content -LiteralPath (Join-Path $_.FullName 'external-get-admission.json') -Raw | ConvertFrom-Json
-            ([DateTimeOffset]::Parse($doc.issuedAt) -le $now) -and
-            ($now -lt [DateTimeOffset]::Parse($doc.expiresAt))
-          })
-          if ($active.Count -ne 1) { throw "Exactly one authentic unexpired GET-only pin required; got $($active.Count)" }
-          $admission=Join-Path $active[0].FullName 'external-get-admission.json'
-          $bundle=Join-Path $active[0].FullName 'attestation.json'
-          $binaries=@(@{ kind='private'; path=(Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe') })
-          $public=Join-Path $env:RUNNER_TEMP 'issue112-public-cli/pgextwin.exe'
-          if (Test-Path -LiteralPath $public -PathType Leaf) {
-            $binaries+=@{ kind='public'; path=$public }
-          } else {
-            Write-Output 'PUBLIC_CLI_ORIGINAL_GET=SKIPPED_NO_FORMAL_CLI_RELEASE'
-          }
-          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-          foreach ($binary in $binaries) {
-            $dest=Join-Path $env:RUNNER_TEMP "issue112-user-local-$($binary.kind)"
-            New-Item -ItemType Directory -Path $dest | Out-Null
-            & $($binary.path) download-all --source external --pg 18 --output $dest --external-admission $admission --external-bundle $bundle
-            if ($LASTEXITCODE -ne 0) { throw "Actual $($binary.kind) CLI original provider GET failed" }
-            $originals=@(Get-ChildItem -LiteralPath $dest -Recurse -File -Filter '*.zip')
-            if ($originals.Count -ne 1) { throw "Expected exactly one verified provider-original ZIP; got $($originals.Count)" }
-            $original=$originals[0]
-            $digest=(Get-FileHash -LiteralPath $original.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($original.Length -ne 7029107 -or $digest -cne 'c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b') {
-              throw 'Original provider bytes / SHA256 drift'
-            }
-            Write-Output "REAL_WINDOWS_ORIGINAL_GET_ONLY_E2E=PASS CLI_KIND=$($binary.kind) BYTES=$($original.Length) SHA256=$digest PUBLISH=DENY MIRROR=DENY"
-            Remove-Item -LiteralPath $dest -Recurse -Force
-            if (Test-Path -LiteralPath $dest) { throw 'Original-byte cleanup failed' }
-          }
-
+          ./scripts/issue112-public-original-get-e2e.ps1 -Source $env:PIN_PROVIDER
