@@ -120,8 +120,11 @@ class Tests(unittest.TestCase):
             "run: python scripts/validate_public_get_pin.py --catalog .",
             workflow)
         self.assertIn("GH_TOKEN: "+chr(36)+"{{ github.token }}", workflow)
+        linux_job, windows_job = workflow.split("  cli-windows-package-smoke:", 1)
         self.assertEqual(
-            workflow.count("scripts/validate_public_get_pin.py --catalog ."), 1)
+            linux_job.count("scripts/validate_public_get_pin.py --catalog ."), 1)
+        self.assertEqual(
+            windows_job.count("scripts/validate_public_get_pin.py --catalog ."), 1)
 
 if __name__ == "__main__":
     unittest.main()
