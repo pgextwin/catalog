@@ -103,9 +103,22 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
                     throw new InvalidDataException("Duplicate/unsafe external Release asset");
                 if (id == pin.AssetId || name == pin.AssetName)
                 {
+                    // GitHub's older Release assets often expose digest: null.
+                    // Never invent a provider digest or treat absence as a
+                    // successful hash: the *separately signed* admission pins
+                    // SHA256 and we verify the full actual ZIP bytes below.
+                    // A present, conflicting API digest always DENIES.
+                    var digest = item.GetProperty("digest");
+                    var digestMatches = digest.ValueKind switch
+                    {
+                        JsonValueKind.Null => true, // Independent signed byte pin required.
+                        JsonValueKind.String =>
+                            digest.GetString() == "sha256:" + pin.OriginalSha256,
+                        _ => false
+                    };
                     if (id != pin.AssetId || name != pin.AssetName ||
                         item.GetProperty("size").GetInt64() != pin.OriginalBytes ||
-                        item.GetProperty("digest").GetString() != "sha256:" + pin.OriginalSha256 ||
+                        !digestMatches ||
                         item.GetProperty("state").GetString() != "uploaded" ||
                         item.GetProperty("browser_download_url").GetString() != pin.OriginalProviderUrl)
                         throw new InvalidDataException("External Release asset pin mismatch");
