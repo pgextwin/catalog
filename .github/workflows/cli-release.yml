@@ -69,6 +69,10 @@ jobs:
           $project=[xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)
           $version=[string]$project.Project.PropertyGroup.Version
           if ($version -cnotmatch '^[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Invalid CLI version' }
+          # Separate, reviewed CLI publish authorization is DENY by default.
+          & python scripts/cli_external_get_formal_publisher.py policy --policy config/cli-external-get-formal-publisher-v1.json --version $version
+          if ($LASTEXITCODE -eq 4) { Write-Output 'CLI_FORMAL_PUBLISHER=DENY_NOT_ARMED'; exit 0 }
+          if ($LASTEXITCODE -ne 0) { throw 'Invalid or unauthorized CLI formal Publisher policy' }
           foreach ($path in @("git/ref/tags/cli-v$version","releases/tags/cli-v$version")) {
             $errorFile=Join-Path $env:RUNNER_TEMP 'cli-identity-probe.log'
             $existing=& gh api "repos/pgextwin/catalog/$path" 2> $errorFile
@@ -133,9 +137,13 @@ jobs:
   publish:
     if: needs.prepare.outputs.version != ''
     needs: prepare
+    # Missing Environment is never proof of authorization: approval API must match
+    # this Run, the separately pinned Environment ID, and ShutenOishi.
+    environment: cli-external-get-publisher
     runs-on: windows-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -145,6 +153,23 @@ jobs:
         with:
           name: verified-cli-release-assets
           path: ${{ runner.temp }}/cli-release
+      - name: Independently verify original same-Run owner Publisher Environment approval
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $runFile=Join-Path $env:RUNNER_TEMP 'cli-formal-release-run.json'
+          $reviewsFile=Join-Path $env:RUNNER_TEMP 'cli-formal-release-approvals.json'
+          $runData=& gh api "repos/pgextwin/catalog/actions/runs/$env:GITHUB_RUN_ID"
+          if ($LASTEXITCODE -ne 0) { throw 'Original Publisher Run GET denied' }
+          $runData | Set-Content -LiteralPath $runFile -Encoding utf8
+          $reviewsData=& gh api "repos/pgextwin/catalog/actions/runs/$env:GITHUB_RUN_ID/approvals"
+          if ($LASTEXITCODE -ne 0) { throw 'No genuine Environment review GET; deny' }
+          $reviewsData | Set-Content -LiteralPath $reviewsFile -Encoding utf8
+          & python scripts/cli_external_get_formal_publisher.py approval --policy config/cli-external-get-formal-publisher-v1.json --version $env:VERSION --run $runFile --approvals $reviewsFile --run-id $env:GITHUB_RUN_ID
+          if ($LASTEXITCODE -ne 0) { throw 'No separately authorized owner-review Publisher approval; deny Release' }
       - name: Create-only CLI draft, rehash every public asset, then publish
         shell: pwsh
         env:
@@ -166,11 +191,11 @@ jobs:
           @"
           ## English
 
-          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs. download-all --source external|all remains DOWNLOAD_DENY.
+          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs. The provider-original download-all --source external is available only for pg_trickle PG18 with an unexpired independently verified owner-signed direct GET pin. All other external sources remain DOWNLOAD_DENY; no third-party ZIP mirror or redistribution.
 
           ## 日本語
 
-          Windows x64 CLI $env:VERSION は、登録拡張が増えた最新の署名付きCatalogに追従します。download-allの既定動作は、署名検証済みのCatalog登録後、pgTAP・pg_variables・pg_store_plansを含む各PostgreSQL向けZIPをまとめて取得します。--fixedは過去の固定版、--verboseは進捗表示です。Catalogフィードの署名と元ZIPのSHA256を確認し、個別拡張ZIPの検証レベルはINTEGRITY_ONLYです。 verify-external-all はユーザーが別途入手した外部原本ZIPをローカル台帳とオフライン照合する機能です。外部ZIPの取得・インストール・再配布は行いません。download-all --source external|all は引き続き DOWNLOAD_DENY です。
+          Windows x64 CLI $env:VERSION は、登録拡張が増えた最新の署名付きCatalogに追従します。download-allの既定動作は、署名検証済みのCatalog登録後、pgTAP・pg_variables・pg_store_plansを含む各PostgreSQL向けZIPをまとめて取得します。--fixedは過去の固定版、--verboseは進捗表示です。Catalogフィードの署名と元ZIPのSHA256を確認し、個別拡張ZIPの検証レベルはINTEGRITY_ONLYです。 verify-external-all はユーザーが別途入手した外部原本ZIPをローカル台帳とオフライン照合する機能です。外部ZIPの取得・インストール・再配布は行いません。外部原本の download-all --source external は、有効期限内かつ独立検証済みの本人承認付きGET-only署名pinがある場合の pg_trickle PG18 に限ります。他の外部対象は DOWNLOAD_DENY、外部ZIPのミラー・再配布は禁止です。
           "@ | Set-Content $notes -Encoding utf8
           $request=@{tag_name=$tag;target_commitish=$env:SOURCE;name="pgextwin CLI v$env:VERSION";draft=$true;prerelease=$true;make_latest='false';body=(Get-Content $notes -Raw)}
           $requestFile=Join-Path $env:RUNNER_TEMP 'cli-draft-request.json'
