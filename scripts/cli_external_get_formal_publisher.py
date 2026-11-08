@@ -7,11 +7,22 @@ import sys
 from pathlib import Path
 
 FIXED = {
-    "schemaVersion": "pgextwin-cli-external-get-formal-publisher/v1",
+    "schemaVersion": "pgextwin-cli-external-get-formal-publisher/v2",
     "environmentName": "cli-external-get-publisher",
     "ownerLogin": "ShutenOishi", "ownerId": 27071164,
     "repository": "pgextwin/catalog", "operation": "ORIGINAL_PROVIDER_GET_ONLY",
-    "extension": "pg_trickle", "postgresqlMajor": 18,
+    # Explicit source-specific set, not "all" or wildcard; historical HypoPG
+    # is allowed only after its own unexpired owner-signed, independent pin.
+    "approvedSources": [
+        {"extension": "pg_trickle", "pgMajor": "18",
+         "sourceRepo": "trickle-labs/pg-trickle", "releaseTag": "v0.108.3"},
+        {"extension": "hypopg", "pgMajor": "14",
+         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
+        {"extension": "hypopg", "pgMajor": "15",
+         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
+        {"extension": "hypopg", "pgMajor": "16",
+         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"}
+    ],
     "mirrorAuthorized": False, "redistributionAuthorized": False,
 }
 EXPECTED = set(FIXED) | {"publishAuthorized", "approvedVersion", "environmentId"}
