@@ -1,0 +1,133 @@
+name: CLI published binary anonymous Windows acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cli-published-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-exe:
+    if: github.repository == 'pgextwin/catalog' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out protected workflow source without stored credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Authenticate published version, tag, source and original required CI
+        id: identity
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $branch=gh api repos/pgextwin/catalog/branches/main | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or !$branch.protected -or $branch.commit.sha -cne $env:GITHUB_SHA) { throw 'Protected main changed' }
+          $project=[xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)
+          $version=[string]$project.Project.PropertyGroup.Version
+          if ($version -cnotmatch '^\d+\.\d+\.\d+$') { throw 'Invalid CLI version' }
+          $tag="cli-v$version"
+          $release=gh api "repos/pgextwin/catalog/releases/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.draft -or $release.tag_name -cne $tag) { throw 'Published release unavailable' }
+          $ref=gh api "repos/pgextwin/catalog/git/ref/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $ref.object.type -cne 'commit' -or $ref.object.sha -cnotmatch '^[0-9a-f]{40}$') { throw 'Invalid release tag source' }
+          $source=[string]$ref.object.sha
+          $comparison=gh api ("repos/pgextwin/catalog/compare/{0}...{1}" -f $source,$env:GITHUB_SHA) | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $comparison.status -cnotin @('identical','ahead')) { throw 'Release source is not on protected main' }
+          $commit=gh api "repos/pgextwin/catalog/commits/$source" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or !$commit.commit.verification.verified -or $commit.commit.verification.reason -cne 'valid' -or $commit.committer.login -cne 'web-flow') { throw 'Release source is not a verified protected merge' }
+          $checks=gh api "repos/pgextwin/catalog/commits/$source/check-runs?per_page=100" | ConvertFrom-Json
+          $native=@($checks.check_runs | Where-Object { $_.name -ceq 'validate' -and $_.app.id -eq 15368 -and $_.conclusion -ceq 'success' })
+          if ($LASTEXITCODE -ne 0 -or $native.Count -ne 1) { throw 'Original native required CI missing' }
+          $asset=@($release.assets | Where-Object { $_.name -ceq 'pgextwin.exe' })
+          if ($asset.Count -ne 1 -or $asset[0].state -cne 'uploaded' -or $asset[0].size -le 0 -or $asset[0].digest -cnotmatch '^sha256:[0-9a-f]{64}$') { throw 'Published EXE metadata invalid' }
+          $url="https://github.com/pgextwin/catalog/releases/download/$tag/pgextwin.exe"
+          if ($asset[0].browser_download_url -cne $url) { throw 'Unexpected public EXE URL' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "source=$source" >> $env:GITHUB_OUTPUT
+          "digest=$($asset[0].digest.Substring(7))" >> $env:GITHUB_OUTPUT
+          "size=$($asset[0].size)" >> $env:GITHUB_OUTPUT
+          "url=$url" >> $env:GITHUB_OUTPUT
+
+      - name: Download the actual public EXE anonymously and rehash
+        shell: pwsh
+        env:
+          URL: ${{ steps.identity.outputs.url }}
+          DIGEST: ${{ steps.identity.outputs.digest }}
+          SIZE: ${{ steps.identity.outputs.size }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $exe=Join-Path $env:RUNNER_TEMP 'published-pgextwin.exe'
+          Invoke-WebRequest -Uri $env:URL -OutFile $exe
+          if ((Get-Item -LiteralPath $exe).Length -ne [long]$env:SIZE -or
+              (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:DIGEST) { throw 'Anonymous public EXE bytes differ' }
+          if ((& $exe --version).Trim() -cne $env:VERSION -or $LASTEXITCODE -ne 0) { throw 'Published EXE version differs' }
+          Write-Output "PUBLIC_EXE_ANONYMOUS_BYTES=PASS VERSION=$env:VERSION SHA256=$env:DIGEST SIZE=$env:SIZE"
+
+      - name: Independently verify the published EXE Sigstore provenance
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ steps.identity.outputs.source }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'published-pgextwin.exe'
+          $proof=gh attestation verify $exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest $env:SOURCE --deny-self-hosted-runners --format json
+          if ($LASTEXITCODE -ne 0 -or @(($proof | ConvertFrom-Json)).Count -lt 1) { throw 'Public EXE provenance verification failed' }
+          Write-Output "PUBLIC_EXE_SIGSTORE=PASS SOURCE=$env:SOURCE"
+
+      - name: Run the public EXE without tokens and rehash the complete current roster
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $exe=Join-Path $env:RUNNER_TEMP 'published-pgextwin.exe'
+          $parent=Join-Path $env:RUNNER_TEMP 'anonymous-published-cli'
+          $trace=Join-Path $env:RUNNER_TEMP 'anonymous-published-cli.log'
+          New-Item -ItemType Directory $parent | Out-Null
+          Push-Location $parent
+          try {
+            $result=& $exe download-all --pg all --verbose 2> $trace | Out-String
+            $exitCode=$LASTEXITCODE
+            if ($exitCode -ne 0 -or $result -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') {
+              $diagnostic=@(Get-Content -LiteralPath $trace -ErrorAction SilentlyContinue |
+                Where-Object { $_ -match '^DENY:|VERBOSE (FEED_FETCH_START|FEED_BUNDLE_FETCH_START|FEED_SIGSTORE_VERIFIED)' } |
+                ForEach-Object { $_ -replace 'https?://\S+','[url]' })
+              throw "Anonymous public CLI failed (exit=$exitCode): $($diagnostic -join ' | ')"
+            }
+            $folder=Join-Path $parent 'pgextwin-pg14-18'
+            $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
+            $count=[int]$receipt.zipCount
+            if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or $result -notmatch "ZIP_COUNT=$count\b" -or
+                $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
+                $receipt.signatureVerified -ne $false -or $receipt.provenanceVerified -ne $false -or
+                $receipt.publicationAuthorized -ne $false -or $receipt.distributionAuthorized -ne $false -or
+                $receipt.installAuthorized -ne $false -or
+                $receipt.verificationLevel -cne 'INTEGRITY_ONLY') { throw 'Unsafe or incomplete receipt' }
+            $index=Invoke-RestMethod 'https://raw.githubusercontent.com/pgextwin/catalog/main/index.json'
+            $expected=[string[]]@($index.extensions)
+            $actual=[string[]]@($receipt.packages | Select-Object -ExpandProperty extension -Unique)
+            [Array]::Sort($expected,[StringComparer]::Ordinal)
+            [Array]::Sort($actual,[StringComparer]::Ordinal)
+            if (($actual -join ',') -cne ($expected -join ',')) { throw 'Public EXE roster differs from current Catalog' }
+            $keys=@($receipt.packages | ForEach-Object { "$($_.extension)|$($_.pgMajor)" })
+            if (@($keys | Select-Object -Unique).Count -ne $count) { throw 'Public EXE receipt has duplicate extension/PG pairs' }
+            foreach ($row in $receipt.packages) {
+              $file=Join-Path $folder $row.relativePath
+              if (!(Test-Path -LiteralPath $file -PathType Leaf) -or
+                  (Get-Item -LiteralPath $file).Length -ne [long]$row.bytes -or
+                  (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Public EXE original ZIP hash mismatch' }
+            }
+            Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED NO_TOKEN=true"
+          } finally { Pop-Location }
