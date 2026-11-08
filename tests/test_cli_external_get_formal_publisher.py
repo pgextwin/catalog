@@ -32,9 +32,21 @@ def approval(environment=123456, user=27071164):
 
 
 class FormalPublisher(unittest.TestCase):
-    def test_real_policy_is_denied(self):
-        self.assertFalse(MOD.eligible(json.loads(FILE.read_text()), "0.3.6"))
-        self.assertFalse(MOD.eligible(json.loads(FILE.read_text()), "0.3.7"))
+    def test_disabled_policy_is_denied(self):
+        policy = json.loads(FILE.read_text())
+        policy.update(publishAuthorized=False, approvedVersion=None, environmentId=None)
+        self.assertFalse(MOD.eligible(policy, "0.3.6"))
+        self.assertFalse(MOD.eligible(policy, "0.3.7"))
+
+    def test_real_policy_requires_same_run_owner_approval(self):
+        policy = json.loads(FILE.read_text())
+        version = "0.3.7"
+        self.assertEqual(policy["environmentId"], 26611532853)
+        self.assertTrue(MOD.eligible(policy, version))
+        with self.assertRaises(MOD.Denied):
+            MOD.eligible(policy, "0.3.6")
+        with self.assertRaises(MOD.Denied):
+            MOD.approve_same_run(policy, version, run(), [], 98765)
 
     def test_explicit_new_version_and_exact_scope(self):
         self.assertTrue(MOD.eligible(active(), "0.3.7"))
