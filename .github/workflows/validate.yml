@@ -114,16 +114,23 @@ jobs:
       - name: Parse versioned CLI release PowerShell without executing publication
         shell: pwsh
         run: |
-          $text=Get-Content .github/workflows/cli-release.yml -Raw
-          $blocks=[regex]::Matches($text,'(?m)^        run: \|\r?\n(?<code>(?:^          .*\r?\n|^\r?\n)+)')
-          if ($blocks.Count -eq 0) { throw 'No release PowerShell blocks found' }
-          foreach ($block in $blocks) {
-            $code=$block.Groups['code'].Value -replace '(?m)^          ',''
-            $tokens=$null; $errors=$null
-            [void][System.Management.Automation.Language.Parser]::ParseInput($code,[ref]$tokens,[ref]$errors)
-            if ($errors.Count) { throw ($errors | Out-String) }
+          foreach ($workflow in @('.github/workflows/cli-release.yml','.github/workflows/issue112-external-public-get-e2e.yml')) {
+            $text=Get-Content $workflow -Raw
+            if ($workflow -like '*issue112-external-public-get-e2e.yml') {
+              $offset=$text.IndexOf(([string][char]10 + '  windows-real-original-get:'))
+              if ($offset -lt 0) { throw 'Windows E2E job missing' }
+              $text=$text.Substring($offset)
+            }
+            $blocks=[regex]::Matches($text,'(?m)^        run: \|\r?\n(?<code>(?:^          .*\r?\n|^\r?\n)+)')
+            if ($blocks.Count -eq 0) { throw "No PowerShell blocks found in $workflow" }
+            foreach ($block in $blocks) {
+              $code=$block.Groups['code'].Value -replace '(?m)^          ',''
+              $tokens=$null; $errors=$null
+              [void][System.Management.Automation.Language.Parser]::ParseInput($code,[ref]$tokens,[ref]$errors)
+              if ($errors.Count) { throw ($errors | Out-String) }
+            }
+            Write-Output "CLI_RELEASE_POWERSHELL_PARSE=PASS WORKFLOW=$workflow BLOCKS=$($blocks.Count) NO_EXECUTION=true"
           }
-          Write-Output "CLI_RELEASE_POWERSHELL_PARSE=PASS BLOCKS=$($blocks.Count) NO_EXECUTION=true"
 
       - name: Smoke-check packaged CLI and negative trust path
         shell: pwsh
