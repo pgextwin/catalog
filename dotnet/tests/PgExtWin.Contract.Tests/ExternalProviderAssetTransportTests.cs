@@ -50,7 +50,8 @@ internal static class ExternalProviderAssetTransportTests
 
     private static FakeNetwork Network(ExternalOriginalPin pin, byte[] content,
         string? substitutedRepo = null, bool wrongAssetId = false,
-        HttpStatusCode? binaryStatus = null, string? redirect = null)
+        HttpStatusCode? binaryStatus = null, string? redirect = null,
+        bool nullApiDigest = false, bool wrongApiDigest = false)
     {
         return new FakeNetwork(request =>
         {
@@ -68,7 +69,8 @@ internal static class ExternalProviderAssetTransportTests
                     {
                         id = wrongAssetId ? pin.AssetId + 1 : pin.AssetId,
                         name = pin.AssetName, size = pin.OriginalBytes,
-                        digest = "sha256:" + pin.OriginalSha256, state = "uploaded",
+                        digest = nullApiDigest ? null : wrongApiDigest ? "sha256:" + new string('0', 64) : "sha256:" + pin.OriginalSha256,
+                        state = "uploaded",
                         browser_download_url = pin.OriginalProviderUrl
                     } }
                 });
@@ -134,6 +136,39 @@ internal static class ExternalProviderAssetTransportTests
                 }
                 File.Delete(Path.Combine(folder, name));
             }
+
+            // Missing GitHub API digest for historical provider originals does NOT
+            // relax the separately pinned original-byte SHA256/size requirement.
+            // The synthetic source is explicitly NOT an actual signed permission.
+            var legacy = Pin("HypoPG/hypopg", "hypopg",
+                "hypopg-1.4.1-pg16-x64.zip", 164673171, bytes);
+            var legacyNoApiDigest = Network(legacy, bytes, nullApiDigest: true);
+            using (var transport = new ExternalProviderAssetTransport(legacyNoApiDigest))
+            {
+                var receipt = await transport.DownloadAsync(legacy, folder);
+                check(receipt.Sha256 == legacy.OriginalSha256 &&
+                      receipt.Size == bytes.Length && legacyNoApiDigest.Requests == 3 &&
+                      File.ReadAllBytes(receipt.FilePath).SequenceEqual(bytes),
+                    "Historical provider API digest null still requires exact original ZIP bytes");
+            }
+            File.Delete(Path.Combine(folder, legacy.AssetName));
+
+            var legacyCorruptedBytes = bytes.ToArray();
+            legacyCorruptedBytes[^9] ^= 0x01;
+            var legacyTampered = Network(legacy, legacyCorruptedBytes,
+                nullApiDigest: true);
+            using (var transport = new ExternalProviderAssetTransport(legacyTampered))
+                check(await DeniedAsync(transport, legacy, folder) &&
+                      legacyTampered.Requests == 3 &&
+                      Directory.GetFileSystemEntries(folder).Length == 0,
+                    "API digest null plus changed original bytes is always denied");
+
+            var legacyApiContradiction = Network(legacy, bytes, wrongApiDigest: true);
+            using (var transport = new ExternalProviderAssetTransport(legacyApiContradiction))
+                check(await DeniedAsync(transport, legacy, folder) &&
+                      legacyApiContradiction.Requests == 2 &&
+                      Directory.GetFileSystemEntries(folder).Length == 0,
+                    "Present provider API SHA256 mismatch denies before any binary GET");
 
             var original = Pin("laurenz/oracle_fdw", "oracle_fdw",
                 "oracle_fdw-1.2.3-pg18-win64.zip", 100L, bytes);
