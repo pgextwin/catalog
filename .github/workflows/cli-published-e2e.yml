@@ -129,5 +129,10 @@ jobs:
                   (Get-Item -LiteralPath $file).Length -ne [long]$row.bytes -or
                   (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Public EXE original ZIP hash mismatch' }
             }
+            $events=Get-Content -LiteralPath $trace -Raw
+            if ([regex]::Matches($events,'ZIP_START index=').Count -ne $count -or
+                [regex]::Matches($events,'ZIP_VERIFIED index=').Count -ne $count -or
+                $events -notmatch "BATCH_COMPLETE zip_count=$count\b" -or
+                $events -match 'Authorization:|Bearer |GH_TOKEN=') { throw 'Verbose coverage or redaction failed' }
             Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED NO_TOKEN=true"
           } finally { Pop-Location }
