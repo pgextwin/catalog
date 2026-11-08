@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "pgextwin-cli-external-get-formal-publisher/v1",
+  "publishAuthorized": false,
+  "approvedVersion": null,
+  "environmentName": "cli-external-get-publisher",
+  "environmentId": null,
+  "ownerLogin": "ShutenOishi",
+  "ownerId": 27071164,
+  "repository": "pgextwin/catalog",
+  "operation": "ORIGINAL_PROVIDER_GET_ONLY",
+  "extension": "pg_trickle",
+  "postgresqlMajor": 18,
+  "mirrorAuthorized": false,
+  "redistributionAuthorized": false
+}
