@@ -15,7 +15,7 @@ FILE = ROOT / "config/cli-external-get-formal-publisher-v1.json"
 
 def active():
     policy = json.loads(FILE.read_text())
-    policy.update(publishAuthorized=True, approvedVersion="0.3.7", environmentId=123456)
+    policy.update(publishAuthorized=True, approvedVersion="0.3.8", environmentId=123456)
     return policy
 
 
@@ -36,11 +36,11 @@ class FormalPublisher(unittest.TestCase):
         policy = json.loads(FILE.read_text())
         policy.update(publishAuthorized=False, approvedVersion=None, environmentId=None)
         self.assertFalse(MOD.eligible(policy, "0.3.6"))
-        self.assertFalse(MOD.eligible(policy, "0.3.7"))
+        self.assertFalse(MOD.eligible(policy, "0.3.8"))
 
     def test_real_policy_requires_same_run_owner_approval(self):
         policy = json.loads(FILE.read_text())
-        version = "0.3.7"
+        version = "0.3.8"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
         with self.assertRaises(MOD.Denied):
@@ -49,22 +49,24 @@ class FormalPublisher(unittest.TestCase):
             MOD.approve_same_run(policy, version, run(), [], 98765)
 
     def test_explicit_new_version_and_exact_scope(self):
-        self.assertTrue(MOD.eligible(active(), "0.3.7"))
+        self.assertTrue(MOD.eligible(active(), "0.3.8"))
         for mutation in (
-            {"approvedVersion": "0.3.8"}, {"approvedVersion": "0.3.6"},
+            {"approvedVersion": "0.3.9"}, {"approvedVersion": "0.3.7"},
             {"environmentId": None}, {"environmentId": 0},
             {"publishAuthorized": "true"}, {"mirrorAuthorized": True},
             {"redistributionAuthorized": True}, {"operation": "MIRROR"},
-            {"extension": "oracle_fdw"}, {"extension": "pgvector"},
-            {"postgresqlMajor": 17}, {"ownerId": 111},
+            {"approvedSources": []},
+            {"approvedSources": [{"extension": "oracle_fdw", "pgMajor": "18",
+                                  "sourceRepo": "laurenz/oracle_fdw", "releaseTag": "2.9.0"}]},
+            {"approvedSources": active()["approvedSources"][:-1]}, {"ownerId": 111},
             {"repository": "wrong/repo"}, {"unexpected": True},
         ):
             with self.subTest(mutation=mutation):
                 with self.assertRaises(MOD.Denied):
-                    MOD.eligible({**active(), **mutation}, "0.3.7")
+                    MOD.eligible({**active(), **mutation}, "0.3.8")
 
     def test_same_run_environment_review_required(self):
-        self.assertTrue(MOD.approve_same_run(active(), "0.3.7", run(), approval(), 98765))
+        self.assertTrue(MOD.approve_same_run(active(), "0.3.8", run(), approval(), 98765))
         bad = [
             (run(), [], 98765),
             (run(), approval(environment=999), 98765),
@@ -79,7 +81,7 @@ class FormalPublisher(unittest.TestCase):
         for source, reviews, run_id in bad:
             with self.subTest(source=source, reviews=reviews, run_id=run_id):
                 with self.assertRaises(MOD.Denied):
-                    MOD.approve_same_run(active(), "0.3.7", source, reviews, run_id)
+                    MOD.approve_same_run(active(), "0.3.8", source, reviews, run_id)
 
     def test_json_duplicate_key_attack(self):
         with tempfile.TemporaryDirectory() as folder:
