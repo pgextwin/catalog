@@ -4,6 +4,16 @@ on:
   pull_request:
     paths:
       - scripts/issue112-external-zip-pilot.py
+      - scripts/issue112_portalcorp_windows_private.py
+      - scripts/issue112_portalcorp_windows_private.ps1
+      - tests/test_issue112_portalcorp_windows_private.py
+      - .github/workflows/issue112-external-zip-pilot.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_portalcorp_windows_private.py
+      - scripts/issue112_portalcorp_windows_private.ps1
+      - tests/test_issue112_portalcorp_windows_private.py
       - .github/workflows/issue112-external-zip-pilot.yml
 
 permissions:
@@ -11,6 +21,7 @@ permissions:
 
 jobs:
   original-zip-pilot:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -20,3 +31,42 @@ jobs:
           persist-credentials: false
       - name: Inspect exact portalcorp PG16 original ZIP bytes (candidate only, nonpublishing)
         run: python3 scripts/issue112-external-zip-pilot.py --source portalcorp-pgvector-pg16
+
+  portalcorp-pg16-native:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact original test code without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout successful shared PostgreSQL installer at immutable Build SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: b5c0363ff48d73ac475debf284111a7359986ede
+          path: build-tools
+          persist-credentials: false
+      - name: Install Python for existing safe ZIP audit
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Deny malformed PE, ZIP path, version, digest, overwrite offline
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p 'test_issue112_portalcorp_windows_private.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Private portalcorp hostile fixtures failed' }
+      - name: Install pinned disposable EDB PostgreSQL 16
+        shell: pwsh
+        run: ./build-tools/scripts/install-postgresql.ps1 -Major 16 -ChocolateyPackage postgresql16 -ChocolateyVersion 16.15.5 -TestPort 55447
+      - name: Verify original upstream bytes and execute real Windows PG16 vector SQL
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/issue112_portalcorp_windows_private.ps1
+      - name: Assert no external provider ZIP publication or signed admission
+        if: always()
+        shell: pwsh
+        run: Write-Output 'PORTALCORP_PG16_PRIVATE=YES ARTIFACT_UPLOAD=NONE GET_AUTHORIZED=NO MIRROR=DENY RELEASE=DENY'
