@@ -109,9 +109,11 @@ jobs:
             $folder=Join-Path $parent 'pgextwin-pg14-18'
             $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             $count=[int]$receipt.zipCount
-            if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or
+            if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or $result -notmatch "ZIP_COUNT=$count\b" -or
                 $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
-                $receipt.signatureVerified -ne $false -or $receipt.installAuthorized -ne $false -or
+                $receipt.signatureVerified -ne $false -or $receipt.provenanceVerified -ne $false -or
+                $receipt.publicationAuthorized -ne $false -or $receipt.distributionAuthorized -ne $false -or
+                $receipt.installAuthorized -ne $false -or
                 $receipt.verificationLevel -cne 'INTEGRITY_ONLY') { throw 'Unsafe or incomplete receipt' }
             $index=Invoke-RestMethod 'https://raw.githubusercontent.com/pgextwin/catalog/main/index.json'
             $expected=[string[]]@($index.extensions)
@@ -119,9 +121,12 @@ jobs:
             [Array]::Sort($expected,[StringComparer]::Ordinal)
             [Array]::Sort($actual,[StringComparer]::Ordinal)
             if (($actual -join ',') -cne ($expected -join ',')) { throw 'Public EXE roster differs from current Catalog' }
+            $keys=@($receipt.packages | ForEach-Object { "$($_.extension)|$($_.pgMajor)" })
+            if (@($keys | Select-Object -Unique).Count -ne $count) { throw 'Public EXE receipt has duplicate extension/PG pairs' }
             foreach ($row in $receipt.packages) {
               $file=Join-Path $folder $row.relativePath
               if (!(Test-Path -LiteralPath $file -PathType Leaf) -or
+                  (Get-Item -LiteralPath $file).Length -ne [long]$row.bytes -or
                   (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Public EXE original ZIP hash mismatch' }
             }
             Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED NO_TOKEN=true"
