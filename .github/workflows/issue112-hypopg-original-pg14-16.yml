@@ -1,0 +1,79 @@
+name: Issue112 HypoPG official original Windows PG14-16 private qualification
+
+# This path cannot sign, authorize, mirror, release or upload provider ZIPs.
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_hypopg_original_private.py
+      - scripts/issue112_hypopg_windows_private.ps1
+      - tests/test_issue112_hypopg_original_private.py
+      - .github/workflows/issue112-hypopg-original-pg14-16.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_hypopg_original_private.py
+      - scripts/issue112_hypopg_windows_private.ps1
+      - tests/test_issue112_hypopg_original_private.py
+      - .github/workflows/issue112-hypopg-original-pg14-16.yml
+
+permissions:
+  contents: read
+
+jobs:
+  real-original-windows-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['14', '15', '16']
+    runs-on: windows-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact candidate without write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout shared pinned PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: b5c0363ff48d73ac475debf284111a7359986ede
+          path: build-tools
+          persist-credentials: false
+
+      - name: Set up Python for bounded original ZIP CRC and PE inspection
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+
+      - name: Test hostile synthetic source archives (no network)
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p 'test_issue112_hypopg_original_private.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'HypoPG verifier negative tests failed' }
+
+      - name: Install independently pinned EDB Windows PostgreSQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $versions=@{'14'='14.24.0';'15'='15.19.0';'16'='16.15.5'}
+          ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $versions[$env:PG_MAJOR] -TestPort 55443
+
+      - name: Privately GET actual upstream ZIP, validate bytes, and test loaded SQL
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PG_MAJOR: ${{ matrix.pg }}
+        run: |
+          $ErrorActionPreference='Stop'
+          ./scripts/issue112_hypopg_windows_private.ps1 -Major ([int]$env:PG_MAJOR)
+
+      - name: Explicit separate nonpublishing result
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Output 'ORIGINAL_PROVIDER_PRIVATE_PILOT=YES ARTIFACT_UPLOAD=NONE SIGNED_ADMISSION=NONE PUBLISH=DENY MIRROR=DENY'
