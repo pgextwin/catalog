@@ -14,4 +14,4 @@ jobs:
     name: Cross-repository public Catalog, Release and Pages acceptance
     permissions:
       contents: read
-    uses: pgextwin/website/.github/workflows/pages-smoke.yml@0080cd8008c9d212cc57322e60432096a72add9a
+    uses: pgextwin/website/.github/workflows/pages-smoke.yml@7374513e3ce0886e4314d4a448cfcb23287535a2
