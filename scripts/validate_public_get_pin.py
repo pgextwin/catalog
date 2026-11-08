@@ -61,7 +61,7 @@ def parse_utc(s):
     except ValueError:
         raise Denied("invalid UTC date") from None
 
-def validate_document(doc, dirname, *, now):
+def validate_document(doc, dirname, *, now, source="pg_trickle"):
     require(type(doc) is dict and set(doc) == KEYS, "untrusted manifest schema")
     match = RUN_DIR.fullmatch(dirname)
     require(match is not None and type(doc["issuerRunId"]) is int
@@ -85,6 +85,10 @@ def validate_document(doc, dirname, *, now):
     require(expiry - issued == timedelta(hours=6), "forged admission lifetime")
     require(issued <= now + timedelta(minutes=5), "manifest signed in the future")
     rows = doc["records"]
+    if source == "hypopg":
+        validate_hypopg_records(rows)
+        return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
+    require(source == "pg_trickle", "unknown original source")
     require(type(rows) is list and len(rows) == 1
             and type(rows[0]) is dict and set(rows[0]) == ROW_KEYS, "untrusted record list")
     row = rows[0]
@@ -105,6 +109,42 @@ def validate_document(doc, dirname, *, now):
         "targetEnvironment", "noticeTreatment", "dependencyTreatment")),
         "missing required end-user notice/dependencies")
     return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
+
+
+def validate_hypopg_records(rows):
+    """Exactly three owner-signed original ZIPs, never a generic discovery feed."""
+    pins = {
+        "14": (164673161, 23115,
+               "ac1114d1392494e688b5b6b6f151aebe6ccab2d8ae1a004ec510669c47ef3634"),
+        "15": (164673166, 23123,
+               "d23ea9ba7d064ee08e431b12ade50bed4b19a725b5f4df1e088e79e4af8d08ec"),
+        "16": (164673171, 22997,
+               "7afd7cda50050829787d4e901fc8292cf1eb2bc5ad59c996a92e414a1bead1f7"),
+    }
+    require(type(rows) is list and len(rows) == 3, "unexpected owner-signed HypoPG cohort length")
+    for pg, row in zip(("14", "15", "16"), rows):
+        require(type(row) is dict and set(row) == ROW_KEYS,
+                "unexpected original HypoPG record keys")
+        aid, size, sha = pins[pg]
+        name = f"hypopg-1.4.1-pg{pg}-x64.zip"
+        for key, val in (
+            ("sourceGroup", "external"), ("extension", "hypopg"), ("pgMajor", pg),
+            ("sourceRepo", "HypoPG/hypopg"), ("repositoryId", 37308208),
+            ("releaseTag", "1.4.1"), ("releaseId", 153113229),
+            ("assetName", name), ("assetId", aid), ("originalBytes", size),
+            ("originalSha256", sha),
+            ("originalProviderUrl", f"https://github.com/HypoPG/hypopg/releases/download/1.4.1/{name}"),
+            ("licenseUrl", "https://github.com/HypoPG/hypopg/blob/1.4.1/LICENSE"),
+            ("approvedOperation", OP), ("downloadAuthorized", True),
+            ("mirrorAuthorized", False),
+        ):
+            require(type(row[key]) is type(val) and row[key] == val,
+                    "unknown signed HypoPG exact-asset source: " + key)
+        require(all(type(row[k]) is str and len(row[k]) >= 60
+                    for k in ("targetEnvironment", "noticeTreatment", "dependencyTreatment"))
+                and "PostgreSQL " + pg in row["targetEnvironment"]
+                and "Windows x64" in row["targetEnvironment"],
+                "unreviewed PG ABI/NOTICE/dependency in signed record")
 
 def gh_read(route):
     require(re.fullmatch(
@@ -168,30 +208,34 @@ def scan(root, *, now, online=True):
     if not parent.exists():
         return []
     require(parent.is_dir() and not parent.is_symlink(), "unsafe source pin parent")
-    require({x.name for x in parent.iterdir()} == {"pg_trickle"},
-            "unknown or unapproved public signed pin source")
-    source = parent / "pg_trickle"
-    require(source.is_dir() and not source.is_symlink(), "unsafe source subdirectory")
-    entries = sorted(source.iterdir(), key=lambda p: p.name)
-    require(len(entries) <= 50, "unbounded pin history")
+    names = {x.name for x in parent.iterdir()}
+    require(bool(names) and names <= {"pg_trickle", "hypopg"},
+            "unknown or unapproved signed original provider")
     outputs = []
-    for entry in entries:
-        require(entry.is_dir() and not entry.is_symlink()
-                and RUN_DIR.fullmatch(entry.name) is not None, "unexpected pin directory")
-        require({p.name for p in entry.iterdir()} == FILES,
-                "incomplete/tampered signed two-file metadata")
-        for filename in FILES:
-            p = entry / filename
-            require(p.is_file() and not p.is_symlink()
-                    and 100 < p.stat().st_size < 200000,
-                    "unexpected signed metadata bytes")
-        doc = json.loads((entry / "external-get-admission.json").read_bytes(),
-                         object_pairs_hook=unique)
-        status = validate_document(doc, entry.name, now=now)
-        if online:
-            verify_online(entry, doc)
-        outputs.append({"runId": doc["issuerRunId"], "status": status,
-                        "mirrorAuthorized": False, "redistributionAuthorized": False})
+    for source_name in sorted(names):
+        source = parent / source_name
+        require(source.is_dir() and not source.is_symlink(),
+                "unsafe signed source directory")
+        entries = sorted(source.iterdir(), key=lambda p: p.name)
+        require(len(entries) <= 50, "unbounded signed source archive history")
+        for entry in entries:
+            require(entry.is_dir() and not entry.is_symlink()
+                    and RUN_DIR.fullmatch(entry.name) is not None, "unexpected pin directory")
+            require({p.name for p in entry.iterdir()} == FILES,
+                    "incomplete or tampered two-file signed metadata")
+            for filename in FILES:
+                p = entry / filename
+                require(p.is_file() and not p.is_symlink()
+                        and 100 < p.stat().st_size < 200000,
+                        "invalid signed metadata bytes")
+            doc = json.loads((entry / "external-get-admission.json").read_bytes(),
+                             object_pairs_hook=unique)
+            status = validate_document(doc, entry.name, now=now, source=source_name)
+            if online:
+                verify_online(entry, doc)
+            outputs.append({"runId": doc["issuerRunId"], "source": source_name,
+                            "status": status, "mirrorAuthorized": False,
+                            "redistributionAuthorized": False})
     return outputs
 
 def main():
