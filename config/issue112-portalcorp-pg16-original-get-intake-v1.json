@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "pgextwin-external-direct-get-intake/v1",
+  "sourceKind": "EXTERNAL_GITHUB_RELEASE_ASSET",
+  "intendedOperation": "ORIGINAL_PROVIDER_GET_ONLY",
+  "reviewStatus": "CANDIDATE_ONLY",
+  "authorizationIssuer": "NONE",
+  "independentSignedAdmission": false,
+  "publicationAuthorized": false,
+  "downloadAuthorized": false,
+  "mirrorAuthorized": false,
+  "redistributionAuthorized": false,
+  "records": [
+    {
+      "sourceGroup": "external",
+      "providerType": "community",
+      "extension": "vector",
+      "pgMajor": "16",
+      "targetEnvironment": "EDB PostgreSQL 16.15.5 Windows x64; original portalcorp compiled pgvector 0.8.0 only",
+      "upstreamVersion": "0.8.0",
+      "sourceRepo": "portalcorp/pgvector_compiled",
+      "repositoryId": 835861704,
+      "releaseId": 182821763,
+      "releaseTag": "v0.16.105",
+      "assetId": 203009337,
+      "assetName": "pgvector-x86_64-pc-windows-msvc-pg16.zip",
+      "originalProviderUrl": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.105/pgvector-x86_64-pc-windows-msvc-pg16.zip",
+      "originalBytes": 163732,
+      "originalSha256": "a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571",
+      "licenseSpdx": "MIT AND PostgreSQL",
+      "licenseUrl": "https://github.com/portalcorp/pgvector_compiled/blob/v0.16.105/LICENSE",
+      "noticeTreatment": "Provider packaging repository MIT LICENSE: https://github.com/portalcorp/pgvector_compiled/blob/v0.16.105/LICENSE ; actual pgvector v0.8.0 source PostgreSQL LICENSE: https://github.com/pgvector/pgvector/blob/v0.8.0/LICENSE . The original ZIP is not copied, mirrored, repackaged or redistributed by pgextwin. The user can review both licenses before local direct GET. The original ZIP does not constitute proof of complete third-party NOTICE closure.",
+      "dependencyTreatment": "Only the original ZIP and vector.dll on disposable EDB PostgreSQL 16.15.5 Windows x64 were functionally verified: PE AMD64, CREATE EXTENSION vector 0.8.0, HNSW and distance SQL. PE imports were inspected but general transitive system dependency closure and other PostgreSQL distributions are not certified. The user supplies the PG16 Windows runtime; no auto-install, mirror, or dependency bundling.",
+      "runtimeEvidence": {
+        "repository": "pgextwin/catalog",
+        "runId": 42530859120,
+        "runAttempt": 1,
+        "event": "push",
+        "headSha": "9d4aaf0c0e7dc6b79cc572e95eb57b745807676a",
+        "conclusion": "success",
+        "scope": "Native Windows PG16 EDB real original ZIP/PE, CREATE EXTENSION, HNSW and distance SQL"
+      },
+      "sourcePublisherAuthorized": false,
+      "downloadAuthorized": false,
+      "mirrorAuthorized": false
+    }
+  ]
+}

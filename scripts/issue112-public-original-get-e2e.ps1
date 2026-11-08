@@ -1,7 +1,7 @@
 # Issue #112: actual published and privately compiled CLI direct original GET E2E.
 # Only invoked by workflow_run after authenticated original Catalog/main push Validate.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet('pg_trickle','hypopg')][string]$Source)
+param([Parameter(Mandatory=$true)][ValidateSet('pg_trickle','hypopg','portalcorp_pgvector')][string]$Source)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
@@ -33,6 +33,12 @@ if ($Source -ceq 'pg_trickle') {
     $expected=@(@{
         name='pg_trickle-0.108.3-pg18-windows-amd64.zip';bytes=7029107
         sha='c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b'
+    })
+} elseif ($Source -ceq 'portalcorp_pgvector') {
+    $pgArg='16'
+    $expected=@(@{
+        name='pgvector-x86_64-pc-windows-msvc-pg16.zip';bytes=163732
+        sha='a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571'
     })
 } else {
     $pgArg='all'

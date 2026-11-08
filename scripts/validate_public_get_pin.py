@@ -88,6 +88,9 @@ def validate_document(doc, dirname, *, now, source="pg_trickle"):
     if source == "hypopg":
         validate_hypopg_records(rows)
         return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
+    if source == "portalcorp_pgvector":
+        validate_portalcorp_records(rows)
+        return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
     require(source == "pg_trickle", "unknown original source")
     require(type(rows) is list and len(rows) == 1
             and type(rows[0]) is dict and set(rows[0]) == ROW_KEYS, "untrusted record list")
@@ -145,6 +148,34 @@ def validate_hypopg_records(rows):
                 and "PostgreSQL " + pg in row["targetEnvironment"]
                 and "Windows x64" in row["targetEnvironment"],
                 "unreviewed PG ABI/NOTICE/dependency in signed record")
+
+def validate_portalcorp_records(rows):
+    """Only the independently reviewed original portalcorp v0.8.0 PG16 ZIP."""
+    require(type(rows) is list and len(rows) == 1
+            and type(rows[0]) is dict and set(rows[0]) == ROW_KEYS,
+            "unreviewed portalcorp cohort structure")
+    row = rows[0]
+    expected = {
+        "sourceGroup": "external", "extension": "vector", "pgMajor": "16",
+        "sourceRepo": "portalcorp/pgvector_compiled", "repositoryId": 835861704,
+        "releaseTag": "v0.16.105", "releaseId": 182821763,
+        "assetId": 203009337, "assetName": "pgvector-x86_64-pc-windows-msvc-pg16.zip",
+        "originalBytes": 163732,
+        "originalSha256": "a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571",
+        "originalProviderUrl": "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.105/pgvector-x86_64-pc-windows-msvc-pg16.zip",
+        "licenseUrl": "https://github.com/portalcorp/pgvector_compiled/blob/v0.16.105/LICENSE",
+        "approvedOperation": OP, "downloadAuthorized": True, "mirrorAuthorized": False,
+    }
+    for key, val in expected.items():
+        require(type(row[key]) is type(val) and row[key] == val,
+                "wrong portalcorp source-specific immutable pin: " + key)
+    require("PostgreSQL 16" in row["targetEnvironment"]
+            and "Windows x64" in row["targetEnvironment"]
+            and all(type(row[k]) is str and len(row[k]) >= 60
+                    for k in ("targetEnvironment", "noticeTreatment", "dependencyTreatment"))
+            and "https://github.com/pgvector/pgvector/blob/v0.8.0/LICENSE"
+                in row["noticeTreatment"], "portalcorp runtime or source NOTICE missing")
+
 
 def gh_read(route):
     require(re.fullmatch(
@@ -209,7 +240,7 @@ def scan(root, *, now, online=True):
         return []
     require(parent.is_dir() and not parent.is_symlink(), "unsafe source pin parent")
     names = {x.name for x in parent.iterdir()}
-    require(bool(names) and names <= {"pg_trickle", "hypopg"},
+    require(bool(names) and names <= {"pg_trickle", "hypopg", "portalcorp_pgvector"},
             "unknown or unapproved signed original provider")
     outputs = []
     for source_name in sorted(names):
