@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -330,6 +331,44 @@ def verify_capability_source(record, token):
     return errors
 
 
+
+def read_public_release_checksums(repository, tag, checksums_asset):
+    """Read actual anonymous public bytes; REST asset fallback is *not* metadata proof.
+
+    Preserve the original public URL as the primary path. Only 502/503/504
+    gateway errors can trigger the separate GitHub API asset-byte route.
+    Never turn a 401/403/404, corrupt payload, or incorrect digest into success.
+    """
+    name = checksums_asset.get("name")
+    canonical_url = f"https://github.com/{repository}/releases/download/{tag}/{name}"
+    if checksums_asset.get("browser_download_url") != canonical_url:
+        raise ValueError("published checksums asset URL is not canonical")
+    size = checksums_asset.get("size")
+    if type(size) is not int or not (0 < size <= 1024 * 1024):
+        raise ValueError("invalid published checksums asset size")
+    digest = checksums_asset.get("digest")
+    if digest is not None and not re.fullmatch(r"sha256:[0-9a-f]{64}", str(digest)):
+        raise ValueError("invalid GitHub checksums asset digest")
+
+    try:
+        raw, headers = http_get(canonical_url, token=None, accept="text/plain")
+    except RuntimeError as primary_error:
+        if not re.search(r"HTTP Error (?:502|503|504)\b", str(primary_error)):
+            raise
+        asset_id = checksums_asset.get("id")
+        if type(asset_id) is not int or asset_id < 1:
+            raise ValueError("invalid release asset ID for byte fallback") from primary_error
+        api_url = f"https://api.github.com/repos/{repository}/releases/assets/{asset_id}"
+        raw, headers = http_get(api_url, token=None, accept="application/octet-stream")
+        if "json" in str(headers.get("Content-Type", "")).lower():
+            raise ValueError("GitHub REST fallback returned JSON metadata, not asset bytes")
+
+    if len(raw) != size:
+        raise ValueError("actual published checksums asset byte length differs from GitHub release")
+    if digest and hashlib.sha256(raw).hexdigest() != digest.removeprefix("sha256:"):
+        raise ValueError("actual published checksums asset SHA256 differs from GitHub release")
+    return parse_checksums(raw)
+
 def verify_release(record, token):
     repository = record["repository"]
     latest = record["latest"]
@@ -373,12 +412,7 @@ def verify_release(record, token):
         return errors
 
     try:
-        checksum_bytes, _ = http_get(
-            checksums_asset["browser_download_url"],
-            token=None,
-            accept="text/plain",
-        )
-        checksums = parse_checksums(checksum_bytes)
+        checksums = read_public_release_checksums(repository, tag, checksums_asset)
     except Exception as exc:
         errors.append(f"could not read published {checksums_name}: {exc}")
         return errors
