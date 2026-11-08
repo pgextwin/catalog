@@ -57,7 +57,7 @@ jobs:
           if ! jq -e '
             ([.files[]? | select(
               (.status=="added") and
-              (.filename | test("^external/signed-direct-get/(pg_trickle|hypopg)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))
+              (.filename | test("^external/signed-direct-get/(pg_trickle|hypopg|portalcorp_pgvector)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))
             )] | length==2)
             or
             (([.files[]? | select(
@@ -71,7 +71,7 @@ jobs:
             exit 0
           fi
           cohort="$(jq -r '.files[]? | select(.status=="added") | .filename |
-            select(test("^external/signed-direct-get/(pg_trickle|hypopg)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
+            select(test("^external/signed-direct-get/(pg_trickle|hypopg|portalcorp_pgvector)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
             sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\1/\2#' | sort -u)"
           if [ -z "$cohort" ]; then
             echo 'WORKFLOW_ONLY_NO_NEW_SIGNED_COHORT; PROVIDER_GET=SKIPPED'
@@ -82,7 +82,7 @@ jobs:
             exit 1
           fi
           provider="${cohort%%/*}"
-          case "$provider" in pg_trickle|hypopg) ;; *) exit 1 ;; esac
+          case "$provider" in pg_trickle|hypopg|portalcorp_pgvector) ;; *) exit 1 ;; esac
           echo "provider=$provider" >> "$GITHUB_OUTPUT"
           echo "source=$CATALOG_SHA" >> "$GITHUB_OUTPUT"
           echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
