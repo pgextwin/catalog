@@ -197,7 +197,13 @@ jobs:
 
           ## 日本語
 
-          Windows x64 CLI $env:VERSION は、登録拡張が増えた最新の署名付きCatalogに追従します。download-allの既定動作は、署名検証済みのCatalog登録後、pgTAP・pg_variables・pg_store_plansを含む各PostgreSQL向けZIPをまとめて取得します。--fixedは過去の固定版、--verboseは進捗表示です。Catalogフィードの署名と元ZIPのSHA256を確認し、個別拡張ZIPの検証レベルはINTEGRITY_ONLYです。 verify-external-all はユーザーが別途入手した外部原本ZIPをローカル台帳とオフライン照合する機能です。外部ZIPの取得・インストール・再配布は行いません。外部原本の download-all --source external は、pg_trickle PG18、公式の過去版 HypoPG 1.4.1（PG14〜16）、および独立した実機検証済みの portalcorp pgvector 0.8.0（PG16）を対象とし、対象原本ごとの有効期限内の本人承認済みGET専用許可と独立Sigstore検証が成立した場合のみ利用できます。取得前と一括確定前に署名付き期限を毎回再確認し、期限切れなら一時ZIPを破棄して全体を中止します。HypoPGの旧版は現行native版を自動で置換しません。旧GitHub ReleaseのAPI SHA256欄が空の場合も、署名付き固定SHA256・サイズ・実際のZIP検証は必須です。他の外部対象は DOWNLOAD_DENY、外部ZIPのミラー・再配布・自動インストールは禁止です。
+          Windows x64 CLI $env:VERSION は、登録拡張機能が増えた最新の署名付きCatalogに追従します。``download-all`` は、署名付きCatalogへの登録が完了したpgTAP・pg_variables・pg_store_plansを含め、各PostgreSQLバージョン向けの登録済みZIPを既定でまとめて取得します。``--fixed`` は過去の固定版を選択し、``--verbose`` は進行状況を表示します。Catalogフィードの署名と元ZIPのSHA256を検証しますが、個別の拡張ZIPの検証状態は ``INTEGRITY_ONLY`` です。
+
+          ``verify-external-all`` は、利用者が別途取得した外部提供元の原本ZIPを、ローカルの確認用台帳とオフラインで照合します。このコマンドは外部ZIPの取得・インストール・再配布を行いません。
+
+          外部原本を直接取得する ``download-all --source external`` の対象は、pg_trickle PG18、公式の過去版HypoPG 1.4.1（PG14〜16）、および独立したWindows実機検証を経たportalcorp pgvector 0.8.0（PG16）です。各原本について、所有者が審査・承認した有効期限内のGET専用許可があり、その許可の独立したSigstore検証に成功した場合に限り利用できます。CLIは原本の取得前と一括保存の確定前に、署名付きの有効期限を毎回確認します。期限が切れていれば一時保存したZIPを破棄し、一括処理を中止します。
+
+          過去版HypoPG 1.4.1が現行のnative版を自動的に置き換えることはありません。古いGitHub ReleaseのAPIでSHA256欄が空の場合も、独立した署名付きの原本SHA256、サイズ、ZIP構造の検証は必須です。その他の外部提供元は ``DOWNLOAD_DENY`` のままです。第三者のZIPのミラー・再配布・自動インストールは行いません。
           "@ | Set-Content $notes -Encoding utf8
           $request=@{tag_name=$tag;target_commitish=$env:SOURCE;name="pgextwin CLI v$env:VERSION";draft=$true;prerelease=$true;make_latest='false';body=(Get-Content $notes -Raw)}
           $requestFile=Join-Path $env:RUNNER_TEMP 'cli-draft-request.json'

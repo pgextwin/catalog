@@ -36,9 +36,9 @@ cleans any partial batch staging and never falls back to a weaker mode.
 
 ## 日本語
 
-`--verbose` を指定すると、処理中の詳細ログを UTC タイムスタンプ付きで
+`--verbose` を指定すると、処理中の詳細ログをUTC時刻付きで
 **標準エラー出力 (stderr)** に表示します。通常の実行結果と
-`list/search --format json` の機械可読出力は **標準出力 (stdout)** に維持されます。
+`list/search --format json` の機械可読出力は、引き続き **標準出力 (stdout)** に出力します。
 
 ```powershell
 .\pgextwin.exe download-all --pg all --verbose
@@ -46,7 +46,7 @@ cleans any partial batch staging and never falls back to a weaker mode.
 .\pgextwin.exe download-all --pg all --verbose 2> download-verbose.log
 ```
 
-Catalogの取得、Sigstore署名検証、SHA256固定値照合、各ZIPの取得開始、
-8 MiBごとの転送量、ZIP再ハッシュ、原子的な一括配置完了を記録します。
-ログを有効にしてもZIPの真正署名検証を追加したことにはならず、
-`INTEGRITY_ONLY` および正式配布・インストールのDENY条件は変更しません。
+Catalogの取得、Sigstore署名検証、SHA256固定値との照合、各ZIPの取得開始、
+8 MiBごとの転送量、ZIPのSHA256再計算、一括保存の原子的な確定までを記録します。
+詳細ログを有効にしても、個別ZIPの真正署名が検証されるわけではありません。
+検証状態の `INTEGRITY_ONLY` と、正式配布・インストールのDENY条件は変わりません。

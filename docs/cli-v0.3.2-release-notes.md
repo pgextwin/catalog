@@ -35,11 +35,11 @@ The **EXE and signed Catalog feed have their own verified provenance**. Original
 
 ### v0.3.2 の変更点
 
-- 読み取り専用CLIに `--verbose` を追加。UTCの時刻付きログを**標準エラー出力**へ出し、通常の標準出力やJSON結果は変更しません。
-- Sigstore署名付きCatalogの検証、不変CatalogレコードのSHA256照合、過去の固定Catalog取得を順番に表示します。
-- 各ZIPの取得開始、転送量（8 MiB単位）、取得バイト数、SHA256の再照合、一括配置の確定まで追跡できます。
+- 読み取り専用CLIに `--verbose` を追加しました。UTC時刻付きのログは**標準エラー出力**に記録し、通常の標準出力やJSON結果は変更しません。
+- Sigstore署名付きCatalogの検証、不変CatalogレコードのSHA256照合、過去の固定Catalogの取得状況を順番に表示します。
+- 各ZIPの取得開始から、転送量（8 MiB単位）、取得バイト数、SHA256の再照合、一括保存の確定までを追跡できます。
 - `--verbose` の二重指定と不正な引数は拒否し、既存の安全な失敗処理を維持します。
-- v0.3.1の.NET完全トリミング＋圧縮による軽量なWindows x64単体EXE、最新版の標準取得と `--fixed` を維持します。
+- v0.3.1で導入した.NETの完全トリミングと圧縮による軽量なWindows x64単体EXE、最新版の標準取得、`--fixed` を引き続き利用できます。
 
 ### 実行例
 
@@ -58,4 +58,4 @@ The **EXE and signed Catalog feed have their own verified provenance**. Original
 - [main上の署名付きWindowsビルドと独立Sigstore検証](https://github.com/pgextwin/catalog/actions/runs/39341486152)：SUCCESS
 - [PR #134：Windows実行・元ZIP検証済み](https://github.com/pgextwin/catalog/pull/134)：MERGED
 
-**EXEとCatalogフィードのSigstore検証**と、拡張機能ZIPの**SHA256バイト整合性**は別です。各ZIPの状態は引き続き `INTEGRITY_ONLY` であり、CLI自体はWindows Authenticode署名付きインストーラーではありません。拡張機能の正式配布・インストール許可、Issue #75 GO B/G4/G5の未成立ゲートは変更しません。
+EXEとCatalogフィードのSigstore検証は、拡張機能ZIPのSHA256によるバイト整合性の確認とは異なります。個別ZIPの検証状態は引き続き `INTEGRITY_ONLY` です。CLI自体はWindows Authenticode署名付きインストーラーではありません。拡張機能の正式配布・インストール許可、およびIssue #75 GO B/G4/G5の未成立ゲートに変更はありません。
