@@ -148,6 +148,39 @@ internal static class ExternalSignedDirectGetAdmissionTests
         check(ParseDenied(Fixture(), "16"),
             "Unsigned PG16 selection cannot use PG18 source");
 
+        // A signed multi-major cohort remains one authenticated subject.
+        // Select the requested PG only AFTER every row passed full validation.
+        var mixed = Mutate(doc =>
+        {
+            var vector = doc["records"]![0]!.DeepClone();
+            vector["extension"] = "vector";
+            vector["pgMajor"] = "16";
+            vector["targetEnvironment"] = "EDB PostgreSQL 16 Windows x64";
+            vector["sourceRepo"] = "portalcorp/pgvector_compiled";
+            vector["repositoryId"] = 835861704L;
+            vector["releaseTag"] = "v0.16.105";
+            vector["releaseId"] = 182821763L;
+            vector["assetName"] = "pgvector-x86_64-pc-windows-msvc-pg16.zip";
+            vector["assetId"] = 203009337L;
+            vector["originalBytes"] = 163732L;
+            vector["originalSha256"] = "a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571";
+            vector["originalProviderUrl"] = "https://github.com/portalcorp/pgvector_compiled/releases/download/v0.16.105/pgvector-x86_64-pc-windows-msvc-pg16.zip";
+            ((JsonArray)doc["records"]!).Add(vector);
+        });
+        var selectedMajor = ExternalSignedDirectGetAdmission.ParseUntrusted(
+            mixed, "16", DateTimeOffset.UtcNow, out _);
+        check(selectedMajor.Count == 1 && selectedMajor[0].PgMajor == "16" &&
+              selectedMajor[0].Extension == "vector",
+              "Mixed signed cohort PG16 selection returns only PG16 original bytes");
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            mixed, "all", DateTimeOffset.UtcNow, out _).Count == 2,
+            "All-major selection retains both fully validated signed rows");
+        check(ParseDenied(mixed, "15"), "Absent PG major fails closed");
+        var hiddenBadRow = JsonNode.Parse(Encoding.UTF8.GetString(mixed))!;
+        hiddenBadRow["records"]![0]!["mirrorAuthorized"] = true;
+        check(ParseDenied(Encoding.UTF8.GetBytes(hiddenBadRow.ToJsonString()), "16"),
+              "Selected major cannot hide a malicious unselected signed row");
+
         var corrupt = Encoding.UTF8.GetBytes(
             Encoding.UTF8.GetString(Fixture()).Replace(
                 "\"mirrorAuthorized\":false", "\"mirrorAuthorized\":false,\"mirrorAuthorized\":true"));
