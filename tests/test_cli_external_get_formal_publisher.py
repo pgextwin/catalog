@@ -15,7 +15,7 @@ FILE = ROOT / "config/cli-external-get-formal-publisher-v1.json"
 
 def active():
     policy = json.loads(FILE.read_text())
-    policy.update(publishAuthorized=True, approvedVersion="0.3.9", environmentId=123456)
+    policy.update(publishAuthorized=True, approvedVersion="0.3.10", environmentId=123456)
     return policy
 
 
@@ -36,11 +36,11 @@ class FormalPublisher(unittest.TestCase):
         policy = json.loads(FILE.read_text())
         policy.update(publishAuthorized=False, approvedVersion=None, environmentId=None)
         self.assertFalse(MOD.eligible(policy, "0.3.6"))
-        self.assertFalse(MOD.eligible(policy, "0.3.9"))
+        self.assertFalse(MOD.eligible(policy, "0.3.10"))
 
     def test_real_policy_requires_same_run_owner_approval(self):
         policy = json.loads(FILE.read_text())
-        version = "0.3.9"
+        version = "0.3.10"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
         self.assertIn(
@@ -53,9 +53,9 @@ class FormalPublisher(unittest.TestCase):
             MOD.approve_same_run(policy, version, run(), [], 98765)
 
     def test_explicit_new_version_and_exact_scope(self):
-        self.assertTrue(MOD.eligible(active(), "0.3.9"))
+        self.assertTrue(MOD.eligible(active(), "0.3.10"))
         for mutation in (
-            {"approvedVersion": "0.3.10"}, {"approvedVersion": "0.3.7"},
+            {"approvedVersion": "0.3.11"}, {"approvedVersion": "0.3.9"}, {"approvedVersion": "0.3.7"},
             {"environmentId": None}, {"environmentId": 0},
             {"publishAuthorized": "true"}, {"mirrorAuthorized": True},
             {"redistributionAuthorized": True}, {"operation": "MIRROR"},
@@ -67,10 +67,10 @@ class FormalPublisher(unittest.TestCase):
         ):
             with self.subTest(mutation=mutation):
                 with self.assertRaises(MOD.Denied):
-                    MOD.eligible({**active(), **mutation}, "0.3.9")
+                    MOD.eligible({**active(), **mutation}, "0.3.10")
 
     def test_same_run_environment_review_required(self):
-        self.assertTrue(MOD.approve_same_run(active(), "0.3.9", run(), approval(), 98765))
+        self.assertTrue(MOD.approve_same_run(active(), "0.3.10", run(), approval(), 98765))
         bad = [
             (run(), [], 98765),
             (run(), approval(environment=999), 98765),
