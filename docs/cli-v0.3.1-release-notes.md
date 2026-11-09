@@ -47,12 +47,12 @@ gh attestation verify .\pgextwin.exe --repo pgextwin/catalog --signer-workflow p
 
 ### 主な変更点
 
-Windows x64向けの自己完結型・単一ファイル `pgextwin.exe` を、v0.3.0の **79.34 MB（79,338,604バイト）**から **12.83 MB（12,827,362バイト）**に軽量化しました。**削減率は83.83%**です。
+Windows x64向けの自己完結型・単一ファイル `pgextwin.exe` のサイズを、v0.3.0の **79.34 MB（79,338,604バイト）** から **12.83 MB（12,827,362バイト）** に削減しました。削減率は83.83%です。
 
-- .NET 10の完全トリミングと単一ファイル圧縮を採用。JSON出力にはトリミング対応の`System.Text.Json`ソース生成方式を用い、IL2026警告を抑制するのではなく原因を修正しました。
-- 標準の1行コマンドで**Catalogに登録された最新版**を取得します。現在は**14拡張×PostgreSQL 14～18の元ZIP計70件**です。
-- Sigstore署名付きCatalog選択フィードの発行元・コミット・不変CatalogのSHA256を独立検証します。GitHub匿名REST APIの利用は不要です。
-- 各ZIPのSHA256を再計算し、不一致や一部失敗の場合には出力を確定させません。既存ファイルの上書きも行いません。
+- .NET 10の完全トリミングと単一ファイル圧縮を採用しました。JSON出力にはトリミング対応の`System.Text.Json`ソース生成を使い、IL2026警告の原因を修正しました。
+- 標準の1行コマンドで、**Catalogに登録された最新版**を取得します。このリリース時点では、**14拡張・PostgreSQL 14～18向けの原本ZIP計70件**が対象です。
+- Sigstore署名付きCatalog選択フィードの発行元とコミット、不変CatalogのSHA256を独立して検証します。GitHubの匿名REST APIは使用しません。
+- 各ZIPのSHA256を再計算します。不一致や一部の取得失敗があれば一括保存を確定せず、既存ファイルも上書きしません。
 - `--fixed` で過去の不変Catalogスナップショットを明示的に利用できます。
 
 ### 使い方
@@ -65,11 +65,11 @@ Windows x64向けの自己完結型・単一ファイル `pgextwin.exe` を、v0
 .\pgextwin.exe download-all --pg all --fixed
 ```
 
-ローカルCatalogを読み取る `list`／`search` にも対応しています。ローカルの一覧情報は明示的に `UNVERIFIED` です。
+ローカルCatalogを読み取る `list`／`search` にも対応しています。ローカルの一覧情報の検証状態は `UNVERIFIED` です。
 
 ### 安全性と検証証跡
 
-**Sigstore検証済みなのはCLI本体とCatalog選択フィードです。拡張ZIPの個別の真正署名が検証されたわけではありません。** 拡張ZIPはSHA256によるバイト整合性のみで、状態は **`INTEGRITY_ONLY`** です。個別ZIPの署名・来歴・導入・サービス変更・オフライン統合ZIP・配布／公開認可は成立していません。CLI v0.3.1は公開済みのプレリリースであり、Windows Authenticode署名付きインストーラーではありません。
+**Sigstore検証済みなのはCLI本体とCatalog選択フィードです。** 個別の拡張ZIPについて真正署名は検証しておらず、SHA256によるバイト整合性のみを確認します。検証状態は `INTEGRITY_ONLY` です。個別ZIPの署名・来歴の検証、導入、サービス変更、オフライン統合ZIP、配布・公開の認可は成立していません。CLI v0.3.1は公開済みのプレリリースであり、Windows Authenticode署名付きインストーラーではありません。
 
 - 公開EXEのSHA256：`baee38b3aafdd1bbb7f61857747358dbd40ab056d989aa0f753c93b2025a7580`
 - 署名済み元ビルドのソースコミット：`a7a1d93d38d7338d80404c402eb5faaaa96b272e`

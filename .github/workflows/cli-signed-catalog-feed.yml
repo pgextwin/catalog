@@ -196,8 +196,9 @@ jobs:
                  f"Metadata-only immutable selection of already-Catalog-approved {count} extensions and {zip_count} original ZIPs for PostgreSQL majors {', '.join(majors)}. "
                  "Independently verifiable GitHub Actions Sigstore attestation is attached. Original extension ZIP bytes remain INTEGRITY_ONLY; this metadata-only feed does not grant an extension Release, installation or publication authorization.\n\n"
                  "## 日本語\n\n"
-                 f"すでにCatalogで承認・登録された{count}拡張について、PostgreSQL {'・'.join(majors)}向けの元ZIP計{zip_count}件を選択する不変のメタデータ専用Releaseです。"
-                 "独立検証可能なGitHub ActionsのSigstore Attestationを添付します。個別の拡張ZIPはINTEGRITY_ONLYであり、元ZIPの真正署名・新規Release・インストール・配布／公開の認可を意味しません。\n")
+                 f"Catalogで承認・登録済みの{count}拡張について、PostgreSQL {'・'.join(majors)}向けの元ZIP計{zip_count}件を選択する、不変のメタデータ専用Releaseです。"
+                 "独立して検証できるGitHub ActionsのSigstore Attestationが付属します。\n\n"
+                 "個別の拡張ZIPの検証状態はINTEGRITY_ONLYです。このメタデータには、原本ZIPの真正署名の検証や、新規Release・インストール・配布／公開の認可を意味する効力はありません。\n")
           destination.write_text(notes,encoding="utf-8")
           FEED_NOTES_PY
           gh api --method POST repos/pgextwin/catalog/git/refs -f "ref=refs/tags/$tag" -f "sha=$SOURCE"
