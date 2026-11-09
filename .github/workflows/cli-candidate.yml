@@ -5,6 +5,7 @@ on:
     paths:
       - 'dotnet/**'
       - 'external/signed-direct-get/qualified_cohort/**'
+      - '.github/workflows/cli-release.yml'
       - 'scripts/cli_r6_candidate.py'
       - 'tests/test_cli_r6_candidate.py'
       # The exact required remote-byte gate changes with this validator.

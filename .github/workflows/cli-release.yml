@@ -9,7 +9,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: pgextwin-cli-create-only-release
+  # A pull_request candidate must never cancel or replace a protected
+  # push/main Publisher while it is queued for the owner Environment.
+  group: pgextwin-cli-create-only-release-${{ github.event.workflow_run.event }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 jobs:
