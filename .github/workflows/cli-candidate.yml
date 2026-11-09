@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'dotnet/**'
+      - 'external/signed-direct-get/qualified_cohort/**'
       - 'scripts/cli_r6_candidate.py'
       - 'tests/test_cli_r6_candidate.py'
       # The exact required remote-byte gate changes with this validator.
