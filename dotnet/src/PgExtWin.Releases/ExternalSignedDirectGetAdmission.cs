@@ -199,11 +199,22 @@ public static class ExternalSignedDirectGetAdmission
         var admission = ReadSmallFile(admissionFile);
         var bundle = ReadSmallFile(bundleFile);
         var pins = await VerifyAsync(admission, bundle, pgSelection, token);
+        // This expiry comes from the same exact bytes independently verified
+        // against the original Build issuer's Sigstore proof above.
+        using var signed = StrictJson.Parse(admission);
+        var expires = Timestamp(signed.RootElement.GetProperty("expiresAt").GetString() ?? "");
+        Task ConfirmFresh(CancellationToken cancellation)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            Require(DateTimeOffset.UtcNow < expires,
+                "admission expired before provider GET or atomic commit");
+            return Task.CompletedTask;
+        }
         using var transport = new ExternalProviderAssetTransport();
         return await ExternalOriginalBatchStager.StageAsync(
             pins, pgSelection, outputParent,
             (pin, directory, cancellation) => transport.DownloadAsync(
-                pin, directory, cancellation), token);
+                pin, directory, cancellation), token, ConfirmFresh);
     }
 
 }
