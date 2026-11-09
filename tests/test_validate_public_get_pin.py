@@ -160,7 +160,7 @@ class Tests(unittest.TestCase):
             archive = (Path(t) / "external/signed-direct-get/qualified_cohort/run-1234")
             archive.mkdir(parents=True)
             (archive / "external-get-admission.json").write_text(
-                json.dumps(qualified_cohort_example(), sort_keys=True) + "\\n")
+                json.dumps(qualified_cohort_example(), sort_keys=True) + "\n")
             (archive / "attestation.json").write_bytes(b"x" * 200)
             with patch.object(mod, "gh_read", side_effect=mod.Denied("no live owner proof")):
                 with self.assertRaises(mod.Denied):
