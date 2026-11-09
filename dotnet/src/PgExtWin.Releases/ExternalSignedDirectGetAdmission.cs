@@ -203,10 +203,23 @@ public static class ExternalSignedDirectGetAdmission
 
         var admission = ReadSmallFile(admissionFile);
         var bundle = ReadSmallFile(bundleFile);
+        return await StageVerifiedBytesAsync(admission, bundle, pgSelection,
+            outputParent, token);
+    }
+
+    // Both user-supplied and Catalog-fetched proofs follow the same independent
+    // Sigstore verification and original-provider-only atomic download path.
+    internal static async Task<BatchReleaseDownloader.BatchResult> StageVerifiedBytesAsync(
+        byte[] admission, byte[] bundle, string pgSelection, string outputParent,
+        CancellationToken token = default, long? expectedRunId = null)
+    {
         var pins = await VerifyAsync(admission, bundle, pgSelection, token);
         // This expiry comes from the same exact bytes independently verified
         // against the original Build issuer's Sigstore proof above.
         using var signed = StrictJson.Parse(admission);
+        if (expectedRunId is long runId)
+            Require(signed.RootElement.GetProperty("issuerRunId").GetInt64() == runId,
+                "Catalog archive directory does not match signed issuer Run");
         var expires = Timestamp(signed.RootElement.GetProperty("expiresAt").GetString() ?? "");
         Task ConfirmFresh(CancellationToken cancellation)
         {

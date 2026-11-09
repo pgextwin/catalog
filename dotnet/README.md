@@ -1,5 +1,27 @@
 # pgextwin CLI — Issue #112 (nonpublishing, PR-2)
 
+## Current signed external original ZIP batch
+
+Once a genuine owner-approved `qualified_cohort` admission is published under
+`external/signed-direct-get/qualified_cohort/run-<id>/`, the current source
+supports one-command, GET-only download of its five original Windows ZIPs:
+
+```powershell
+pgextwin.exe download-all --source external
+pgextwin.exe download-all --source external --pg 16 --output C:\pgextwin-downloads
+```
+
+The first command defaults to all signed PostgreSQL majors and the current
+directory. The second selects PG16 originals. The CLI locates the latest
+Catalog-published cohort, checks its original Build issuer Sigstore proof,
+checks expiry before each original GET and commit, then atomically saves the
+ZIPs directly from their providers. The alternative explicit
+`--external-admission FILE --external-bundle FILE` still accepts locally
+supplied original proof bytes. **No live signed cohort, an expired cohort or
+an unsigned candidate means no network ZIP download.** This covers only
+the five reviewed ZIPs; other metadata-only discoveries require separate
+formal qualification. It does not mirror or redistribute third-party ZIPs.
+
 **Experimental external discovery (not a downloadable CLI Release):**
 Run `pgextwin list --catalog-dir . --source external --pg 18` to inspect
 *untrusted metadata only*, or use `--source all` to show both provider groups.

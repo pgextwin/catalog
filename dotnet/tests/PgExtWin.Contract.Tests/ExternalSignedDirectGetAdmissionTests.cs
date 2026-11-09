@@ -80,6 +80,23 @@ internal static class ExternalSignedDirectGetAdmissionTests
 
     public static async Task RunAsync(Action<bool, string> check)
     {
+        var listing = JsonSerializer.SerializeToUtf8Bytes(new[]
+        {
+            new { name = "run-42484873648", type = "dir" },
+            new { name = "run-42545790345", type = "dir" },
+            new { name = "not-a-signed-run", type = "file" }
+        });
+        check(ExternalSignedCatalogCohort.LatestRunId(listing) == 42545790345L,
+            "Automatic external GET selects newest Catalog signed cohort archive");
+        bool noCohortDenied = false;
+        try
+        {
+            _ = ExternalSignedCatalogCohort.LatestRunId(
+                Encoding.UTF8.GetBytes("[{\"name\":\"../../bad\",\"type\":\"dir\"}]"));
+        }
+        catch (InvalidDataException) { noCohortDenied = true; }
+        check(noCohortDenied, "Automatic external GET denies absent or unsafe cohort archive");
+
         // This is JSON shape validation ONLY. Not signature proof or
         // a positive authorized provider E2E.
         var result = ExternalSignedDirectGetAdmission.ParseUntrusted(Fixture(), "18",
