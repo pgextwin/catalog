@@ -133,7 +133,7 @@ internal static class ExternalSignedDirectGetAdmissionTests
         var rows = new (string Name, string Key, object? Value)[]
         {
             ("wrong source", "sourceRepo", "pgextwin/catalog"),
-            ("held original provider", "sourceRepo", "laurenz/oracle_fdw"),
+            ("forged original provider", "sourceRepo", "laurenz/oracle_fdw"),
             ("invalid target", "targetEnvironment", "Linux arm64"),
             ("wrong PG", "pgMajor", "17"),
             ("wrong asset ID", "assetId", 0),
@@ -193,6 +193,22 @@ internal static class ExternalSignedDirectGetAdmissionTests
             mixed, "all", DateTimeOffset.UtcNow, out _).Count == 2,
             "All-major selection retains both fully validated signed rows");
         check(ParseDenied(mixed, "15"), "Absent PG major fails closed");
+        var newlyReviewed = JsonNode.Parse(Encoding.UTF8.GetString(Fixture()))!;
+        var reviewed = newlyReviewed["records"]![0]!;
+        reviewed["extension"] = "oracle_fdw";
+        reviewed["sourceRepo"] = "laurenz/oracle_fdw";
+        reviewed["repositoryId"] = 14332609L;
+        reviewed["releaseTag"] = "ORACLE_FDW_2_9_0";
+        reviewed["releaseId"] = 335861225L;
+        reviewed["assetName"] = "oracle_fdw-2.9.0-pg18-win64.zip";
+        reviewed["assetId"] = 442625860L;
+        reviewed["originalBytes"] = 365101L;
+        reviewed["originalSha256"] = "ad1fc057888b89f968de34f14bd7088c2b05d674a8df4b40ba47ed772c317678";
+        reviewed["originalProviderUrl"] = "https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg18-win64.zip";
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            Encoding.UTF8.GetBytes(newlyReviewed.ToJsonString()), "18",
+            DateTimeOffset.UtcNow, out _).Count == 1,
+            "Reviewed PG18 provider structure can be parsed pending real Sigstore proof");
         var hiddenBadRow = JsonNode.Parse(Encoding.UTF8.GetString(mixed))!;
         hiddenBadRow["records"]![0]!["mirrorAuthorized"] = true;
         check(ParseDenied(Encoding.UTF8.GetBytes(hiddenBadRow.ToJsonString()), "16"),

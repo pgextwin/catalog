@@ -111,9 +111,9 @@ public static class ExternalSignedDirectGetAdmission
                 item.GetProperty("downloadAuthorized").ValueKind == JsonValueKind.True &&
                 item.GetProperty("mirrorAuthorized").ValueKind == JsonValueKind.False,
                 "row operation elevation");
-            // Existing initial-two P3 hold remains a separate hard boundary.
-            Require(repo is not ("laurenz/oracle_fdw" or "andreiramani/pgvector_pgsql_windows"),
-                "held initial two cannot be admitted through this new source kind");
+            // The protected Catalog validator binds newly reviewed providers to
+            // immutable original bytes; this transport still requires the full
+            // independent owner-signed Sigstore admission for every record.
             // Validate EVERY signed row even when the caller requests one PG major.
             // Filtering before full validation could conceal an unauthorized row.
             Require(Value("targetEnvironment").Contains("PostgreSQL " + major, StringComparison.Ordinal) &&

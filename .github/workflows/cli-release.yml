@@ -109,7 +109,7 @@ jobs:
           foreach ($name in $expected.Keys) {
             if ((Get-FileHash (Join-Path $dir $name) -Algorithm SHA256).Hash.ToLowerInvariant() -cne $expected[$name]) { throw 'Runtime notice bytes changed' }
           }
-      - name: Generate existing pinned Syft SPDX and exact five-asset checksums
+      - name: Generate existing pinned Syft SPDX and CLI asset checksums
         if: steps.identity.outputs.version != ''
         shell: pwsh
         run: |
@@ -193,7 +193,7 @@ jobs:
           @"
           ## English
 
-          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs. The provider-original download-all --source external supports pg_trickle PG18, official historical HypoPG 1.4.1 PG14–16, and the separately qualified portalcorp pgvector 0.8.0 PG16 original ZIP, solely when each exact source is covered by a genuine, unexpired owner-reviewed independently Sigstore-verified direct-GET admission. The CLI rechecks the signed expiry before each original GET and before atomic batch commit; an expired admission rolls back staged ZIPs. HypoPG 1.4.1 is historical and never silently overrides the current native extension. Provider API SHA256 may be null for old assets; the independent signed original-byte SHA256, size and ZIP integrity are mandatory regardless. All other external sources remain DOWNLOAD_DENY; no third-party ZIP mirror, redistribution, or automatic install.
+          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs. The provider-original download-all --source external supports pg_trickle PG18, official historical HypoPG 1.4.1 PG14–16, the separately qualified portalcorp pgvector 0.8.0 PG16, official oracle_fdw 2.9.0 PG18, and unofficial community pgvector 0.8.7 PG18 original ZIPs, solely when each exact source is covered by a genuine, unexpired owner-reviewed independently Sigstore-verified direct-GET admission. The CLI rechecks the signed expiry before each original GET and before atomic batch commit; an expired admission rolls back staged ZIPs. HypoPG 1.4.1 is historical and never silently overrides the current native extension. Oracle Client requires separate licensing and installation; the unofficial community pgvector ZIP lacks bundled LICENSE/NOTICE, so review the linked upstream license. Provider API SHA256 may be null for old assets; the independent signed original-byte SHA256, size and ZIP integrity are mandatory regardless. All other external sources remain DOWNLOAD_DENY; no third-party ZIP mirror, redistribution, or automatic install.
 
           ## 日本語
 
@@ -201,9 +201,9 @@ jobs:
 
           ``verify-external-all`` は、利用者が別途取得した外部提供元の原本ZIPを、ローカルの確認用台帳とオフラインで照合します。このコマンドは外部ZIPの取得・インストール・再配布を行いません。
 
-          外部原本を直接取得する ``download-all --source external`` の対象は、pg_trickle PG18、公式の過去版HypoPG 1.4.1（PG14〜16）、および独立したWindows実機検証を経たportalcorp pgvector 0.8.0（PG16）です。各原本について、所有者が審査・承認した有効期限内のGET専用許可があり、その許可の独立したSigstore検証に成功した場合に限り利用できます。CLIは原本の取得前と一括保存の確定前に、署名付きの有効期限を毎回確認します。期限が切れていれば一時保存したZIPを破棄し、一括処理を中止します。
+          外部原本を直接取得する ``download-all --source external`` の対象は、pg_trickle PG18、公式の過去版HypoPG 1.4.1（PG14〜16）、独立したWindows実機検証を経たportalcorp pgvector 0.8.0（PG16）、公式oracle_fdw 2.9.0（PG18）、非公式コミュニティ版pgvector 0.8.7（PG18）です。各原本について、所有者が審査・承認した有効期限内のGET専用許可があり、その許可の独立したSigstore検証に成功した場合に限り利用できます。CLIは原本の取得前と一括保存の確定前に、署名付きの有効期限を毎回確認します。期限が切れていれば一時保存したZIPを破棄し、一括処理を中止します。
 
-          過去版HypoPG 1.4.1が現行のnative版を自動的に置き換えることはありません。古いGitHub ReleaseのAPIでSHA256欄が空の場合も、独立した署名付きの原本SHA256、サイズ、ZIP構造の検証は必須です。その他の外部提供元は ``DOWNLOAD_DENY`` のままです。第三者のZIPのミラー・再配布・自動インストールは行いません。
+          過去版HypoPG 1.4.1が現行のnative版を自動的に置き換えることはありません。Oracle Instant Clientは別途ライセンスの確認と入手が必要です。コミュニティ版pgvectorの原本ZIPにはLICENSE/NOTICEが同梱されていないため、上流ライセンスを確認してください。古いGitHub ReleaseのAPIでSHA256欄が空の場合も、独立した署名付きの原本SHA256、サイズ、ZIP構造の検証は必須です。その他の外部提供元は ``DOWNLOAD_DENY`` のままです。第三者のZIPのミラー・再配布・自動インストールは行いません。
           "@ | Set-Content $notes -Encoding utf8
           $request=@{tag_name=$tag;target_commitish=$env:SOURCE;name="pgextwin CLI v$env:VERSION";draft=$true;prerelease=$true;make_latest='false';body=(Get-Content $notes -Raw)}
           $requestFile=Join-Path $env:RUNNER_TEMP 'cli-draft-request.json'
@@ -311,7 +311,7 @@ jobs:
                 $trace -notmatch "BATCH_COMPLETE zip_count=$count\b" -or $trace -match 'Authorization:|Bearer |GH_TOKEN=') { throw 'Verbose coverage or redaction failed' }
             Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS VERSION=$env:VERSION SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED"
           } finally { Pop-Location }
-      - name: Verify five original-provider ZIPs through the actual public CLI without proof flags
+      - name: Verify owner-signed original-provider cohort through public CLI without proof flags
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -329,7 +329,7 @@ jobs:
           if ($live.Count -ne 1) { throw 'Exactly one current signed external cohort required' }
           $signed=Get-Content (Join-Path $live[0].FullName 'external-get-admission.json') -Raw | ConvertFrom-Json
           $expected=@($signed.records)
-          if ($expected.Count -ne 5) { throw 'Exact five signed provider ZIPs required' }
+          if ($expected.Count -cnotin @(5,7)) { throw 'Unsupported signed provider cohort length' }
           $exe=Join-Path $env:RUNNER_TEMP 'public-cli/pgextwin.exe'
           $dest=Join-Path $env:RUNNER_TEMP 'public-external-originals'
           New-Item -ItemType Directory -Path $dest | Out-Null
@@ -350,7 +350,7 @@ jobs:
               }
               Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINAL=PASS FILE=$($record.assetName) BYTES=$($matching[0].Length) SHA256=$sha"
             }
-            Write-Output 'PUBLIC_CLI_FIVE_EXTERNAL_ORIGINALS=PASS ZIP_COUNT=5 SIGNED_COHORT=TRUE'
+            Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINALS=PASS ZIP_COUNT=$($expected.Count) SIGNED_COHORT=TRUE"
           } finally {
             Remove-Item $dest -Recurse -Force -ErrorAction SilentlyContinue
           }

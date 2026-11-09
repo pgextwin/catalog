@@ -92,13 +92,15 @@ def validate_document(doc, dirname, *, now, source="pg_trickle"):
         validate_portalcorp_records(rows)
         return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
     if source == "qualified_cohort":
-        # A future owner-signed five-asset cohort must bind all existing exact
-        # source proofs in fixed order; offline parsing never grants authority.
-        require(type(rows) is list and len(rows) == 5,
+        # Accept archived five and newly owner-signed seven exact originals.
+        # Neither an archive nor offline parsing grants current authority.
+        require(type(rows) is list and len(rows) in (5, 7),
                 "unknown mixed-source signed cohort size")
         validate_pg_trickle_records(rows[:1])
         validate_hypopg_records(rows[1:4])
-        validate_portalcorp_records(rows[4:])
+        validate_portalcorp_records(rows[4:5])
+        if len(rows) == 7:
+            validate_reviewed_pg18_records(rows[5:])
         return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
     require(source == "pg_trickle", "unknown original source")
     validate_pg_trickle_records(rows)
@@ -188,6 +190,52 @@ def validate_portalcorp_records(rows):
                     for k in ("targetEnvironment", "noticeTreatment", "dependencyTreatment"))
             and "https://github.com/pgvector/pgvector/blob/v0.8.0/LICENSE"
                 in row["noticeTreatment"], "portalcorp runtime or source NOTICE missing")
+
+
+def validate_reviewed_pg18_records(rows):
+    """Two immutable PG18 originals reviewed independently before owner signing."""
+    pins = (
+        ("laurenz/oracle_fdw", "oracle_fdw", 14332609, 335861225,
+         "ORACLE_FDW_2_9_0", 442625860, "oracle_fdw-2.9.0-pg18-win64.zip",
+         365101, "ad1fc057888b89f968de34f14bd7088c2b05d674a8df4b40ba47ed772c317678",
+         "https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE"),
+        ("andreiramani/pgvector_pgsql_windows", "pgvector", 838202416,
+         419235203, "0.8.7", 661612613, "vector.v0.8.7-pg18.zip",
+         174796, "7c4ae0e2b2cb1e547779209a34a7d3f05b82fd7912818bf3d7042266eda87e7d",
+         "https://github.com/pgvector/pgvector/blob/v0.8.7/LICENSE"),
+    )
+    require(type(rows) is list and len(rows) == 2,
+            "unreviewed PG18 source count")
+    for row, (repo, extension, repo_id, release_id, tag, asset_id, name,
+              size, sha, license_url) in zip(rows, pins):
+        require(type(row) is dict and set(row) == ROW_KEYS,
+                "unreviewed PG18 record fields")
+        fixed = {
+            "sourceGroup": "external", "extension": extension, "pgMajor": "18",
+            "sourceRepo": repo, "repositoryId": repo_id, "releaseId": release_id,
+            "releaseTag": tag, "assetId": asset_id, "assetName": name,
+            "originalBytes": size, "originalSha256": sha,
+            "originalProviderUrl":
+                f"https://github.com/{repo}/releases/download/{tag}/{name}",
+            "licenseUrl": license_url, "approvedOperation": OP,
+            "downloadAuthorized": True, "mirrorAuthorized": False,
+        }
+        require(all(type(row[key]) is type(value) and row[key] == value
+                    for key, value in fixed.items())
+                and "PostgreSQL 18" in row["targetEnvironment"]
+                and "Windows x64" in row["targetEnvironment"]
+                and all(type(row[key]) is str and len(row[key]) >= 100
+                        for key in ("targetEnvironment", "noticeTreatment",
+                                    "dependencyTreatment") if key != "targetEnvironment"),
+                "unreviewed PG18 source, license, NOTICE or dependency")
+        if extension == "oracle_fdw":
+            require("Oracle Instant Client" in row["noticeTreatment"]
+                    and "www.oracle.com/downloads/licenses/instant-client-lic.html"
+                    in row["dependencyTreatment"], "missing Oracle dependency license")
+        else:
+            require("no LICENSE/NOTICE" in row["noticeTreatment"]
+                    and "Unofficial" in row["dependencyTreatment"],
+                    "missing unofficial pgvector attribution")
 
 
 def gh_read(route):

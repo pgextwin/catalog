@@ -314,7 +314,7 @@ static void Usage()
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--output EXISTING_DIR]");
-    Console.Error.WriteLine("  Fetches the latest Catalog-published five-asset signed cohort (default: all majors, current directory).");
+    Console.Error.WriteLine("  Fetches the latest Catalog-published owner-signed original-provider cohort (default: all majors, current directory).");
     Console.Error.WriteLine("  Optional offline proof: --external-admission SIGNED_GET_ONLY_JSON --external-bundle VERIFIED_SIGSTORE_BUNDLE");
     Console.Error.WriteLine("External GET requires independent Build Publisher Sigstore admission; --source all remains denied.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");

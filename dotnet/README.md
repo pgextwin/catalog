@@ -1,10 +1,11 @@
-# pgextwin CLI — Issue #112 (nonpublishing, PR-2)
+# pgextwin CLI — Issue #112
 
 ## Current signed external original ZIP batch
 
 Once a genuine owner-approved `qualified_cohort` admission is published under
 `external/signed-direct-get/qualified_cohort/run-<id>/`, the current source
-supports one-command, GET-only download of its five original Windows ZIPs:
+supports one-command, GET-only download of its seven reviewed original Windows
+ZIPs (earlier signed five-source archives remain historical and expire normally):
 
 ```powershell
 pgextwin.exe download-all --source external
@@ -19,8 +20,12 @@ ZIPs directly from their providers. The alternative explicit
 `--external-admission FILE --external-bundle FILE` still accepts locally
 supplied original proof bytes. **No live signed cohort, an expired cohort or
 an unsigned candidate means no network ZIP download.** This covers only
-the five reviewed ZIPs; other metadata-only discoveries require separate
-formal qualification. It does not mirror or redistribute third-party ZIPs.
+the seven reviewed ZIPs (pg_trickle PG18, HypoPG PG14–16, portalcorp pgvector
+PG16, official oracle_fdw PG18, and unofficial community pgvector PG18).
+oracle_fdw requires a separately obtained/licensed Oracle Client; the community
+pgvector ZIP has no bundled LICENSE/NOTICE and its upstream license must be
+consulted separately. Other metadata-only discoveries require separate formal
+qualification. It does not mirror or redistribute third-party ZIPs.
 
 **Experimental external discovery (not a downloadable CLI Release):**
 Run `pgextwin list --catalog-dir . --source external --pg 18` to inspect
