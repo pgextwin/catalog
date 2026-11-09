@@ -114,8 +114,9 @@ public static class ExternalSignedDirectGetAdmission
             // Existing initial-two P3 hold remains a separate hard boundary.
             Require(repo is not ("laurenz/oracle_fdw" or "andreiramani/pgvector_pgsql_windows"),
                 "held initial two cannot be admitted through this new source kind");
-            Require((pgSelection == "all" || major == pgSelection) &&
-                Value("targetEnvironment").Contains("PostgreSQL " + major, StringComparison.Ordinal) &&
+            // Validate EVERY signed row even when the caller requests one PG major.
+            // Filtering before full validation could conceal an unauthorized row.
+            Require(Value("targetEnvironment").Contains("PostgreSQL " + major, StringComparison.Ordinal) &&
                 Value("targetEnvironment").Contains("Windows x64", StringComparison.Ordinal) &&
                 Value("licenseUrl").StartsWith("https://", StringComparison.Ordinal) &&
                 Value("noticeTreatment").Length >= 60 &&
@@ -132,7 +133,11 @@ public static class ExternalSignedDirectGetAdmission
                 "replayed, duplicate or colliding signed asset");
             result.Add(pin);
         }
-        return result;
+        var selected = pgSelection == "all"
+            ? result
+            : result.Where(pin => pin.PgMajor == pgSelection).ToList();
+        Require(selected.Count > 0, "no independently signed asset for requested PG major");
+        return selected;
     }
 
     internal static async Task<IReadOnlyList<ExternalOriginalPin>> VerifyAsync(

@@ -48,6 +48,21 @@ def example():
         }],
     }
 
+def qualified_cohort_example():
+    """Offline shape fixture: archived originals are NOT current authorization."""
+    doc = example()
+    rows = []
+    for source, runid in (
+        ("pg_trickle", 42493106193),
+        ("hypopg", 42484873648),
+        ("portalcorp_pgvector", 42545790345),
+    ):
+        path = (ROOT / "external/signed-direct-get" / source / f"run-{runid}"
+                / "external-get-admission.json")
+        rows.extend(json.loads(path.read_text("utf-8"))["records"])
+    doc["records"] = rows
+    return doc
+
 class Tests(unittest.TestCase):
     def test_missing_public_pin_is_nonpublishing_noop(self):
         with tempfile.TemporaryDirectory() as t:
@@ -112,6 +127,44 @@ class Tests(unittest.TestCase):
             (p / "pg_trickle").symlink_to(Path(t), target_is_directory=True)
             with self.assertRaises(mod.Denied):
                 mod.scan(t, now=NOW, online=False)
+
+    def test_exact_five_asset_mixed_source_cohort(self):
+        doc = qualified_cohort_example()
+        self.assertEqual(len(doc["records"]), 5)
+        self.assertEqual(mod.validate_document(doc, "run-1234", now=NOW,
+                         source="qualified_cohort"), "ACTIVE")
+        self.assertEqual(mod.validate_document(doc, "run-1234",
+                         now=NOW + timedelta(hours=7),
+                         source="qualified_cohort"), "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
+        mutations = [
+            lambda r: r.pop(),
+            lambda r: r.append(copy.deepcopy(r[0])),
+            lambda r: r.reverse(),
+            lambda r: r[1].update({"pgMajor": "17"}),
+            lambda r: r[2].update({"originalSha256": "0" * 64}),
+            lambda r: r[4].update({"sourceRepo": "laurenz/oracle_fdw"}),
+            lambda r: r[0].update({"mirrorAuthorized": True}),
+            lambda r: r[4].update({"noticeTreatment": ""}),
+        ]
+        for index, mutate in enumerate(mutations):
+            with self.subTest(case=index):
+                bad = copy.deepcopy(doc)
+                mutate(bad["records"])
+                with self.assertRaises(mod.Denied):
+                    mod.validate_document(bad, "run-1234", now=NOW,
+                                          source="qualified_cohort")
+
+    def test_mixed_source_offline_fixture_cannot_pass_online_authentication(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as t:
+            archive = (Path(t) / "external/signed-direct-get/qualified_cohort/run-1234")
+            archive.mkdir(parents=True)
+            (archive / "external-get-admission.json").write_text(
+                json.dumps(qualified_cohort_example(), sort_keys=True) + "\n")
+            (archive / "attestation.json").write_bytes(b"x" * 200)
+            with patch.object(mod, "gh_read", side_effect=mod.Denied("no live owner proof")):
+                with self.assertRaises(mod.Denied):
+                    mod.scan(t, now=NOW, online=True)
 
     def test_integration_is_required_in_catalog_validate_job(self):
         workflow = (ROOT / ".github/workflows/validate.yml").read_text("utf-8")
