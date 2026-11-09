@@ -17,10 +17,10 @@ class PublicGetGuard(unittest.TestCase):
         self.assertNotIn("workflow_dispatch:",WF)
 
     def test_source_selected_from_signed_postmerge_commit(self):
-        for text in ("external/signed-direct-get/(pg_trickle|hypopg|portalcorp_pgvector)/run-[0-9]+",
+        for text in ("external/signed-direct-get/(pg_trickle|hypopg|portalcorp_pgvector|qualified_cohort)/run-[0-9]+",
                      'cohort="$(jq -r', 'provider="__DOLLAR__{cohort%%/*}"',
                      "Mixed signed cohorts in one commit; DENY",
-                     "PROVIDER_GET=SKIPPED"):
+                     'cohort="qualified_cohort/workflow-verified"'):
             self.assertIn(text.replace("__DOLLAR__","$"),WF)
 
     def test_sigstore_still_required(self):
@@ -29,7 +29,7 @@ class PublicGetGuard(unittest.TestCase):
         self.assertIn("python scripts/validate_public_get_pin.py --catalog .",WF)
 
     def test_all_originals_exact_hash_and_cleanup(self):
-        for text in ("[ValidateSet('pg_trickle','hypopg','portalcorp_pgvector')]",
+        for text in ("[ValidateSet('pg_trickle','hypopg','portalcorp_pgvector','qualified_cohort')]",
                      "GITHUB_EVENT_NAME -cne 'workflow_run'",
                      "download-all --source external --pg $pgArg",
                      "$pgArg='all'","$pgArg='18'","Get-FileHash",
