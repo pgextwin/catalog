@@ -62,14 +62,19 @@ internal static class ExternalOriginalBatchStagerTests
                     "pg_trickle-1.2.3-pg18-windows-amd64.zip", 33, bytes)
             };
             int transferred = 0;
+            int permissionChecks = 0;
             var result = await ExternalOriginalBatchStager.StageAsync(
                 pins, "18", root, async (p, d, t) =>
                 {
                     transferred++;
                     return await Save(p, d, bytes, t);
+                }, confirmAdmissionFresh: _ =>
+                {
+                    permissionChecks++;
+                    return Task.CompletedTask;
                 });
             check(result.Count == 3 && result.Bytes == bytes.LongLength * 3 &&
-                  transferred == 3 &&
+                  transferred == 3 && permissionChecks == pins.Length + 1 &&
                   pins.All(p =>
                   {
                       var file = Path.Combine(result.Directory,
@@ -77,6 +82,44 @@ internal static class ExternalOriginalBatchStagerTests
                       return File.Exists(file) && File.ReadAllBytes(file).SequenceEqual(bytes);
                   }), "Three provider originals atomically committed without repackaging");
             Directory.Delete(result.Directory, recursive: true);
+
+            // A stale signing window must stop a later provider GET; the
+            // earlier verified asset remains hidden in temporary staging.
+            int expiredChecks = 0;
+            int expiredDownloads = 0;
+            check(await Rejects(async () =>
+                await ExternalOriginalBatchStager.StageAsync(
+                    pins, "18", root, (p, d, t) =>
+                    {
+                        expiredDownloads++;
+                        return Save(p, d, bytes, t);
+                    }, confirmAdmissionFresh: _ =>
+                    {
+                        if (++expiredChecks == 2)
+                            throw new InvalidDataException("Synthetic admission expired before next GET");
+                        return Task.CompletedTask;
+                    })) && expiredChecks == 2 && expiredDownloads == 1 &&
+                  Directory.GetFileSystemEntries(root).Length == 0,
+                "Expired admission between provider GETs blocks next ZIP and rolls back all");
+
+            // Expiry during the last download must deny the atomic commit.
+            int finalChecks = 0;
+            int finalDownloads = 0;
+            check(await Rejects(async () =>
+                await ExternalOriginalBatchStager.StageAsync(
+                    pins, "18", root, (p, d, t) =>
+                    {
+                        finalDownloads++;
+                        return Save(p, d, bytes, t);
+                    }, confirmAdmissionFresh: _ =>
+                    {
+                        if (++finalChecks == pins.Length + 1)
+                            throw new InvalidDataException("Synthetic admission expired before commit");
+                        return Task.CompletedTask;
+                    })) && finalChecks == pins.Length + 1 &&
+                  finalDownloads == pins.Length &&
+                  Directory.GetFileSystemEntries(root).Length == 0,
+                "Expired admission before atomic commit rolls back all original ZIPs");
 
             int attempted = 0;
             check(await Rejects(async () =>

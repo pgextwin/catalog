@@ -2,7 +2,7 @@
 
 **Implemented: safe, deterministic, NONPUBLISHING batch planning. Not implemented: new provider GET authorization.**
 
-The already published CLI v0.3.7 and authorized time-limited pg_trickle PG18 direct-GET pilot stay unchanged. The existing C# signed-admission parser accepts up to **20** records, and the original ZIP staging core already supports atomic batches. The actual bottlenecks are **independent provider qualification** and the existing pg_trickle-only signed issuer, public-pin proposal, online verification, and six-hour permission.
+The already published CLI v0.3.7 and authorized time-limited pg_trickle PG18 direct-GET pilot stay unchanged. The existing C# signed-admission parser accepts up to **20** records, and the original ZIP staging core already supports atomic batches. For an independently verified signed admission, the CLI now rechecks its exact signed expiry before **each** provider GET and before the **atomic final commit**; an expiry mid-batch denies the entire transaction and clears temporary staging. This enforces the existing six-hour window and does not extend or renew it. The actual bottlenecks are **independent provider qualification** and the existing pg_trickle-only signed issuer, public-pin proposal, online verification, and six-hour permission.
 
 Run the new bounded review planner (no GitHub network, download or permission):
 
