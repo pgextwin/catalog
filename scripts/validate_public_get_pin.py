@@ -91,7 +91,21 @@ def validate_document(doc, dirname, *, now, source="pg_trickle"):
     if source == "portalcorp_pgvector":
         validate_portalcorp_records(rows)
         return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
+    if source == "qualified_cohort":
+        # A future owner-signed five-asset cohort must bind all existing exact
+        # source proofs in fixed order; offline parsing never grants authority.
+        require(type(rows) is list and len(rows) == 5,
+                "unknown mixed-source signed cohort size")
+        validate_pg_trickle_records(rows[:1])
+        validate_hypopg_records(rows[1:4])
+        validate_portalcorp_records(rows[4:])
+        return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
     require(source == "pg_trickle", "unknown original source")
+    validate_pg_trickle_records(rows)
+    return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
+
+
+def validate_pg_trickle_records(rows):
     require(type(rows) is list and len(rows) == 1
             and type(rows[0]) is dict and set(rows[0]) == ROW_KEYS, "untrusted record list")
     row = rows[0]
@@ -111,7 +125,6 @@ def validate_document(doc, dirname, *, now, source="pg_trickle"):
     require(all(type(row[k]) is str and len(row[k]) >= 30 for k in (
         "targetEnvironment", "noticeTreatment", "dependencyTreatment")),
         "missing required end-user notice/dependencies")
-    return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
 
 
 def validate_hypopg_records(rows):
@@ -240,7 +253,7 @@ def scan(root, *, now, online=True):
         return []
     require(parent.is_dir() and not parent.is_symlink(), "unsafe source pin parent")
     names = {x.name for x in parent.iterdir()}
-    require(bool(names) and names <= {"pg_trickle", "hypopg", "portalcorp_pgvector"},
+    require(bool(names) and names <= {"pg_trickle", "hypopg", "portalcorp_pgvector", "qualified_cohort"},
             "unknown or unapproved signed original provider")
     outputs = []
     for source_name in sorted(names):
