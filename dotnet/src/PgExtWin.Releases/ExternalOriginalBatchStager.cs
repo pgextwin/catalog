@@ -12,7 +12,8 @@ internal static class ExternalOriginalBatchStager
     internal static async Task<BatchReleaseDownloader.BatchResult> StageAsync(
         IReadOnlyList<ExternalOriginalPin> pins, string pgSelection, string outputParent,
         Func<ExternalOriginalPin, string, CancellationToken, Task<DownloadReceipt>> downloadOne,
-        CancellationToken token = default)
+        CancellationToken token = default,
+        Func<CancellationToken, Task>? confirmAdmissionFresh = null)
     {
         if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
             pins is null || pins.Count is < 1 or > 1000 || downloadOne is null)
@@ -43,6 +44,10 @@ internal static class ExternalOriginalBatchStager
             foreach (var pin in pins)
             {
                 token.ThrowIfCancellationRequested();
+                // The signed permission can expire while an earlier asset is fetched.
+                // Recheck immediately before each new original-provider GET.
+                if (confirmAdmissionFresh is not null)
+                    await confirmAdmissionFresh(token);
                 var directory = Path.Combine(transaction.StageDirectory,
                     "pg" + pin.PgMajor, pin.Extension);
                 Directory.CreateDirectory(directory);
@@ -70,6 +75,11 @@ internal static class ExternalOriginalBatchStager
                 bytes = checked(bytes + file.Length);
             }
 
+            // A long final GET may cross the admission deadline. Never commit
+            // partially or wholly expired source bytes to the user-visible path.
+            token.ThrowIfCancellationRequested();
+            if (confirmAdmissionFresh is not null)
+                await confirmAdmissionFresh(token);
             var completed = transaction.Commit();
             return new BatchReleaseDownloader.BatchResult(completed, pins.Count, bytes);
         }
