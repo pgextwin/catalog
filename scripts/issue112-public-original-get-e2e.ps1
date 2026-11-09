@@ -1,7 +1,7 @@
 # Issue #112: actual published and privately compiled CLI direct original GET E2E.
 # Only invoked by workflow_run after authenticated original Catalog/main push Validate.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet('pg_trickle','hypopg','portalcorp_pgvector')][string]$Source)
+param([Parameter(Mandatory=$true)][ValidateSet('pg_trickle','hypopg','portalcorp_pgvector','qualified_cohort')][string]$Source)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
@@ -40,6 +40,15 @@ if ($Source -ceq 'pg_trickle') {
         name='pgvector-x86_64-pc-windows-msvc-pg16.zip';bytes=163732
         sha='a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571'
     })
+} elseif ($Source -ceq 'qualified_cohort') {
+    $pgArg='all'
+    $expected=@(
+        @{name='pg_trickle-0.108.3-pg18-windows-amd64.zip';bytes=7029107;sha='c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b'},
+        @{name='hypopg-1.4.1-pg14-x64.zip';bytes=23115;sha='ac1114d1392494e688b5b6b6f151aebe6ccab2d8ae1a004ec510669c47ef3634'},
+        @{name='hypopg-1.4.1-pg15-x64.zip';bytes=23123;sha='d23ea9ba7d064ee08e431b12ade50bed4b19a725b5f4df1e088e79e4af8d08ec'},
+        @{name='hypopg-1.4.1-pg16-x64.zip';bytes=22997;sha='7afd7cda50050829787d4e901fc8292cf1eb2bc5ad59c996a92e414a1bead1f7'},
+        @{name='pgvector-x86_64-pc-windows-msvc-pg16.zip';bytes=163732;sha='a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571'}
+    )
 } else {
     $pgArg='all'
     $expected=@(
@@ -55,7 +64,11 @@ foreach ($binary in $binaries) {
     $dest=Join-Path $env:RUNNER_TEMP "issue112-user-local-$($binary.kind)"
     New-Item -ItemType Directory -Path $dest -ErrorAction Stop | Out-Null
     try {
-        & $($binary.path) download-all --source external --pg $pgArg --output $dest --external-admission $admission --external-bundle $bundle
+        if ($Source -ceq 'qualified_cohort') {
+            & $($binary.path) download-all --source external --pg $pgArg --output $dest
+        } else {
+            & $($binary.path) download-all --source external --pg $pgArg --output $dest --external-admission $admission --external-bundle $bundle
+        }
         if ($LASTEXITCODE -ne 0) { throw "Actual $($binary.kind) CLI provider GET failed" }
         $originals=@(Get-ChildItem -LiteralPath $dest -Recurse -File -Filter '*.zip')
         if ($originals.Count -ne $expected.Count) {
