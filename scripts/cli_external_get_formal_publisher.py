@@ -21,7 +21,9 @@ FIXED = {
         {"extension": "hypopg", "pgMajor": "15",
          "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
         {"extension": "hypopg", "pgMajor": "16",
-         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"}
+         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
+        {"extension": "vector", "pgMajor": "16",
+         "sourceRepo": "portalcorp/pgvector_compiled", "releaseTag": "v0.16.105"}
     ],
     "mirrorAuthorized": False, "redistributionAuthorized": False,
 }
