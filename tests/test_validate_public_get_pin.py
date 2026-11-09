@@ -63,6 +63,33 @@ def qualified_cohort_example():
     doc["records"] = rows
     return doc
 
+
+def reviewed_seven_example():
+    doc = qualified_cohort_example()
+    reviews = json.loads((ROOT / "evidence/issue112-external-pg18-direct-link-review-v1.json")
+                         .read_text("utf-8"))["records"]
+    for review in reviews:
+        dependency = (review["providerStatusNotice"] + " " +
+                      review["dependencyInformationUrl"] + " " +
+                      (review.get("dependencyLicenseUrl") or "No bundled dependency license") +
+                      "; dependency installation and license are the user's responsibility.")
+        doc["records"].append({
+            "sourceGroup": "external", "extension": review["extension"],
+            "pgMajor": review["pgMajor"], "targetEnvironment": review["targetEnvironment"],
+            "sourceRepo": review["sourceRepo"], "repositoryId": review["repositoryId"],
+            "releaseTag": review["releaseTag"], "releaseId": review["releaseId"],
+            "assetName": review["assetName"], "assetId": review["assetId"],
+            "originalBytes": review["originalBytes"],
+            "originalSha256": review["originalSha256"],
+            "originalProviderUrl": review["originalProviderUrl"],
+            "licenseUrl": review["packageLicenseUrl"],
+            "noticeTreatment": review["noticeTreatment"],
+            "dependencyTreatment": dependency,
+            "approvedOperation": "ORIGINAL_PROVIDER_GET_ONLY",
+            "downloadAuthorized": True, "mirrorAuthorized": False,
+        })
+    return doc
+
 class Tests(unittest.TestCase):
     def test_missing_public_pin_is_nonpublishing_noop(self):
         with tempfile.TemporaryDirectory() as t:
@@ -148,6 +175,32 @@ class Tests(unittest.TestCase):
         ]
         for index, mutate in enumerate(mutations):
             with self.subTest(case=index):
+                bad = copy.deepcopy(doc)
+                mutate(bad["records"])
+                with self.assertRaises(mod.Denied):
+                    mod.validate_document(bad, "run-1234", now=NOW,
+                                          source="qualified_cohort")
+
+    def test_exact_seven_asset_reviewed_pg18_cohort(self):
+        doc = reviewed_seven_example()
+        self.assertEqual(len(doc["records"]), 7)
+        self.assertEqual(mod.validate_document(doc, "run-1234", now=NOW,
+                         source="qualified_cohort"), "ACTIVE")
+        self.assertEqual(mod.validate_document(doc, "run-1234",
+                         now=NOW + timedelta(hours=7), source="qualified_cohort"),
+                         "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
+        mutations = [
+            lambda rows: rows.pop(),
+            lambda rows: rows.reverse(),
+            lambda rows: rows[5].update({"sourceRepo": "evil/other"}),
+            lambda rows: rows[5].update({"originalSha256": "0" * 64}),
+            lambda rows: rows[5].update({"dependencyTreatment": ""}),
+            lambda rows: rows[6].update({"noticeTreatment": ""}),
+            lambda rows: rows[6].update({"downloadAuthorized": False}),
+            lambda rows: rows[6].update({"mirrorAuthorized": True}),
+        ]
+        for i, mutate in enumerate(mutations):
+            with self.subTest(mutation=i):
                 bad = copy.deepcopy(doc)
                 mutate(bad["records"])
                 with self.assertRaises(mod.Denied):

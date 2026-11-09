@@ -42,13 +42,11 @@ if ($Source -ceq 'pg_trickle') {
     })
 } elseif ($Source -ceq 'qualified_cohort') {
     $pgArg='all'
-    $expected=@(
-        @{name='pg_trickle-0.108.3-pg18-windows-amd64.zip';bytes=7029107;sha='c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b'},
-        @{name='hypopg-1.4.1-pg14-x64.zip';bytes=23115;sha='ac1114d1392494e688b5b6b6f151aebe6ccab2d8ae1a004ec510669c47ef3634'},
-        @{name='hypopg-1.4.1-pg15-x64.zip';bytes=23123;sha='d23ea9ba7d064ee08e431b12ade50bed4b19a725b5f4df1e088e79e4af8d08ec'},
-        @{name='hypopg-1.4.1-pg16-x64.zip';bytes=22997;sha='7afd7cda50050829787d4e901fc8292cf1eb2bc5ad59c996a92e414a1bead1f7'},
-        @{name='pgvector-x86_64-pc-windows-msvc-pg16.zip';bytes=163732;sha='a9c63a3e51c09c18f192277a28be3fb021f3872a7cc2d23e4ca06e10f2c99571'}
-    )
+    $signed=Get-Content -LiteralPath $admission -Raw | ConvertFrom-Json
+    if (@($signed.records).Count -cnotin @(5,7)) { throw 'Unknown signed cohort length' }
+    $expected=@($signed.records | ForEach-Object {
+        @{name=[string]$_.assetName;bytes=[long]$_.originalBytes;sha=[string]$_.originalSha256}
+    })
 } else {
     $pgArg='all'
     $expected=@(

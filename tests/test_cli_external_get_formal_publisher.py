@@ -40,12 +40,21 @@ class FormalPublisher(unittest.TestCase):
 
     def test_real_policy_requires_same_run_owner_approval(self):
         policy = json.loads(FILE.read_text())
-        version = "0.3.11"
+        version = "0.3.12"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
+        self.assertEqual(len(policy["approvedSources"]), 7)
         self.assertIn(
             {"extension": "vector", "pgMajor": "16",
              "sourceRepo": "portalcorp/pgvector_compiled", "releaseTag": "v0.16.105"},
+            policy["approvedSources"])
+        self.assertIn(
+            {"extension": "oracle_fdw", "pgMajor": "18",
+             "sourceRepo": "laurenz/oracle_fdw", "releaseTag": "ORACLE_FDW_2_9_0"},
+            policy["approvedSources"])
+        self.assertIn(
+            {"extension": "pgvector", "pgMajor": "18",
+             "sourceRepo": "andreiramani/pgvector_pgsql_windows", "releaseTag": "0.8.7"},
             policy["approvedSources"])
         with self.assertRaises(MOD.Denied):
             MOD.eligible(policy, "0.3.6")

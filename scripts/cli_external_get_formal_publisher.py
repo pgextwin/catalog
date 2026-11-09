@@ -23,7 +23,11 @@ FIXED = {
         {"extension": "hypopg", "pgMajor": "16",
          "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
         {"extension": "vector", "pgMajor": "16",
-         "sourceRepo": "portalcorp/pgvector_compiled", "releaseTag": "v0.16.105"}
+         "sourceRepo": "portalcorp/pgvector_compiled", "releaseTag": "v0.16.105"},
+        {"extension": "oracle_fdw", "pgMajor": "18",
+         "sourceRepo": "laurenz/oracle_fdw", "releaseTag": "ORACLE_FDW_2_9_0"},
+        {"extension": "pgvector", "pgMajor": "18",
+         "sourceRepo": "andreiramani/pgvector_pgsql_windows", "releaseTag": "0.8.7"}
     ],
     "mirrorAuthorized": False, "redistributionAuthorized": False,
 }
