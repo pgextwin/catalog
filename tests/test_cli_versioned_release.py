@@ -19,6 +19,7 @@ class VersionedCliRelease(unittest.TestCase):
             self.assertIn(required,source)
         self.assertNotIn('workflow_dispatch:',source)
         self.assertNotIn('pull_request_target:',source)
+        self.assertIn('pgextwin-cli-create-only-release-${{ github.event.workflow_run.event }}-${{ github.event.workflow_run.head_branch }}',source)
         prepare,publish=source.split('\n  publish:',1)
         self.assertNotIn('contents: write',prepare)
         self.assertIn('needs: prepare',publish)
