@@ -142,15 +142,21 @@ static async Task<int> RunAsync(string[] args)
             // external policy NEVER enters the network path.
             if (sourceGroup == "external")
             {
-                if (command != "download-all" || pg is null ||
-                    externalAdmission is null || externalBundle is null || output is null ||
+                if (command != "download-all" ||
                     directory is not null || policy is not null || policySha is not null ||
                     latest is not null || format is not null)
                     throw new InvalidDataException(
-                        "External GET requires --source external --pg --output --external-admission --external-bundle with authentic Sigstore permission; no fallback");
+                        "External GET requires download-all --source external with authentic Sigstore permission");
+                if ((externalAdmission is null) != (externalBundle is null))
+                    throw new InvalidDataException(
+                        "External GET requires both --external-admission and --external-bundle or neither");
                 log?.Invoke("EXTERNAL_ADMISSION_VERIFY_START source=SIGNED_BUILD_ISSUER");
-                var external = await ExternalSignedDirectGetAdmission.StageVerifiedAsync(
-                    externalAdmission, externalBundle, pg, output);
+                var external = externalAdmission is null
+                    ? await ExternalSignedCatalogCohort.StageLatestVerifiedAsync(
+                        pg ?? "all", output ?? Directory.GetCurrentDirectory())
+                    : await ExternalSignedDirectGetAdmission.StageVerifiedAsync(
+                        externalAdmission, externalBundle!, pg ?? "all",
+                        output ?? Directory.GetCurrentDirectory());
                 Console.WriteLine($"EXTERNAL_ORIGINAL_GET_ONLY\tZIP_COUNT={external.Count}\tBYTES={external.Bytes}\t{external.Directory}");
                 return 0;
             }
@@ -307,9 +313,10 @@ static void Usage()
     Console.Error.WriteLine("  Default/--latest: signed public Catalog feed (no GitHub REST); --fixed: immutable historical snapshot");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
-    Console.Error.WriteLine("pgextwin download-all --source external --pg MAJOR|all --output EXISTING_DIR");
-        Console.Error.WriteLine("  --external-admission SIGNED_GET_ONLY_JSON --external-bundle VERIFIED_SIGSTORE_BUNDLE");
-        Console.Error.WriteLine("Explicit external GET requires independent Build Publisher Sigstore admission; --source all remains denied.");
+    Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--output EXISTING_DIR]");
+    Console.Error.WriteLine("  Fetches the latest Catalog-published five-asset signed cohort (default: all majors, current directory).");
+    Console.Error.WriteLine("  Optional offline proof: --external-admission SIGNED_GET_ONLY_JSON --external-bundle VERIFIED_SIGSTORE_BUNDLE");
+    Console.Error.WriteLine("External GET requires independent Build Publisher Sigstore admission; --source all remains denied.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");
     Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
 }
