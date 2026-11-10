@@ -192,6 +192,45 @@ internal static class ExternalSignedDirectGetAdmissionTests
         check(ParseDenied(Fixture(), "18", "../pg_trickle"),
             "Unsafe extension syntax denied");
 
+        // Upstream PGroonga names its exact original ZIPs
+        // pgroonga-VERSION-postgresql-MAJOR-x64.zip, not -pgMAJOR-.
+        // This synthetic shape is NEVER independent signed admission.
+        var pgroongaOriginal = Mutate(doc =>
+        {
+            var row = doc["records"]![0]!;
+            row["extension"] = "pgroonga";
+            row["pgMajor"] = "14";
+            row["targetEnvironment"] = "EDB PostgreSQL 14.24.0 Windows x64";
+            row["sourceRepo"] = "pgroonga/pgroonga";
+            row["repositoryId"] = 29133291L;
+            row["releaseTag"] = "4.1.0";
+            row["releaseId"] = 407467158L;
+            row["assetName"] = "pgroonga-4.1.0-postgresql-14-x64.zip";
+            row["assetId"] = 623766852L;
+            row["originalBytes"] = 53806600L;
+            row["originalSha256"] = "39d2685f234c8b45563f57f113bd8c84cc1ae4e8c0c22e6826bf168ba1c0ab39";
+            row["originalProviderUrl"] =
+                "https://github.com/pgroonga/pgroonga/releases/download/4.1.0/pgroonga-4.1.0-postgresql-14-x64.zip";
+            row["licenseUrl"] = "https://github.com/pgroonga/pgroonga/blob/4.1.0/COPYING";
+        });
+        var selectedPgroonga = ExternalSignedDirectGetAdmission.ParseUntrusted(
+            pgroongaOriginal, "14", DateTimeOffset.UtcNow, out _, "pgroonga", "4.1.0");
+        check(selectedPgroonga.Count == 1 && selectedPgroonga[0].AssetId == 623766852L,
+            "Exactly signed PGroonga -postgresql-MAJOR- original can be selected by --version");
+        check(ParseDenied(pgroongaOriginal, "14", "pgroonga", "4.1.1"),
+            "PGroonga partial/wrong version denied");
+        check(ParseDenied(pgroongaOriginal, "18", "pgroonga", "4.1.0"),
+            "PGroonga wrong major denied instead of selecting PG14");
+        check(ParseDenied(pgroongaOriginal, "14", "pg_trickle", "4.1.0"),
+            "PGroonga version cannot be selected for another extension");
+        check(ParseDenied(pgroongaOriginal, "14", null, "4.1.0"),
+            "PGroonga version pin still requires exact extension");
+        var forgedPgroonga = JsonNode.Parse(Encoding.UTF8.GetString(pgroongaOriginal))!;
+        forgedPgroonga["records"]![0]!["mirrorAuthorized"] = true;
+        check(ParseDenied(Encoding.UTF8.GetBytes(forgedPgroonga.ToJsonString()),
+            "14", "pgroonga", "4.1.0"),
+            "New PGroonga filename pattern cannot conceal a disallowed source row");
+
         var tests = new (string Name, string Key, object? Value)[]
         {
             ("wrong owner", "ownerActor", "impostor"),
