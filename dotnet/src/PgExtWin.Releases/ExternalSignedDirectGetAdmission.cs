@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using Sigstore;
 using PgExtWin.Core;
@@ -71,11 +72,20 @@ public static class ExternalSignedDirectGetAdmission
     // a transport using its return value before VerifyAsync authenticates the
     // actual exact bytes and the independently pinned GitHub OIDC signer.
     internal static IReadOnlyList<ExternalOriginalPin> ParseUntrusted(
-        byte[] bytes, string pgSelection, DateTimeOffset now, out string issuerCommit)
+        byte[] bytes, string pgSelection, DateTimeOffset now, out string issuerCommit,
+        string? requestedExtension = null, string? requestedVersion = null)
     {
         Require(bytes.Length is > 0 and <= MaxBytes, "oversized admission");
         Require(pgSelection is "14" or "15" or "16" or "17" or "18" or "all",
             "unsupported PG selection");
+        Require(requestedExtension is null || Regex.IsMatch(requestedExtension,
+            @"\A[a-z][a-z0-9_]*\z", RegexOptions.CultureInvariant),
+            "invalid requested extension");
+        Require(requestedVersion is null || (requestedExtension is not null &&
+            Regex.IsMatch(requestedVersion,
+                @"\A(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){1,3}\z",
+                RegexOptions.CultureInvariant)),
+            "version pin requires an exact stable version and extension");
         using var doc = StrictJson.Parse(bytes);
         var root = doc.RootElement;
         Require(Keys(root, RootKeys), "unrecognized admission root");
@@ -142,20 +152,31 @@ public static class ExternalSignedDirectGetAdmission
                 "replayed, duplicate or colliding signed asset");
             result.Add(pin);
         }
-        var selected = pgSelection == "all"
-            ? result
-            : result.Where(pin => pin.PgMajor == pgSelection).ToList();
-        Require(selected.Count > 0, "no independently signed asset for requested PG major");
+        // Selection occurs after validation of EVERY signed row. The version is
+        // bound to the independently signed filename, not an unsigned provider
+        // discovery record. Providers whose filenames omit the version (e.g.
+        // portalcorp) fail closed until a new version-aware signed schema exists.
+        var selected = result
+            .Where(pin => pgSelection == "all" || pin.PgMajor == pgSelection)
+            .Where(pin => requestedExtension is null || pin.Extension == requestedExtension)
+            .Where(pin => requestedVersion is null ||
+                pin.AssetName.Contains("-" + requestedVersion + "-pg" + pin.PgMajor + "-", StringComparison.Ordinal) ||
+                pin.AssetName.Contains("-" + requestedVersion + "-pg" + pin.PgMajor + ".", StringComparison.Ordinal) ||
+                pin.AssetName.Contains(".v" + requestedVersion + "-pg" + pin.PgMajor + "-", StringComparison.Ordinal) ||
+                pin.AssetName.Contains(".v" + requestedVersion + "-pg" + pin.PgMajor + ".", StringComparison.Ordinal))
+            .ToList();
+        Require(selected.Count > 0, "no signed original matching exact extension, version and PG major");
         return selected;
     }
 
     internal static async Task<IReadOnlyList<ExternalOriginalPin>> VerifyAsync(
         byte[] admission, byte[] bundle, string pgSelection,
-        CancellationToken token = default)
+        CancellationToken token = default,
+        string? requestedExtension = null, string? requestedVersion = null)
     {
         Require(bundle.Length is > 0 and <= MaxBytes, "missing or oversized Sigstore bundle");
         var pins = ParseUntrusted(admission, pgSelection, DateTimeOffset.UtcNow,
-            out var issuerCommit);
+            out var issuerCommit, requestedExtension, requestedVersion);
 
         VerificationResult proof;
         try
@@ -296,9 +317,11 @@ public static class ExternalSignedDirectGetAdmission
         byte[] admission, byte[] bundle, string pgSelection, string outputParent,
         CancellationToken token = default, long? expectedRunId = null,
         byte[]? latestPins = null,
-        Func<CancellationToken, Task>? confirmCatalogHead = null)
+        Func<CancellationToken, Task>? confirmCatalogHead = null,
+        string? requestedExtension = null, string? requestedVersion = null)
     {
-        var pins = await VerifyAsync(admission, bundle, pgSelection, token);
+        var pins = await VerifyAsync(admission, bundle, pgSelection, token,
+            requestedExtension, requestedVersion);
         // This expiry comes from the same exact bytes independently verified
         // against the original Build issuer's Sigstore proof above.
         using var signed = StrictJson.Parse(admission);

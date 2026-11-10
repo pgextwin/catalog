@@ -108,12 +108,13 @@ internal static class ExternalSignedDirectGetAdmissionTests
         { return true; }
     }
 
-    private static bool ParseDenied(byte[] json, string pg = "18")
+    private static bool ParseDenied(byte[] json, string pg = "18",
+        string? extension = null, string? version = null)
     {
         try
         {
             _ = ExternalSignedDirectGetAdmission.ParseUntrusted(json, pg,
-                DateTimeOffset.UtcNow, out _);
+                DateTimeOffset.UtcNow, out _, extension, version);
             return false;
         }
         catch (Exception ex) when (ex is InvalidDataException or
@@ -174,6 +175,22 @@ internal static class ExternalSignedDirectGetAdmissionTests
               result[0].AssetId == 616203967 &&
               result[0].PgMajor == "18" && sha == new string('a', 40),
               "Synthetic external GET-only signed admission structure is valid, NOT authenticated");
+
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            Fixture(), "18", DateTimeOffset.UtcNow, out _, "pg_trickle", "0.108.3").Count == 1,
+            "Exact signed extension/version pin retains eligible external original ZIP");
+        check(ParseDenied(Fixture(), "18", "pg_trickle", "0.108.2"),
+            "Unreviewed version is never fetched, even if a public release exists");
+        check(ParseDenied(Fixture(), "18", "pg_trickle", "0.108.30"),
+            "Version pin rejects approximate and prefix matches");
+        check(ParseDenied(Fixture(), "18", "hypopg", "0.108.3"),
+            "Signed pin for another extension cannot satisfy a version request");
+        check(ParseDenied(Fixture(), "18", null, "0.108.3"),
+            "Version without extension is rejected");
+        check(ParseDenied(Fixture(), "18", "pg_trickle", "../0.108.3"),
+            "Unsafe version syntax denied");
+        check(ParseDenied(Fixture(), "18", "../pg_trickle"),
+            "Unsafe extension syntax denied");
 
         var tests = new (string Name, string Key, object? Value)[]
         {
@@ -262,6 +279,17 @@ internal static class ExternalSignedDirectGetAdmissionTests
             mixed, "all", DateTimeOffset.UtcNow, out _).Count == 2,
             "All-major selection retains both fully validated signed rows");
         check(ParseDenied(mixed, "15"), "Absent PG major fails closed");
+        check(ParseDenied(mixed, "16", "vector", "0.8.0"),
+            "A provider filename without upstream version cannot impersonate a signed version pin");
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            mixed, "all", DateTimeOffset.UtcNow, out _, "pg_trickle", "0.108.3").Count == 1,
+            "Exact-version filtering across majors retains only the requested signed extension");
+        var hiddenVersionBad = JsonNode.Parse(Encoding.UTF8.GetString(mixed))!;
+        hiddenVersionBad["records"]![1]!["mirrorAuthorized"] = true;
+        check(ParseDenied(Encoding.UTF8.GetBytes(hiddenVersionBad.ToJsonString()),
+            "18", "pg_trickle", "0.108.3"),
+            "Version filter must not hide an invalid unselected signed source");
+
         var newlyReviewed = JsonNode.Parse(Encoding.UTF8.GetString(Fixture()))!;
         var reviewed = newlyReviewed["records"]![0]!;
         reviewed["extension"] = "oracle_fdw";

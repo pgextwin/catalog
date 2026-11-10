@@ -136,7 +136,8 @@ public static class ExternalSignedCatalogCohort
 
     public static async Task<BatchReleaseDownloader.BatchResult> StageLatestVerifiedAsync(
         string pgSelection, string outputParent, CancellationToken token = default,
-        HttpMessageHandler? handler = null)
+        HttpMessageHandler? handler = null,
+        string? requestedExtension = null, string? requestedVersion = null)
     {
         if (!Directory.Exists(outputParent))
             throw new DirectoryNotFoundException("External batch output directory missing");
@@ -176,6 +177,6 @@ public static class ExternalSignedCatalogCohort
 
         return await ExternalSignedDirectGetAdmission.StageVerifiedBytesAsync(
             admission, bundle, pgSelection, outputParent, token,
-            runId, latestPins, ConfirmCurrent);
+            runId, latestPins, ConfirmCurrent, requestedExtension, requestedVersion);
     }
 }
