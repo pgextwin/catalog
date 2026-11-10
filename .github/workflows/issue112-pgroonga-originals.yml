@@ -1,0 +1,69 @@
+name: Issue112 PGroonga Windows original ZIP qualification
+on:
+  pull_request:
+    paths: ['.github/workflows/issue112-pgroonga-originals.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/issue112-pgroonga-originals.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  original:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pg: '14'
+            bytes: 53806600
+            sha256: 39d2685f234c8b45563f57f113bd8c84cc1ae4e8c0c22e6826bf168ba1c0ab39
+          - pg: '15'
+            bytes: 53863529
+            sha256: fbc73734028b0b2372a6ee6538863999c2f9f06ec9f1be633ac460c7d8a0d4f1
+          - pg: '16'
+            bytes: 53751780
+            sha256: 40c71f7890e6ceb46f79fdc10e596da21bfb622f7c9d1f8be7784175d96df7e8
+          - pg: '17'
+            bytes: 53836587
+            sha256: dcbd356ab8a7c8fc3a3cc7082b4f99a1884b5a68674e25ef4bbe56583c38147b
+          - pg: '18'
+            bytes: 53826667
+            sha256: 3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab
+    steps:
+      - name: Fetch original and check exact size, digest and ZIP contents
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EXPECTED_SIZE: ${{ matrix.bytes }}
+          EXPECTED_SHA256: ${{ matrix.sha256 }}
+          VERSION: '4.1.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          file="pgroonga-${VERSION}-postgresql-${PG_MAJOR}-x64.zip"
+          trap 'rm -f -- "$file"' EXIT
+          curl --fail --silent --show-error --location --max-redirs 3 \
+            --proto '=https' --proto-redir '=https' --retry 2 --max-time 120 \
+            --max-filesize "$EXPECTED_SIZE" --output "$file" \
+            "https://github.com/pgroonga/pgroonga/releases/download/${VERSION}/${file}"
+          test "$(stat -c %s "$file")" = "$EXPECTED_SIZE"
+          echo "$EXPECTED_SHA256  $file" | sha256sum --check -
+          python3 - "$file" <<'PY'
+          from pathlib import PurePosixPath
+          import sys
+          import zipfile
+
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              members = archive.infolist()
+              if len(members) > 20000 or sum(m.file_size for m in members) > 1024**3:
+                  raise ValueError("Oversized archive")
+              names = {PurePosixPath(m.filename.replace(chr(92), "/")).name for m in members if not m.is_dir()}
+              if not {"pgroonga.dll", "pgroonga.control"} <= names:
+                  raise ValueError("Missing PGroonga DLL or extension control")
+              if archive.testzip() is not None:
+                  raise ValueError("ZIP CRC mismatch")
+              print(f"{sys.argv[1]}: {len(members)} entries, CRC verified")
+          PY
