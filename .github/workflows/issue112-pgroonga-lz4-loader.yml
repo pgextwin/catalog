@@ -1,0 +1,65 @@
+name: Issue112 PGroonga exact EDB liblz4 loader provenance (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pgroonga-lz4-loader.yml
+      - scripts/issue112-pgroonga-lz4-loader.ps1
+      - tests/test_issue112_pgroonga_lz4_loader_contract.py
+      - docs/issue-112-pgroonga-lz4-loader.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-pgroonga-lz4-loader.yml
+      - scripts/issue112-pgroonga-lz4-loader.ps1
+      - tests/test_issue112_pgroonga_lz4_loader_contract.py
+      - docs/issue-112-pgroonga-lz4-loader.md
+permissions:
+  contents: read
+jobs:
+  original-edb-loader:
+    runs-on: windows-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pg: '14'
+            edb: '14.24.0'
+          - pg: '15'
+            edb: '15.19.0'
+          - pg: '16'
+            edb: '16.15.5'
+          - pg: '17'
+            edb: '17.11.4'
+          - pg: '18'
+            edb: '18.6.5'
+    steps:
+      - name: Checkout exact candidate without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reuse immutable shared PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - name: Offline same-PID and exact-path hostile checks
+        shell: pwsh
+        run: ./scripts/issue112-pgroonga-lz4-loader.ps1 -Major 18 -SelfTest
+      - name: Install independently pinned EDB Windows PostgreSQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
+        run: ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55453
+      - name: Inspect exact PGroonga ZIP inside real EDB backend process
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: ./scripts/issue112-pgroonga-lz4-loader.ps1 -Major ([int]$env:PG_MAJOR)
+      - name: Always preserve denial boundary
+        if: always()
+        shell: pwsh
+        run: Write-Host 'LZ4_EVIDENCE_ONLY=YES PUBLIC_GET=DENY ORIGINAL_ZIP_UPLOAD=NONE MIRROR=DENY RELEASE=DENY'
