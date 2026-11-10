@@ -78,7 +78,7 @@ try {
             $write = $null
             try {
                 $read = $entry.Open()
-                $write = [IO.File]::CreateNew($destination)
+                $write = [IO.File]::Open($destination, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
                 $read.CopyTo($write)
             } finally {
                 if ($write) { $write.Dispose() }
