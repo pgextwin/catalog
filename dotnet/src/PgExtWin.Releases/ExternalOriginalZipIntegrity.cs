@@ -21,10 +21,28 @@ public static class ExternalOriginalZipIntegrity
     public sealed record Receipt(long OriginalBytes, string OriginalSha256,
         int ArchiveMembers, string Scope = "INTEGRITY_ONLY_NOT_AUTHORIZED");
 
-    public static Receipt Verify(byte[] original, long expectedSize, string expectedSha256)
+    public static Receipt Verify(byte[] original, long expectedSize, string expectedSha256) =>
+        VerifyCore(original, expectedSize, expectedSha256, MaxOriginalBytes,
+            MaxUncompressedBytes, MaxEntries);
+
+    // Exact OSGeo PG18 original ONLY. This does not authorize a GET or a
+    // Publisher; ordinary GitHub Release ZIP limits remain unchanged.
+    internal static Receipt VerifyOsgeoExactCandidate(
+        byte[] original, long expectedSize, string expectedSha256)
+    {
+        if (expectedSize != 83_320_975L ||
+            expectedSha256 != "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40")
+            throw new InvalidDataException("Different OSGeo candidate original DENY");
+        return VerifyCore(original, expectedSize, expectedSha256,
+            96L * 1024 * 1024, 2L * 1024 * 1024 * 1024, 25_000);
+    }
+
+    private static Receipt VerifyCore(byte[] original, long expectedSize,
+        string expectedSha256, long maxOriginalBytes, long maxUncompressedBytes,
+        int maxEntries)
     {
         ArgumentNullException.ThrowIfNull(original);
-        if (expectedSize is < 4 or > MaxOriginalBytes ||
+        if (expectedSize is < 4 or > maxOriginalBytes ||
             original.LongLength != expectedSize ||
             expectedSha256 is null || !Hex64.IsMatch(expectedSha256))
             throw new InvalidDataException("Missing, invalid or oversized exact original ZIP pin");
@@ -38,7 +56,7 @@ public static class ExternalOriginalZipIntegrity
 
         using var stream = new MemoryStream(original, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        if (archive.Entries.Count is < 1 or > MaxEntries)
+        if (archive.Entries.Count is < 1 or > maxEntries)
             throw new InvalidDataException("Original ZIP archive has invalid member count");
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -65,8 +83,8 @@ public static class ExternalOriginalZipIntegrity
                 continue;
             }
             actualFiles++;
-            if (entry.Length < 0 || entry.Length > MaxOriginalBytes ||
-                entry.Length > MaxUncompressedBytes - expanded)
+            if (entry.Length < 0 || entry.Length > maxOriginalBytes ||
+                entry.Length > maxUncompressedBytes - expanded)
                 throw new InvalidDataException("Original ZIP uncompressed payload is oversized");
 
             using var payload = entry.Open();
