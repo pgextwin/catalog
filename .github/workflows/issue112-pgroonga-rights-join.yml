@@ -1,0 +1,38 @@
+name: Issue112 PGroonga per-binary rights candidate joins (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pgroonga-rights-join.yml
+      - scripts/issue112_pgroonga_rights_join.py
+      - tests/test_issue112_pgroonga_rights_join.py
+      - docs/issue-112-pgroonga-rights-join.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-pgroonga-rights-join.yml
+      - scripts/issue112_pgroonga_rights_join.py
+      - tests/test_issue112_pgroonga_rights_join.py
+      - docs/issue-112-pgroonga-rights-join.md
+permissions:
+  contents: read
+jobs:
+  rights-candidate-join:
+    name: PG${{ matrix.pg }} exact binary-to-NOTICE candidates (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [14, 15, 16, 17, 18]
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reject spoofed names and unauthorized rights claims
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_rights_join.py -v
+      - name: Join exact original ZIP binary hashes and rights document candidates
+        run: python3 scripts/issue112_pgroonga_rights_join.py --pg ${{ matrix.pg }}
+      - name: Never issue signing or public provider GET authorization
+        if: always()
+        run: echo 'CANDIDATE_MAPPING_ONLY=YES LICENSE_ACCEPTANCE=NO PROVENANCE=NO PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
