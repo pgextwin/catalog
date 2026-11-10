@@ -93,6 +93,7 @@ await ExternalProviderAssetTransportTests.RunAsync(Check);
         await ExternalSignedDirectGetAdmissionTests.RunAsync(Check);
 await ExternalOriginalBatchStagerTests.RunAsync(Check);
 ExternalOriginalZipIntegrityTests.Run(Check, Denies);
+await OsgeoOriginalCandidateTransportTests.RunAsync(Check);
 ExternalOriginalZipBatchTests.Run(Check);
 SyntheticBundleTests.Run(Check);
 WindowsSourceSelectorTests.Run(Check, Denies);
