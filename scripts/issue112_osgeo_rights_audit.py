@@ -6,6 +6,7 @@ signed issuance, rights closure, or dynamic dependency/provenance clearance.
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 import tempfile
 import zipfile
@@ -30,7 +31,11 @@ def audit_archive(path: Path):
         if any(name not in names for name in LICENSES):
             raise ValueError("Missing exact in-bundle license/COPYING file")
         receipts = []
-        for name in LICENSES:
+        notice_name = re.compile(r"(?:^|[._-])(?:licen[cs]e|notice|copying|copyright)(?:$|[._-])", re.I)
+        observed = sorted(name for name in names if not name.endswith("/")
+                          and not name.lower().endswith(".dll")
+                          and notice_name.search(name.rsplit("/", 1)[-1]))
+        for name in observed:
             info = archive.getinfo(name)
             if info.is_dir() or not 0 < info.file_size <= MAX_LICENSE_BYTES:
                 raise ValueError("Empty or oversized original license: " + name)
