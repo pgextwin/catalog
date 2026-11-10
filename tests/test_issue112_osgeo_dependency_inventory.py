@@ -95,6 +95,48 @@ class PeImportTests(unittest.TestCase):
             self.assertFalse(result["dynamicDependenciesVerified"])
             self.assertFalse(result["downloadAuthorized"])
 
+    def test_server_reachability_exposes_transitive_missing_and_excludes_gui(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "core.zip"
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr("bundle/lib/postgis-3.dll",
+                                 fake_pe(name=b"libproj_9.dll", delay=b"postgres.exe"))
+                archive.writestr("bundle/bin/libproj_9.dll",
+                                 fake_pe(name=b"libcurl.dll", delay=b"kernel32.dll"))
+                archive.writestr("bundle/bin/libcurl.dll",
+                                 fake_pe(name=b"libnghttp2-14.dll", delay=b"libbrotlidec.dll"))
+                archive.writestr("bundle/lib/libpgrouting-4.0.dll",
+                                 fake_pe(name=b"kernel32.dll", delay=b"postgres.exe"))
+                archive.writestr("bundle/bin/postgisgui/libbrotlidec.dll",
+                                 fake_pe(name=b"kernel32.dll"))
+                archive.writestr("bundle/bin/postgisgui/libgail.dll",
+                                 fake_pe(name=b"libgailutil-18.dll", delay=b"libicuuc74.dll"))
+            scope = deps.dependency_inventory(path)["coreServerImportPaths"]
+            names = {x["name"]: x for x in scope["unresolvedThirdPartyImportPaths"]}
+            self.assertEqual(set(names), {"libnghttp2-14.dll", "libbrotlidec.dll"})
+            self.assertEqual(names["libnghttp2-14.dll"]["chain"],
+                             ["postgis-3.dll", "libproj_9.dll",
+                              "libcurl.dll", "libnghttp2-14.dll"])
+            self.assertTrue(names["libbrotlidec.dll"]["presentOnlyInExcludedGuiTree"])
+            self.assertNotIn("libgailutil-18.dll", names)
+            self.assertNotIn("libicuuc74.dll", names)
+            self.assertTrue(scope["staticServerGraphTraversed"])
+            self.assertFalse(scope["effectiveWindowsLoaderResolutionVerified"])
+            self.assertFalse(scope["downloadAuthorized"])
+
+    def test_server_duplicate_name_denied_and_missing_root_reported(self):
+        duplicate = [
+            {"path": "bundle/bin/libcurl.dll", "analysis": "AMD64_PE32_PLUS"},
+            {"path": "bundle/lib/libcurl.dll", "analysis": "AMD64_PE32_PLUS"},
+        ]
+        with self.assertRaisesRegex(ValueError, "Ambiguous server DLL"):
+            deps.core_server_import_paths(duplicate)
+        scope = deps.core_server_import_paths([])
+        self.assertEqual(scope["missingRoots"],
+                         ["libpgrouting-4.0.dll", "postgis-3.dll"])
+        self.assertFalse(scope["staticServerGraphTraversed"])
+
+
     def test_unknown_unbundled_dll_stays_unresolved(self):
         result = deps.triage_unbundled_imports(
             [{"analysis": "AMD64_PE32_PLUS", "path": "bundle/lib/extension.dll",
