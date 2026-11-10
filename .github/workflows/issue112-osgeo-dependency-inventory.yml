@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - scripts/issue112_osgeo_dependency_inventory.py
+      - scripts/issue112_osgeo_original_byte_pilot.py
       - tests/test_issue112_osgeo_dependency_inventory.py
+      - tests/test_issue112_osgeo_original_byte_pilot.py
       - .github/workflows/issue112-osgeo-dependency-inventory.yml
 
 permissions:
@@ -23,6 +25,8 @@ jobs:
           persist-credentials: false
       - name: Offline bounded PE parser hostile tests
         run: python3 -m unittest discover -s tests -p test_issue112_osgeo_dependency_inventory.py -v
+      - name: Offline bounded OSGeo HTTPS retry/byte-denial tests
+        run: python3 -m unittest discover -s tests -p test_issue112_osgeo_original_byte_pilot.py -v
       - name: Inspect exact official OSGeo original DLL imports without publishing
         run: python3 scripts/issue112_osgeo_dependency_inventory.py
       - name: Assert all publication and mirror gates remain denied
