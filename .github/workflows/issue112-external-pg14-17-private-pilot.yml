@@ -1,0 +1,65 @@
+name: Issue112 newest external original ZIPs PG14-17 Windows private qualification
+
+# Genuine independent candidate acceptance only; cannot issue GET authorization,
+# sign, write Catalog, upload ZIPs, mirror, create Releases or publish.
+on:
+  pull_request:
+    paths:
+      - scripts/issue112-external-pg14-17-private-pilot.ps1
+      - .github/workflows/issue112-external-pg14-17-private-pilot.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112-external-pg14-17-private-pilot.ps1
+      - .github/workflows/issue112-external-pg14-17-private-pilot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  newest-external-major-private:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { pg: 14, edb: '14.24.0' }
+          - { pg: 15, edb: '15.19.0' }
+          - { pg: 16, edb: '16.15.5' }
+          - { pg: 17, edb: '17.11.4' }
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact Catalog candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout shared immutable PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 4ead14c6b5ebd295aa025628ef86ca1e30bdaaf1
+          path: build-tools
+          persist-credentials: false
+      - name: Install exact EDB PostgreSQL for each major
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
+        run: |
+          $ErrorActionPreference='Stop'
+          ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55443
+      - name: Verify immutable original Release IDs, actual bytes, ZIP and pgvector SQL
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PG_MAJOR: ${{ matrix.pg }}
+        run: |
+          $ErrorActionPreference='Stop'
+          ./scripts/issue112-external-pg14-17-private-pilot.ps1 -Major ([int]$env:PG_MAJOR)
+      - name: Nonpublishing privacy boundary
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Output 'CANDIDATE_ONLY=YES AUTHORITY=NONE RELEASE=NONE ORIGINAL_ZIP_UPLOAD=NONE MIRROR=DENY'
