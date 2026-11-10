@@ -26,6 +26,11 @@ foreach ($path in @($pkglib, $shared)) {
   }
 }
 $shareext = Join-Path $shared 'extension'
+$effectiveCurl = Join-Path $bin 'libcurl.dll'
+if (-not (Test-Path -LiteralPath $effectiveCurl -PathType Leaf)) {
+  throw 'Required preinstalled EDB libcurl.dll absent; no presumed libnghttp2 closure'
+}
+$preinstalledCurlSha = (Get-FileHash -LiteralPath $effectiveCurl -Algorithm SHA256).Hash.ToLowerInvariant()
 
 # Exact previous independent original-byte pilot evidence; not a signature.
 $name = 'postgis-bundle-pg18-3.7.0x64.zip'
@@ -127,6 +132,13 @@ if ($staged.lib -lt 2 -or $staged.share -lt 4) {
   throw "Missing core runtime DLL/SQL staged files: $($staged | ConvertTo-Json -Compress)"
 }
 Write-Host "OSGEO_WINDOWS_LAYOUT=PASS LIB_DLL=$($staged.lib) BIN_DLL=$($staged.bin) SHARE_FILES=$($staged.share)"
+# The bin/postgisgui/ tree is excluded from this server-only staging.
+# This EDB libcurl substitute is proven only for the tested PG18 host.
+$effectiveCurlSha = (Get-FileHash -LiteralPath $effectiveCurl -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($effectiveCurlSha -cne $preinstalledCurlSha) {
+  throw 'Original PostgreSQL libcurl.dll was replaced'
+}
+Write-Host "OSGEO_RUNTIME_CURL_SUBSTITUTION=EDB_PREINSTALLED_PRESERVED SHA256=$effectiveCurlSha GUI_TREE_STAGED=NO"
 Write-Host "BUNDLE_LICENSE_NOTICE_PATHS=$($licenseFiles.Count) FILES=$($licenseFiles -join ';')"
 Write-Host 'BUNDLE_LICENSE_CLOSURE=NOT_YET_VERIFIED REDISTRIBUTION=DENY'
 
@@ -152,6 +164,15 @@ foreach ($dll in $native) {
   Write-Host "WINDOWS_PE_IMPORTS=OBSERVED DLL=$($dll.Name) NAMES=$($imports -join ',')"
 }
 Write-Host 'STATIC_IMPORTS=OBSERVED DYNAMIC_DEPENDENCY_CLOSURE=NOT_YET_VERIFIED'
+$curlImportsRaw = @(& $dumpbin[0].FullName /DEPENDENTS $effectiveCurl)
+if ($LASTEXITCODE -ne 0) { throw 'Installed EDB libcurl import audit failed' }
+$curlImports = @($curlImportsRaw | ForEach-Object {
+  if ($_ -match '^\s*([A-Za-z0-9_.-]+[.]dll)\s*$') { $matches[1].ToLowerInvariant() }
+} | Sort-Object -Unique)
+if ($curlImports.Count -lt 1) { throw 'EDB libcurl has no enumerated static imports' }
+$referencesNghttp2 = [bool]($curlImports -contains 'libnghttp2-14.dll')
+Write-Host "EDB_LIBCURL_STATIC_IMPORTS=OBSERVED REFERENCES_NGHTTP2=$referencesNghttp2 NAMES=$($curlImports -join ',')"
+Write-Host 'SERVER_SCOPE_GUI_ICU_GAIL=EXCLUDED ORIGINAL_BUNDLE_GUI_COMPLETENESS=NOT_VERIFIED'
 
 $data = Join-Path $env:RUNNER_TEMP 'osgeo-pg18-data'
 $log = Join-Path $env:RUNNER_TEMP 'osgeo-pg18-server.log'

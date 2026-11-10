@@ -65,6 +65,69 @@ def triage_unbundled_imports(records, imports):
     return report
 
 
+def core_server_import_paths(records):
+    """Trace PostGIS/pgRouting server DLL imports without using GUI-only copies.
+
+    Static name reachability is not Windows loader resolution. In particular,
+    the EDB-installed libcurl may replace the original OSGeo libcurl at
+    runtime; this graph deliberately does not infer such substitutions.
+    """
+    server = {}
+    gui_names = set()
+    for record in records:
+        path = record["path"].lower()
+        name = path.rsplit("/", 1)[-1]
+        if "/bin/postgisgui/" in "/" + path:
+            gui_names.add(name)
+            continue
+        if "/bin/" not in "/" + path and "/lib/" not in "/" + path:
+            continue
+        if name in server:
+            raise ValueError("Ambiguous server DLL basename: " + name)
+        server[name] = record
+
+    roots = ("postgis-3.dll", "libpgrouting-4.0.dll")
+    missing_roots = sorted(root for root in roots if root not in server)
+    pending = [(name, [name]) for name in roots if name in server]
+    visited = set()
+    external = {}
+    unparsed = []
+    while pending:
+        name, chain = pending.pop(0)
+        if name in visited:
+            continue
+        visited.add(name)
+        entry = server.get(name)
+        if entry is None:
+            external[name] = {
+                "name": name, "chain": chain,
+                "presentOnlyInExcludedGuiTree": name in gui_names,
+            }
+            continue
+        if entry["analysis"] != "AMD64_PE32_PLUS":
+            unparsed.append(entry["path"])
+            continue
+        for imported in sorted(set(entry["staticImports"] + entry["delayImports"])):
+            if imported not in visited:
+                pending.append((imported, chain + [imported]))
+    unresolved = sorted(
+        (entry for name, entry in external.items()
+         if name not in WINDOWS_SYSTEM_NAME_HINTS and name != "postgres.exe"),
+        key=lambda entry: entry["name"])
+    return {
+        "roots": list(roots),
+        "missingRoots": missing_roots,
+        "reachableServerModuleCount": sum(x in server for x in visited),
+        "unparsedReachableServerDlls": sorted(unparsed),
+        "unresolvedThirdPartyImportPaths": unresolved,
+        "guiTreeExcludedFromServerScope": True,
+        "staticServerGraphTraversed": not missing_roots and not unparsed,
+        "effectiveWindowsLoaderResolutionVerified": False,
+        "independentSignedAdmission": False,
+        "downloadAuthorized": False,
+    }
+
+
 def u16(data, at):
     if at < 0 or at + 2 > len(data):
         raise ValueError("PE u16 out of bounds")
@@ -202,6 +265,7 @@ def dependency_inventory(archive_path):
             name for name in all_external
             if name not in WINDOWS_SYSTEM_NAME_HINTS and name != "postgres.exe"),
         "dllImports": records,
+        "coreServerImportPaths": core_server_import_paths(records),
         "staticImportEnumerationCompleted": not any(x["analysis"] == "NOT_PARSED" for x in records),
         "dynamicDependenciesVerified": False,
         "targetWindowsImportResolutionVerified": False,
