@@ -11,23 +11,75 @@ FIXED = {
     "environmentName": "cli-external-get-publisher",
     "ownerLogin": "ShutenOishi", "ownerId": 27071164,
     "repository": "pgextwin/catalog", "operation": "ORIGINAL_PROVIDER_GET_ONLY",
-    # Explicit source-specific set, not "all" or wildcard; historical HypoPG
-    # is allowed only after its own unexpired owner-signed, independent pin.
+    # Exact current eleven source-major selections, never a wildcard.
+    # Expiry and individual signed admissions remain mandatory at runtime.
     "approvedSources": [
-        {"extension": "pg_trickle", "pgMajor": "18",
-         "sourceRepo": "trickle-labs/pg-trickle", "releaseTag": "v0.108.3"},
-        {"extension": "hypopg", "pgMajor": "14",
-         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
-        {"extension": "hypopg", "pgMajor": "15",
-         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
-        {"extension": "hypopg", "pgMajor": "16",
-         "sourceRepo": "HypoPG/hypopg", "releaseTag": "1.4.1"},
-        {"extension": "vector", "pgMajor": "16",
-         "sourceRepo": "portalcorp/pgvector_compiled", "releaseTag": "v0.16.105"},
-        {"extension": "oracle_fdw", "pgMajor": "18",
-         "sourceRepo": "laurenz/oracle_fdw", "releaseTag": "ORACLE_FDW_2_9_0"},
-        {"extension": "pgvector", "pgMajor": "18",
-         "sourceRepo": "andreiramani/pgvector_pgsql_windows", "releaseTag": "0.8.7"}
+        {
+            "extension": "pg_trickle",
+            "pgMajor": "18",
+            "sourceRepo": "trickle-labs/pg-trickle",
+            "releaseTag": "v0.108.3"
+        },
+        {
+            "extension": "oracle_fdw",
+            "pgMajor": "14",
+            "sourceRepo": "laurenz/oracle_fdw",
+            "releaseTag": "ORACLE_FDW_2_9_0"
+        },
+        {
+            "extension": "pgvector",
+            "pgMajor": "14",
+            "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+            "releaseTag": "0.8.7"
+        },
+        {
+            "extension": "oracle_fdw",
+            "pgMajor": "15",
+            "sourceRepo": "laurenz/oracle_fdw",
+            "releaseTag": "ORACLE_FDW_2_9_0"
+        },
+        {
+            "extension": "pgvector",
+            "pgMajor": "15",
+            "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+            "releaseTag": "0.8.7"
+        },
+        {
+            "extension": "oracle_fdw",
+            "pgMajor": "16",
+            "sourceRepo": "laurenz/oracle_fdw",
+            "releaseTag": "ORACLE_FDW_2_9_0"
+        },
+        {
+            "extension": "pgvector",
+            "pgMajor": "16",
+            "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+            "releaseTag": "0.8.7"
+        },
+        {
+            "extension": "oracle_fdw",
+            "pgMajor": "17",
+            "sourceRepo": "laurenz/oracle_fdw",
+            "releaseTag": "ORACLE_FDW_2_9_0"
+        },
+        {
+            "extension": "pgvector",
+            "pgMajor": "17",
+            "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+            "releaseTag": "0.8.7"
+        },
+        {
+            "extension": "oracle_fdw",
+            "pgMajor": "18",
+            "sourceRepo": "laurenz/oracle_fdw",
+            "releaseTag": "ORACLE_FDW_2_9_0"
+        },
+        {
+            "extension": "pgvector",
+            "pgMajor": "18",
+            "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+            "releaseTag": "0.8.7"
+        }
     ],
     "mirrorAuthorized": False, "redistributionAuthorized": False,
 }

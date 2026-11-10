@@ -1,7 +1,7 @@
 {
   "schemaVersion": "pgextwin-cli-external-get-formal-publisher/v2",
   "publishAuthorized": true,
-  "approvedVersion": "0.3.12",
+  "approvedVersion": "0.3.13",
   "environmentName": "cli-external-get-publisher",
   "environmentId": 26611532853,
   "ownerLogin": "ShutenOishi",
@@ -18,28 +18,52 @@
       "releaseTag": "v0.108.3"
     },
     {
-      "extension": "hypopg",
+      "extension": "oracle_fdw",
       "pgMajor": "14",
-      "sourceRepo": "HypoPG/hypopg",
-      "releaseTag": "1.4.1"
+      "sourceRepo": "laurenz/oracle_fdw",
+      "releaseTag": "ORACLE_FDW_2_9_0"
     },
     {
-      "extension": "hypopg",
+      "extension": "pgvector",
+      "pgMajor": "14",
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "releaseTag": "0.8.7"
+    },
+    {
+      "extension": "oracle_fdw",
       "pgMajor": "15",
-      "sourceRepo": "HypoPG/hypopg",
-      "releaseTag": "1.4.1"
+      "sourceRepo": "laurenz/oracle_fdw",
+      "releaseTag": "ORACLE_FDW_2_9_0"
     },
     {
-      "extension": "hypopg",
-      "pgMajor": "16",
-      "sourceRepo": "HypoPG/hypopg",
-      "releaseTag": "1.4.1"
+      "extension": "pgvector",
+      "pgMajor": "15",
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "releaseTag": "0.8.7"
     },
     {
-      "extension": "vector",
+      "extension": "oracle_fdw",
       "pgMajor": "16",
-      "sourceRepo": "portalcorp/pgvector_compiled",
-      "releaseTag": "v0.16.105"
+      "sourceRepo": "laurenz/oracle_fdw",
+      "releaseTag": "ORACLE_FDW_2_9_0"
+    },
+    {
+      "extension": "pgvector",
+      "pgMajor": "16",
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "releaseTag": "0.8.7"
+    },
+    {
+      "extension": "oracle_fdw",
+      "pgMajor": "17",
+      "sourceRepo": "laurenz/oracle_fdw",
+      "releaseTag": "ORACLE_FDW_2_9_0"
+    },
+    {
+      "extension": "pgvector",
+      "pgMajor": "17",
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "releaseTag": "0.8.7"
     },
     {
       "extension": "oracle_fdw",
