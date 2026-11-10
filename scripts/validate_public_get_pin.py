@@ -101,15 +101,20 @@ def validate_document(doc, dirname, *, now, source="pg_trickle"):
         validate_portalcorp_records(rows)
         return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
     if source == "qualified_cohort":
-        # Accept archived five and newly owner-signed seven exact originals.
-        # Neither an archive nor offline parsing grants current authority.
-        require(type(rows) is list and len(rows) in (5, 7),
+        # Old five/seven runs remain immutable archives. The current eleven-asset
+        # cohort has a separate exact source, PG ABI, asset and rights allowlist.
+        # Even a valid shape cannot confer download permission without live
+        # owner Run, independent verification and Sigstore authentication.
+        require(type(rows) is list and len(rows) in (5, 7, 11),
                 "unknown mixed-source signed cohort size")
-        validate_pg_trickle_records(rows[:1])
-        validate_hypopg_records(rows[1:4])
-        validate_portalcorp_records(rows[4:5])
-        if len(rows) == 7:
-            validate_reviewed_pg18_records(rows[5:])
+        if len(rows) == 11:
+            validate_latest_eleven_records(rows)
+        else:
+            validate_pg_trickle_records(rows[:1])
+            validate_hypopg_records(rows[1:4])
+            validate_portalcorp_records(rows[4:5])
+            if len(rows) == 7:
+                validate_reviewed_pg18_records(rows[5:])
         return "ACTIVE" if issued <= now < expiry else "EXPIRED_ARCHIVE_DOWNLOAD_DENY"
     require(source == "pg_trickle", "unknown original source")
     validate_pg_trickle_records(rows)
@@ -245,6 +250,73 @@ def validate_reviewed_pg18_records(rows):
             require("no LICENSE/NOTICE" in row["noticeTreatment"]
                     and "Unofficial" in row["dependencyTreatment"],
                     "missing unofficial pgvector attribution")
+
+
+
+def validate_latest_eleven_records(rows):
+    """Exactly the independently reviewed PG14-18 oracle/pgvector ZIPs plus PG18 trickle.
+
+    The original signed manifest and Catalog latest pointer are independently
+    bound to these fixed release/asset identities. Never infer PG compatibility.
+    """
+    require(type(rows) is list and len(rows) == 11, "unknown latest cohort length")
+    validate_pg_trickle_records(rows[:1])
+    originals = {
+        "14": ((442625883, 375533, "91a9857041c3e78981f4f554fa03cb606ff8cd0347b7cc3e3604b215f9655b2d"),
+               (661612126, 174619, "51dd3626905d31509e06552d16ddcc8eda2ac47d1e84eb923d2aff9207716ee7")),
+        "15": ((442625869, 363671, "3894a25a80cf2d3ac672894ba5cbcbc11c9533ad72cd25d31235285b73182f7a"),
+               (661612214, 174667, "33562f2d2bab702a7d6f68b7d53c98e52480eb039c6635164d6b4cfcfdf40cc9")),
+        "16": ((442625866, 365436, "b9e8826d11c794c03bd49874100712f2ee446a01294b4c1d3632053bbaee8290"),
+               (661612305, 174594, "69dee8f237966a5b87ec109ec8ed619613432940a8e6150a1d0da627fc0f2f7e")),
+        "17": ((442625846, 371386, "a67d0582e855ef5a1099039528cfdfd25b7e31938dab29c5bfb0366d0a368fc7"),
+               (661612406, 174653, "acd9d678200e856623f0b7416f6f5d132ef8606a2273ff37f0fdf8a7f2c5d7d2")),
+    }
+    for i, pg in enumerate(("14", "15", "16", "17")):
+        pair = rows[1 + 2 * i:3 + 2 * i]
+        for j, row in enumerate(pair):
+            if j == 0:
+                extension, repo, repo_id, release_id, tag = (
+                    "oracle_fdw", "laurenz/oracle_fdw", 14332609, 335861225,
+                    "ORACLE_FDW_2_9_0")
+                license_url = f"https://github.com/{repo}/blob/{tag}/LICENSE"
+                name = f"oracle_fdw-2.9.0-pg{pg}-win64.zip"
+            else:
+                extension, repo, repo_id, release_id, tag = (
+                    "pgvector", "andreiramani/pgvector_pgsql_windows",
+                    838202416, 419235203, "0.8.7")
+                license_url = "https://github.com/pgvector/pgvector/blob/v0.8.7/LICENSE"
+                name = f"vector.v0.8.7-pg{pg}.zip"
+            asset_id, size, sha = originals[pg][j]
+            fixed = {
+                "sourceGroup": "external", "extension": extension, "pgMajor": pg,
+                "sourceRepo": repo, "repositoryId": repo_id, "releaseId": release_id,
+                "releaseTag": tag, "assetId": asset_id, "assetName": name,
+                "originalBytes": size, "originalSha256": sha,
+                "originalProviderUrl":
+                    f"https://github.com/{repo}/releases/download/{tag}/{name}",
+                "licenseUrl": license_url, "approvedOperation": OP,
+                "downloadAuthorized": True, "mirrorAuthorized": False,
+            }
+            require(type(row) is dict and set(row) == ROW_KEYS
+                    and all(type(row.get(k)) is type(v) and row[k] == v
+                            for k, v in fixed.items()),
+                    "unreviewed PG14-17 release/asset/ABI identity")
+            require(type(row["targetEnvironment"]) is str
+                    and f"PostgreSQL {pg}" in row["targetEnvironment"]
+                    and "Windows x64" in row["targetEnvironment"]
+                    and all(type(row[k]) is str and len(row[k]) >= 100
+                            for k in ("noticeTreatment", "dependencyTreatment")),
+                    "PG14-17 ABI, license or dependencies missing")
+            if extension == "oracle_fdw":
+                require("Oracle Instant Client" in row["noticeTreatment"]
+                        and "www.oracle.com/downloads/licenses/instant-client-lic.html"
+                        in row["dependencyTreatment"],
+                        "Oracle dependency license missing")
+            else:
+                require("no LICENSE/NOTICE" in row["noticeTreatment"]
+                        and "Unofficial" in row["dependencyTreatment"],
+                        "unofficial community pgvector attribution missing")
+    validate_reviewed_pg18_records(rows[9:11])
 
 
 def gh_read(route):

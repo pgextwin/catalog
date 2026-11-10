@@ -220,6 +220,41 @@ class Tests(unittest.TestCase):
                     mod.validate_document(bad, "run-1234", now=NOW,
                                           source="qualified_cohort")
 
+    def test_signed_latest_eleven_exact_assets_and_hostile_mutations(self):
+        # Real immutable issuer bytes are present in the proposing PR and on
+        # protected main after merge; no mock signature is treated as authority.
+        path = (ROOT / "external/signed-direct-get/qualified_cohort"
+                / "run-42844446860/external-get-admission.json")
+        doc = json.loads(path.read_bytes())
+        signed_time = mod.parse_utc(doc["issuedAt"]) + timedelta(minutes=1)
+        self.assertEqual(len(doc["records"]), 11)
+        self.assertEqual(mod.validate_document(
+            doc, "run-42844446860", now=signed_time,
+            source="qualified_cohort"), "ACTIVE")
+        self.assertEqual(mod.validate_document(
+            doc, "run-42844446860", now=signed_time + timedelta(hours=7),
+            source="qualified_cohort"), "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
+        mutations = [
+            lambda rows: rows.pop(),
+            lambda rows: rows.reverse(),
+            lambda rows: rows[1].update({"pgMajor": "18"}),
+            lambda rows: rows[2].update({"originalSha256": "0" * 64}),
+            lambda rows: rows[3].update({"assetId": 1}),
+            lambda rows: rows[4].update({"sourceRepo": "evil/other"}),
+            lambda rows: rows[5].update({"licenseUrl": "https://evil.invalid"}),
+            lambda rows: rows[6].update({"dependencyTreatment": ""}),
+            lambda rows: rows[7].update({"mirrorAuthorized": True}),
+            lambda rows: rows[8].update({"noticeTreatment": ""}),
+            lambda rows: rows[9].update({"downloadAuthorized": False}),
+        ]
+        for index, mutate in enumerate(mutations):
+            with self.subTest(case=index):
+                bad = copy.deepcopy(doc)
+                mutate(bad["records"])
+                with self.assertRaises(mod.Denied):
+                    mod.validate_document(bad, "run-42844446860",
+                                          now=signed_time, source="qualified_cohort")
+
     def test_catalog_latest_pointer_binds_complete_signed_release_set(self):
         doc = qualified_cohort_example()
         admission = (json.dumps(doc, sort_keys=True, separators=(",", ":")) + "\n").encode()
