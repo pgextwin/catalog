@@ -46,7 +46,11 @@ class PeImportTests(unittest.TestCase):
 
     def test_relative_path_in_dll_name_denied(self):
         with self.assertRaises(ValueError):
-            deps.static_imports(fake_pe(name=b"..\evil.dll"))
+            deps.static_imports(fake_pe(name=b"..\\evil.dll"))
+
+    def test_postgresql_server_exe_import_supported(self):
+        self.assertEqual(deps.static_imports(fake_pe(name=b"postgres.exe"))[0],
+                         ["postgres.exe"])
 
     def test_wrong_arch_denied(self):
         data = bytearray(fake_pe())
