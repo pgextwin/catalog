@@ -28,7 +28,7 @@ foreach ($path in @($pkglib, $shared)) {
 $shareext = Join-Path $shared 'extension'
 $effectiveCurl = Join-Path $bin 'libcurl.dll'
 if (-not (Test-Path -LiteralPath $effectiveCurl -PathType Leaf)) {
-  throw 'Required preinstalled EDB libcurl.dll is absent; do not assume OSGeo libnghttp2 resolution'
+  throw 'Required preinstalled EDB libcurl.dll absent; no presumed libnghttp2 closure'
 }
 $preinstalledCurlSha = (Get-FileHash -LiteralPath $effectiveCurl -Algorithm SHA256).Hash.ToLowerInvariant()
 
@@ -132,9 +132,8 @@ if ($staged.lib -lt 2 -or $staged.share -lt 4) {
   throw "Missing core runtime DLL/SQL staged files: $($staged | ConvertTo-Json -Compress)"
 }
 Write-Host "OSGEO_WINDOWS_LAYOUT=PASS LIB_DLL=$($staged.lib) BIN_DLL=$($staged.bin) SHARE_FILES=$($staged.share)"
-# This server-only pilot excludes the entire postgisgui/ tree. Retaining
-# the original EDB libcurl (not OSGeo's imported libnghttp2-dependent copy)
-# is a narrow observed runtime substitution, NOT all-bundle DLL closure.
+# The bin/postgisgui/ tree is excluded from this server-only staging.
+# This EDB libcurl substitute is proven only for the tested PG18 host.
 $effectiveCurlSha = (Get-FileHash -LiteralPath $effectiveCurl -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($effectiveCurlSha -cne $preinstalledCurlSha) {
   throw 'Original PostgreSQL libcurl.dll was replaced'
@@ -168,48 +167,7 @@ Write-Host 'STATIC_IMPORTS=OBSERVED DYNAMIC_DEPENDENCY_CLOSURE=NOT_YET_VERIFIED'
 $curlImportsRaw = @(& $dumpbin[0].FullName /DEPENDENTS $effectiveCurl)
 if ($LASTEXITCODE -ne 0) { throw 'Installed EDB libcurl import audit failed' }
 $curlImports = @($curlImportsRaw | ForEach-Object {
-  if ($_ -match '^\s*([A-Za-z0-9_.-]+[.]dll)\s*
-$data = Join-Path $env:RUNNER_TEMP 'osgeo-pg18-data'
-$log = Join-Path $env:RUNNER_TEMP 'osgeo-pg18-server.log'
-$initdb = Join-Path $bin 'initdb.exe'
-$ctl = Join-Path $bin 'pg_ctl.exe'
-$psql = Join-Path $bin 'psql.exe'
-$port = 55449
-$started = $false
-try {
-  & $initdb -D $data -A trust -U postgres --no-instructions
-  if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
-  & $ctl -D $data -l $log -o "-h 127.0.0.1 -p $port" -w start
-  if ($LASTEXITCODE -ne 0) { throw 'Disposable PG18 startup failed' }
-  $started = $true
-  $ps = @('-X','-A','-t','-v','ON_ERROR_STOP=1',
-          '-h','127.0.0.1','-p',[string]$port,'-U','postgres','-d','postgres')
-  & $psql @ps -c 'CREATE EXTENSION postgis;'
-  if ($LASTEXITCODE -ne 0) { throw 'CREATE EXTENSION postgis failed' }
-  & $psql @ps -c 'CREATE EXTENSION pgrouting;'
-  if ($LASTEXITCODE -ne 0) { throw 'CREATE EXTENSION pgrouting failed' }
-  $versions = (& $psql @ps -c "SELECT extname || '=' || extversion FROM pg_extension WHERE extname IN ('postgis','pgrouting') ORDER BY extname;" | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0 -or $versions -notmatch 'postgis=3[.]7[.]0' -or $versions -notmatch 'pgrouting=[0-9]+[.]') {
-    throw "Unexpected installed extension versions: $versions"
-  }
-  $postgisSQL = (& $psql @ps -c "SELECT CASE WHEN ST_Distance(ST_GeomFromText('POINT(0 0)'), ST_GeomFromText('POINT(3 4)'))=5 THEN 'PASS' ELSE 'FAIL' END;" | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0 -or $postgisSQL -cne 'PASS') { throw "PostGIS spatial SQL failed: $postgisSQL" }
-  $routeQuery = "SELECT id, source, target, cost, reverse_cost FROM (VALUES (1,1,2,1.0::float8,1.0::float8),(2,2,3,1.0::float8,1.0::float8),(3,1,3,5.0::float8,5.0::float8)) AS edges(id,source,target,cost,reverse_cost)"
-  $routingSQL = (& $psql @ps -c "SELECT CASE WHEN (SELECT MAX(agg_cost) FROM pgr_dijkstra('$routeQuery', 1, 3, true))=2 THEN 'PASS' ELSE 'FAIL' END;" | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0 -or $routingSQL -cne 'PASS') { throw "pgRouting dijkstra SQL failed: $routingSQL" }
-  Write-Host "OSGEO_PG18_REAL_SQL=PASS POSTGIS=3.7.0 PGR_VERSION=$versions GEOMETRY_DISTANCE=PASS DIJKSTRA=PASS"
-} catch {
-  Write-Host "OSGEO_PG18_REAL_SQL=FAIL DETAIL=$($_.Exception.Message)"
-  if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Tail 70 | ForEach-Object { Write-Host $_ } }
-  throw
-} finally {
-  if ($started) {
-    & $ctl -D $data -m immediate -w stop
-    if ($LASTEXITCODE -ne 0) { Write-Warning 'Disposable PG18 shutdown failed' }
-  }
-}
-Write-Host 'OSGEO_CANDIDATE_ONLY=YES SIGNED_GET=DENY PUBLIC_CLI_DOWNLOAD=DENY MIRROR=DENY RELEASE=DENY'
-) { $matches[1].ToLowerInvariant() }
+  if ($_ -match '^\s*([A-Za-z0-9_.-]+[.]dll)\s*$') { $matches[1].ToLowerInvariant() }
 } | Sort-Object -Unique)
 if ($curlImports.Count -lt 1) { throw 'EDB libcurl has no enumerated static imports' }
 $referencesNghttp2 = [bool]($curlImports -contains 'libnghttp2-14.dll')
