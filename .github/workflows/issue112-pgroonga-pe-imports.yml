@@ -1,0 +1,36 @@
+name: Issue112 PGroonga exact Windows PE imports (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pgroonga-pe-imports.yml
+      - scripts/issue112_pgroonga_pe_imports.py
+      - tests/test_issue112_pgroonga_pe_imports.py
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-pgroonga-pe-imports.yml
+      - scripts/issue112_pgroonga_pe_imports.py
+      - tests/test_issue112_pgroonga_pe_imports.py
+permissions:
+  contents: read
+jobs:
+  original-static-imports:
+    name: PG${{ matrix.pg }} PE import inventory (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [14, 15, 16, 17, 18]
+    steps:
+      - name: Checkout exact revision without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile import graph tests
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_pe_imports.py -v
+      - name: Observe pinned original member PE imports
+        run: python3 scripts/issue112_pgroonga_pe_imports.py --pg ${{ matrix.pg }}
+      - name: Retain all formal publication denials
+        if: always()
+        run: echo 'STATIC_PE_ONLY=YES DYNAMIC_RUNTIME_UNVERIFIED=YES RIGHTS_UNVERIFIED=YES PUBLIC_GET=DENY ZIP_UPLOAD=NONE MIRROR=DENY RELEASE=DENY'
