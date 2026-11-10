@@ -172,6 +172,37 @@ $curlImports = @($curlImportsRaw | ForEach-Object {
 if ($curlImports.Count -lt 1) { throw 'EDB libcurl has no enumerated static imports' }
 $referencesNghttp2 = [bool]($curlImports -contains 'libnghttp2-14.dll')
 Write-Host "EDB_LIBCURL_STATIC_IMPORTS=OBSERVED REFERENCES_NGHTTP2=$referencesNghttp2 NAMES=$($curlImports -join ',')"
+# Run a clean Windows process so PowerShell's own loaded DLLs cannot satisfy
+# libcurl's dependencies. os.add_dll_directory scopes the EDB search path.
+@'
+import ctypes
+import hashlib
+import os
+from pathlib import Path
+import sys
+
+curl_path = Path(sys.argv[1]).resolve(strict=True)
+with os.add_dll_directory(str(curl_path.parent)):
+    curl = ctypes.WinDLL(str(curl_path), winmode=0x00000100 | 0x00000800 | 0x00000400)
+    module_path = ctypes.WinDLL("kernel32", use_last_error=True).GetModuleFileNameW
+    module_path.argtypes = (ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_uint32)
+    module_path.restype = ctypes.c_uint32
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = module_path(curl._handle, buffer, len(buffer))
+    if not 0 < length < len(buffer) or not curl_path.samefile(buffer.value):
+        raise RuntimeError("EDB libcurl loaded from unexpected path")
+    digest = hashlib.sha256(Path(buffer.value).read_bytes()).hexdigest()
+    if digest != sys.argv[2]:
+        raise RuntimeError("Loaded EDB libcurl differs from pre-staging receipt")
+    version = curl.curl_version
+    version.argtypes = ()
+    version.restype = ctypes.c_char_p
+    value = version()
+    if not value or not value.startswith(b"libcurl/"):
+        raise RuntimeError("EDB curl_version call failed")
+    print("EDB_CURL_LOAD_AND_CALL=PASS", "SHA256=" + digest, value.decode("ascii"))
+'@ | python -I - $effectiveCurl $preinstalledCurlSha
+if ($LASTEXITCODE -ne 0) { throw 'Isolated EDB curl load and version call failed' }
 Write-Host 'SERVER_SCOPE_GUI_ICU_GAIL=EXCLUDED ORIGINAL_BUNDLE_GUI_COMPLETENESS=NOT_VERIFIED'
 
 $data = Join-Path $env:RUNNER_TEMP 'osgeo-pg18-data'
