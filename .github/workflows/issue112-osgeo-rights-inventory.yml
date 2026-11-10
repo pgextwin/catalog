@@ -25,7 +25,58 @@ jobs:
       - name: Offline hostile tests without downloading
         run: python3 -m unittest discover -s tests -p test_issue112_osgeo_rights_audit.py -v
       - name: Observe original OSGeo license payload and DLL inventory
-        run: python3 scripts/issue112_osgeo_rights_audit.py
+        shell: bash
+        run: python3 scripts/issue112_osgeo_rights_audit.py | tee "$RUNNER_TEMP/osgeo-rights.log"
+      - name: Inspect first-party installer source for version, notice and build references
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          src="postgis-bundle-pg18x64-3.7.0-installer-src.zip"
+          trap 'rm -f -- "$src"' EXIT
+          curl --fail --silent --show-error --proto '=https' --max-filesize 4194304 \
+            --retry 2 --max-time 90 --output "$src" \
+            "https://download-cache.osgeo.org/postgis/windows/source/pg18/$src"
+          sha256sum "$src"
+          python3 - "$src" <<'PY'
+          import hashlib
+          import json
+          import re
+          from pathlib import Path
+          import sys
+          import zipfile
+          from pathlib import PurePosixPath
+
+          binary_sha = "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40"
+          lines = Path("osgeo-rights.log").read_text().splitlines()
+          ledgers = [json.loads(line) for line in lines if line.startswith("{")]
+          if len(ledgers) != 1 or ledgers[0]["expectedOriginalSha256"] != binary_sha:
+              raise ValueError("Missing exact original ZIP rights receipts")
+          by_digest = {}
+          for row in ledgers[0]["licenseFiles"] + ledgers[0]["dllComponentIntakeReceipts"]:
+              by_digest.setdefault(row["sha256"], []).append(row["path"])
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              files = [m for m in archive.infolist() if not m.is_dir()]
+              if not files or len(files) > 256 or sum(m.file_size for m in files) > 16 * 1024**2:
+                  raise ValueError("Unexpected installer source archive size")
+              seen = set()
+              for member in files:
+                  if member.filename.casefold() in seen:
+                      raise ValueError("Duplicate installer source path")
+                  seen.add(member.filename.casefold())
+                  data = archive.read(member)
+                  name = PurePosixPath(member.filename)
+                  text = data.decode("utf-8", errors="replace")
+                  refs = []
+                  if name.suffix.lower() in {".nsi", ".nsh", ".sh", ".txt", ".bat", ".ini"}:
+                      refs = [line.strip()[:240] for line in text.splitlines()
+                              if re.search(r"(?i)(^\s*!define\b|licen[cs]e|notice|sha256|source.?commit|git.?rev)", line)][:100]
+                  digest = hashlib.sha256(data).hexdigest()
+                  print(json.dumps({"member": str(name), "bytes": len(data),
+                                    "sha256": digest, "identicalOriginalMembers": by_digest.get(digest, []),
+                                    "containsBinaryDigestLiteral": binary_sha in text.lower(),
+                                    "packagingReferences": refs}, ensure_ascii=True))
+          PY
       - name: Confirm inventory never grants public GET or Publisher rights
         if: always()
         run: echo 'RIGHTS_INVENTORY_ONLY=YES SIGNED_ADMISSION=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
