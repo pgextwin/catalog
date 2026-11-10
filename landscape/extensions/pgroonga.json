@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-11-11",
+  "windowsBinarySources": [
+    {
+      "provider": "PGroonga project (official GitHub Release) / PGroonga公式Release",
+      "type": "upstream-official",
+      "url": "https://github.com/pgroonga/pgroonga/releases/tag/4.1.0",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "Official PGroonga 4.1.0 has five Windows x64 ZIP assets (one each for PostgreSQL 14–18). Independently pinned ZIPs each contain 43 DLL/EXE members and 20 license/NOTICE-named documents; these are member counts, NOT 43 ZIPs or accepted legal notices. / 公式ZIPはPG14～18向けの計5件。各ZIP内のDLL/EXEは43ファイル、権利文書名のファイルは20件（権利・来歴審査完了ではありません）。Source is upstream only: pgextwin public GET for PGroonga is NOT authorized / pgextwin経由の取得は未認可。"
+    }
+  ],
+  "name": "pgroonga",
+  "displayName": "PGroonga",
+  "description": "Groonga-based multilingual full-text search / Groongaを利用する多言語全文検索拡張",
+  "upstreamRepository": "pgroonga/pgroonga",
+  "status": "candidate",
+  "license": "PGroonga: PostgreSQL; bundled third-party licenses/NOTICE not fully verified",
+  "currentStableVersion": "4.1.0",
+  "pg18Support": "supported",
+  "pg19Readiness": "unknown",
+  "windowsUpstreamSupport": "native-binary",
+  "knownWindowsBinaryAvailability": "public",
+  "estimatedWindowsEffort": "very-high",
+  "preliminaryPriority": "high",
+  "candidateRationale": "Official original Windows ZIPs for PostgreSQL 14–18 passed exact-byte inventory, PGP/SQL and selected runtime tests. A path-exact 43-binary/20-rights-document *candidate* matrix exists. Variable Groonga source ('groonga-latest.zip'), xxHash and statically embedded libraries, precise producer component versions, license/NOTICE closure, full runtime dependency closure and independent signed pgextwin GET admission remain UNVERIFIED. No PGroonga ZIP is available through the public pgextwin CLI. / PG14～18の公式原本・一部実動作を確認済み。ただし可変Groonga原本、静的依存、権利・来歴、独立署名認可が未成立のため、公開pgextwin CLIからは取得不可。",
+  "evidenceUrls": [
+    "https://github.com/pgroonga/pgroonga/releases/tag/4.1.0",
+    "https://github.com/pgroonga/pgroonga/blob/4.1.0/.github/workflows/windows.yml",
+    "https://github.com/pgextwin/catalog/blob/f5edeb939d6a41a75c180e16a66442c59bff1c74/docs/issue-112-pgroonga-rights-join.md",
+    "https://github.com/pgextwin/build/issues/112#issuecomment-6782149517"
+  ],
+  "roadmap": {
+    "decision": "research",
+    "decisionDate": "2026-11-11",
+    "rationale": "Scope expansion under Issue #112, nonpublishing until evidence and independent authorization complete. / Issue #112で取得対象拡大を調査中。必要な審査・正式認可までは非公開。"
+  }
+}
