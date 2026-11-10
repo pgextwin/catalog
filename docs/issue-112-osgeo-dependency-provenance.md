@@ -48,6 +48,13 @@ Two GUI-area DLLs remain unparsed in the prior PE scan:
 Additionally, 33 DLL basenames appear at multiple bundle paths; basename
 presence cannot establish Windows loader search-order resolution.
 
+The PR also adds a **finite, same-URL-only HTTP retry** for the original
+nonpublishing inspector after the prior PR CI's transient OSGeo HTTP 525:
+up to three attempts only for 502/503/504/525. It does not retry a 404,
+an invalid redirect, an incomplete ZIP, mismatched hash, or an unsafe path.
+Offline deterministic tests cover success-after-525 and strict DENY cases.
+No alternative origin or softer original-byte acceptance is introduced.
+
 **Remaining concrete acceptance work:** independently inspect the exact
 target Windows + EDB PG18 loader paths and the three missing third-party
 libraries (especially the non-GUI libcurl dependency); validate relevant
