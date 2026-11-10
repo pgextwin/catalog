@@ -56,6 +56,8 @@ static async Task<int> RunAsync(string[] args)
         string? output = null;
         string? format = null;
         string? sourceGroup = null;
+        string? requestedExtension = null;
+        string? requestedVersion = null;
         string? reviewLedger = null;
         string? inputDir = null;
         bool? latest = null;
@@ -96,6 +98,14 @@ static async Task<int> RunAsync(string[] args)
                     if (inputDir is not null || command != "verify-external-all")
                         throw new ArgumentException("Unexpected/duplicate --input-dir");
                     inputDir = value; break;
+                case "--extension":
+                    if (command != "download-all" || requestedExtension is not null)
+                        throw new ArgumentException("--extension only supports external download-all once");
+                    requestedExtension = value; break;
+                case "--version":
+                    if (command != "download-all" || requestedVersion is not null)
+                        throw new ArgumentException("--version pin only supports external download-all once");
+                    requestedVersion = value; break;
                 case "--source":
                     if (sourceGroup is not null || value is not ("external" or "pgextwin" or "all"))
                         throw new ArgumentException("Invalid/duplicate --source");
@@ -111,6 +121,9 @@ static async Task<int> RunAsync(string[] args)
                 default: throw new ArgumentException("Unknown option: " + option);
             }
         }
+        if (sourceGroup != "external" &&
+            (requestedExtension is not null || requestedVersion is not null))
+            throw new ArgumentException("--extension/--version require --source external");
         if (command == "verify-external-all")
         {
             if (reviewLedger is null || inputDir is null || pg is null ||
@@ -138,7 +151,8 @@ static async Task<int> RunAsync(string[] args)
                         "External GET requires download-all --source external with current Catalog latest pins");
                 log?.Invoke("EXTERNAL_ADMISSION_VERIFY_START source=SIGNED_BUILD_ISSUER");
                 var external = await ExternalSignedCatalogCohort.StageLatestVerifiedAsync(
-                    pg ?? "all", output ?? Directory.GetCurrentDirectory());
+                    pg ?? "all", output ?? Directory.GetCurrentDirectory(),
+                    requestedExtension: requestedExtension, requestedVersion: requestedVersion);
                 Console.WriteLine($"EXTERNAL_ORIGINAL_GET_ONLY\tZIP_COUNT={external.Count}\tBYTES={external.Bytes}\t{external.Directory}");
                 return 0;
             }
@@ -295,8 +309,9 @@ static void Usage()
     Console.Error.WriteLine("  Default/--latest: signed public Catalog feed (no GitHub REST); --fixed: immutable historical snapshot");
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
-    Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--output EXISTING_DIR]");
-    Console.Error.WriteLine("  Fetches Catalog's current external latest pin set only when its exact identities match a live owner-signed admission.");
+    Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--extension NAME [--version EXACT]] [--output EXISTING_DIR]");
+    Console.Error.WriteLine("  Selects only exact signed latest cohort assets; a version must appear in the signed asset name. Missing version/PG/extension fails closed.");
+    Console.Error.WriteLine("  Version pin is a narrow filter, not permission to fetch historical or unsigned releases.");
     Console.Error.WriteLine("External GET requires the current protected Catalog latest selection and independent Build Publisher Sigstore proof; --source all remains denied.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");
     Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
