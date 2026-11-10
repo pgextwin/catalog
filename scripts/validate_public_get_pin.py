@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timedelta, timezone
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -24,6 +25,14 @@ OP = "ORIGINAL_PROVIDER_GET_ONLY"
 SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 RUN_DIR = re.compile(r"run-([1-9][0-9]{0,14})\Z")
 FILES = {"external-get-admission.json", "attestation.json"}
+LATEST_NAME = "latest.json"
+LATEST_SCHEMA = "pgextwin-external-latest-original-pins/v1"
+LATEST_KEYS = {"schemaVersion", "issuerRunId", "admissionSha256", "records"}
+LATEST_ROW_KEYS = {
+    "extension", "pgMajor", "sourceRepo", "repositoryId", "releaseTag",
+    "releaseId", "assetName", "assetId", "originalBytes",
+    "originalSha256", "originalProviderUrl",
+}
 KEYS = {
     "schemaVersion", "sourceKind", "issuerRepository", "issuerCommit",
     "catalogCommit", "issuerEvent", "issuerRunId", "issuerRunAttempt",
@@ -295,6 +304,45 @@ def verify_online(entry, doc):
     require(type(verified) is list and len(verified) >= 1,
             "zero matching independently verified attestations")
 
+def validate_latest_pointer(pointer, admission_bytes, dirname):
+    require(type(pointer) is dict and set(pointer) == LATEST_KEYS,
+            "unknown Catalog latest external pin schema")
+    match = RUN_DIR.fullmatch(dirname)
+    require(match is not None and pointer.get("schemaVersion") == LATEST_SCHEMA
+            and type(pointer.get("issuerRunId")) is int
+            and pointer["issuerRunId"] == int(match.group(1)),
+            "Catalog latest pointer does not select this signed Run")
+    require(type(pointer.get("admissionSha256")) is str
+            and re.fullmatch(r"[0-9a-f]{64}", pointer["admissionSha256"]) is not None
+            and pointer["admissionSha256"] == hashlib.sha256(admission_bytes).hexdigest(),
+            "Catalog latest pointer does not bind the exact signed admission bytes")
+    signed = json.loads(admission_bytes, object_pairs_hook=unique)
+    current = pointer.get("records")
+    require(type(current) is list and 1 <= len(current) <= 20
+            and type(signed.get("records")) is list
+            and len(current) == len(signed["records"]),
+            "Catalog latest pin set is incomplete or oversized")
+    signed_by_key = {}
+    for row in signed["records"]:
+        key = (row.get("extension"), row.get("pgMajor"))
+        require(key not in signed_by_key, "duplicate signed latest binary")
+        signed_by_key[key] = row
+    seen = set()
+    for row in current:
+        require(type(row) is dict and set(row) == LATEST_ROW_KEYS,
+                "unknown Catalog latest pin fields")
+        key = (row.get("extension"), row.get("pgMajor"))
+        require(key not in seen and key in signed_by_key,
+                "duplicate or unsigned Catalog latest binary")
+        seen.add(key)
+        signed_row = signed_by_key[key]
+        require(all(type(row.get(name)) is type(signed_row.get(name))
+                    and row[name] == signed_row[name]
+                    for name in LATEST_ROW_KEYS),
+                "Catalog latest release identity differs from owner-signed admission")
+    require(seen == set(signed_by_key),
+            "Catalog latest pin set omits a signed external binary")
+
 def scan(root, *, now, online=True):
     parent = Path(root) / "external/signed-direct-get"
     if not parent.exists():
@@ -308,8 +356,19 @@ def scan(root, *, now, online=True):
         source = parent / source_name
         require(source.is_dir() and not source.is_symlink(),
                 "unsafe signed source directory")
-        entries = sorted(source.iterdir(), key=lambda p: p.name)
+        children = list(source.iterdir())
+        latest_bytes = None
+        if source_name == "qualified_cohort":
+            latest_path = source / LATEST_NAME
+            require(latest_path in children and latest_path.is_file()
+                    and not latest_path.is_symlink()
+                    and 100 < latest_path.stat().st_size < 200000,
+                    "missing or invalid Catalog latest external pin index")
+            latest_bytes = latest_path.read_bytes()
+            children = [item for item in children if item != latest_path]
+        entries = sorted(children, key=lambda p: p.name)
         require(len(entries) <= 50, "unbounded signed source archive history")
+        admissions = {}
         for entry in entries:
             require(entry.is_dir() and not entry.is_symlink()
                     and RUN_DIR.fullmatch(entry.name) is not None, "unexpected pin directory")
@@ -322,12 +381,22 @@ def scan(root, *, now, online=True):
                         "invalid signed metadata bytes")
             doc = json.loads((entry / "external-get-admission.json").read_bytes(),
                              object_pairs_hook=unique)
+            admission_bytes = (entry / "external-get-admission.json").read_bytes()
             status = validate_document(doc, entry.name, now=now, source=source_name)
             if online:
                 verify_online(entry, doc)
+            admissions[entry.name] = admission_bytes
             outputs.append({"runId": doc["issuerRunId"], "source": source_name,
                             "status": status, "mirrorAuthorized": False,
                             "redistributionAuthorized": False})
+        if source_name == "qualified_cohort":
+            pointer = json.loads(latest_bytes, object_pairs_hook=unique)
+            require(type(pointer) is dict and type(pointer.get("issuerRunId")) is int,
+                    "Catalog latest external pin index has no numeric Run")
+            run_dir = "run-" + str(pointer.get("issuerRunId", ""))
+            require(run_dir in admissions,
+                    "Catalog latest pointer targets no archived signed Run")
+            validate_latest_pointer(pointer, admissions[run_dir], run_dir)
     return outputs
 
 def main():

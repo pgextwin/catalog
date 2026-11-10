@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Sigstore;
@@ -34,6 +35,14 @@ public static class ExternalSignedDirectGetAdmission
         "originalProviderUrl", "licenseUrl", "noticeTreatment",
         "dependencyTreatment", "approvedOperation", "downloadAuthorized",
         "mirrorAuthorized"
+    ];
+    private static readonly HashSet<string> LatestRootKeys =
+        ["schemaVersion", "issuerRunId", "admissionSha256", "records"];
+    private static readonly HashSet<string> LatestPinKeys =
+    [
+        "extension", "pgMajor", "sourceRepo", "repositoryId", "releaseTag",
+        "releaseId", "assetName", "assetId", "originalBytes",
+        "originalSha256", "originalProviderUrl"
     ];
 
     private static void Require(bool value, string reason)
@@ -184,11 +193,85 @@ public static class ExternalSignedDirectGetAdmission
             "wrong signed source commit, signer or provenance");
         return pins;
     }
+
+    /// <summary>
+    /// Bind the Catalog's current per-binary latest selection to the exact
+    /// independently signed subject. A Catalog version bump therefore makes
+    /// the old authorization unusable until a fresh owner run signs the new
+    /// release identity and original-byte digest.
+    /// </summary>
+    internal static void ValidateLatestBinding(byte[] latestPins,
+        byte[] admission, long expectedRunId)
+    {
+        Require(latestPins.Length is > 0 and <= MaxBytes,
+            "missing or oversized Catalog latest pins");
+        using var latestDoc = StrictJson.Parse(latestPins);
+        using var signedDoc = StrictJson.Parse(admission);
+        var latest = latestDoc.RootElement;
+        var signed = signedDoc.RootElement;
+        Require(Keys(latest, LatestRootKeys) &&
+            latest.GetProperty("schemaVersion").GetString() ==
+                "pgextwin-external-latest-original-pins/v1" &&
+            latest.GetProperty("issuerRunId").GetInt64() == expectedRunId &&
+            signed.GetProperty("issuerRunId").GetInt64() == expectedRunId,
+            "Catalog latest index and signed issuer Run differ");
+        var hash = Convert.ToHexString(SHA256.HashData(admission)).ToLowerInvariant();
+        Require(Hex(latest.GetProperty("admissionSha256").GetString(), 64) &&
+            latest.GetProperty("admissionSha256").GetString() == hash,
+            "Catalog latest index points to different signed bytes");
+
+        var latestRows = latest.GetProperty("records");
+        var signedRows = signed.GetProperty("records");
+        Require(latestRows.ValueKind == JsonValueKind.Array &&
+            signedRows.ValueKind == JsonValueKind.Array &&
+            latestRows.GetArrayLength() == signedRows.GetArrayLength() &&
+            latestRows.GetArrayLength() is >= 1 and <= 20,
+            "Catalog latest set does not cover the complete signed cohort");
+
+        static string Key(JsonElement row) =>
+            (row.GetProperty("extension").GetString() ?? "") + "/" +
+            (row.GetProperty("pgMajor").GetString() ?? "");
+        var signedByBinary = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var row in signedRows.EnumerateArray())
+            Require(signedByBinary.TryAdd(Key(row), row),
+                "duplicate signed Catalog latest binary");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in latestRows.EnumerateArray())
+        {
+            Require(Keys(row, LatestPinKeys), "unknown Catalog latest pin fields");
+            var key = Key(row);
+            Require(seen.Add(key), "duplicate Catalog latest binary");
+            Require(signedByBinary.TryGetValue(key, out var signedRow),
+                "Catalog latest binary missing from signed owner admission");
+            static string Text(JsonElement value, string name) =>
+                value.GetProperty(name).ValueKind == JsonValueKind.String
+                    ? value.GetProperty(name).GetString() ?? ""
+                    : throw new InvalidDataException(
+                        "External signed admission DENY: latest pin text field invalid");
+            static long Number(JsonElement value, string name) =>
+                value.GetProperty(name).ValueKind == JsonValueKind.Number &&
+                value.GetProperty(name).TryGetInt64(out var number)
+                    ? number
+                    : throw new InvalidDataException(
+                        "External signed admission DENY: latest pin numeric field invalid");
+            foreach (var field in new[]
+                     { "extension", "pgMajor", "sourceRepo", "releaseTag", "assetName",
+                       "originalSha256", "originalProviderUrl" })
+                Require(Text(row, field) == Text(signedRow, field),
+                    "Catalog latest release identity differs from signed admission");
+            foreach (var field in new[]
+                     { "repositoryId", "releaseId", "assetId", "originalBytes" })
+                Require(Number(row, field) == Number(signedRow, field),
+                    "Catalog latest asset identity differs from signed admission");
+        }
+        Require(seen.Count == signedByBinary.Count,
+            "Catalog latest set omits a signed external binary");
+    }
     /// <summary>
     /// Only user-local GET of original bytes, after independent signed admission.
     /// No upload, mirror, repackage, install or fallback is possible here.
     /// </summary>
-    public static async Task<BatchReleaseDownloader.BatchResult> StageVerifiedAsync(
+    internal static async Task<BatchReleaseDownloader.BatchResult> StageVerifiedAsync(
         string admissionFile, string bundleFile, string pgSelection,
         string outputParent, CancellationToken token = default)
     {
@@ -211,22 +294,33 @@ public static class ExternalSignedDirectGetAdmission
     // Sigstore verification and original-provider-only atomic download path.
     internal static async Task<BatchReleaseDownloader.BatchResult> StageVerifiedBytesAsync(
         byte[] admission, byte[] bundle, string pgSelection, string outputParent,
-        CancellationToken token = default, long? expectedRunId = null)
+        CancellationToken token = default, long? expectedRunId = null,
+        byte[]? latestPins = null,
+        Func<CancellationToken, Task>? confirmCatalogHead = null)
     {
         var pins = await VerifyAsync(admission, bundle, pgSelection, token);
         // This expiry comes from the same exact bytes independently verified
         // against the original Build issuer's Sigstore proof above.
         using var signed = StrictJson.Parse(admission);
         if (expectedRunId is long runId)
+        {
             Require(signed.RootElement.GetProperty("issuerRunId").GetInt64() == runId,
                 "Catalog archive directory does not match signed issuer Run");
+            Require(latestPins is not null,
+                "Catalog latest external pin index is missing");
+            ValidateLatestBinding(latestPins!, admission, runId);
+        }
+        else
+            Require(latestPins is null && confirmCatalogHead is null,
+                "Catalog latest proof supplied without an authenticated Catalog snapshot");
         var expires = Timestamp(signed.RootElement.GetProperty("expiresAt").GetString() ?? "");
-        Task ConfirmFresh(CancellationToken cancellation)
+        async Task ConfirmFresh(CancellationToken cancellation)
         {
             cancellation.ThrowIfCancellationRequested();
             Require(DateTimeOffset.UtcNow < expires,
                 "admission expired before provider GET or atomic commit");
-            return Task.CompletedTask;
+            if (confirmCatalogHead is not null)
+                await confirmCatalogHead(cancellation);
         }
         using var transport = new ExternalProviderAssetTransport();
         return await ExternalOriginalBatchStager.StageAsync(

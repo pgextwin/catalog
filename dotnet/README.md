@@ -2,26 +2,26 @@
 
 ## Current signed external original ZIP batch
 
-Once a genuine owner-approved `qualified_cohort` admission is published under
-`external/signed-direct-get/qualified_cohort/run-<id>/`, the current source
-supports one-command, GET-only download of its seven reviewed original Windows
-ZIPs (earlier signed five-source archives remain historical and expire normally):
+Once a genuine owner-approved `qualified_cohort` admission and matching
+`external/signed-direct-get/qualified_cohort/latest.json` are published, the CLI
+supports one-command, GET-only download of the Catalog-selected current originals:
 
 ```powershell
 pgextwin.exe download-all --source external
 pgextwin.exe download-all --source external --pg 16 --output C:\pgextwin-downloads
 ```
 
-The first command defaults to all signed PostgreSQL majors and the current
-directory. The second selects PG16 originals. The CLI locates the latest
-Catalog-published cohort, checks its original Build issuer Sigstore proof,
-checks expiry before each original GET and commit, then atomically saves the
-ZIPs directly from their providers. The alternative explicit
-`--external-admission FILE --external-bundle FILE` still accepts locally
-supplied original proof bytes. **No live signed cohort, an expired cohort or
-an unsigned candidate means no network ZIP download.** This covers only
-the seven reviewed ZIPs (pg_trickle PG18, HypoPG PG14–16, portalcorp pgvector
-PG16, official oracle_fdw PG18, and unofficial community pgvector PG18).
+The first command defaults to all Catalog-pinned PostgreSQL majors and the
+current directory. The second selects PG16 originals. The CLI authenticates a
+protected Catalog main snapshot, resolves `latest.json` from that immutable
+commit, checks that the exact release/asset IDs, versions, sizes and SHA256s
+match the same owner-signed Build admission, then verifies its Sigstore proof.
+It rechecks Catalog head and admission expiry before every provider GET and
+atomic commit. **A Catalog version change cannot fall back to an older signed
+authorization.** No current pin, an expired admission or an unsigned candidate
+means no network ZIP download. The current reviewed set covers seven originals
+(pg_trickle PG18, HypoPG PG14–16, portalcorp pgvector PG16, official
+oracle_fdw PG18, and unofficial community pgvector PG18).
 oracle_fdw requires a separately obtained/licensed Oracle Client; the community
 pgvector ZIP has no bundled LICENSE/NOTICE and its upstream license must be
 consulted separately. Other metadata-only discoveries require separate formal
@@ -30,9 +30,10 @@ qualification. It does not mirror or redistribute third-party ZIPs.
 **Experimental external discovery (not a downloadable CLI Release):**
 Run `pgextwin list --catalog-dir . --source external --pg 18` to inspect
 *untrusted metadata only*, or use `--source all` to show both provider groups.
-External download is deliberately denied until signed source pins and independent
-original-byte/provenance/rights/ABI checks are integrated. Omitted `--source`,
-existing `download-all` and `--fixed` retain their original behavior.
+External discovery records remain untrusted metadata and do not grant download
+permission. Only complete Catalog latest pin sets matched to fresh owner-signed
+admissions can enter the external download path. Omitted `--source`, native
+`download-all` and `--fixed` retain their original behavior.
 See [external Windows source design](../docs/issue-112-external-windows-sources.md).
 
 .NET 10 local-only `list/search` and explicit **single-asset** GET-only `download`.

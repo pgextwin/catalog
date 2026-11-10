@@ -58,8 +58,6 @@ static async Task<int> RunAsync(string[] args)
         string? sourceGroup = null;
         string? reviewLedger = null;
         string? inputDir = null;
-        string? externalAdmission = null;
-        string? externalBundle = null;
         bool? latest = null;
         while (i < args.Length)
         {
@@ -98,14 +96,6 @@ static async Task<int> RunAsync(string[] args)
                     if (inputDir is not null || command != "verify-external-all")
                         throw new ArgumentException("Unexpected/duplicate --input-dir");
                     inputDir = value; break;
-                case "--external-admission":
-                    if (command != "download-all" || externalAdmission is not null)
-                        throw new ArgumentException("Unexpected/duplicate --external-admission");
-                    externalAdmission = value; break;
-                case "--external-bundle":
-                    if (command != "download-all" || externalBundle is not null)
-                        throw new ArgumentException("Unexpected/duplicate --external-bundle");
-                    externalBundle = value; break;
                 case "--source":
                     if (sourceGroup is not null || value is not ("external" or "pgextwin" or "all"))
                         throw new ArgumentException("Invalid/duplicate --source");
@@ -125,8 +115,7 @@ static async Task<int> RunAsync(string[] args)
         {
             if (reviewLedger is null || inputDir is null || pg is null ||
                 directory is not null || sourceGroup is not null || policy is not null ||
-                policySha is not null || output is not null || format is not null || latest is not null ||
-                externalAdmission is not null || externalBundle is not null)
+                policySha is not null || output is not null || format is not null || latest is not null)
                 throw new ArgumentException("verify-external-all requires --ledger, --input-dir and --pg only");
             // Local-only ZIP integrity verification. No network or source admission.
             var verified = ExternalOriginalZipBatch.VerifyLocal(reviewLedger, inputDir, pg);
@@ -146,21 +135,14 @@ static async Task<int> RunAsync(string[] args)
                     directory is not null || policy is not null || policySha is not null ||
                     latest is not null || format is not null)
                     throw new InvalidDataException(
-                        "External GET requires download-all --source external with authentic Sigstore permission");
-                if ((externalAdmission is null) != (externalBundle is null))
-                    throw new InvalidDataException(
-                        "External GET requires both --external-admission and --external-bundle or neither");
+                        "External GET requires download-all --source external with current Catalog latest pins");
                 log?.Invoke("EXTERNAL_ADMISSION_VERIFY_START source=SIGNED_BUILD_ISSUER");
-                var external = externalAdmission is null
-                    ? await ExternalSignedCatalogCohort.StageLatestVerifiedAsync(
-                        pg ?? "all", output ?? Directory.GetCurrentDirectory())
-                    : await ExternalSignedDirectGetAdmission.StageVerifiedAsync(
-                        externalAdmission, externalBundle!, pg ?? "all",
-                        output ?? Directory.GetCurrentDirectory());
+                var external = await ExternalSignedCatalogCohort.StageLatestVerifiedAsync(
+                    pg ?? "all", output ?? Directory.GetCurrentDirectory());
                 Console.WriteLine($"EXTERNAL_ORIGINAL_GET_ONLY\tZIP_COUNT={external.Count}\tBYTES={external.Bytes}\t{external.Directory}");
                 return 0;
             }
-            if (sourceGroup == "all" || externalAdmission is not null || externalBundle is not null)
+            if (sourceGroup == "all")
                 throw new InvalidDataException("Mixed/unsigned external download denied; no fallback");
             if (pg is null || (command == "download" && query is null))
                 throw new ArgumentException(command + " requires --pg (and an extension for single download)");
@@ -314,9 +296,8 @@ static void Usage()
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--output EXISTING_DIR]");
-    Console.Error.WriteLine("  Fetches the latest Catalog-published owner-signed original-provider cohort (default: all majors, current directory).");
-    Console.Error.WriteLine("  Optional offline proof: --external-admission SIGNED_GET_ONLY_JSON --external-bundle VERIFIED_SIGSTORE_BUNDLE");
-    Console.Error.WriteLine("External GET requires independent Build Publisher Sigstore admission; --source all remains denied.");
+    Console.Error.WriteLine("  Fetches Catalog's current external latest pin set only when its exact identities match a live owner-signed admission.");
+    Console.Error.WriteLine("External GET requires the current protected Catalog latest selection and independent Build Publisher Sigstore proof; --source all remains denied.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");
     Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
 }

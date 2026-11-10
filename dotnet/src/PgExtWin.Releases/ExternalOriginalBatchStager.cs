@@ -5,7 +5,8 @@ namespace PgExtWin.Releases;
 /// <summary>
 /// Nonpublishing external original ZIP batch engine. The caller must first
 /// establish independent signed Catalog admission; this internal type does
-/// NOT authenticate caller-supplied pins. No CLI route invokes it yet.
+/// NOT authenticate caller-supplied pins. The CLI reaches it only through the
+/// current Catalog latest-pin resolver and signed-admission verifier.
 /// </summary>
 internal static class ExternalOriginalBatchStager
 {

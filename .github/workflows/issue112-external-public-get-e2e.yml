@@ -1,8 +1,8 @@
 name: Issue112 real Windows original-provider GET-only E2E (no publication)
 
-# Only original successful protected Catalog/main Validate following a signed
-# metadata PR or a change to this E2E workflow may start this nonpublishing test.
-# Every GET still requires one active, independently verified signed admission.
+# Only original successful protected Catalog/main Validate following an
+# atomic signed admission + Catalog latest-pin update may start this test.
+# Every GET still requires an active, independently verified signed admission.
 # Never runs on PR, synthetic push, dispatch, schedule or an arbitrary artifact.
 on:
   workflow_run:
@@ -56,34 +56,35 @@ jobs:
           ' <<< "$commit" >/dev/null
           if ! jq -e '
             ([.files[]? | select(
-              (.status=="added") and
-              (.filename | test("^external/signed-direct-get/(pg_trickle|hypopg|portalcorp_pgvector|qualified_cohort)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))
-            )] | length==2)
-            or
-            (([.files[]? | select(
-              .status=="modified" and .filename==".github/workflows/issue112-external-public-get-e2e.yml"
+              (.status=="added" or .status=="modified") and
+              .filename=="external/signed-direct-get/qualified_cohort/latest.json"
             )] | length==1)
-             and ([.files[]? | select(
-               .filename | startswith("external/signed-direct-get/")
-             )] | length==0))
+            and
+            ([.files[]? | select(
+              .status=="added" and
+              (.filename | test("^external/signed-direct-get/qualified_cohort/run-[0-9]+/(external-get-admission|attestation)\\.json$"))
+            )] | length==2)
+            and
+            ([.files[]? | select(
+              .filename | startswith("external/signed-direct-get/")
+            )] | length==3)
           ' <<< "$commit" >/dev/null; then
-            echo 'NO_NEW_SIGNED_PIN_OR_E2E_WORKFLOW_CHANGE; no provider GET'
+            echo 'NO_ATOMIC_SIGNED_CATALOG_LATEST_PIN_UPDATE; no provider GET'
             exit 0
           fi
           cohort="$(jq -r '.files[]? | select(.status=="added") | .filename |
-            select(test("^external/signed-direct-get/(pg_trickle|hypopg|portalcorp_pgvector|qualified_cohort)/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
+            select(test("^external/signed-direct-get/qualified_cohort/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
             sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\1/\2#' | sort -u)"
           if [ -z "$cohort" ]; then
-            # An actual protected workflow change may verify the latest already
-            # published cohort. The Windows job still requires live Sigstore.
-            cohort="qualified_cohort/workflow-verified"
+            echo 'Latest pin update has no signed Run archive; no provider GET'
+            exit 1
           fi
           if [ "$(printf '%s\n' "$cohort" | wc -l)" -ne 1 ]; then
             echo 'Mixed signed cohorts in one commit; DENY'
             exit 1
           fi
           provider="${cohort%%/*}"
-          case "$provider" in pg_trickle|hypopg|portalcorp_pgvector|qualified_cohort) ;; *) exit 1 ;; esac
+          case "$provider" in qualified_cohort) ;; *) exit 1 ;; esac
           echo "provider=$provider" >> "$GITHUB_OUTPUT"
           echo "source=$CATALOG_SHA" >> "$GITHUB_OUTPUT"
           echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
