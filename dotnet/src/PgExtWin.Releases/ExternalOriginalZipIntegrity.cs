@@ -42,7 +42,7 @@ public static class ExternalOriginalZipIntegrity
         int maxEntries)
     {
         ArgumentNullException.ThrowIfNull(original);
-        if (expectedSize is < 4 or > maxOriginalBytes ||
+        if ((expectedSize < 4 || expectedSize > maxOriginalBytes) ||
             original.LongLength != expectedSize ||
             expectedSha256 is null || !Hex64.IsMatch(expectedSha256))
             throw new InvalidDataException("Missing, invalid or oversized exact original ZIP pin");
@@ -56,7 +56,7 @@ public static class ExternalOriginalZipIntegrity
 
         using var stream = new MemoryStream(original, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        if (archive.Entries.Count is < 1 or > maxEntries)
+        if (archive.Entries.Count < 1 || archive.Entries.Count > maxEntries)
             throw new InvalidDataException("Original ZIP archive has invalid member count");
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
