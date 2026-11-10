@@ -13,6 +13,8 @@ import re
 import stat
 import struct
 import tempfile
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -84,28 +86,47 @@ class OriginRedirects(urllib.request.HTTPRedirectHandler):
 
 
 def read_original(url, dest, opener=None):
+    """Bounded source GET with finite retry of transient origin HTTP failures.
+
+    Never retry a digest/size mismatch, unsafe redirect, unexpected 2xx/4xx,
+    or a local archive validation failure; never fall back to another origin.
+    """
     safe_endpoint(url)
     opener = opener or urllib.request.build_opener(OriginRedirects())
-    request = urllib.request.Request(url, headers={"User-Agent": "pgextwin-issue112-osgeo-nonpublishing/1"})
-    digest = hashlib.sha256()
-    size = 0
-    with opener.open(request, timeout=90) as response, open(dest, "wb") as out:
-        safe_endpoint(response.geturl())
-        require(response.status == 200, "origin did not return HTTP 200")
-        length = response.headers.get("Content-Length")
-        require(length is None or (length.isdecimal() and int(length) <= MAX_DOWNLOAD),
-                "oversized/invalid Content-Length")
-        while True:
-            block = response.read(1024 * 1024)
-            if not block:
-                break
-            size += len(block)
-            require(size <= MAX_DOWNLOAD, "bounded download exceeded")
-            digest.update(block)
-            out.write(block)
-    require(0 < size <= MAX_DOWNLOAD and
-            (length is None or size == int(length)), "incomplete original ZIP")
-    return size, digest.hexdigest()
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "pgextwin-issue112-osgeo-nonpublishing/1"})
+    transient = frozenset((502, 503, 504, 525))
+    for attempt in range(3):
+        digest = hashlib.sha256()
+        size = 0
+        try:
+            with opener.open(request, timeout=90) as response, open(dest, "wb") as out:
+                safe_endpoint(response.geturl())
+                require(response.status == 200, "origin did not return HTTP 200")
+                length = response.headers.get("Content-Length")
+                require(length is None or
+                        (length.isdecimal() and int(length) <= MAX_DOWNLOAD),
+                        "oversized/invalid Content-Length")
+                while True:
+                    block = response.read(1024 * 1024)
+                    if not block:
+                        break
+                    size += len(block)
+                    require(size <= MAX_DOWNLOAD, "bounded download exceeded")
+                    digest.update(block)
+                    out.write(block)
+            require(0 < size <= MAX_DOWNLOAD and
+                    (length is None or size == int(length)),
+                    "incomplete original ZIP")
+            return size, digest.hexdigest()
+        except urllib.error.HTTPError as error:
+            if error.code not in transient or attempt == 2:
+                raise
+            # Retry strictly the same approved URL; no redirected retry target,
+            # no partial-file reuse and no content-integrity exception.
+            dest.unlink(missing_ok=True)
+            time.sleep(2 * (attempt + 1))
+    raise AssertionError("unreachable finite GET retry state")
 
 
 def pe_amd64(stream):

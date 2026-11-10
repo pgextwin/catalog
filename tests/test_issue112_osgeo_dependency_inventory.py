@@ -64,6 +64,48 @@ class PeImportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             deps.static_imports(data)
 
+    def test_unbundled_triage_is_non_authorizing_and_exact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "triage.zip"
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr("bundle/bin/postgis-3.dll",
+                                fake_pe(name=b"postgres.exe", delay=b"kernel32.dll"))
+                archive.writestr("bundle/bin/libcurl.dll",
+                                fake_pe(name=b"libnghttp2-14.dll", delay=b"kernel32.dll"))
+                archive.writestr("bundle/bin/postgisgui/libharfbuzz-icu-0.dll",
+                                fake_pe(name=b"libicuuc74.dll", delay=b"libgailutil-18.dll"))
+            result = deps.dependency_inventory(path)
+            items = {x["name"]: x for x in result["unbundledImportTriage"]}
+            self.assertEqual(len(items), 5)
+            self.assertEqual(items["kernel32.dll"]["category"],
+                             "WINDOWS_OS_DLL_NAME_ONLY_UNVERIFIED")
+            self.assertEqual(items["postgres.exe"]["category"],
+                             "POSTGRES_SERVER_HOST_NAME_ONLY_UNVERIFIED")
+            self.assertEqual(items["libnghttp2-14.dll"]["category"],
+                             "UNRESOLVED_NONBUNDLED_COMPONENT")
+            self.assertFalse(items["libnghttp2-14.dll"]["onlyReferencedFromGuiDirectory"])
+            self.assertEqual(items["libnghttp2-14.dll"]["referencedBy"],
+                             ["bundle/bin/libcurl.dll"])
+            for name in ("libicuuc74.dll", "libgailutil-18.dll"):
+                self.assertTrue(items[name]["onlyReferencedFromGuiDirectory"])
+                self.assertFalse(items[name]["resolvedOnTargetWindows"])
+            self.assertEqual(result["unresolvedNonbundledImports"],
+                             ["libgailutil-18.dll", "libicuuc74.dll", "libnghttp2-14.dll"])
+            self.assertFalse(result["targetWindowsImportResolutionVerified"])
+            self.assertFalse(result["dynamicDependenciesVerified"])
+            self.assertFalse(result["downloadAuthorized"])
+
+    def test_unknown_unbundled_dll_stays_unresolved(self):
+        result = deps.triage_unbundled_imports(
+            [{"analysis": "AMD64_PE32_PLUS", "path": "bundle/lib/extension.dll",
+              "notBundledImports": ["mystery.dll"]}], {"mystery.dll"})
+        self.assertEqual(result[0]["category"], "UNRESOLVED_NONBUNDLED_COMPONENT")
+        self.assertFalse(result[0]["resolvedOnTargetWindows"])
+
+    def test_orphan_import_cannot_be_invented(self):
+        with self.assertRaisesRegex(ValueError, "lacks referencing DLL"):
+            deps.triage_unbundled_imports([], {"missing.dll"})
+
     def test_report_cannot_authorize_and_requires_no_mirror(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "test.zip"
@@ -75,7 +117,8 @@ class PeImportTests(unittest.TestCase):
             self.assertEqual(r["parsedPeCount"], 2)
             self.assertIn("proj.dll", r["importsNotInBundle"])
             self.assertNotIn("geos_c.dll", r["importsNotInBundle"])
-            for flag in ("dynamicDependenciesVerified", "thirdPartyNoticesVerified",
+            for flag in ("dynamicDependenciesVerified", "targetWindowsImportResolutionVerified",
+                         "thirdPartyNoticesVerified",
                          "sourceToBinaryProvenanceVerified", "independentSignedAdmission",
                          "downloadAuthorized", "mirrorAuthorized", "publisherAuthorized"):
                 self.assertIs(r[flag], False)

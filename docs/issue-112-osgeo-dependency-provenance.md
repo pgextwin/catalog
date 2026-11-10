@@ -19,6 +19,51 @@ against the exact Windows target independently before accepting dynamic dependen
 coverage. Review all separate component licenses/NOTICE obligations, not only
 the three existing in-archive files.
 
+
+## Original PE import evidence triage (PR-only read-only)
+
+[Original OSGeo DLL inventory Run 42879312471](https://github.com/pgextwin/catalog/actions/runs/42879312471)
+observed 131 DLL paths; 129 PE32+ AMD64 parses; 27 distinct names not
+present in the ZIP by basename. The added `unbundledImportTriage` report now
+attributes each external import name to its exact referencing DLL path, and
+classifies **name hints, never verified runtime resolution**:
+
+- **23 Windows OS DLL name hints** (for example `kernel32.dll`, `ws2_32.dll`,
+  `crypt32.dll`): no target Windows path, version, publisher, signature or
+  actual load resolution is asserted.
+- **One PostgreSQL host executable name**, `postgres.exe`: the successful
+  PG18 SQL smoke demonstrates some working database paths, but does not prove
+  all other imports or all DLL loads.
+- **Three unresolved non-bundled components**, with exact consumers:
+  - `libnghttp2-14.dll` ← `bin/libcurl.dll` (not GUI-scoped).
+  - `libicuuc74.dll` ← `bin/postgisgui/libharfbuzz-icu-0.dll`.
+  - `libgailutil-18.dll` ←
+    `bin/postgisgui/lib/gtk-2.0/modules/libgail.dll`.
+
+The last two importers are in `bin/postgisgui/`; this does **not** establish
+that they are safe to omit, or that the entire original bundle is closed.
+Two GUI-area DLLs remain unparsed in the prior PE scan:
+`bin/postgisgui/lib/GNU.Gettext.dll` (non-AMD64 PE) and
+`bin/postgisgui/libgtk-win32-2.0-0.dll` (PE import-name validation failed).
+Additionally, 33 DLL basenames appear at multiple bundle paths; basename
+presence cannot establish Windows loader search-order resolution.
+
+The PR also adds a **finite, same-URL-only HTTP retry** for the original
+nonpublishing inspector after the prior PR CI's transient OSGeo HTTP 525:
+up to three attempts only for 502/503/504/525. It does not retry a 404,
+an invalid redirect, an incomplete ZIP, mismatched hash, or an unsafe path.
+Offline deterministic tests cover success-after-525 and strict DENY cases.
+No alternative origin or softer original-byte acceptance is introduced.
+
+**Remaining concrete acceptance work:** independently inspect the exact
+target Windows + EDB PG18 loader paths and the three missing third-party
+libraries (especially the non-GUI libcurl dependency); validate relevant
+dynamic `LoadLibrary` paths, the GUI exceptions and license/NOTICE
+obligations; then obtain actual producer provenance and independent
+authorized signing. Do not replace missing DLLs, mirror the ZIP, authorize a
+GET or make positive acceptance claims using these triage hints alone.
+`targetWindowsImportResolutionVerified=false` remains mandatory.
+
 First-party provenance references for follow-on manual/audited verification:
 - PostGIS release/source: https://postgis.net/development/source_code/
 - Windows packaging documentation: https://postgis.net/development/docs/environment/windows/

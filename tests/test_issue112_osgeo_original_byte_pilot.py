@@ -1,6 +1,8 @@
 """Offline hostile boundary tests; never reach an external network."""
 import copy
 import io
+import hashlib
+from unittest import mock
 from pathlib import Path
 import struct
 import sys
@@ -96,6 +98,59 @@ class OriginalBytePilotTests(unittest.TestCase):
                 f.write_bytes(fixture(members))
                 with self.assertRaises(ValueError):
                     p.inspect(f)
+
+    def test_transient_525_retry_preserves_exact_source_and_bytes(self):
+        url = "https://download-cache.osgeo.org/postgis/windows/pg18/example.zip"
+        payload = b"original-OSGeo-test-fixture"
+        class Response(io.BytesIO):
+            status = 200
+            headers = {"Content-Length": str(len(payload))}
+            def geturl(self):
+                return url
+        class Opener:
+            def __init__(self):
+                self.urls = []
+            def open(self, request, timeout):
+                self.urls.append(request.full_url)
+                if len(self.urls) <= 2:
+                    raise p.urllib.error.HTTPError(url, 525, "origin failure", {}, None)
+                return Response(payload)
+        opener = Opener()
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(p.time, "sleep"):
+            path = Path(d) / "original.zip"
+            size, sha = p.read_original(url, path, opener=opener)
+            self.assertEqual(opener.urls, [url] * 3)
+            self.assertEqual((size, sha), (len(payload), hashlib.sha256(payload).hexdigest()))
+            self.assertEqual(path.read_bytes(), payload)
+
+    def test_nontransient_404_and_bad_bytes_do_not_retry(self):
+        url = "https://download-cache.osgeo.org/postgis/windows/pg18/example.zip"
+        class NotFound:
+            count = 0
+            def open(self, request, timeout):
+                self.count += 1
+                raise p.urllib.error.HTTPError(url, 404, "not found", {}, None)
+        opener = NotFound()
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(p.urllib.error.HTTPError):
+                p.read_original(url, Path(d) / "zip", opener)
+        self.assertEqual(opener.count, 1)
+
+        class Truncated(io.BytesIO):
+            status = 200
+            headers = {"Content-Length": "9"}
+            def geturl(self):
+                return url
+        class BadBytes:
+            count = 0
+            def open(self, request, timeout):
+                self.count += 1
+                return Truncated(b"x")
+        bad = BadBytes()
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaisesRegex(ValueError, "incomplete original ZIP"):
+                p.read_original(url, Path(d) / "zip", bad)
+        self.assertEqual(bad.count, 1)
 
     def test_no_publishing_actions(self):
         source = Path(p.__file__).read_text("utf-8")

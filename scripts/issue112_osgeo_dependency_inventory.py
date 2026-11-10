@@ -18,6 +18,53 @@ MAX_DLL_BYTES = 64 * 1024 * 1024
 NAME_PATTERN = re.compile(r"[A-Za-z0-9_.+-]{1,255}\.(?:dll|exe)\Z", re.IGNORECASE)
 
 
+# Exact OS DLL-name hints only. No binary path, signature, version, or runtime
+# resolution is established by seeing one of these strings in a PE import table.
+WINDOWS_SYSTEM_NAME_HINTS = frozenset({
+    "advapi32.dll", "bcrypt.dll", "crypt32.dll", "dnsapi.dll",
+    "dwrite.dll", "gdi32.dll", "gdiplus.dll", "imm32.dll",
+    "iphlpapi.dll", "kernel32.dll", "msimg32.dll", "msvcrt.dll",
+    "odbc32.dll", "odbccp32.dll", "ole32.dll", "rpcrt4.dll",
+    "secur32.dll", "shell32.dll", "shlwapi.dll", "user32.dll",
+    "usp10.dll", "wldap32.dll", "ws2_32.dll",
+})
+
+
+def triage_unbundled_imports(records, imports):
+    """Attribute each unbundled import to exact consumers; do not grant closure.
+
+    These are investigation hints, not verified DLL providers. Unknown names
+    always stay unresolved. GUI path grouping never grants permission to omit
+    a component from the original archive or silently accept its dependencies.
+    """
+    requesters = {name: [] for name in imports}
+    for record in records:
+        if record["analysis"] != "AMD64_PE32_PLUS":
+            continue
+        for name in record["notBundledImports"]:
+            if name not in requesters:
+                raise ValueError("Unaccounted external import in PE graph")
+            requesters[name].append(record["path"])
+    report = []
+    for name in sorted(requesters):
+        if name in WINDOWS_SYSTEM_NAME_HINTS:
+            category = "WINDOWS_OS_DLL_NAME_ONLY_UNVERIFIED"
+        elif name == "postgres.exe":
+            category = "POSTGRES_SERVER_HOST_NAME_ONLY_UNVERIFIED"
+        else:
+            category = "UNRESOLVED_NONBUNDLED_COMPONENT"
+        consumers = sorted(set(requesters[name]))
+        if not consumers:
+            raise ValueError("Unbundled import lacks referencing DLL")
+        report.append({
+            "name": name, "category": category, "referencedBy": consumers,
+            "onlyReferencedFromGuiDirectory": all(
+                "/bin/postgisgui/" in "/" + path.lower() for path in consumers),
+            "resolvedOnTargetWindows": False,
+        })
+    return report
+
+
 def u16(data, at):
     if at < 0 or at + 2 > len(data):
         raise ValueError("PE u16 out of bounds")
@@ -150,9 +197,14 @@ def dependency_inventory(archive_path):
         "nonParsed": [x for x in records if x["analysis"] == "NOT_PARSED"],
         "ambiguousBundledNames": {k: v for k, v in sorted(bundled.items()) if len(v) > 1},
         "importsNotInBundle": sorted(all_external),
+        "unbundledImportTriage": triage_unbundled_imports(records, all_external),
+        "unresolvedNonbundledImports": sorted(
+            name for name in all_external
+            if name not in WINDOWS_SYSTEM_NAME_HINTS and name != "postgres.exe"),
         "dllImports": records,
         "staticImportEnumerationCompleted": not any(x["analysis"] == "NOT_PARSED" for x in records),
         "dynamicDependenciesVerified": False,
+        "targetWindowsImportResolutionVerified": False,
         "thirdPartyNoticesVerified": False,
         "sourceToBinaryProvenanceVerified": False,
         "independentSignedAdmission": False,
