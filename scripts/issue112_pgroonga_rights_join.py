@@ -69,6 +69,54 @@ DOC_CANDIDATES = {
     "h3": ("share/groonga/h3/LICENSE", "share/groonga/h3/NOTICE"),
 }
 
+# Official upstream 4.1.0 push/attempt1 Windows jobs, all SUCCESS at the
+# annotated tag's commit. Read-only observations from ORIGINAL job logs,
+# NOT a cryptographic attestation binding each released binary to its producer.
+UPSTREAM_BUILD_COMMIT = "47d0252f76dccbdc2ebeee9ed6cf941dd9552bcc"
+UPSTREAM_WINDOWS_RUN = 37872644159
+UPSTREAM_WINDOWS_JOBS = {
+    14: 113633984915, 15: 113633984767, 16: 113633984557,
+    17: 113633984752, 18: 113633984742,
+}
+XXHASH_MESON_VERSION = "0.8.3"
+XXHASH_SOURCE_ARCHIVE_SHA256_IN_WRAP = (
+    "aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80"
+)
+XXHASH_OFFICIAL_LICENSE_URL = (
+    "https://github.com/Cyan4973/xxHash/blob/v0.8.3/LICENSE"
+)
+
+
+def xxhash_original_build_hint(pg_major, binary_path):
+    """Producer-job observation, strictly not license or byte provenance acceptance."""
+    if binary_path not in PATH_GROUPS["xxhash"]:
+        return None
+    if pg_major not in UPSTREAM_WINDOWS_JOBS:
+        return None  # Unknown majors must not inherit another job's claims.
+    return {
+        "producerCommit": UPSTREAM_BUILD_COMMIT,
+        "producerRunUrl": (
+            f"https://github.com/pgroonga/pgroonga/actions/runs/{UPSTREAM_WINDOWS_RUN}"
+        ),
+        "producerJobUrl": (
+            "https://github.com/pgroonga/pgroonga/actions/runs/"
+            f"{UPSTREAM_WINDOWS_RUN}/job/{UPSTREAM_WINDOWS_JOBS[pg_major]}"
+        ),
+        "officialTaggedMesonWrapUrl": (
+            "https://github.com/pgroonga/pgroonga/blob/"
+            f"{UPSTREAM_BUILD_COMMIT}/subprojects/xxhash.wrap"
+        ),
+        "observedMesonVersion": XXHASH_MESON_VERSION,
+        "originalWrapSourceArchiveSha256": XXHASH_SOURCE_ARCHIVE_SHA256_IN_WRAP,
+        "originalAuthorLicenseCandidateUrl": XXHASH_OFFICIAL_LICENSE_URL,
+        "originalLogLinksAndInstallsBothXxHashBinaries": True,
+        "licenseFilePresentInOriginalTwentyNamedNotices": False,
+        "originalReleaseBinaryToProducerAttestationVerified": False,
+        "licenseNoticeComplete": False,
+        "publicGetAuthorized": False,
+    }
+
+
 PATH_TO_GROUP = {p: g for g, paths in PATH_GROUPS.items() for p in paths}
 assert len(PATH_TO_GROUP) == sum(map(len, PATH_GROUPS.values())) == 43
 assert set(PATH_GROUPS) == set(DOC_CANDIDATES)
@@ -101,6 +149,9 @@ def join_receipts(receipts, *, strict=False):
             ],
             "missingExpectedCandidateDocuments": sorted(
                 set(expected_docs) - set(docs_by_path)
+            ),
+            "officialProducerBuildVersionHint": (
+                xxhash_original_build_hint(receipts["pgMajor"], row["path"])
             ),
             "exactComponentVersionVerified": False,
             "componentLicenseNoticeVerified": False,
