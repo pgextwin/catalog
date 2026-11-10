@@ -81,5 +81,47 @@ class RightsJoinTests(unittest.TestCase):
                 join.join_receipts(receipt(paths, []), strict=True)
 
 
+    def test_exact_official_release_jobs_provide_separate_xxhash_083_build_hints(self):
+        self.assertEqual(set(join.UPSTREAM_WINDOWS_JOBS), {14, 15, 16, 17, 18})
+        self.assertEqual(len(set(join.UPSTREAM_WINDOWS_JOBS.values())), 5)
+        for pg, job in sorted(join.UPSTREAM_WINDOWS_JOBS.items()):
+            for binary in ("bin/libxxhash.dll", "bin/xxhsum.exe"):
+                original = receipt([binary], ["share/groonga/COPYING"])
+                original["pgMajor"] = pg
+                row = join.join_receipts(original)["binaryRightsReviewRows"][0]
+                hint = row["officialProducerBuildVersionHint"]
+                self.assertEqual(hint["observedMesonVersion"], "0.8.3")
+                self.assertIn(f"/job/{job}", hint["producerJobUrl"])
+                self.assertIn(join.UPSTREAM_BUILD_COMMIT, hint["officialTaggedMesonWrapUrl"])
+                self.assertTrue(hint["originalLogLinksAndInstallsBothXxHashBinaries"])
+                self.assertIn("Cyan4973/xxHash/blob/v0.8.3/LICENSE",
+                              hint["originalAuthorLicenseCandidateUrl"])
+                self.assertEqual(row["candidateDocuments"], [])
+                for key in ("licenseFilePresentInOriginalTwentyNamedNotices",
+                            "originalReleaseBinaryToProducerAttestationVerified",
+                            "licenseNoticeComplete", "publicGetAuthorized"):
+                    self.assertIs(hint[key], False)
+                self.assertIs(row["exactComponentVersionVerified"], False)
+                self.assertIs(row["componentLicenseNoticeVerified"], False)
+
+    def test_unknown_and_spoofed_source_never_inherit_xxhash_receipt(self):
+        x = receipt(["bin/libxxhash.dll.bak", "bin/xxhsum.exe.tmp"], [])
+        result = join.join_receipts(x)
+        self.assertTrue(all(row["officialProducerBuildVersionHint"] is None
+                            for row in result["binaryRightsReviewRows"]))
+        x = receipt(["bin/libxxhash.dll"], [])
+        x["pgMajor"] = 19
+        row = join.join_receipts(x)["binaryRightsReviewRows"][0]
+        self.assertIsNone(row["officialProducerBuildVersionHint"])
+        self.assertFalse(join.join_receipts(x)["publicGetAuthorized"])
+
+    def test_other_41_binaries_not_attributed_to_xxhash_source(self):
+        paths = [p for p in join.PATH_TO_GROUP if join.PATH_TO_GROUP[p] != "xxhash"]
+        x = join.join_receipts(receipt(paths, []))
+        self.assertEqual(len(paths), 41)
+        self.assertTrue(all(row["officialProducerBuildVersionHint"] is None
+                            for row in x["binaryRightsReviewRows"]))
+
+
 if __name__ == "__main__":
     unittest.main()
