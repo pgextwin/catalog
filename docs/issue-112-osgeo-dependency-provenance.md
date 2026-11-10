@@ -77,3 +77,40 @@ to the pinned ZIP without separate producer provenance evidence.
 
 This new audit runs only for its own PR changes, with read-only permissions and
 no uploaded ZIP/artifact. It does not rerun a successful SQL or signer workflow.
+
+
+## Exact per-DLL rights and producer intake ledger (nonpublishing)
+
+The original rights-inventory job now derives `dllComponentIntakeReceipts`
+for **every DLL member path** in the original ZIP: its exact member byte size,
+SHA256, and whether the member sits within `bin/postgisgui/`. Even duplicate
+basenames receive distinct rows. The existing original ZIP size/hash, archive
+bounds, safe-path and CRC checks remain mandatory; this ledger is *not* a
+replacement for the independently authenticated original ZIP pin.
+
+Each DLL row explicitly leaves **component identity, license/NOTICE and exact
+source-to-binary provenance unverified**, while the archive-wide
+`allComponentLicensesAndNoticesVerified` flag is false. The three existing
+in-archive licensing files are recorded, but none may be automatically mapped
+to all DLLs or asserted to satisfy an individual component's obligations.
+GUI-directory classification is a **path observation only**, not a claim of
+Windows loader safety or permission to drop a file. Existing tests and
+public GET, mirror, signing and Publisher denials remain unchanged.
+
+Primary-source review starting points, not exact-binary attestations:
+
+- PostGIS licensing index (including different terms for PROJ, GEOS, GDAL,
+  LibXML, SFCGAL/CGAL): https://github.com/postgis/postgis/blob/master/LICENSE.TXT
+- Official Windows packaging sources and build methods:
+  https://postgis.net/development/docs/environment/windows/
+- Nearby OSGeo PG18 installer-source archive listing:
+  https://download-cache.osgeo.org/postgis/windows/source/pg18/
+
+**Remaining for actual acceptance:** match every separately licensed component
+in the pinned DLL receipts to its *exact version*, canonical license and NOTICE
+text, exact source/source-ref, binary producer and build evidence. Inspect the
+actual installer source archive and verify any claimed connection to the **same
+83,320,975-byte ZIP**; directory proximity, timestamps, a matching filename,
+source code alone, or an MD5 listing do not supply a signed provenance link.
+Keep `CANDIDATE_ONLY / GET_DENY / MIRROR_DENY / RELEASE_DENY` until the
+independent legal/provenance/runtime and authentic issuer gates all pass.
