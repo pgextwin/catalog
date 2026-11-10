@@ -1,10 +1,10 @@
 name: Issue112 PGroonga Windows original ZIP qualification
 on:
   pull_request:
-    paths: ['.github/workflows/issue112-pgroonga-originals.yml']
+    paths: ['.github/workflows/issue112-pgroonga-originals.yml', 'scripts/issue112-pgroonga-windows-runtime.ps1']
   push:
     branches: [main]
-    paths: ['.github/workflows/issue112-pgroonga-originals.yml']
+    paths: ['.github/workflows/issue112-pgroonga-originals.yml', 'scripts/issue112-pgroonga-windows-runtime.ps1']
 
 permissions:
   contents: read
@@ -20,31 +20,37 @@ jobs:
           - pg: '14'
             bytes: 53806600
             sha256: 39d2685f234c8b45563f57f113bd8c84cc1ae4e8c0c22e6826bf168ba1c0ab39
+            asc_sha256: 367267907048b5b96e1cfa29c0a1bf59080bda57acc2addd8a48e59a7851a388
           - pg: '15'
             bytes: 53863529
             sha256: fbc73734028b0b2372a6ee6538863999c2f9f06ec9f1be633ac460c7d8a0d4f1
+            asc_sha256: 7f0f117ffe80eb7b52660010fb61f94622f00bfb9716c0b288739aec42def8cc
           - pg: '16'
             bytes: 53751780
             sha256: 40c71f7890e6ceb46f79fdc10e596da21bfb622f7c9d1f8be7784175d96df7e8
+            asc_sha256: f8061a35041aa825f7567d4b9eab17d719a0d1c1e46d6191ee50ad88132e68c4
           - pg: '17'
             bytes: 53836587
             sha256: dcbd356ab8a7c8fc3a3cc7082b4f99a1884b5a68674e25ef4bbe56583c38147b
+            asc_sha256: 91ee97904f09185d7e7f4cd3f3527a52492c75cb51b77c993c23bd21e3b5998b
           - pg: '18'
             bytes: 53826667
             sha256: 3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab
+            asc_sha256: fe9d89b0295d03d37a1c44a5425e1c46721f0b283e50a8ad0cbab0972848e172
     steps:
       - name: Fetch original and check exact size, digest and ZIP contents
         env:
           PG_MAJOR: ${{ matrix.pg }}
           EXPECTED_SIZE: ${{ matrix.bytes }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
+          EXPECTED_ASC_SHA256: ${{ matrix.asc_sha256 }}
           VERSION: '4.1.0'
         shell: bash
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
           file="pgroonga-${VERSION}-postgresql-${PG_MAJOR}-x64.zip"
-          trap 'rm -f -- "$file"' EXIT
+          trap 'rm -f -- "$file" "$file.asc" groonga-archive-keyring.asc trusted-pgroonga-signing-key.gpg signature.status; rm -rf -- "${import_home:-}" "${verify_home:-}"' EXIT
           curl --fail --silent --show-error --location --max-redirs 3 \
             --proto '=https' --proto-redir '=https' --retry 2 --max-time 120 \
             --max-filesize "$EXPECTED_SIZE" --output "$file" \
@@ -67,3 +73,71 @@ jobs:
                   raise ValueError("ZIP CRC mismatch")
               print(f"{sys.argv[1]}: {len(members)} entries, CRC verified")
           PY
+          # Import the official Groonga keyring, then isolate ONLY the
+          # pinned official fingerprint (never trust arbitrary keyservers).
+          curl --fail --silent --show-error --location --max-redirs 3 \
+            --proto '=https' --proto-redir '=https' --retry 2 --max-time 40 \
+            --max-filesize 833 --output "$file.asc" \
+            "https://github.com/pgroonga/pgroonga/releases/download/${VERSION}/$file.asc"
+          test "$(stat -c %s "$file.asc")" = 833
+          echo "$EXPECTED_ASC_SHA256  $file.asc" | sha256sum --check -
+          curl --fail --silent --show-error --location --max-redirs 3 \
+            --proto '=https' --proto-redir '=https' --retry 2 --max-time 40 \
+            --max-filesize 10000 --output groonga-archive-keyring.asc \
+            https://packages.groonga.org/debian/groonga-archive-keyring.asc
+          import_home="$(mktemp -d)"
+          verify_home="$(mktemp -d)"
+          chmod 700 "$import_home" "$verify_home"
+          fingerprint='2701F317CFCCCB975CADE9C2624CF77434839225'
+          gpg --homedir "$import_home" --batch --import groonga-archive-keyring.asc
+          gpg --homedir "$import_home" --batch --with-colons --fingerprint \
+            --list-keys "$fingerprint" |
+            awk -F: '$1 == "fpr" {print $10}' |
+            grep -Fx "$fingerprint"
+          gpg --homedir "$import_home" --batch --export "$fingerprint" \
+            > trusted-pgroonga-signing-key.gpg
+          test -s trusted-pgroonga-signing-key.gpg
+          gpg --homedir "$verify_home" --batch --import trusted-pgroonga-signing-key.gpg
+          gpg --homedir "$verify_home" --batch --status-fd 1 \
+            --verify "$file.asc" "$file" | tee signature.status
+          grep -F '[GNUPG:] VALIDSIG ' signature.status
+          echo "PGROONGA_OFFICIAL_SIGNED_ORIGINAL=PASS PG=$PG_MAJOR TRUST_FINGERPRINT=$fingerprint"
+
+  original-windows-sql:
+    runs-on: windows-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['14', '15', '16', '17', '18']
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact candidate without write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reuse immutable shared PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - name: Install independently pinned EDB Windows PostgreSQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $versions = @{'14'='14.24.0';'15'='15.19.0';'16'='16.15.5';'17'='17.11.4';'18'='18.6.5'}
+          ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $versions[$env:PG_MAJOR] -TestPort 55452
+      - name: Hash original, CREATE EXTENSION and execute indexed search
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: ./scripts/issue112-pgroonga-windows-runtime.ps1 -Major ([int]$env:PG_MAJOR)
+      - name: Explicit nonpublishing outcome
+        if: always()
+        shell: pwsh
+        run: Write-Host 'CANDIDATE_ONLY=YES PUBLIC_GET=DENY NO_ARTIFACT_UPLOAD=YES NO_RELEASE=YES NO_MIRROR=YES'
