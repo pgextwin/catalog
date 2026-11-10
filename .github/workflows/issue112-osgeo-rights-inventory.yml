@@ -1,0 +1,30 @@
+name: Issue112 OSGeo original PostGIS pgRouting rights inventory (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_osgeo_rights_audit.py
+      - tests/test_issue112_osgeo_rights_audit.py
+      - .github/workflows/issue112-osgeo-rights-inventory.yml
+
+permissions:
+  contents: read
+
+jobs:
+  osgeo-original-rights-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile tests without downloading
+        run: python3 -m unittest discover -s tests -p test_issue112_osgeo_rights_audit.py -v
+      - name: Observe original OSGeo license payload and DLL inventory
+        run: python3 scripts/issue112_osgeo_rights_audit.py
+      - name: Confirm inventory never grants public GET or Publisher rights
+        if: always()
+        run: echo 'RIGHTS_INVENTORY_ONLY=YES SIGNED_ADMISSION=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
