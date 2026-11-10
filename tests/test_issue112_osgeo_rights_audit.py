@@ -105,6 +105,12 @@ class RightsAuditTests(unittest.TestCase):
         self.assertFalse(row["componentIdentityVerified"])
         self.assertFalse(row["componentLicenseNoticeVerified"])
 
+    def test_component_prefixed_licenses_are_measured(self):
+        name = audit.ROOT + "ogrfdw_LICENSE.md"
+        build(self.original, extra={name: b"component notice"})
+        rows = audit.audit_archive(self.original)["licenseFiles"]
+        self.assertIn(name, [row["path"] for row in rows])
+
     def test_each_missing_license_denied(self):
         for name in audit.LICENSES:
             build(self.original, missing=name)
