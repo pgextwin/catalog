@@ -1,0 +1,30 @@
+name: Issue112 OSGeo original DLL dependency inventory (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_osgeo_dependency_inventory.py
+      - tests/test_issue112_osgeo_dependency_inventory.py
+      - .github/workflows/issue112-osgeo-dependency-inventory.yml
+
+permissions:
+  contents: read
+
+jobs:
+  original-dll-import-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline bounded PE parser hostile tests
+        run: python3 -m unittest discover -s tests -p test_issue112_osgeo_dependency_inventory.py -v
+      - name: Inspect exact official OSGeo original DLL imports without publishing
+        run: python3 scripts/issue112_osgeo_dependency_inventory.py
+      - name: Assert all publication and mirror gates remain denied
+        if: always()
+        run: echo 'OSGEO_DEPENDENCY_INVENTORY_ONLY=YES PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
