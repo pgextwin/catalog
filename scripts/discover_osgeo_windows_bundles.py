@@ -173,12 +173,88 @@ def scan(root, fetch):
     }
 
 
+
+# The currently supported major fleet; PG19/EOL metadata stays discoverable
+# but is never silently promoted to a supported download.
+LATEST_SUPPORTED_MAJORS = frozenset({"14", "15", "16", "17", "18"})
+
+
+def select_latest_bundles(report, *, single_bundle=False):
+    """Pick current ZIP names only; this is NOT a download or trust decision.
+
+    Each selected ZIP remains explicitly unsigned, unverified and GET_DENY.
+    In single-bundle mode one newest version is selected for a future
+    PostGIS/pgRouting bundle pilot, with NO cross-PG compatibility claim.
+    """
+    if (type(report) is not dict or
+            report.get("schemaVersion") !=
+                "pgextwin-osgeo-postgis-windows-directory-snapshot/v1" or
+            report.get("publicationAuthorized") is not False or
+            report.get("redistributionAuthorized") is not False or
+            type(report.get("candidates")) is not list):
+        raise ValueError("Untrusted OSGeo source snapshot")
+    by_pg = {}
+    for entry in report["candidates"]:
+        if type(entry) is not dict or (
+                entry.get("pgMajor") not in LATEST_SUPPORTED_MAJORS or
+                entry.get("historicalDirectory") is not False or
+                entry.get("artifactKind") != "bundle-zip"):
+            continue
+        filename = entry.get("fileName")
+        parsed = BUNDLE_ZIP.fullmatch(filename) if type(filename) is str else None
+        if parsed is None or normalize_major("pg" + parsed.group(1) + "/") != entry["pgMajor"]:
+            continue
+        if (entry.get("packagedPostgisVersion") != parsed.group(2) or
+                entry.get("downloadAuthorized") is not False or
+                entry.get("mirrorAuthorized") is not False or
+                entry.get("bundleContentsVerified") is not False or
+                entry.get("originalSha256Verified") is not False or
+                entry.get("licensesAndNoticesVerified") is not False or
+                entry.get("dependenciesAndAbiVerified") is not False or
+                entry.get("provenanceVerified") is not False):
+            raise ValueError("OSGeo metadata attempted to escalate trust")
+        parts = tuple(map(int, parsed.group(2).split(".")))
+        candidate = (parts, int(entry["pgMajor"]), entry["sourceRelativePath"])
+        pg = entry["pgMajor"]
+        if pg not in by_pg or candidate > by_pg[pg][0]:
+            by_pg[pg] = (candidate, entry)
+    if not by_pg:
+        raise ValueError("No current supported-major OSGeo ZIP candidates")
+    picks = [x[1] for _, x in sorted(by_pg.items(), key=lambda x: int(x[0]))]
+    if single_bundle:
+        picks = [max(picks, key=lambda x: (
+            tuple(map(int, x["packagedPostgisVersion"].split("."))),
+            int(x["pgMajor"]), x["sourceRelativePath"]))]
+    return {
+        "scope": "UNVERIFIED_METADATA_SELECTION_ONLY",
+        "mode": "single-newest-bundle" if single_bundle else "latest-per-supported-pg",
+        "downloadAuthorized": False,
+        "mirrorAuthorized": False,
+        "selected": [
+            {"pgMajor": e["pgMajor"], "version": e["packagedPostgisVersion"],
+             "fileName": e["fileName"],
+             "sourceRelativePath": e["sourceRelativePath"],
+             "downloadAuthorized": False, "mirrorAuthorized": False}
+            for e in picks
+        ],
+    }
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--index", choices=sorted(BASES), default="osu-mirror")
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--latest-only", action="store_true",
+                   help="Include newest ZIP metadata for each supported PostgreSQL major")
+    p.add_argument("--single-bundle", action="store_true",
+                   help="Include one newest PostGIS/pgRouting bundle candidate (no PG ABI claim)")
     args = p.parse_args()
     report = scan(args.index, lambda directory: fetch_index(args.index, directory))
+    if args.latest_only or args.single_bundle:
+        if args.latest_only and args.single_bundle:
+            p.error("Choose only one metadata-only selection mode")
+        report["latestBundleSelection"] = select_latest_bundles(
+            report, single_bundle=args.single_bundle)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                            encoding="utf-8")
