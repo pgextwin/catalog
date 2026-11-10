@@ -15,7 +15,7 @@ from issue112_osgeo_rights_audit import (NAME, ORIGIN, SHA256, SIZE,
                                          audit_archive, read_original)
 
 MAX_DLL_BYTES = 64 * 1024 * 1024
-NAME_PATTERN = re.compile(r"[A-Za-z0-9_.+-]{1,255}\.dll\Z", re.IGNORECASE)
+NAME_PATTERN = re.compile(r"[A-Za-z0-9_.+-]{1,255}\.(?:dll|exe)\Z", re.IGNORECASE)
 
 
 def u16(data, at):
