@@ -5,6 +5,7 @@ on:
     paths:
       - scripts/issue112_osgeo_rights_audit.py
       - tests/test_issue112_osgeo_rights_audit.py
+      - docs/issue-112-osgeo-dependency-provenance.md
       - .github/workflows/issue112-osgeo-rights-inventory.yml
 
 permissions:

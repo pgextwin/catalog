@@ -47,11 +47,44 @@ def audit_archive(path: Path):
             raise ValueError("PostGIS native DLL absent")
         if not any(name.lower().endswith("/libpgrouting-4.0.dll") for name in compiled):
             raise ValueError("pgRouting native DLL absent")
+    # Every exact DLL receives its own original-member digest; basename or a
+    # bundle-wide LICENSE must never be treated as component rights evidence.
+    # This is a bounded, read-only intake ledger, not an SBOM or an attestation.
+    dll_receipts = []
+    with zipfile.ZipFile(path) as archive:
+        for name in compiled:
+            entry = archive.getinfo(name)
+            if entry.is_dir() or entry.file_size <= 0:
+                raise ValueError("Invalid DLL member in original rights ledger")
+            digest = hashlib.sha256()
+            read = 0
+            with archive.open(entry) as payload:
+                while True:
+                    block = payload.read(1024 * 1024)
+                    if not block:
+                        break
+                    read += len(block)
+                    if read > entry.file_size:
+                        raise ValueError("DLL member exceeded declared size")
+                    digest.update(block)
+            if read != entry.file_size:
+                raise ValueError("Truncated DLL member in rights ledger")
+            dll_receipts.append({
+                "path": name,
+                "bytes": read,
+                "sha256": digest.hexdigest(),
+                "inGuiDirectory": "/bin/postgisgui/" in "/" + name.lower(),
+                "componentIdentityVerified": False,
+                "componentLicenseNoticeVerified": False,
+                "exactSourceToBinaryProvenanceVerified": False,
+            })
     return {
         "schemaVersion": "pgextwin-osgeo-rights-inventory-nonpublishing/v1",
         "source": ORIGIN, "expectedOriginalBytes": SIZE,
         "expectedOriginalSha256": SHA256, "zipMembers": integrity["zipMembers"],
         "dllCount": len(compiled), "licenseFiles": receipts,
+        "dllComponentIntakeReceipts": dll_receipts,
+        "allComponentLicensesAndNoticesVerified": False,
         "technicalWindowsSqlRun": "https://github.com/pgextwin/catalog/actions/runs/42871493748",
         "independentSignedAdmission": False,
         "licenseClosureVerified": False, "dynamicDependenciesVerified": False,
