@@ -2,6 +2,7 @@
 """Malicious-input regression for authentic immutable public GET-only pin checks."""
 import copy
 from datetime import datetime, timedelta, timezone
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -89,6 +90,18 @@ def reviewed_seven_example():
             "downloadAuthorized": True, "mirrorAuthorized": False,
         })
     return doc
+
+
+def latest_pointer(doc, admission_bytes):
+    fields = mod.LATEST_ROW_KEYS
+    rows = [{key: row[key] for key in fields} for row in doc["records"]]
+    rows.sort(key=lambda row: (row["extension"], row["pgMajor"], row["sourceRepo"]))
+    return {
+        "schemaVersion": mod.LATEST_SCHEMA,
+        "issuerRunId": doc["issuerRunId"],
+        "admissionSha256": hashlib.sha256(admission_bytes).hexdigest(),
+        "records": rows,
+    }
 
 class Tests(unittest.TestCase):
     def test_missing_public_pin_is_nonpublishing_noop(self):
@@ -206,6 +219,41 @@ class Tests(unittest.TestCase):
                 with self.assertRaises(mod.Denied):
                     mod.validate_document(bad, "run-1234", now=NOW,
                                           source="qualified_cohort")
+
+    def test_catalog_latest_pointer_binds_complete_signed_release_set(self):
+        doc = qualified_cohort_example()
+        admission = (json.dumps(doc, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        pointer = latest_pointer(doc, admission)
+        with tempfile.TemporaryDirectory() as t:
+            source = Path(t) / "external/signed-direct-get/qualified_cohort"
+            run = source / "run-1234"
+            run.mkdir(parents=True)
+            (run / "external-get-admission.json").write_bytes(admission)
+            (run / "attestation.json").write_bytes(b"x" * 200)
+            (source / "latest.json").write_text(
+                json.dumps(pointer, sort_keys=True) + "\n", encoding="utf-8")
+            self.assertEqual(mod.scan(t, now=NOW, online=False)[0]["status"], "ACTIVE")
+
+            mutations = [
+                lambda p: p["records"][0].update({"releaseTag": "v9.9.9"}),
+                lambda p: p["records"][0].update({"assetId": 1}),
+                lambda p: p["records"][0].update({"originalSha256": "0" * 64}),
+                lambda p: p["records"].pop(),
+                lambda p: p.update({"admissionSha256": "0" * 64}),
+                lambda p: p.update({"issuerRunId": 9999}),
+                lambda p: p.update({"unknown": True}),
+            ]
+            for index, mutate in enumerate(mutations):
+                with self.subTest(mutation=index):
+                    bad = copy.deepcopy(pointer)
+                    mutate(bad)
+                    (source / "latest.json").write_text(
+                        json.dumps(bad, sort_keys=True) + "\n", encoding="utf-8")
+                    with self.assertRaises(mod.Denied):
+                        mod.scan(t, now=NOW, online=False)
+            (source / "latest.json").write_text("[]\n", encoding="utf-8")
+            with self.assertRaises(mod.Denied):
+                mod.scan(t, now=NOW, online=False)
 
     def test_mixed_source_offline_fixture_cannot_pass_online_authentication(self):
         from unittest.mock import patch

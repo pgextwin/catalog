@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
 using PgExtWin.Releases;
 
 internal static class ExternalSignedDirectGetAdmissionTests
@@ -63,6 +64,50 @@ internal static class ExternalSignedDirectGetAdmissionTests
         return Encoding.UTF8.GetBytes(doc.ToJsonString());
     }
 
+    private static byte[] LatestPins(byte[] admission)
+    {
+        using var doc = JsonDocument.Parse(admission);
+        var root = doc.RootElement;
+        var row = root.GetProperty("records")[0];
+        var pins = new[]
+        {
+            new
+            {
+                extension = row.GetProperty("extension").GetString(),
+                pgMajor = row.GetProperty("pgMajor").GetString(),
+                sourceRepo = row.GetProperty("sourceRepo").GetString(),
+                repositoryId = row.GetProperty("repositoryId").GetInt64(),
+                releaseTag = row.GetProperty("releaseTag").GetString(),
+                releaseId = row.GetProperty("releaseId").GetInt64(),
+                assetName = row.GetProperty("assetName").GetString(),
+                assetId = row.GetProperty("assetId").GetInt64(),
+                originalBytes = row.GetProperty("originalBytes").GetInt64(),
+                originalSha256 = row.GetProperty("originalSha256").GetString(),
+                originalProviderUrl = row.GetProperty("originalProviderUrl").GetString()
+            }
+        };
+        return JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            schemaVersion = "pgextwin-external-latest-original-pins/v1",
+            issuerRunId = root.GetProperty("issuerRunId").GetInt64(),
+            admissionSha256 = Convert.ToHexString(SHA256.HashData(admission)).ToLowerInvariant(),
+            records = pins
+        });
+    }
+
+    private static bool LatestBindingDenied(byte[] latest, byte[] admission)
+    {
+        try
+        {
+            ExternalSignedDirectGetAdmission.ValidateLatestBinding(
+                latest, admission, 123456789L);
+            return false;
+        }
+        catch (Exception ex) when (ex is InvalidDataException or
+            JsonException or InvalidOperationException or FormatException)
+        { return true; }
+    }
+
     private static bool ParseDenied(byte[] json, string pg = "18")
     {
         try
@@ -80,22 +125,46 @@ internal static class ExternalSignedDirectGetAdmissionTests
 
     public static async Task RunAsync(Action<bool, string> check)
     {
-        var listing = JsonSerializer.SerializeToUtf8Bytes(new[]
+        var admission = Fixture();
+        var latestPins = LatestPins(admission);
+        check(ExternalSignedCatalogCohort.LatestRunId(latestPins) == 123456789L,
+            "Automatic external GET selects the explicit Catalog latest Run, not the numerically largest archive");
+        ExternalSignedDirectGetAdmission.ValidateLatestBinding(
+            latestPins, admission, 123456789L);
+        check(true, "Catalog latest release identities and exact admission bytes match");
+        foreach (var bad in new byte[][]
         {
-            new { name = "run-42484873648", type = "dir" },
-            new { name = "run-42545790345", type = "dir" },
-            new { name = "not-a-signed-run", type = "file" }
-        });
-        check(ExternalSignedCatalogCohort.LatestRunId(listing) == 42545790345L,
-            "Automatic external GET selects newest Catalog signed cohort archive");
-        bool noCohortDenied = false;
-        try
+            Encoding.UTF8.GetBytes("[]"),
+            Encoding.UTF8.GetBytes("{\"schemaVersion\":\"wrong\"}"),
+        })
         {
-            _ = ExternalSignedCatalogCohort.LatestRunId(
-                Encoding.UTF8.GetBytes("[{\"name\":\"../../bad\",\"type\":\"dir\"}]"));
+            var denied = false;
+            try { _ = ExternalSignedCatalogCohort.LatestRunId(bad); }
+            catch (Exception ex) when (ex is InvalidDataException or JsonException or InvalidOperationException)
+            { denied = true; }
+            check(denied, "Automatic external GET denies an absent or malformed Catalog latest pin set");
         }
-        catch (InvalidDataException) { noCohortDenied = true; }
-        check(noCohortDenied, "Automatic external GET denies absent or unsafe cohort archive");
+
+        var tamperedLatest = JsonNode.Parse(Encoding.UTF8.GetString(latestPins))!;
+        tamperedLatest["records"]![0]!["releaseTag"] = "v0.108.4";
+        check(LatestBindingDenied(Encoding.UTF8.GetBytes(tamperedLatest.ToJsonString()), admission),
+            "New Catalog latest release cannot reuse an older signed authorization");
+        tamperedLatest = JsonNode.Parse(Encoding.UTF8.GetString(latestPins))!;
+        tamperedLatest["admissionSha256"] = new string('0', 64);
+        check(LatestBindingDenied(Encoding.UTF8.GetBytes(tamperedLatest.ToJsonString()), admission),
+            "Catalog latest pointer cannot substitute signed admission bytes");
+        tamperedLatest = JsonNode.Parse(Encoding.UTF8.GetString(latestPins))!;
+        tamperedLatest["issuerRunId"] = 123456788L;
+        check(LatestBindingDenied(Encoding.UTF8.GetBytes(tamperedLatest.ToJsonString()), admission),
+            "Catalog latest pointer Run must match the signed issuer Run");
+        tamperedLatest = JsonNode.Parse(Encoding.UTF8.GetString(latestPins))!;
+        ((JsonArray)tamperedLatest["records"]!).Clear();
+        check(LatestBindingDenied(Encoding.UTF8.GetBytes(tamperedLatest.ToJsonString()), admission),
+            "Catalog latest pointer must cover the entire signed cohort");
+        tamperedLatest = JsonNode.Parse(Encoding.UTF8.GetString(latestPins))!;
+        tamperedLatest["untrustedAuthorization"] = true;
+        check(LatestBindingDenied(Encoding.UTF8.GetBytes(tamperedLatest.ToJsonString()), admission),
+            "Catalog latest pointer rejects unknown authorization fields");
 
         // This is JSON shape validation ONLY. Not signature proof or
         // a positive authorized provider E2E.
