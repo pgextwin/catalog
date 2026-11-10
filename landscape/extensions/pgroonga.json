@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastReviewed": "2026-11-11",
+  "lastReviewed": "2026-11-10",
   "windowsBinarySources": [
     {
       "provider": "PGroonga project (official GitHub Release) / PGroonga公式Release",
@@ -34,7 +34,7 @@
   ],
   "roadmap": {
     "decision": "research",
-    "decisionDate": "2026-11-11",
+    "decisionDate": "2026-11-10",
     "rationale": "Scope expansion under Issue #112, nonpublishing until evidence and independent authorization complete. / Issue #112で取得対象拡大を調査中。必要な審査・正式認可までは非公開。"
   }
 }
