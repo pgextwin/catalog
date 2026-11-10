@@ -1,0 +1,38 @@
+name: Issue112 PGroonga original rights and component inventory (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pgroonga-rights-inventory.yml
+      - scripts/issue112_pgroonga_rights_audit.py
+      - tests/test_issue112_pgroonga_rights_audit.py
+      - docs/issue-112-pgroonga-rights-intake.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-pgroonga-rights-inventory.yml
+      - scripts/issue112_pgroonga_rights_audit.py
+      - tests/test_issue112_pgroonga_rights_audit.py
+      - docs/issue-112-pgroonga-rights-intake.md
+permissions:
+  contents: read
+jobs:
+  original-rights-receipt:
+    name: PG${{ matrix.pg }} pinned originals, licenses and binary members
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [14, 15, 16, 17, 18]
+    steps:
+      - name: Checkout exact revision without write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile regression tests
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_rights_audit.py -v
+      - name: Inventory exact official PGroonga ZIP member rights and binary receipts
+        run: python3 scripts/issue112_pgroonga_rights_audit.py --pg ${{ matrix.pg }}
+      - name: Explicitly deny public authorization
+        if: always()
+        run: echo 'RIGHTS_RECEIPTS_ONLY=YES ORIGINAL_PUBLISHING=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY ZIP_UPLOAD=NONE'
