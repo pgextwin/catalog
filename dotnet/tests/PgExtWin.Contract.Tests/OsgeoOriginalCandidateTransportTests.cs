@@ -101,4 +101,46 @@ internal static class OsgeoOriginalCandidateTransportTests
         }
         finally { Directory.Delete(folder, recursive: true); }
     }
+
+    // Explicit PR-only live original-byte observation. The CLI never invokes it.
+    // A successful HTTPS hash/ZIP check is NOT producer provenance or publication authorization.
+    public static async Task RunLiveOriginalAsync(Action<bool, string> check)
+    {
+        var pin = OsgeoOriginalCandidateTransport.Pinned;
+        var folder = Path.Combine(Path.GetTempPath(),
+            "pgextwin-osgeo-live-nonpublishing-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            using var transport = new OsgeoOriginalCandidateTransport();
+            var receipt = await transport.DownloadAsync(pin, folder);
+            check(receipt.Scope == "CANDIDATE_INTEGRITY_ONLY_NOT_AUTHORIZED",
+                "Real OSGeo transport never grants authority");
+            check(Path.GetFileName(receipt.Path) == pin.AssetName &&
+                  receipt.OriginalBytes == pin.OriginalBytes &&
+                  receipt.OriginalSha256 == pin.OriginalSha256 &&
+                  new FileInfo(receipt.Path).Length == pin.OriginalBytes,
+                "Real OSGeo .NET HTTPS original exact name, size, and receipt");
+            var bytes = await File.ReadAllBytesAsync(receipt.Path);
+            check(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))
+                  == pin.OriginalSha256,
+                "Real OSGeo .NET HTTPS received bytes independently rehashed");
+            using var zip = System.IO.Compression.ZipFile.OpenRead(receipt.Path);
+            check(zip.Entries.Count == 1041,
+                "Real OSGeo .NET transport inspected 1041 original ZIP members");
+            check(zip.Entries.Any(e => e.FullName.EndsWith("/postgis.control",
+                      StringComparison.OrdinalIgnoreCase)) &&
+                  zip.Entries.Any(e => e.FullName.EndsWith("/pgrouting.control",
+                      StringComparison.OrdinalIgnoreCase)),
+                "Real original includes PostGIS and pgRouting controls");
+            Console.WriteLine("OSGEO_DOTNET_LIVE_ORIGINAL=INTEGRITY_PASS " +
+                "BYTES=83320975 SHA256=" + pin.OriginalSha256 +
+                " MEMBERS=1041 RIGHTS=UNVERIFIED PROVENANCE=UNVERIFIED " +
+                "GET_AUTHORIZED=NO MIRROR=DENY RELEASE=DENY");
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
 }
