@@ -1,0 +1,44 @@
+name: Issue112 OSGeo latest PostGIS pgRouting PG18 Windows SQL (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112-osgeo-pg18-windows-runtime.ps1
+      - .github/workflows/issue112-osgeo-pg18-windows-runtime.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112-osgeo-pg18-windows-runtime.ps1
+      - .github/workflows/issue112-osgeo-pg18-windows-runtime.yml
+
+permissions:
+  contents: read
+
+jobs:
+  original-bundle-pg18-native-sql:
+    runs-on: windows-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact candidate with credentials disabled
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reuse immutable shared PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - name: Install disposable EDB PG18 with existing bounded fallback
+        shell: pwsh
+        run: ./build-tools/scripts/install-postgresql.ps1 -Major 18 -ChocolateyPackage postgresql18 -ChocolateyVersion 18.6.5 -TestPort 55449
+      - name: Independently rehash OSGeo original, stage constrained files and execute both SQL functions
+        shell: pwsh
+        run: ./scripts/issue112-osgeo-pg18-windows-runtime.ps1
+      - name: Keep private candidate isolated from public download and Publisher
+        if: always()
+        shell: pwsh
+        run: Write-Host 'CANDIDATE_ONLY=YES NO_ARTIFACT_UPLOAD=YES NO_RELEASE=YES NO_MIRROR=YES PUBLIC_GET=DENY'
