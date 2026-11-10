@@ -95,7 +95,17 @@ try {
         try { $entryHash = [Convert]::ToHexString($md5.ComputeHash($stream)).ToLowerInvariant() }
         finally { $md5.Dispose() }
       } finally { $stream.Dispose() }
-      if ($original -cne $entryHash) { throw "Pre-existing PostgreSQL file collision: $dest" }
+      if ($original -cne $entryHash) {
+        if ($category -eq 'bin') {
+          # Prefer the already installed EDB runtime DLL; do not replace OpenSSL
+          # or any other PostgreSQL dependency with a third-party bundled copy.
+          # The actual CREATE EXTENSION and SQL load below must establish ABI
+          # compatibility; a missing/incompatible DLL fails the runtime gate.
+          Write-Host "PREINSTALLED_PG_DEPENDENCY_KEPT=YES FILE=$($entry.Name)"
+          continue
+        }
+        throw "Pre-existing PostgreSQL file collision: $dest"
+      }
       continue
     }
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($dest)) | Out-Null
