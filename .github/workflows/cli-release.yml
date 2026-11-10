@@ -321,15 +321,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Current published external admission invalid' }
           $root='external/signed-direct-get/qualified_cohort'
           $now=[DateTimeOffset]::UtcNow
-          $live=@(Get-ChildItem $root -Directory | Where-Object {
-            $doc=Get-Content (Join-Path $_.FullName 'external-get-admission.json') -Raw | ConvertFrom-Json
-            ([DateTimeOffset]::Parse($doc.issuedAt) -le $now) -and
-            ($now -lt [DateTimeOffset]::Parse($doc.expiresAt))
-          })
-          if ($live.Count -ne 1) { throw 'Exactly one current signed external cohort required' }
-          $signed=Get-Content (Join-Path $live[0].FullName 'external-get-admission.json') -Raw | ConvertFrom-Json
+          # An older signed Run may still be active, but is never the
+          # current approved latest selection. Bind to the verified pointer.
+          $latest=Get-Content (Join-Path $root 'latest.json') -Raw | ConvertFrom-Json
+          if ($latest.schemaVersion -cne 'pgextwin-external-latest-original-pins/v1' -or
+              [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -ne 11) {
+            throw 'Current signed Catalog latest eleven-pointer is invalid'
+          }
+          $current=Join-Path $root ("run-" + [string]$latest.issuerRunId)
+          $signed=Get-Content (Join-Path $current 'external-get-admission.json') -Raw | ConvertFrom-Json
+          if ([long]$signed.issuerRunId -ne [long]$latest.issuerRunId -or
+              ([DateTimeOffset]::Parse($signed.issuedAt) -gt $now) -or
+              ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))) {
+            throw 'Selected owner-signed latest cohort is not currently authorized'
+          }
           $expected=@($signed.records)
-          if ($expected.Count -cnotin @(5,7)) { throw 'Unsupported signed provider cohort length' }
+          if ($expected.Count -ne 11) { throw 'Signed current original cohort length is not eleven' }
           $exe=Join-Path $env:RUNNER_TEMP 'public-cli/pgextwin.exe'
           $dest=Join-Path $env:RUNNER_TEMP 'public-external-originals'
           New-Item -ItemType Directory -Path $dest | Out-Null
