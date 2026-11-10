@@ -16,7 +16,7 @@ $latestPath=Join-Path $root 'latest.json'
 if (-not (Test-Path -LiteralPath $latestPath -PathType Leaf)) { throw 'Catalog latest original pins absent' }
 $latest=Get-Content -LiteralPath $latestPath -Raw | ConvertFrom-Json
 if ($latest.schemaVersion -cne 'pgextwin-external-latest-original-pins/v1' -or
-    [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -notin @(5,7)) {
+    [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -notin @(5,7,11)) {
     throw 'Catalog latest original pin schema invalid'
 }
 $now=[DateTimeOffset]::UtcNow
