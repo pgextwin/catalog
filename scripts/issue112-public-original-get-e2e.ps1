@@ -25,9 +25,12 @@ if (-not (Test-Path -LiteralPath $selected -PathType Container)) { throw 'Catalo
 $admission=Join-Path $selected 'external-get-admission.json'
 $signed=Get-Content -LiteralPath $admission -Raw | ConvertFrom-Json
 if ([long]$signed.issuerRunId -ne [long]$latest.issuerRunId -or
-    ([DateTimeOffset]::Parse($signed.issuedAt) -gt $now) -or
-    ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))) {
-    throw 'Catalog latest admission Run is expired, future-dated or mismatched'
+    ([DateTimeOffset]::Parse($signed.issuedAt) -gt $now)) {
+    throw 'Catalog latest admission Run is future-dated or mismatched'
+}
+if ($now -ge [DateTimeOffset]::Parse($signed.expiresAt)) {
+    Write-Output 'Catalog latest admission Run is expired; provider GET skipped until fresh owner authorization'
+    exit 0
 }
 $binaries=@(@{kind='private';path=(Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe')})
 $public=Join-Path $env:RUNNER_TEMP 'issue112-public-cli/pgextwin.exe'

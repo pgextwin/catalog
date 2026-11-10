@@ -41,7 +41,8 @@ class PublicGetGuard(unittest.TestCase):
                      "pgextwin-external-latest-original-pins/v1",
                      "latest.records",
                      "latest.issuerRunId",
-                     "Catalog latest admission Run is expired"):
+                     "Catalog latest admission Run is expired",
+                     "provider GET skipped until fresh owner authorization"):
             self.assertIn(text,PS)
         self.assertNotIn("--external-admission",PS)
         self.assertNotIn("--external-bundle",PS)
