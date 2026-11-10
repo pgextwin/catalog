@@ -32,3 +32,17 @@ public Windows CLI real GET and Website E2E remain unfulfilled.
 Do not connect the candidate class to a command, signed feed, issuer or
 publisher without those separately reviewed protected gates. Existing
 `download-all --source external` behavior remains unchanged.
+
+
+## Independent live transport check (PR-only, nonpublishing)
+
+A dedicated, read-only pull-request workflow runs the existing internal .NET
+candidate transport against the **one pinned official HTTPS original**. It
+verifies the returned path, 83,320,975 byte length, independent post-write
+SHA256, 1,041 ZIP entries and both PostGIS/pgRouting controls. No test ZIP is
+uploaded or retained; the runner deletes its temporary copy. The existing
+synthetic tests remain offline by default, and no public CLI path calls this
+transport. This closes only the missing *live .NET receive-and-verify*
+observation if the workflow completes SUCCESS; it does not verify rights,
+NOTICE, installer-source-to-binary provenance, all Windows dynamic dependencies,
+signed issuer authorization, formal publication or Website E2E.

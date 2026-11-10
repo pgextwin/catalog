@@ -94,6 +94,8 @@ await ExternalProviderAssetTransportTests.RunAsync(Check);
 await ExternalOriginalBatchStagerTests.RunAsync(Check);
 ExternalOriginalZipIntegrityTests.Run(Check, Denies);
 await OsgeoOriginalCandidateTransportTests.RunAsync(Check);
+if (Environment.GetEnvironmentVariable("PGEXTWIN_OSGEO_LIVE_ORIGINAL") == "1")
+    await OsgeoOriginalCandidateTransportTests.RunLiveOriginalAsync(Check);
 ExternalOriginalZipBatchTests.Run(Check);
 SyntheticBundleTests.Run(Check);
 WindowsSourceSelectorTests.Run(Check, Denies);
