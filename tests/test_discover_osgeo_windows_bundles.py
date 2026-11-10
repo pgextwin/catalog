@@ -111,6 +111,59 @@ class OsgeoDiscoveryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             s.scan("osu-mirror", lambda d: [] if d == "pg18/archive/" else fake_fetch(d))
 
+    def test_current_latest_bundles_support_per_major_or_one_bundle(self):
+        report = s.scan("osu-mirror", fake_fetch)
+        per_pg = s.select_latest_bundles(report)
+        self.assertEqual(per_pg["mode"], "latest-per-supported-pg")
+        self.assertFalse(per_pg["downloadAuthorized"])
+        self.assertFalse(per_pg["mirrorAuthorized"])
+        self.assertEqual([(x["pgMajor"], x["version"]) for x in per_pg["selected"]],
+                         [("14", "3.6.1"), ("18", "3.6.2")])
+        self.assertTrue(all(not x["downloadAuthorized"] and
+                            not x["mirrorAuthorized"] for x in per_pg["selected"]))
+        single = s.select_latest_bundles(report, single_bundle=True)
+        self.assertEqual(single["mode"], "single-newest-bundle")
+        self.assertEqual(len(single["selected"]), 1)
+        self.assertEqual(single["selected"][0]["pgMajor"], "18")
+        self.assertEqual(single["selected"][0]["version"], "3.6.2")
+
+    def test_bundled_latest_prefers_semver_over_pg_major_and_ignores_archive(self):
+        report = s.scan("osu-mirror", fake_fetch)
+        current = copy.deepcopy(next(c for c in report["candidates"]
+                                     if c["pgMajor"] == "14" and
+                                     not c["historicalDirectory"]))
+        current["fileName"] = "postgis-bundle-pg14-3.7.0x64.zip"
+        current["sourceRelativePath"] = "pg14/" + current["fileName"]
+        current["packagedPostgisVersion"] = "3.7.0"
+        report["candidates"].append(current)
+        single = s.select_latest_bundles(report, single_bundle=True)
+        self.assertEqual(single["selected"][0]["fileName"],
+                         "postgis-bundle-pg14-3.7.0x64.zip")
+        self.assertEqual(single["selected"][0]["pgMajor"], "14")
+
+    def test_latest_selection_rejects_attempted_authority_escalation(self):
+        original = s.scan("osu-mirror", fake_fetch)
+        for field in ("downloadAuthorized", "mirrorAuthorized",
+                      "bundleContentsVerified", "originalSha256Verified",
+                      "licensesAndNoticesVerified", "dependenciesAndAbiVerified",
+                      "provenanceVerified"):
+            with self.subTest(field=field):
+                bad = copy.deepcopy(original)
+                record = next(x for x in bad["candidates"]
+                              if x["artifactKind"] == "bundle-zip" and
+                              not x["historicalDirectory"])
+                record[field] = True
+                with self.assertRaises(ValueError):
+                    s.select_latest_bundles(bad)
+        bad = copy.deepcopy(original)
+        bad["publicationAuthorized"] = True
+        with self.assertRaises(ValueError):
+            s.select_latest_bundles(bad)
+        bad = copy.deepcopy(original)
+        bad["candidates"] = []
+        with self.assertRaises(ValueError):
+            s.select_latest_bundles(bad)
+
     def test_no_binary_transport_or_publication_code(self):
         source = (ROOT / "scripts/discover_osgeo_windows_bundles.py").read_text()
         self.assertNotIn("releases/upload", source)
