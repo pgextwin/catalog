@@ -114,7 +114,7 @@ $pins = @{
             AssetId = 661612406
             AssetName = 'vector.v0.8.7-pg17.zip'
             Bytes = 174653
-            Sha256 = 'acd9d678200e856623f0b7416f6d132ef8606a2273ff37f0fdf8a7f2c5d7d2'
+            Sha256 = 'acd9d678200e856623f0b7416f6f5d132ef8606a2273ff37f0fdf8a7f2c5d7d2'
         }
     )
 }
