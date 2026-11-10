@@ -163,7 +163,11 @@ public static class ExternalSignedDirectGetAdmission
                 pin.AssetName.Contains("-" + requestedVersion + "-pg" + pin.PgMajor + "-", StringComparison.Ordinal) ||
                 pin.AssetName.Contains("-" + requestedVersion + "-pg" + pin.PgMajor + ".", StringComparison.Ordinal) ||
                 pin.AssetName.Contains(".v" + requestedVersion + "-pg" + pin.PgMajor + "-", StringComparison.Ordinal) ||
-                pin.AssetName.Contains(".v" + requestedVersion + "-pg" + pin.PgMajor + ".", StringComparison.Ordinal))
+                pin.AssetName.Contains(".v" + requestedVersion + "-pg" + pin.PgMajor + ".", StringComparison.Ordinal) ||
+                // Official PGroonga uses "-VERSION-postgresql-MAJOR-"; bind
+                // both exact version and major in the *signed* asset filename.
+                pin.AssetName.Contains("-" + requestedVersion + "-postgresql-" + pin.PgMajor + "-", StringComparison.Ordinal) ||
+                pin.AssetName.Contains("-" + requestedVersion + "-postgresql-" + pin.PgMajor + ".", StringComparison.Ordinal))
             .ToList();
         Require(selected.Count > 0, "no signed original matching exact extension, version and PG major");
         return selected;
