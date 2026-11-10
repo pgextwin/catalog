@@ -16,6 +16,7 @@
     "pg_store_plans",
     "pg_variables",
     "pgaudit",
+    "pgroonga",
     "pgrouting",
     "pgtap",
     "pgvector",
