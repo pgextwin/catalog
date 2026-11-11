@@ -20,6 +20,13 @@ permission to download. When two providers offer the same observed version,
 both review candidates remain visible; trust precedence is decided **only**
 by the existing authenticated production selector and independent gates.
 
+Two additional bounded, previously researched original sets are now included:
+PGroonga 4.1.0 official ZIPs and postgresonline.com community http ZIPs.
+Their five-major original SHA256/byte pins are reused from the existing
+PGroonga rights auditor and http Windows research, with no new binary GET,
+download permission, signed admission, or live-upstream-latest assertion.
+For http, the per-major version label is **publisher-advertised and unverified**.
+
 The selector consumes existing `issue112_external_batch_plan.build()`, which
 checks **the complete** GitHub candidate registries, prevents a selected filter
 from hiding a poisoned unselected row and inherits P3 holds. It also reuses
@@ -34,6 +41,8 @@ python scripts/issue112_latest_external_review.py --catalog . --pg all --output 
 python scripts/issue112_latest_external_review.py --catalog . --source osgeo --extension postgis --pg all --output /tmp/issue112-postgis.json
 python scripts/issue112_latest_external_review.py --catalog . --source osgeo --extension pgrouting --pg all --output /tmp/issue112-pgrouting.json
 python scripts/issue112_latest_external_review.py --catalog . --source github --extension hypopg --version 1.4.1 --pg 16 --output /tmp/issue112-hypopg.json
+python scripts/issue112_latest_external_review.py --catalog . --source pgroonga --extension pgroonga --version 4.1.0 --pg all --output /tmp/issue112-pgroonga.json
+python scripts/issue112_latest_external_review.py --catalog . --source http --extension http --version 1.7.1 --pg all --output /tmp/issue112-http.json
 ```
 
 All outputs are create-only JSON, `admittedAssets=0`, with explicit denial
@@ -69,6 +78,24 @@ The five previously pinned, tested original observations are not a live
 latest-release feed. Newer ZIPs require new real-byte, rights, runtime and
 provenance checks. `--version` on this offline review refers to the bundle
 version; bundle-specific versions are not per-component version claims.
+
+## PGroonga and http: five pinned original candidates each, never public GET
+
+- PGroonga 4.1.0 has an original SHA256/size observation for PG14–18 in
+  `issue112_pgroonga_rights_audit.PINS`. Its legal/NOTICE joins, dynamic
+  dependencies and original producer attestation still require independent
+  closure. A reviewed official release version is **not** a live check of the
+  latest upstream release.
+- http uses the community `pg14http_w64.zip` … `pg18http_w64.zip`
+  originals and the exact original SHA256/size observations from
+  `issue112_http_windows_runtime.PINS`. Advertised versions differ by
+  PG major (14: 1.5.0; 15–16: 1.6.1; 17–18: 1.7.1). Treat these as
+  **unverified publisher labels**, not upstream source semver proofs.
+- `--source pgroonga|http`, `--pg`, `--extension` and exact `--version`
+  select candidate review rows only. The SHA/size pins are observational
+  integrity evidence; neither source is admitted into the signed Catalog feed,
+  actual CLI downloads, the Publisher, Releases or Website. All trust flags
+  remain DENY, including when one PG major is omitted or another is selected.
 
 ## Rights and producer admission blockers (remain real)
 
