@@ -1,7 +1,7 @@
 {
   "schemaVersion": "pgextwin-cli-external-get-formal-publisher/v2",
   "publishAuthorized": true,
-  "approvedVersion": "0.3.13",
+  "approvedVersion": "0.3.14",
   "environmentName": "cli-external-get-publisher",
   "environmentId": 26611532853,
   "ownerLogin": "ShutenOishi",
