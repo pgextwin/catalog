@@ -142,6 +142,28 @@ internal static class BatchDownloadTests
                       receipt.RootElement.GetProperty("packages").GetArrayLength() == 85 &&
                       !receipt.RootElement.GetProperty("signatureVerified").GetBoolean(),
                       "Original signed-Catalog fleet 17 x PG14-18 stages 85 integrity-only ZIPs");
+            // The signed-feed cohort excludes historical PG14 while local
+            // pinned --fixed remains eligible to download the original PG14 ZIP.
+            var currentParent = Path.Combine(root, "pg15-18-signed-feed");
+            Directory.CreateDirectory(currentParent);
+            var currentPins = new[] { "15", "16", "17", "18" }
+                .Select(pg => Pin("pg_cron", pg)).ToArray();
+            var currentBatch = await BatchReleaseDownloader.StageAsync(
+                currentPins, "all", currentParent, Download,
+                approvedMajors: ["15", "16", "17", "18"]);
+            check(currentBatch.Count == 4 &&
+                  !Directory.Exists(Path.Combine(currentBatch.Directory, "pg14")) &&
+                  File.Exists(Path.Combine(currentBatch.Directory, "pg18", currentPins[^1].AssetName)),
+                "signed PG15-18 cohort selects four ZIPs, never PG14");
+            var eolDenied = false;
+            try
+            {
+                await BatchReleaseDownloader.StageAsync(
+                    new[] { Pin("pg_cron", "14") }, "14", currentParent, Download,
+                    approvedMajors: ["15", "16", "17", "18"]);
+            }
+            catch (InvalidDataException) { eolDenied = true; }
+            check(eolDenied, "PG14 denied by signed cohort even though historical pin exists");
             // An 18th extension joins only through the signed Catalog intake.
             // This adapter does not independently promote its Release or signature.
             var expandedRoot = Path.Combine(root, "signed-fleet-18");
