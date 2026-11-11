@@ -23,9 +23,11 @@ public static class AuthenticatedCatalogHead
     public sealed class Session : IDisposable
     {
         public string Commit { get; }
+        public IReadOnlyList<string> ApprovedMajors { get; }
         public string Root { get; }
         public string CatalogPath => Path.Combine(Root, "catalog");
-        internal Session(string root, string commit) { Root = root; Commit = commit; }
+        internal Session(string root, string commit, IReadOnlyList<string> majors)
+        { Root = root; Commit = commit; ApprovedMajors = majors; }
         public void Dispose()
         {
             if (Directory.Exists(Root)) Directory.Delete(Root, recursive: true);
@@ -104,10 +106,17 @@ public static class AuthenticatedCatalogHead
         }
 
         var stage = Path.Combine(parent, ".pgextwin-latest-" + Guid.NewGuid().ToString("N"));
-        var session = new Session(stage, commit);
+        var cohortBytes = await ReadAsync(http, ImmutableUrl(commit, "config/cli-feed-majors.json"),
+            cancellationToken);
+        var majors = ParseCohort(cohortBytes);
+        var session = new Session(stage, commit, majors);
         Directory.CreateDirectory(session.CatalogPath);
         try
         {
+            Directory.CreateDirectory(Path.Combine(session.CatalogPath, "config"));
+            await File.WriteAllBytesAsync(
+                Path.Combine(session.CatalogPath, "config", "cli-feed-majors.json"),
+                cohortBytes, cancellationToken);
             var index = await ReadAsync(http, ImmutableUrl(commit, "index.json"), cancellationToken);
             using var parsed = StrictJson.Parse(index);
             var arr = parsed.RootElement.GetProperty("extensions");
@@ -133,14 +142,41 @@ public static class AuthenticatedCatalogHead
                     data, cancellationToken);
             }
             var entries = CatalogReader.LoadLocal(session.CatalogPath);
-            if (entries.Count != names.Length || entries.Any(x => x.Versions.Count != 5))
-                throw new InvalidDataException("Catalog latest contains incomplete PG14-18 rows");
+            if (entries.Count != names.Length || entries.Any(x =>
+                majors.Any(major => !x.Versions.Any(version => version.Major == major)) ||
+                x.Versions.Any(version =>
+                    !majors.Contains(version.Major, StringComparer.Ordinal) &&
+                    int.Parse(version.Major) >= int.Parse(majors[0]))))
+                throw new InvalidDataException("Catalog latest missing approved cohort");
             // Fail closed on concurrent publication or head replacement.
             if (await HeadAsync() != commit)
                 throw new InvalidDataException("Catalog head changed while downloading");
             return session;
         }
         catch { session.Dispose(); throw; }
+    }
+
+    private static string[] ParseCohort(byte[] payload)
+    {
+        // Protected-main cohort, authenticated with the signed merge and
+        // exact-head Validate. This is NOT independent Sigstore feed validation.
+        using var doc = StrictJson.Parse(payload);
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object ||
+            root.EnumerateObject().Count() != 2 ||
+            root.GetProperty("schemaVersion").GetInt32() != 1)
+            throw new InvalidDataException("Invalid protected Catalog PG cohort policy");
+        var values = root.GetProperty("postgresqlMajors");
+        if (values.ValueKind != JsonValueKind.Array || values.GetArrayLength() is < 1 or > 12)
+            throw new InvalidDataException("Invalid protected PG cohort length");
+        var majors = values.EnumerateArray().Select(x =>
+            x.ValueKind == JsonValueKind.String ? x.GetString() ?? "" : "").ToArray();
+        if (majors.Any(x => !Regex.IsMatch(x, @"\A[1-9][0-9]*\z") ||
+                            !int.TryParse(x, out var n) || n < 14 || n > 32) ||
+            !majors.SequenceEqual(Enumerable.Range(int.Parse(majors[0]), majors.Length)
+                  .Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture))))
+            throw new InvalidDataException("Noncontiguous or unsupported protected PG cohort");
+        return majors;
     }
 
     private static Uri ImmutableUrl(string sha, string path) =>
@@ -154,7 +190,7 @@ public static class AuthenticatedCatalogHead
             !(url.Host == "api.github.com" &&
               url.AbsolutePath.StartsWith("/repos/pgextwin/catalog/", StringComparison.Ordinal) ||
               url.Host == "raw.githubusercontent.com" &&
-              Regex.IsMatch(url.AbsolutePath, @"\A/pgextwin/catalog/[0-9a-f]{40}/(index\.json|extensions/[a-z][a-z0-9_]*\.json)\z")))
+              Regex.IsMatch(url.AbsolutePath, @"\A/pgextwin/catalog/[0-9a-f]{40}/(index\.json|config/cli-feed-majors\.json|extensions/[a-z][a-z0-9_]*\.json)\z")))
             throw new InvalidDataException("Unapproved Catalog HTTPS request");
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.ParseAdd("application/vnd.github+json");

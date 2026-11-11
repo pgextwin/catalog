@@ -206,8 +206,10 @@ public static class SignedPublicCatalogFeed
                 progress?.Invoke($"CATALOG_RECORD_VERIFIED path={path} bytes={bytes.Length}");
             }
             var loaded = CatalogReader.LoadLocal(catalogue);
-            if (loaded.Count != expectedCount || loaded.Any(x => x.Versions.Count != majors.Length ||
-                                  !x.Versions.Select(v => v.Major).SequenceEqual(majors)) ||
+            if (loaded.Count != expectedCount || loaded.Any(x =>
+                    majors.Any(major => !x.Versions.Any(v => v.Major == major)) ||
+                    x.Versions.Any(v => !majors.Contains(v.Major, StringComparer.Ordinal) &&
+                        int.Parse(v.Major) >= int.Parse(majors[0]))) ||
                 !loaded.Select(x => x.Name).SequenceEqual(
                     names.Order(StringComparer.Ordinal)))
                 throw new InvalidDataException("Signed Catalog fleet is incomplete");
