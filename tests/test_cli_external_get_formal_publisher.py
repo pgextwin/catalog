@@ -43,6 +43,8 @@ class FormalPublisher(unittest.TestCase):
         version = "0.3.14"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
+        with self.assertRaises(MOD.Denied):
+            MOD.eligible(policy, "0.3.13")  # Previously published version cannot be reauthorized.
         self.assertEqual(len(policy["approvedSources"]), 11)
         for major in ("14", "15", "16", "17", "18"):
             self.assertIn(
