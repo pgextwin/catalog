@@ -74,6 +74,10 @@ class DiscoveryTests(unittest.TestCase):
         portal = PROVIDERS[-1]
         with self.assertRaises(ValueError):
             d.summarize_pages(portal, [[sample()]])
+        self.assertEqual(20, d.PAGE_SIZE)
+        with self.assertRaises(ValueError):
+            d.summarize_pages(portal, [[sample() for _ in
+                                        range(d.PAGE_SIZE + 1)], []])
         with self.assertRaises(ValueError):
             d.summarize_pages(portal, [[sample()], [sample()], []])
 
