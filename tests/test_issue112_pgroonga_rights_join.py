@@ -29,10 +29,11 @@ class RightsJoinTests(unittest.TestCase):
     def test_each_observed_binary_retains_hash_and_never_authorizes(self):
         paths = sorted(join.PATH_TO_GROUP)
         docs = sorted({d for group in join.DOC_CANDIDATES.values() for d in group})
-        docs += [f"share/other/{i}/LICENSE" for i in range(24 - len(docs))]
+        docs.append(join.MRUBY_LEGAL_PATH)
+        docs += [f"share/other/{i}/LICENSE" for i in range(25 - len(docs))]
         evidence = join.join_receipts(receipt(paths, docs), strict=True)
         self.assertEqual(evidence["binaryCount"], 43)
-        self.assertEqual(evidence["documentCount"], 24)
+        self.assertEqual(evidence["documentCount"], 25)
         self.assertEqual(evidence["pathIdentityCoverage"], 43)
         for original, mapped in zip(sorted(receipt(paths, docs)["binaryMemberReceipts"], key=lambda x:x["path"]), evidence["binaryRightsReviewRows"]):
             self.assertEqual(original["sha256"], mapped["sha256"])
@@ -44,7 +45,13 @@ class RightsJoinTests(unittest.TestCase):
                      "publicGetAuthorized", "mirrorAuthorized", "publisherAuthorized"):
             self.assertIs(evidence[flag], False)
         self.assertEqual(evidence["binaryWithoutNamedDocumentCandidateCount"], 2)
-        self.assertEqual(len(evidence["documentsNotLinkedByBinaryNameTriage"]), 12)
+        self.assertEqual(len(evidence["documentsNotLinkedByBinaryNameTriage"]), 13)
+
+    def test_matching_count_cannot_replace_mruby_legal_with_unrelated_document(self):
+        paths = sorted(join.PATH_TO_GROUP)
+        docs = [f"share/other/{i}/LICENSE" for i in range(25)]
+        with self.assertRaises(ValueError):
+            join.join_receipts(receipt(paths, docs), strict=True)
 
     def test_mecab_copying_alone_does_not_supply_referenced_license_bodies(self):
         x = join.join_receipts(receipt(["bin/libmecab.dll"],

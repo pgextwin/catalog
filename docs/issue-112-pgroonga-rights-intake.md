@@ -31,3 +31,48 @@ Official primary-source references:
 - Only **after** independent rights, dependencies, provenance and provider-get acceptance, use a new authentic owner event, protected main, fresh qualified-cohort issuer, required Environment approval and independent Sigstore verification; create-only formal publisher and CLI E2E are separate gates.
 
 Outcome here: **CANDIDATE_ONLY**, `PUBLIC_GET=DENY`, `MIRROR=DENY`, `RELEASE=DENY`. Existing CLI v0.3.13's earlier PUBLIC_COMPLETE scope remains unchanged. OSGeo remains an independent CANDIDATE_ONLY investigation.
+
+## MRuby generated LEGAL correction (2026-11-11)
+
+The 24-document legal-name inventory was incomplete: the exact PG18 original
+also contains `share/groonga/mruby/LEGAL`, 3,502 bytes, SHA256
+`020dcd4ec1ee0826cb5cb4ee61f6dacb5a7786a9ff4e27335bf0e4c51dc47b56`.
+It starts with an MIT text and declares **31 gems**, including 26 core gems
+and five additional gems. The auditor now hashes LEGAL and emits bounded,
+document-hash-linked `embeddedGemLicenseClaims`. Duplicate, malformed,
+non-UTF-8, empty and oversized LEGAL inputs fail. License labels and generated
+copyright claims do not establish complete original terms or binary provenance.
+
+| Original LEGAL gem | Original declared license | Fixed candidate source |
+| --- | --- | --- |
+| mruby-dir | MIT and MIT-like license | MRuby core; separate notice review required |
+| mruby-pp | BSD-2-Clause | [kou/mruby-pp@a208b14886e664785b4722dc076e4d33f2fbd1e9](https://github.com/kou/mruby-pp/tree/a208b14886e664785b4722dc076e4d33f2fbd1e9) |
+| mruby-tsort | BSD-2-Clause | [kou/mruby-tsort@29e87327387c9c878b05cb259c91b74ac73ea997](https://github.com/kou/mruby-tsort/tree/29e87327387c9c878b05cb259c91b74ac73ea997) |
+| mruby-slop | MIT | [kou/mruby-slop@38f4795712c8f92e4c9412b5fc81646b3972b12a](https://github.com/kou/mruby-slop/tree/38f4795712c8f92e4c9412b5fc81646b3972b12a) |
+| mruby-file-stat | MIT | [ksss/mruby-file-stat@7d0e63a95a38b34c635b708874ec624c7c860507](https://github.com/ksss/mruby-file-stat/tree/7d0e63a95a38b34c635b708874ec624c7c860507) |
+| mruby-onig-regexp | MIT | [mattn/mruby-onig-regexp@4962d7eb42de079f6b3faec4b40560eb2941eeec](https://github.com/mattn/mruby-onig-regexp/tree/4962d7eb42de079f6b3faec4b40560eb2941eeec) |
+
+The fixed Groonga **source-review candidate** `9085dd417e5cd42cd8f1a367aaf24cfe45dd9f1f`
+has gitlinks for those five repositories. Its `vendor/mruby/build_config.rb`
+declares exactly the 31 gem names observed in the original LEGAL, and its CMake
+installs LEGAL separately from MRuby LICENSE. Each of the five pinned gem specs
+declares the same license label as LEGAL. All **16 retrieved source files**
+independently match their Git blob SHA1; byte lengths and SHA256 are recorded in
+[source comparison receipts](../evidence/issue112-pgroonga-mruby-source-review.json).
+This is **not** proof of the historical mutable `groonga-latest.zip` contents.
+
+The pp/tsort source LICENSE files contain BSD conditions and original copyright
+holders that must not be replaced by generated 2026 author lines. The slop source
+LICENSE also has its own historical attribution. None of those three *whole
+source license texts* matches a bounded nonbinary original member even after
+newline normalization; this comparison does not exclude equivalent terms
+embedded inside another member. file-stat's fixed README points to mutable
+Ruby `trunk/file.c`, so its MIT spec alone does not settle inherited source
+terms. onig-regexp's README separately mentions Onigmo's terms.
+
+Local exact PG18 inventory: **43 binaries / 25 legal documents / 31 gem claims**;
+strict joins pass, with 13 documents outside direct binary-name triage. Other PG
+majors require their own scoped CI evidence. Source-to-binary binding, all
+applicable notice delivery (including xxHash), NAIST and remaining static/header
+terms, formal admission and public GET remain unfulfilled. No original ZIP or
+third-party source/license text is mirrored by this change.
