@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "extensions": [
+    "http",
     "hypopg",
     "oracle_fdw",
     "orafce",

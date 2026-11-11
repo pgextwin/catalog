@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-11-11",
+  "windowsBinarySources": [
+    {
+      "provider": "Postgres OnLine Journal / PostgreSQL Windows community ZIPs",
+      "type": "community",
+      "url": "https://www.postgresonline.com/article_pfriendly/371.html",
+      "availability": "public",
+      "postgresqlDistribution": "standard-postgresql",
+      "compatibility": "manual-verification-required",
+      "notes": "Five distinct Windows x64 ZIP links for EDB PostgreSQL PG14–18. Source article lists PG14=http 1.5.0, PG15/16=1.6.1, PG17/18=1.7.1; the upstream project's newer 1.7.2 source release is NOT present in these Windows ZIP version claims. DLLs may rely on libcurl, PCRE and EDB ssleasy.dll. ZIP bytes, licensing, source provenance and runtime compatibility are not verified. pgextwin public GET is NOT authorized. / PG14〜18向けの個別ZIPを確認したが、権利・来歴・実動作・公開取得は未認可。"
+    }
+  ],
+  "name": "http",
+  "displayName": "pgsql-http",
+  "description": "HTTP client extension for PostgreSQL / PostgreSQLからHTTPリクエストを実行する拡張",
+  "upstreamRepository": "pramsey/pgsql-http",
+  "status": "candidate",
+  "license": "Upstream source repository: MIT; binary ZIP dependency licenses and bundled NOTICE not verified",
+  "currentStableVersion": "1.7.2",
+  "pg18Support": "supported",
+  "pg19Readiness": "unknown",
+  "windowsUpstreamSupport": "unknown",
+  "knownWindowsBinaryAvailability": "public",
+  "estimatedWindowsEffort": "high",
+  "preliminaryPriority": "medium",
+  "candidateRationale": "Independent community publisher lists exactly one Windows x64 ZIP for each PG14–18, with per-PG versions older than upstream 1.7.2. Current direct-provider GET admission supports authenticated GitHub Release assets only; these ZIPs are on an external HTTPS origin and cannot be admitted via that path. Before any pgextwin GET: establish independent original ZIP sizes/SHA256, exact component/ABI versions, MIT + third-party libcurl/PCRE/SSL license/NOTICE and loader closure, signed source-to-binary provenance and a reviewed origin-specific fail-closed transport/admission. DISCOVERY_ONLY: no public pgextwin CLI download of http ZIPs, mirror or Release is authorized. / PG14〜18の配布元のみ確認済み。GitHub Release以外の配布元は別の正式審査・認可が必要。",
+  "evidenceUrls": [
+    "https://www.postgresonline.com/article_pfriendly/371.html",
+    "https://github.com/pramsey/pgsql-http/releases/tag/v1.7.2",
+    "https://github.com/pramsey/pgsql-http"
+  ],
+  "roadmap": {
+    "decision": "research",
+    "decisionDate": "2026-11-11",
+    "rationale": "Issue #112 per-PostgreSQL-major Windows binary expansion; metadata-only research candidate, outside current GitHub-only signed GET admission. / 外部配布元の追加調査。未認可のまま保持。"
+  }
+}
