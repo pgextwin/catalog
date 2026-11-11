@@ -8,6 +8,7 @@ on:
     paths:
       - external/discovery-providers-v1.json
       - external/pgroonga-release-watch-baseline-v1.json
+      - external/timescaledb-release-watch-baseline-v1.json
       - external/windows-candidates-portalcorp-v1.json
       - scripts/discover_external_windows_releases.py
       - scripts/external_new_stable_watch.py
@@ -20,6 +21,7 @@ on:
     paths:
       - external/discovery-providers-v1.json
       - external/pgroonga-release-watch-baseline-v1.json
+      - external/timescaledb-release-watch-baseline-v1.json
       - scripts/discover_external_windows_releases.py
       - scripts/external_new_stable_watch.py
       - tests/test_external_new_stable_watch.py

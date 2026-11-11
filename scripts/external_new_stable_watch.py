@@ -129,6 +129,7 @@ def analyze(inventory, provider_config, known):
 
 # Official GitHub Release metadata baseline, not an issuer or download permission.
 PGROONGA_WATCH_BASELINE = ROOT / "external/pgroonga-release-watch-baseline-v1.json"
+TIMESCALEDB_WATCH_BASELINE = ROOT / "external/timescaledb-release-watch-baseline-v1.json"
 
 
 def unique_json_pairs(pairs):
@@ -209,6 +210,69 @@ def reviewed_pgroonga_baseline(document, inventory):
     return {(document["releaseTag"], row["assetId"]) for row in records}
 
 
+
+def reviewed_timescaledb_baseline(document, inventory):
+    """Monitor exact GitHub API identities, NOT independently rehashed ZIP bytes."""
+    if (type(document) is not dict or set(document) != {
+            "schemaVersion", "trust", "sourceRepo", "releaseTag", "releaseId",
+            "downloadAuthorized", "publicationAuthorized",
+            "redistributionAuthorized", "records"}
+            or document["schemaVersion"] !=
+            "pgextwin-issue112-timescaledb-official-release-watch-baseline/v1"
+            or document["trust"] != "UNVERIFIED_API_DIGEST_NEVER_AUTHORIZE"
+            or document["sourceRepo"] != "timescale/timescaledb"
+            or document["releaseTag"] != "2.31.0"
+            or type(document["releaseId"]) is not int
+            or document["releaseId"] <= 0
+            or any(document[flag] is not False for flag in (
+                "downloadAuthorized", "publicationAuthorized",
+                "redistributionAuthorized"))):
+        raise ValueError("Invalid TimescaleDB read-only baseline")
+    records = document["records"]
+    if type(records) is not list or len(records) != 3:
+        raise ValueError("Incomplete TimescaleDB baseline")
+    expected = {}
+    for row in records:
+        if type(row) is not dict or set(row) != {
+                "pgMajor", "assetId", "assetName", "apiBytes", "apiSha256"}:
+            raise ValueError("Malformed TimescaleDB asset")
+        major = row["pgMajor"]
+        if (type(major) is not str or major not in ("16", "17", "18")
+                or major in expected or type(row["assetId"]) is not int
+                or row["assetId"] <= 0
+                or row["assetName"] !=
+                f"timescaledb-postgresql-{major}-windows-amd64.zip"
+                or type(row["apiBytes"]) is not int or row["apiBytes"] <= 0
+                or type(row["apiSha256"]) is not str
+                or re.fullmatch(r"[0-9a-f]{64}", row["apiSha256"]) is None):
+            raise ValueError("Unsafe TimescaleDB API asset")
+        expected[major] = row
+    if set(expected) != {"16", "17", "18"} or len({
+            row["assetId"] for row in records}) != 3:
+        raise ValueError("Duplicate or missing TimescaleDB asset ID")
+    providers = [r for r in inventory.get("repositories", [])
+                 if r.get("repo", "").lower() == "timescale/timescaledb"]
+    if len(providers) != 1:
+        raise ValueError("TimescaleDB discovery source missing or duplicated")
+    releases = [r for r in providers[0]["releases"]
+                if r["releaseId"] == document["releaseId"]]
+    if (len(releases) != 1 or releases[0]["tag"] != document["releaseTag"]
+            or releases[0]["draft"] is not False
+            or releases[0]["prerelease"] is not False):
+        raise ValueError("TimescaleDB Release identity drift")
+    assets = {a["assetId"]: a for a in releases[0]["windowsAssets"]}
+    if len(assets) != len(records):
+        raise ValueError("TimescaleDB baseline asset set changed")
+    for row in records:
+        live = assets.get(row["assetId"])
+        if (live is None or live.get("name") != row["assetName"]
+                or live.get("size") != row["apiBytes"]
+                or live.get("digest") != "sha256:" + row["apiSha256"]
+                or live.get("state") != "uploaded"):
+            raise ValueError("TimescaleDB GitHub API asset drift")
+    return {(document["releaseTag"], row["assetId"]) for row in records}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True, type=Path)
@@ -228,6 +292,10 @@ def main():
                           object_pairs_hook=unique_json_pairs)
     known.setdefault("pgroonga/pgroonga", set()).update(
         reviewed_pgroonga_baseline(baseline, inventory))
+    timescale = json.loads(TIMESCALEDB_WATCH_BASELINE.read_text(encoding="utf-8"),
+                           object_pairs_hook=unique_json_pairs)
+    known.setdefault("timescale/timescaledb", set()).update(
+        reviewed_timescaledb_baseline(timescale, inventory))
     report = analyze(inventory, providers, known)
     if args.output.exists() or args.output.is_symlink():
         raise ValueError("Refuse overwrite of prior discovery output")
