@@ -17,7 +17,14 @@ PINS = {
     18: (53826667, "3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab"),
 }
 VERSION = "4.1.0"
-DOC_PATTERN = re.compile(r"(?:^|[._-])(?:licen[cs]e|notice|copying|copyright)(?:$|[._-])", re.I)
+# MeCab COPYING references BSD/GPL/LGPL; groonga-log installs lgpl-2.1.txt.
+# Their complete license bodies must not disappear from the review inventory
+# merely because their basenames lack the word LICENSE. This is discovery,
+# never a license election or component/source-to-binary acceptance.
+DOC_PATTERN = re.compile(
+    r"(?:^|[._-])(?:licen[cs]e|notice|copying|copyright|bsd|(?:a|l)?gpl)(?:$|[._-])",
+    re.I,
+)
 MAX_LICENSE = 512 * 1024
 MAX_BIN = 64 * 1024 * 1024
 
@@ -69,8 +76,8 @@ def audit_members(path, major, *, require_pin=True):
             if expanded > 1024 ** 3:
                 raise ValueError("ZIP expanded size cap exceeded")
             p = PurePosixPath(name)
-            doc = bool(DOC_PATTERN.search(p.name))
             binary = p.suffix.lower() in (".dll", ".exe")
+            doc = not binary and bool(DOC_PATTERN.search(p.name))
             if not doc and not binary:
                 continue
             limit = MAX_LICENSE if doc else MAX_BIN
