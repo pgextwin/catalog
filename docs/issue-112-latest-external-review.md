@@ -162,3 +162,34 @@ and dependency admission. No provider binary GET, additional schedule, new
 privilege, release, signed feed, public CLI or Website change is added.
 All new assets remain CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY /
 RELEASE_DENY / PUBLISH_DENY.
+
+## TimescaleDB PG16–18 observed latest selector (metadata-only, 2026-11-12)
+
+The offline review planner now consumes the **existing**, strict
+`external/timescaledb-release-watch-baseline-v1.json` instead of inventing
+a parallel source inventory. It selects exactly three officially observed
+`2.31.0` Windows ZIP *metadata* records (PG16, PG17, PG18). No binary is
+downloaded. PG14/15 are not inferred or fabricated.
+
+```bash
+python scripts/issue112_latest_external_review.py --catalog . --source timescaledb --pg all --output /tmp/issue112-timescaledb.json
+python scripts/issue112_latest_external_review.py --catalog . --source timescaledb --extension timescaledb --version 2.31.0 --pg 17 --output /tmp/issue112-timescaledb-pg17.json
+```
+
+The planner independently rejects duplicate-key or permission-elevated
+baseline JSON, missing/duplicate PG majors or asset IDs, noncanonical
+names, inconsistent schemas and invalid digest *metadata*, even if a
+different `--source` is selected. Output rows carry the original provider's
+**API-observed** sizes and digests in `apiObservedBytes` and
+`apiObservedSha256`. The independent original-byte fields
+`originalBytes`/`originalSha256` stay `null` deliberately.
+
+This adds TimescaleDB to the shared review selection, **not** to the
+production authenticated CLI download feed. The genuine daily watcher
+independently checks live source metadata; the offline planner does not.
+Package rights, notices, dependency closure, producer provenance,
+Windows runtime, signed admission and formal publication remain unapproved.
+Every row stays `PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY /
+PUBLISH_DENY` and `admittedAssets=0`. No renewed owner signature,
+Environment review, publisher, CLI Release, Catalog signed feed or Website
+download has been produced.
