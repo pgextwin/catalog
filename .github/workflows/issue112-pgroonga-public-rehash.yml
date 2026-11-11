@@ -1,0 +1,38 @@
+name: Issue112 PGroonga independent public Release byte receipts (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pgroonga-public-rehash.yml
+      - scripts/issue112_pgroonga_independent_rehash.py
+      - tests/test_issue112_pgroonga_independent_rehash.py
+      - docs/issue-112-pgroonga-public-rehash-and-xxhash-notice.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-pgroonga-public-rehash.yml
+      - scripts/issue112_pgroonga_independent_rehash.py
+      - tests/test_issue112_pgroonga_independent_rehash.py
+      - docs/issue-112-pgroonga-public-rehash-and-xxhash-notice.md
+permissions:
+  contents: read
+jobs:
+  original-release-byte-rehash:
+    name: Independent official public bytes ${{ matrix.asset }} (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        asset: ["source", "14", "15", "16", "17", "18"]
+    steps:
+      - name: Checkout without write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile size/SHA256 tests
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_independent_rehash.py -v
+      - name: Independently GET and SHA256 rehash actual official Release bytes
+        run: python3 scripts/issue112_pgroonga_independent_rehash.py --asset ${{ matrix.asset }}
+      - name: Never issue formal public GET, mirror or publisher authorization
+        if: always()
+        run: echo 'PUBLIC_BYTES_AUDIT_ONLY=YES SOURCE_TO_BINARY_ATTESTATION=NO NOTICE_CLOSURE=NO PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
