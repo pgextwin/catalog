@@ -13,6 +13,12 @@ import re
 
 from issue112_external_batch_plan import build as github_review, Denied, SUPPORTED
 from issue112_osgeo_winnie_version_receipt import ORIGINALS
+from issue112_pgroonga_rights_audit import (
+    PINS as PGROONGA_PINS, VERSION as PGROONGA_VERSION,
+    original_name as pgroonga_original_name,
+)
+from issue112_http_original_receipts import CANDIDATES as HTTP_CANDIDATES
+from issue112_http_windows_runtime import PINS as HTTP_PINS
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "pgextwin-issue112-latest-external-review/v1"
@@ -54,7 +60,7 @@ def version_key(value):
 
 def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
     require(pg == "all" or pg in SUPPORTED, "unsupported PG major")
-    require(source in ("all", "github", "osgeo"), "unsupported source type")
+    require(source in ("all", "github", "osgeo", "pgroonga", "http"), "unsupported source type")
     require(extension is None or
             (type(extension) is str and NAME.fullmatch(extension) is not None),
             "unsafe extension filter")
@@ -118,6 +124,69 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
                     ],
                     **DENY,
                 })
+    # Reuse fixed, independently observed original PGroonga 4.1.0 ZIP pins.
+    # The source release tag is not a live check of the newest upstream version.
+    if source in ("all", "pgroonga"):
+        require(set(PGROONGA_PINS) == {int(m) for m in SUPPORTED} and
+                version_key(PGROONGA_VERSION) is not None,
+                "incomplete PGroonga original pinned matrix")
+        for major in sorted(SUPPORTED, key=int):
+            size, sha = PGROONGA_PINS[int(major)]
+            filename = pgroonga_original_name(int(major))
+            require(type(size) is int and size > 0 and
+                    type(sha) is str and re.fullmatch(r"[0-9a-f]{64}", sha) and
+                    filename == f"pgroonga-{PGROONGA_VERSION}-postgresql-{major}-x64.zip",
+                    "malformed pinned PGroonga original")
+            rows.append({
+                "source": "PGROONGA_REHASHED_ORIGINAL_ONLY",
+                "extension": "pgroonga", "pgMajor": major,
+                "version": PGROONGA_VERSION,
+                "versionMeaning": "PINNED_UPSTREAM_RELEASE_NOT_LIVE_LATEST",
+                "provider": "pgroonga/pgroonga",
+                "releaseTag": PGROONGA_VERSION,
+                "assetName": filename, "format": "zip",
+                "packageIdentity": f"pgroonga:pg{major}:{PGROONGA_VERSION}:{sha}",
+                "originalBytes": size, "originalSha256": sha,
+                "blockers": [
+                    "ALL_COMPONENT_LICENSE_NOTICE_CLOSURE_MISSING",
+                    "DYNAMIC_DEPENDENCY_CLOSURE_MISSING",
+                    "SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
+                    "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
+                ],
+                **DENY,
+            })
+    # http is a distinct community-provider per-major ZIP. The packaging
+    # version is publisher-advertised, not a verified upstream semver claim.
+    # Reuse original research SHA/size pins, never invent Release IDs.
+    if source in ("all", "http"):
+        require(set(HTTP_CANDIDATES) == set(HTTP_PINS) == set(SUPPORTED),
+                "incomplete http observed original matrix")
+        for major in sorted(SUPPORTED, key=int):
+            filename, advertised_version = HTTP_CANDIDATES[major]
+            size, sha = HTTP_PINS[major]
+            require(filename == f"pg{major}http_w64.zip" and
+                    version_key(advertised_version) is not None and
+                    type(size) is int and size > 0 and
+                    type(sha) is str and re.fullmatch(r"[0-9a-f]{64}", sha),
+                    "malformed observed http original")
+            rows.append({
+                "source": "HTTP_RESEARCH_ORIGINAL_ONLY",
+                "extension": "http", "pgMajor": major,
+                "version": advertised_version,
+                "versionMeaning": "PUBLISHER_ADVERTISED_VERSION_UNVERIFIED",
+                "provider": "postgresonline.com community Windows ZIP",
+                "releaseTag": None,
+                "assetName": filename, "format": "zip",
+                "packageIdentity": f"http:pg{major}:{filename}:{sha}",
+                "originalBytes": size, "originalSha256": sha,
+                "blockers": [
+                    "PUBLISHER_ADVERTISED_VERSION_NOT_VERIFIED",
+                    "ALL_COMPONENT_LICENSE_NOTICE_CLOSURE_MISSING",
+                    "SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
+                    "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
+                ],
+                **DENY,
+            })
     # Do not equate 'highest in a bounded inventory' to upstream's latest.
     # Crucially, keep ALL same-version variants for manual source review.
     groups = {}
@@ -178,7 +247,7 @@ def main():
     parser.add_argument("--extension")
     parser.add_argument("--version")
     parser.add_argument("--source", default="all",
-                        choices=("all", "github", "osgeo"))
+                        choices=("all", "github", "osgeo", "pgroonga", "http"))
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     result = make_plan(args.catalog, args.pg, args.extension,
