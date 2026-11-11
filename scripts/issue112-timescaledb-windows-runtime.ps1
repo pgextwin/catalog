@@ -28,8 +28,15 @@ $setup = Join-Path $staged 'timescaledb\setup.exe'
 if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Validated setup.exe missing' }
 # Match the tested official upstream Windows package installer (tag 2.31.0).
 # No administrative persistence: ephemeral Windows runner, separate disposable DB.
-& $setup -yes-tune -pgconfig $pgConfig
-if ($LASTEXITCODE -ne 0) { throw "Original TimescaleDB setup.exe failed ($LASTEXITCODE)" }
+# The official upstream test changes directory into the package root before
+# launching setup.exe: its payload discovery uses paths relative to the CWD.
+Push-Location -LiteralPath (Split-Path -Parent $setup)
+try {
+    & .\setup.exe -yes-tune -pgconfig $pgConfig
+    if ($LASTEXITCODE -ne 0) { throw "Original TimescaleDB setup.exe failed ($LASTEXITCODE)" }
+} finally {
+    Pop-Location
+}
 $control = Join-Path $root 'share\extension\timescaledb.control'
 if (-not (Test-Path -LiteralPath $control -PathType Leaf)) {
     throw 'TimescaleDB control file was not installed'
