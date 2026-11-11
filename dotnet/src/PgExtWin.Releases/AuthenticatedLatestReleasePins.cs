@@ -19,13 +19,16 @@ public static class AuthenticatedLatestReleasePins
         AuthenticatedCatalogHead.Session snapshot, string selection,
         HttpMessageHandler? handler = null, CancellationToken cancellationToken = default)
     {
-        if (selection is not ("14" or "15" or "16" or "17" or "18" or "all"))
-            throw new InvalidDataException("Unsupported PostgreSQL latest selection");
+        if (selection != "all" &&
+            !snapshot.ApprovedMajors.Contains(selection, StringComparer.Ordinal))
+            throw new InvalidDataException("Selection is outside approved PostgreSQL cohort");
         var names = CatalogReader.LoadLocal(snapshot.CatalogPath);
         VerifiedFleetRoster.Require(names.Select(x => x.Name));
-        if (names.Any(x => x.Versions.Count != 5))
-            throw new InvalidDataException("Latest fleet is incomplete");
-        var majors = selection == "all" ? new[] { "14", "15", "16", "17", "18" } : new[] { selection };
+        var approved = snapshot.ApprovedMajors;
+        if (names.Any(x => approved.Any(major =>
+                !x.Versions.Any(version => version.Major == major))))
+            throw new InvalidDataException("Latest fleet is incomplete for approved cohort");
+        var majors = selection == "all" ? approved.ToArray() : new[] { selection };
         using var ownedHandler = handler is null ? new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
