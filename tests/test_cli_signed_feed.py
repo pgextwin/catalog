@@ -118,6 +118,44 @@ class SignedFeedTests(unittest.TestCase):
             self.generate()
         config.write_text(before)
 
+    def test_pg14_eol_preserves_historical_record_but_omits_it_from_signed_feed(self):
+        config = self.root / "config" / "cli-feed-majors.json"
+        config.write_text(json.dumps({"schemaVersion": 1,
+                                      "postgresqlMajors": ["15", "16", "17", "18"]}))
+        # Original Catalog retains PG14 as a published historical asset.
+        historical = json.loads((self.root / "extensions" / "hypopg.json").read_text())
+        self.assertIn("14", historical["postgresql"])
+        feed = self.generate()
+        self.assertEqual(feed["postgresqlMajors"], ["15", "16", "17", "18"])
+        self.assertEqual(feed["zipCount"], 56)
+        self.assertEqual(len(feed["releases"]), 14)
+        self.assertEqual(
+            [row["pgMajor"] for row in feed["releases"][0]["packages"]],
+            ["15", "16", "17", "18"])
+        self.assertFalse(feed["publicationAuthorized"])
+        self.assertFalse(feed["extensionSignatureVerified"])
+
+        record = self.root / "extensions" / "hypopg.json"
+        for forbidden in ("19", "013", "0"):
+            altered = json.loads(record.read_text())
+            altered["postgresql"][forbidden] = altered["postgresql"]["18"]
+            record.write_text(json.dumps(altered))
+            with self.subTest(extra=forbidden), self.assertRaises(ValueError):
+                self.generate()
+            record.write_text(json.dumps(historical))
+
+        # A missing or unpublished approved major is never excused by PG14.
+        altered = json.loads(record.read_text())
+        del altered["postgresql"]["18"]
+        record.write_text(json.dumps(altered))
+        with self.assertRaises(ValueError):
+            self.generate()
+        altered["postgresql"]["18"] = historical["postgresql"]["18"]
+        altered["postgresql"]["18"]["available"] = False
+        record.write_text(json.dumps(altered))
+        with self.assertRaises(ValueError):
+            self.generate()
+
     def test_stage_reject_candidate_or_missing_original_release(self):
         self.include_wave3("pgtap")
         self.assets["pgtap"]["release"]["draft"] = True
