@@ -11,7 +11,7 @@ $pgconfig=Join-Path $bin 'pg_config.exe'; $psql=Join-Path $bin 'psql.exe'
 $initdb=Join-Path $bin 'initdb.exe'; $pgctl=Join-Path $bin 'pg_ctl.exe'
 foreach ($p in @($pgconfig,$psql,$initdb,$pgctl)) { if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { throw 'Missing pinned PostgreSQL executable' } }
 $installedPg=(& $pgconfig --version | Out-String).Trim()
-if ($LASTEXITCODE -ne 0 -or $installedPg -notmatch "^PostgreSQL $Major([.]|\\s)") { throw "Wrong PostgreSQL major $installedPg" }
+if ($LASTEXITCODE -ne 0 -or $installedPg -notmatch "^PostgreSQL $Major([.]|\s)") { throw "Wrong PostgreSQL major $installedPg" }
 $sharedir=(& $pgconfig --sharedir | Out-String).Trim()
 if ($LASTEXITCODE -ne 0 -or -not ([IO.Path]::GetFullPath($sharedir)).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { throw 'PostgreSQL share root mismatch' }
 $dest=Join-Path $sharedir 'extension'
