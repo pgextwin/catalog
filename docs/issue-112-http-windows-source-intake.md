@@ -14,6 +14,15 @@ The PostgreSQL Windows binary publisher [Postgres OnLine Journal](https://www.po
 | 17 | 1.7.1 | 3,640,379 | `f4fad2ca74e172fdb77d53f21ed63f27d08b271bfbe3084572f703171c67566a` |
 | 18 | 1.7.1 | 7,043,584 | `7904f4498c9c011f7a433aed3d735ce38100b4564248e91654e81f9eebc24964` |
 
+Cryptographic original-byte verification: the initial response hashes above are observed; producer authenticity, source provenance and public admission remain **NOT VERIFIED**.
+
+Exact publisher original URLs:
+- https://www.postgresonline.com/downloads/pg14http_w64.zip
+- https://www.postgresonline.com/downloads/pg15http_w64.zip
+- https://www.postgresonline.com/downloads/pg16http_w64.zip
+- https://www.postgresonline.com/downloads/pg17http_w64.zip
+- https://www.postgresonline.com/downloads/pg18http_w64.zip
+
 These complete 64-digit hashes and sizes come from the actual original Linux PR Run [42951353844](https://github.com/pgextwin/catalog/actions/runs/42951353844), as recorded in [Issue #112 comment 6785971351](https://github.com/pgextwin/build/issues/112#issuecomment-6785971351). Each URL is exactly `https://www.postgresonline.com/downloads/pgXXhttp_w64.zip` for its major. These are HTTP-response byte observations, not authenticated producer pins. The earlier local PG18 retrieval failure remains historical evidence. No Windows runtime result is implied by that earlier Linux run.
 
 The source project's GitHub repository currently declares MIT licensing. The Windows article states the binary packages are built for EDB Windows PostgreSQL and may rely on libcurl, PCRE and EDB's `ssleasy.dll`. This creates separate unresolved dependency and license/NOTICE obligations, especially without a verified installation and binary inventory.
@@ -66,4 +75,3 @@ The PR-only `issue112-http-windows-runtime.yml` reuses the immutable shared Buil
 The test requires actual CREATE EXTENSION, the expected publisher-advertised installed extension version, and http_get against a bounded loopback fixture. It captures the live tested PostgreSQL backend modules after that request, including their actual loaded paths and SHA256, requires the candidate http.dll path and an observed libcurl module, and verifies all preinstalled host DLLs remain unchanged. This covers only that request on that host. It does not prove HTTPS/TLS, every runtime branch, complete static/dynamic dependency closure, source/build provenance, component licenses, or production installation safety. A failed or skipped matrix job is not a successful acceptance.
 
 No downloaded archive or staged binary is uploaded. Public index, signed cohort, Build issuer, CLI transport, Environment, Publisher and Release policy remain unchanged. These are older community binaries, not upstream source v1.7.2. All public GET/mirror/Release authorizations remain denied; passing this pilot alone cannot promote them.
-
