@@ -76,3 +76,14 @@ majors require their own scoped CI evidence. Source-to-binary binding, all
 applicable notice delivery (including xxHash), NAIST and remaining static/header
 terms, formal admission and public GET remain unfulfilled. No original ZIP or
 third-party source/license text is mirrored by this change.
+
+## Fixed core terms and companion-notice preparation
+
+The [fixed source-terms review](issue-112-pgroonga-source-terms-review.md)
+distinguishes MRuby's upstream source LEGAL from its generated package LEGAL,
+reviews Windows mruby-dir and compiler copyright notices, confirms file-stat's
+Ruby origin in source, and prepares seven complete fixed candidate notice
+texts. Nine source Git blobs are independently checked. PG18 cached-original
+substring scans and their limits are recorded separately from prior five-major
+inventory evidence. Companion delivery, historical input authentication,
+all-component rights/provenance and public admission remain unresolved.

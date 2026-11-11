@@ -1,0 +1,230 @@
+{
+  "schemaVersion": "pgextwin-pgroonga-source-terms-review/v1",
+  "scope": "PG18 ORIGINAL BYTES AND FIXED SOURCE CANDIDATES ONLY",
+  "catalogBase": "cd799f9b35a2b7632fc48689b8fce0b19ce03cae",
+  "groongaCandidateCommit": "9085dd417e5cd42cd8f1a367aaf24cfe45dd9f1f",
+  "mrubyCandidateGitlink": "ae17b1130f8413052380bdb0fbde26bdd46b28e3",
+  "originalZipSha256": "3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab",
+  "originalZipBytes": 53826667,
+  "scan": {
+    "maximumMemberBytes": 524288,
+    "excludedSuffixes": [
+      ".dll",
+      ".exe",
+      ".lib",
+      ".pdb",
+      ".bin",
+      ".dic"
+    ],
+    "boundedNonbinaryMembers": 522,
+    "strictUtf8Members": 513,
+    "normalization": "CRLF to LF for byte substrings; Unicode whitespace runs to one space for strict UTF-8 text substrings; case and punctuation preserved",
+    "semanticEquivalenceReviewed": false,
+    "otherPostgresqlMajorsFreshlyScanned": false
+  },
+  "sourceReceipts": [
+    {
+      "repository": "mruby/mruby",
+      "commit": "ae17b1130f8413052380bdb0fbde26bdd46b28e3",
+      "path": "LEGAL",
+      "gitBlobSha1": "9697d5747e07f870089b2318a57f8de24eda0a3d",
+      "bytes": 2592,
+      "sha256": "ab6e6451f7dcdae3be461351371568346e144dea8e8f9311ff409a8ecc49f485",
+      "url": "https://github.com/mruby/mruby/blob/ae17b1130f8413052380bdb0fbde26bdd46b28e3/LEGAL",
+      "comparisonKind": "FULL_TERMS_SUBSTRING_SEARCH",
+      "termsBytes": 2592,
+      "termsSha256": "ab6e6451f7dcdae3be461351371568346e144dea8e8f9311ff409a8ecc49f485",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "repository": "mruby/mruby",
+      "commit": "ae17b1130f8413052380bdb0fbde26bdd46b28e3",
+      "path": "mrbgems/mruby-dir/README.md",
+      "gitBlobSha1": "4e036191952903d962700b9760ecec0367af0731",
+      "bytes": 2742,
+      "sha256": "ce2a182624fe68ae770be34ecf19df3cf3d4501887e6d716b574723050cef4a6",
+      "url": "https://github.com/mruby/mruby/blob/ae17b1130f8413052380bdb0fbde26bdd46b28e3/mrbgems/mruby-dir/README.md",
+      "comparisonKind": "FULL_TERMS_SUBSTRING_SEARCH",
+      "termsBytes": 1565,
+      "termsSha256": "2c2e939ce127ea4a3e873a68fd31edc5387c6c533de62e25f0f74d34eb5b7dd4",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "repository": "mruby/mruby",
+      "commit": "ae17b1130f8413052380bdb0fbde26bdd46b28e3",
+      "path": "mrbgems/mruby-compiler/LICENSE",
+      "gitBlobSha1": "cc4339c1b143f67e5099d13e5b549ebe743de493",
+      "bytes": 1167,
+      "sha256": "38bf628e7c3f0dedf6476eb9b997a5c8d163b52dd7f0f0ef4fbb70e03de42ba7",
+      "url": "https://github.com/mruby/mruby/blob/ae17b1130f8413052380bdb0fbde26bdd46b28e3/mrbgems/mruby-compiler/LICENSE",
+      "comparisonKind": "FULL_TERMS_SUBSTRING_SEARCH",
+      "termsBytes": 1167,
+      "termsSha256": "38bf628e7c3f0dedf6476eb9b997a5c8d163b52dd7f0f0ef4fbb70e03de42ba7",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "repository": "mruby/mruby",
+      "commit": "ae17b1130f8413052380bdb0fbde26bdd46b28e3",
+      "path": "mrbgems/mruby-dir/ports/win/dir_hal.c",
+      "gitBlobSha1": "b8d9a39eb8c1e837c013ae302a8f7adb469b0ba2",
+      "bytes": 7096,
+      "sha256": "b700c0b634c4f935f288bce4dc7bb8830aa1b3e27d59352c9486b2f75a319f5c",
+      "url": "https://github.com/mruby/mruby/blob/ae17b1130f8413052380bdb0fbde26bdd46b28e3/mrbgems/mruby-dir/ports/win/dir_hal.c",
+      "comparisonKind": "SOURCE_CONTEXT_ONLY"
+    },
+    {
+      "repository": "ksss/mruby-file-stat",
+      "commit": "7d0e63a95a38b34c635b708874ec624c7c860507",
+      "path": "src/file-stat.c",
+      "gitBlobSha1": "60e51cd395e5908d5d29c589ebf44ce7ebe2a27d",
+      "bytes": 22924,
+      "sha256": "18c668448bbdf60f216a3a40229bf6acda330eccc4c78719335ed516d15948d0",
+      "url": "https://github.com/ksss/mruby-file-stat/blob/7d0e63a95a38b34c635b708874ec624c7c860507/src/file-stat.c",
+      "comparisonKind": "SOURCE_CONTEXT_ONLY"
+    },
+    {
+      "repository": "kou/mruby-pp",
+      "commit": "a208b14886e664785b4722dc076e4d33f2fbd1e9",
+      "path": "LICENSE.txt",
+      "gitBlobSha1": "27c88944fc88c84d9fa5e9486dfdd2e332f8d5f6",
+      "bytes": 1363,
+      "sha256": "614462b476815ae1f372fd45fca061e418cfc1b0fbdf8fd004aeb488eddc0b2d",
+      "url": "https://github.com/kou/mruby-pp/blob/a208b14886e664785b4722dc076e4d33f2fbd1e9/LICENSE.txt",
+      "comparisonKind": "FULL_TERMS_SUBSTRING_SEARCH",
+      "termsBytes": 1363,
+      "termsSha256": "614462b476815ae1f372fd45fca061e418cfc1b0fbdf8fd004aeb488eddc0b2d",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "repository": "kou/mruby-tsort",
+      "commit": "29e87327387c9c878b05cb259c91b74ac73ea997",
+      "path": "LICENSE.txt",
+      "gitBlobSha1": "6dc1c46c2eff3726711e5016a463ae4756c17a15",
+      "bytes": 1365,
+      "sha256": "a0e3a6ed77fcf0b59e1a554ffda3f1e0eb29ba53d2ff5c3ac250518d5a19926c",
+      "url": "https://github.com/kou/mruby-tsort/blob/29e87327387c9c878b05cb259c91b74ac73ea997/LICENSE.txt",
+      "comparisonKind": "FULL_TERMS_SUBSTRING_SEARCH",
+      "termsBytes": 1365,
+      "termsSha256": "a0e3a6ed77fcf0b59e1a554ffda3f1e0eb29ba53d2ff5c3ac250518d5a19926c",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "repository": "kou/mruby-slop",
+      "commit": "38f4795712c8f92e4c9412b5fc81646b3972b12a",
+      "path": "LICENSE.txt",
+      "gitBlobSha1": "85c6f4927929007798bc305bc0777ebf3ef8bbdd",
+      "bytes": 1123,
+      "sha256": "08a72dbdb13de24b3809818695fb5b5683a6d41072201624dbe0edc443943275",
+      "url": "https://github.com/kou/mruby-slop/blob/38f4795712c8f92e4c9412b5fc81646b3972b12a/LICENSE.txt",
+      "comparisonKind": "FULL_TERMS_SUBSTRING_SEARCH",
+      "termsBytes": 1123,
+      "termsSha256": "08a72dbdb13de24b3809818695fb5b5683a6d41072201624dbe0edc443943275",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "repository": "Cyan4973/xxHash",
+      "commit": "e626a72bc2321cd320e953a0ccf1584cad60f363",
+      "path": "LICENSE",
+      "gitBlobSha1": "e4c5da7234eca7baad9a46f0b144e49ccad2e500",
+      "bytes": 1389,
+      "sha256": "6ffedbc0f7878612d2b23589f1ff2ab15633e1df7963a5d9fc750ec5500c7e7a",
+      "url": "https://github.com/Cyan4973/xxHash/blob/e626a72bc2321cd320e953a0ccf1584cad60f363/LICENSE",
+      "comparisonKind": "FULL_TERMS_SUBSTRING_SEARCH",
+      "termsBytes": 1389,
+      "termsSha256": "6ffedbc0f7878612d2b23589f1ff2ab15633e1df7963a5d9fc750ec5500c7e7a",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    }
+  ],
+  "supplementCandidate": {
+    "path": "docs/issue-112-pgroonga-supplemental-notices-candidate.txt",
+    "bytes": 13013,
+    "sha256": "8cdbf0b8533f79238f3e533b28306d08a78077b94a895bfc959552293017f926",
+    "completeTextSections": 7,
+    "deliveredWithPublicCli": false
+  },
+  "historicalGroongaInputAuthenticated": false,
+  "allTermsAndNoticesAccepted": false,
+  "sourceToBinaryProvenanceAccepted": false,
+  "downloadAuthorized": false,
+  "mirrorAuthorized": false,
+  "publisherAuthorized": false,
+  "individualTermsBlocks": [
+    {
+      "label": "mruby-string-search-BSD",
+      "utf8Bytes": 1306,
+      "sha256": "7bb0747d2cf28d59b244f14f96a0ac90840a6966479f5a0c3ccfaa6685484178",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "mruby-windows-dir-permission",
+      "utf8Bytes": 420,
+      "sha256": "17bcea996f3508ee711e790cab3999a9e32426b284d015996e48997f2280df3e",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "mruby-public-domain-statement",
+      "utf8Bytes": 254,
+      "sha256": "16b7878094311fe7c7d8162de29ef0556de3943537b9cee4907e49b8a7a53ff1",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "mruby-dir-IIJ-MIT",
+      "utf8Bytes": 1073,
+      "sha256": "f0d5c743604ef8c70aea1db3437e5ef7ac5e8dc2541be65fd22a03db7375e6b4",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "mruby-dir-Kevlin-Henney",
+      "utf8Bytes": 420,
+      "sha256": "17bcea996f3508ee711e790cab3999a9e32426b284d015996e48997f2280df3e",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "mruby-compiler-HASUMI-MIT",
+      "utf8Bytes": 1057,
+      "sha256": "12910463b548e03eb3d452e71a6229e1ca36051cadb1095a82e4a4262f7f7056",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "kou/mruby-pp-copyright-and-terms",
+      "utf8Bytes": 1327,
+      "sha256": "4cebe88d20d6ab85e8f603180e1a39b7c47621288970eb7ad35a0ca52046b3e2",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "kou/mruby-tsort-copyright-and-terms",
+      "utf8Bytes": 1329,
+      "sha256": "299c6443d3b84bb0ba7dcdefb1fae12cd5e34ca1570b283ed8adfd38d8d9cd8e",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "kou/mruby-slop-copyright-and-terms",
+      "utf8Bytes": 1104,
+      "sha256": "1ed6e94415fbe40e2c73a25452406c18e0c53c2484d898f04f8a16007007c408",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    },
+    {
+      "label": "xxHash-copyright-and-terms",
+      "utf8Bytes": 1373,
+      "sha256": "032e371791726d23e9e430ed451b32149fe967ced9fe5480dd954582ddd92651",
+      "newlineNormalizedContainedIn": [],
+      "whitespaceNormalizedContainedIn": []
+    }
+  ]
+}
