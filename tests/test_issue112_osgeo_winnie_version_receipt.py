@@ -83,8 +83,7 @@ class WinnieVersionReceiptTests(unittest.TestCase):
     def test_bad_version_token_cannot_be_claimed(self):
         for value in (b"GDAL VERSION: ../evil",
                       b"PROJ VERSION: https://evil.invalid",
-                      b"GEOS VERSION: 3.14.1\r
-GEOS VERSION: 3.15.0"):
+                      b"GEOS VERSION: 3.14.1\r\nGEOS VERSION: 3.15.0"):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
                     audit.parse_manifest(value)
