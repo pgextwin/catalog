@@ -120,7 +120,7 @@ class OriginalBytePilotTests(unittest.TestCase):
 
     def test_per_major_run_remains_nonpublishing(self):
         with mock.patch.object(p, "read_original",
-                               return_value=(123, "a" * 64)) as read, \\
+                               return_value=(123, "a" * 64)) as read, \
              mock.patch.object(p, "inspect",
                                return_value={"zipMembers": 42, "peAmd64Dlls": 2}):
             result = p.run(latest_snapshot(), pg_major="17")
