@@ -57,8 +57,10 @@ class RuntimeStagingTests(unittest.TestCase):
                         "rightsAccepted", "producerAttestationVerified",
                         "signedAdmission", "publisherAuthorized"):
                 self.assertIs(result[key], False)
+            original = Path(root) / "fixture-original.zip"
+            original.write_bytes(data)
             with self.assertRaises(ValueError):
-                stage.extract_reviewed_zip(out / "not-used.zip", out)
+                stage.extract_reviewed_zip(original, out)
 
     def test_missing_setup_and_all_unsafe_names_fail_before_extraction(self):
         variants = [
