@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "pgextwin-pgroonga-file-stat-inherited-ruby-terms-candidate/v1",
+  "scope": "FIXED RUBY 2.1.5 TERMS REFERENCE ONLY; HISTORICAL RUBY SOURCE REVISION NOT IDENTIFIED",
+  "fileStatSource": {
+    "repository": "ksss/mruby-file-stat",
+    "commit": "7d0e63a95a38b34c635b708874ec624c7c860507",
+    "path": "src/file-stat.c",
+    "gitBlobSha1": "60e51cd395e5908d5d29c589ebf44ce7ebe2a27d",
+    "declaredOrigin": "https://github.com/ruby/ruby/blob/trunk/file.c"
+  },
+  "fileStatReadmeLicenseReference": "https://github.com/ruby/ruby/blob/trunk/file.c",
+  "candidateRubyReference": {
+    "repository": "ruby/ruby",
+    "tag": "v2_1_5",
+    "commit": "02560c6a7935543221aaed397fded3dcdf825188",
+    "selectionReason": "mruby-file-stat README also links to Ruby 2.1.5 File::Stat documentation; a candidate reference, NOT historical source-revision proof",
+    "files": [
+      {
+        "path": "file.c",
+        "gitBlobSha1": "e9e2dd134030bff6c4669e5ccc5287f5adecf88d"
+      },
+      {
+        "path": "COPYING",
+        "gitBlobSha1": "a1f19ff99db145ed38350f195c5481ef28267649"
+      },
+      {
+        "path": "BSDL",
+        "gitBlobSha1": "a009caefea81f259e19d842356cb43ecf1710fff",
+        "bytes": 1282
+      },
+      {
+        "path": "LEGAL",
+        "gitBlobSha1": "65706459cd18d5534c7b3ec2495dc736493a2847"
+      }
+    ],
+    "licenseObservation": "COPYING expressly offers the Ruby license or two-clause BSDL; BSDL requires reproducing notice, conditions and disclaimer for binary form",
+    "legalObservation": "No literal file.c item in fixed LEGAL; does not settle exceptions or source lineage"
+  },
+  "candidateNotice": {
+    "path": "docs/issue-112-pgroonga-file-stat-ruby-bsd-candidate.txt",
+    "expectedGitBlobSha1": "a009caefea81f259e19d842356cb43ecf1710fff",
+    "sourcePath": "BSDL",
+    "deliveredWithPublicCli": false
+  },
+  "historicalRubyOriginalSourceCommitAuthenticated": false,
+  "adaptationLineageVerified": false,
+  "completeInheritedRightsAccepted": false,
+  "sourceToReleasedBinaryAuthenticated": false,
+  "allRequiredNoticesDelivered": false,
+  "downloadAuthorized": false,
+  "mirrorAuthorized": false,
+  "publisherAuthorized": false
+}
