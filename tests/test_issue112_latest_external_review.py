@@ -9,7 +9,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from issue112_external_batch_plan import INPUTS, PROVIDERS, Denied
-from issue112_latest_external_review import make_plan, version_key, DENY
+from issue112_latest_external_review import (
+    make_plan, version_key, DENY, PGROONGA_PINS, HTTP_PINS,
+)
+from unittest.mock import patch
 
 
 class LatestExternalReviewTests(unittest.TestCase):
@@ -134,6 +137,42 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.assertEqual(single["selectedReviewRows"], 1)
         self.assertEqual(single["uniqueOriginalPackages"], 1)
         self.assertEqual(single["admittedAssets"], 0)
+
+    def test_pgroonga_and_http_reuse_exact_major_pins_without_public_admission(self):
+        majors = ["14", "15", "16", "17", "18"]
+        for name, source, pins in (("pgroonga", "pgroonga", PGROONGA_PINS),
+                                   ("http", "http", HTTP_PINS)):
+            report = make_plan(self.root, source=source)
+            self.assertEqual(report["selectedReviewRows"], 5)
+            self.assertEqual(report["uniqueOriginalPackages"], 5)
+            self.assertEqual(report["observedMajorCoverageNotSupportClaim"], {name: majors})
+            self.assertFalse(report["latestUpstreamVerified"])
+            self.assertEqual(report["admittedAssets"], 0)
+            for row in report["selected"]:
+                key = int(row["pgMajor"]) if name == "pgroonga" else row["pgMajor"]
+                self.assertEqual((row["originalBytes"], row["originalSha256"]), pins[key])
+                self.assertTrue(row["blockers"])
+                for flag in DENY:
+                    self.assertIs(row[flag], False)
+        self.assertEqual(make_plan(self.root, source="pgroonga", extension="pgroonga",
+                                   version="4.1.0")["selectedReviewRows"], 5)
+        self.assertEqual(make_plan(self.root, source="http", extension="http",
+                                   version="1.7.1")["observedMajorCoverageNotSupportClaim"],
+                         {"http": ["17", "18"]})
+        self.assertEqual(make_plan(self.root, pg="16", source="http", extension="http",
+                                   version="1.7.1")["selectedReviewRows"], 0)
+        self.assertIn("pgroonga", make_plan(self.root)["observedMajorCoverageNotSupportClaim"])
+        self.assertIn("http", make_plan(self.root)["observedMajorCoverageNotSupportClaim"])
+
+    def test_new_source_pins_are_fail_closed_even_on_filtered_request(self):
+        with patch.dict(PGROONGA_PINS, {18: (0, "0" * 64)}):
+            with self.assertRaises(Denied):
+                make_plan(self.root, source="pgroonga", pg="14")
+        with patch.dict(HTTP_PINS, {"18": (1, "not-sha256")}):
+            with self.assertRaises(Denied):
+                make_plan(self.root, source="http", pg="14")
+        self.assertEqual(make_plan(self.root, source="pgroonga",
+                                   extension="http")["selectedReviewRows"], 0)
 
     def test_no_promotion_and_no_implicit_fallback(self):
         result = make_plan(self.root)
