@@ -20,6 +20,7 @@ BASELINES = (
     ROOT / "evidence/issue112-external-provider-portalcorp-20261103.json",
 )
 MAX_PAGES = 40
+PAGE_SIZE = 20  # Keep official multi-asset Releases below the existing 5 MiB cap.
 MAX_PAGE_BYTES = 5_000_000
 REPO_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
@@ -59,7 +60,7 @@ def config_providers(document):
 def fetch_release_page(repo, page, token):
     if not REPO_RE.fullmatch(repo) or not 1 <= page <= MAX_PAGES:
         raise ValueError("Untrusted repository/page")
-    url = f"https://api.github.com/repos/{repo}/releases?per_page=100&page={page}"
+    url = f"https://api.github.com/repos/{repo}/releases?per_page={PAGE_SIZE}&page={page}"
     headers = {"Accept": "application/vnd.github+json",
                "X-GitHub-Api-Version": "2022-11-28",
                "User-Agent": "pgextwin-readonly-external-discovery/1"}
@@ -73,7 +74,7 @@ def fetch_release_page(repo, page, token):
     if len(payload) > MAX_PAGE_BYTES:
         raise ValueError("Release API page too large")
     result = json.loads(payload)
-    if not isinstance(result, list) or len(result) > 100:
+    if not isinstance(result, list) or len(result) > PAGE_SIZE:
         raise ValueError("Invalid release API response")
     return result
 
@@ -86,7 +87,7 @@ def summarize_pages(provider, pages):
     if not pages or pages[-1] != []:
         raise ValueError("Full-page inventory requires empty terminal page")
     for page in pages[:-1]:
-        if not isinstance(page, list) or not page or len(page) > 100:
+        if not isinstance(page, list) or not page or len(page) > PAGE_SIZE:
             raise ValueError("Release page gap/overflow")
         for release in page:
             rid, tag = release["id"], release["tag_name"]
