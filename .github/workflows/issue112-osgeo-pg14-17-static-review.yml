@@ -1,0 +1,32 @@
+name: Issue112 OSGeo PG14-17 static-rights original review (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_osgeo_pg14_17_static_review.py
+      - tests/test_issue112_osgeo_pg14_17_static_review.py
+      - .github/workflows/issue112-osgeo-pg14-17-static-review.yml
+permissions:
+  contents: read
+jobs:
+  static-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['14','15','16','17']
+    env:
+      PG_MAJOR: "${{ matrix.pg }}"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline tests for new evidence and shared PE parser
+        run: python3 -m unittest tests.test_issue112_osgeo_pg14_17_static_review tests.test_issue112_osgeo_dependency_inventory -v
+      - name: Discover untrusted latest per PG metadata
+        run: python3 scripts/discover_osgeo_windows_bundles.py --index osgeo-cache --latest-only --output "$RUNNER_TEMP/selection.json"
+      - name: Inspect exact original DLL legal receipts and static PE graph
+        run: python3 scripts/issue112_osgeo_pg14_17_static_review.py --selection-file "$RUNNER_TEMP/selection.json" --pg-major "$PG_MAJOR"
+      - name: Assert no source admission or release
+        if: always()
+        run: echo 'CANDIDATE_ONLY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
