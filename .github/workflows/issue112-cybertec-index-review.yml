@@ -1,0 +1,31 @@
+name: Issue112 Cybertec PG14-18 extension index review (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_cybertec_windows_index.py
+      - tests/test_issue112_cybertec_windows_index.py
+      - docs/issue-112-cybertec-index-candidates.md
+      - .github/workflows/issue112-cybertec-index-review.yml
+permissions:
+  contents: read
+jobs:
+  index-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['14', '15', '16', '17', '18']
+    env:
+      PG_MAJOR: ${{ matrix.pg }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Hostile offline index tests
+        run: python3 -m unittest discover -s tests -p 'test_issue112_cybertec_windows_index.py' -v
+      - name: Read canonical directory index only, never ZIP
+        run: python3 scripts/issue112_cybertec_windows_index.py --pg "$PG_MAJOR"
+      - name: Preserve every publication denial
+        if: always()
+        run: echo 'CYBERTEC=UNTRUSTED_DIRECTORY_METADATA_ONLY COMMUNITY_PG_ABI=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
