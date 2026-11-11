@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "pgextwin-issue112-timescaledb-rights-provenance/v1",
+  "scope": "CANDIDATE_ONLY_NONPUBLISHING",
+  "upstream": {
+    "repository": "timescale/timescaledb",
+    "tag": "2.31.0",
+    "releaseId": 418582851,
+    "documents": {
+      "LICENSE": "6b7980745c9892ba0d79368acab331dea2246ac2",
+      "LICENSE-APACHE": "f433b1a53f5b830a205fd2df78e2b34974656c7b",
+      "NOTICE": "a47a53c48d921bef9023e41e8def002d45465a7d",
+      "tsl/LICENSE-TIMESCALE": "e92b2d902723571c921cfe59b841e6d7ab40f30d"
+    }
+  },
+  "sourceLicenseScopes": [
+    {
+      "pathScope": "outside tsl/",
+      "licenseObservation": "Apache-2.0-or-compatible-unless-file-says-otherwise",
+      "binaryAttribution": "UNVERIFIED"
+    },
+    {
+      "pathScope": "tsl/",
+      "licenseObservation": "Timescale-License-unless-file-says-otherwise",
+      "binaryAttribution": "UNVERIFIED"
+    }
+  ],
+  "licenseReview": {
+    "timescaleClauses": ["2.1(c)", "2.2"],
+    "unmodifiedStandaloneDistributionMayBePermitted": true,
+    "specificUseAndTermsCleared": false,
+    "allThirdPartyNoticesCleared": false
+  },
+  "windowsAssets": [
+    {"pgMajor": "16", "assetId": 659788299, "assetName": "timescaledb-postgresql-16-windows-amd64.zip", "originalSha256": "bacc19d2da8a47d6442f95ec28a1867b777786acbe8398deb958d4e5206bc52f", "originalBytes": 9537404},
+    {"pgMajor": "17", "assetId": 659795995, "assetName": "timescaledb-postgresql-17-windows-amd64.zip", "originalSha256": "1a79207d46ecdf626d4fd39310da3a490cfec13cbb5e9510413b748f512ae2f4", "originalBytes": 9537297},
+    {"pgMajor": "18", "assetId": 659790321, "assetName": "timescaledb-postgresql-18-windows-amd64.zip", "originalSha256": "7a0c5c7401eca080432de1ebb96239fdd8f4af46c401e82a82756bb8bac479c5", "originalBytes": 9538882}
+  ],
+  "evidence": {
+    "originalZipIndependentRehash": "PASS",
+    "windowsPostgresqlSqlPg16Pg17Pg18": "PASS",
+    "exactBinaryComponentToLicenseMapping": "UNVERIFIED",
+    "bundledLicenseNoticeCompleteness": "UNVERIFIED",
+    "runtimeAndBundledDependencyClosure": "UNVERIFIED",
+    "upstreamReleaseSourceToBinaryProvenance": "UNVERIFIED",
+    "producerAuthorizationForPgextwinDelivery": "UNVERIFIED",
+    "newSourceSpecificOwnerSignedAdmission": "MISSING"
+  },
+  "permissions": {
+    "publicGet": false,
+    "mirror": false,
+    "release": false,
+    "publish": false
+  }
+}
