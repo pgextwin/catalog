@@ -113,6 +113,20 @@ def run(command):
     return result.stdout.strip()
 
 
+def run_control(command):
+    # A server inherits controller handles on Windows. Waiting for pipe EOF
+    # can hang even after pg_ctl exited; wait for the controller process only.
+    subprocess.run(command, check=True, timeout=90)
+
+
+def control_version(text):
+    versions = re.findall(r"^\s*default_version\s*=\s*'([0-9]+(?:[.][0-9]+){1,2})'\s*(?:#.*)?$",
+                          text, re.MULTILINE)
+    if len(versions) != 1:
+        raise ValueError('Ambiguous or missing packaged SQL extension version')
+    return versions[0]
+
+
 @contextmanager
 def runtime_workspace(parent):
     # Python 3.12.4+ mkdtemp uses a Windows 0700 DACL. initdb launches with
@@ -162,6 +176,8 @@ def qualify(pg):
             size, sha = copy_stream(response, archive_path, limit=PINS[pg][0])
         verify_pin(pg, size, sha)
         observation, staged = stage_archive(archive_path, root, pg)
+        packaged_sql_version = control_version(
+            (root / 'share' / 'extension' / 'http.control').read_text(encoding='utf-8'))
         print('HTTP_INDEPENDENT_ORIGINAL_REGET=PASS ' + json.dumps({
             'pg': pg, 'bytes': size, 'sha256': sha, **observation, 'stagedFileReceipts': staged,
         }), flush=True)
@@ -169,18 +185,20 @@ def qualify(pg):
         data = str(tmp / 'data')
         log = str(tmp / 'postgres.log')
         run([str(bin_dir / 'initdb.exe'), '-D', data, '-A', 'trust', '-U', 'postgres', '--no-instructions'])
+        print('HTTP_HOST_INITDB=PASS PG=' + pg, flush=True)
         started = False
         probe = None
         fixture = ThreadingHTTPServer(('127.0.0.1', 0), Fixture)
         threading.Thread(target=fixture.serve_forever, daemon=True).start()
         try:
-            run([ctl, '-D', data, '-l', log, '-o', '-h 127.0.0.1 -p 55454', '-w', 'start'])
+            run_control([ctl, '-D', data, '-l', log, '-o', '-h 127.0.0.1 -p 55454', '-w', 'start'])
             started = True
+            print('HTTP_HOST_STARTED=PASS PG=' + pg, flush=True)
             psql = [str(bin_dir / 'psql.exe'), '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1',
                     '-h', '127.0.0.1', '-p', '55454', '-U', 'postgres', '-d', 'postgres']
             run(psql + ['-c', 'CREATE EXTENSION http;'])
             actual_version = run(psql + ['-c', "SELECT extversion FROM pg_extension WHERE extname='http';"])
-            if actual_version != CANDIDATES[pg][1]:
+            if actual_version != packaged_sql_version:
                 raise ValueError('Installed extension version differs: ' + actual_version)
             # Hold the same backend after the libcurl call for actual loaded-path capture.
             sql = ("SET application_name='issue112-http-probe'; SET statement_timeout='45s'; "
@@ -218,7 +236,8 @@ def qualify(pg):
                 if digest(path) != expected_sha:
                     raise ValueError('Preinstalled host DLL changed')
             print('HTTP_WINDOWS_REAL_SQL=PASS ' + json.dumps({
-                'pg': pg, 'installedExtensionVersion': actual_version,
+                'pg': pg, 'installedSqlExtensionVersion': actual_version,
+                'publisherAdvertisedReleaseVersionUnverified': CANDIDATES[pg][1],
                 'createExtension': 'PASS', 'loopbackGet': 'PASS',
                 'loadedBackendModules': modules, 'preexistingHostDllsUnchanged': True,
                 'tlsHttpsBehaviorVerified': False, 'allDynamicPathsVerified': False,
@@ -236,8 +255,8 @@ def qualify(pg):
                 probe.communicate(timeout=10)
             fixture.shutdown()
             fixture.server_close()
-            if started:
-                run([ctl, '-D', data, '-m', 'immediate', '-w', 'stop'])
+            if started or (Path(data) / 'postmaster.pid').exists():
+                run_control([ctl, '-D', data, '-m', 'immediate', '-w', 'stop'])
     print('CANDIDATE_ONLY=YES PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY ARTIFACT_UPLOAD=NONE')
 
 

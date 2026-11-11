@@ -121,6 +121,13 @@ class StagingTests(unittest.TestCase):
                 raise RuntimeError('simulated')
         self.assertFalse(created.exists())
 
+    def test_sql_schema_version_is_distinct_from_advertised_source_patch(self):
+        self.assertEqual(runtime.control_version("default_version = '1.7'\n"), '1.7')
+        self.assertEqual(runtime.control_version("# comment\ndefault_version='1.6' # schema\n"), '1.6')
+        for text in ("default_version='1.7'\ndefault_version='1.6'", "default_version='../../bad'", '# absent'):
+            with self.assertRaises(ValueError):
+                runtime.control_version(text)
+
 
 if __name__ == '__main__':
     unittest.main()
