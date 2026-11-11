@@ -42,16 +42,33 @@ Unknown PG majors, unsafe input, malformed metadata, source authorization
 claims and duplicate GitHub release/asset identities fail closed.
 No implicit fallback or publishing operation is performed.
 
-## PostGIS and pgRouting: ONE original per major
+## PostGIS, pgRouting and PostGIS subextensions: ONE original per major
 
 For each selected PG14–18 major, **one** previously rehashed
-`postgis-bundle-pg<PG>-<POSTGIS_BUNDLE_VERSION>x64.zip` covers the
-`postgis` and `pgrouting` review components, while retaining
-per-component coverage rows. `uniqueOriginalPackageIdentities` deduplicates
-their shared ZIP. The version in the bundle filename is the **PostGIS bundle
-version, not the independently determined pgRouting version**. The five
-currently pinned, tested original observations are not a live latest-release
-feed. A newer ZIP requires new real-byte, rights, runtime and provenance checks.
+`postgis-bundle-pg<PG>-<POSTGIS_BUNDLE_VERSION>x64.zip` is the shared
+review candidate for seven named extension components:
+
+- `postgis`, `pgrouting`
+- `postgis_raster`, `postgis_sfcgal`, `postgis_topology`
+- `address_standardizer`, `postgis_tiger_geocoder`
+
+This expands component selection from 2 to 7 **without increasing the five
+unique original ZIPs**. `uniqueOriginalPackageIdentities` still deduplicates
+the shared ZIP, while separate rows retain requested component and PG coverage.
+The component names follow the official PostGIS Windows installation
+instructions: https://postgis.net/documentation/getting_started/install_windows/enabling_postgis/
+This is a **documented bundle-component observation only**: individual
+control/SQL/DLL inclusion and Windows runtime/ABI acceptance, producer
+provenance, applicable NOTICE/dependency clearance and authorization are
+still required independently for any formal public GET. No public Catalog
+feed, issuer, Publisher, Release, CLI, or Website admission was modified.
+
+The version in the bundle filename is the **PostGIS bundle version, not
+the independently determined pgRouting or subextension version**.
+The five previously pinned, tested original observations are not a live
+latest-release feed. Newer ZIPs require new real-byte, rights, runtime and
+provenance checks. `--version` on this offline review refers to the bundle
+version; bundle-specific versions are not per-component version claims.
 
 ## Rights and producer admission blockers (remain real)
 
