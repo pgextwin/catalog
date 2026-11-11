@@ -18,9 +18,20 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "pgextwin-issue112-latest-external-review/v1"
 NAME = re.compile(r"[a-z][a-z0-9_]{1,40}\Z")
 VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){1,3}\Z")
-# A Winnie PostGIS bundle includes pgRouting. The version printed in the
-# bundle filename is a PostGIS BUNDLE version, never pgRouting's own version.
-BUNDLE_COMPONENTS = ("postgis", "pgrouting")
+# Official PostGIS Windows bundles also contain the listed installable
+# PostGIS subextensions (see the upstream Enabling PostGIS instructions).
+# These are *review candidates*, not independently verified/authorized
+# components. One original ZIP per PG major; never manufacture new assets.
+# Filename versions refer ONLY to the PostGIS BUNDLE, not individual modules.
+BUNDLE_COMPONENTS = (
+    "postgis",
+    "pgrouting",
+    "postgis_raster",
+    "postgis_sfcgal",
+    "postgis_topology",
+    "address_standardizer",
+    "postgis_tiger_geocoder",
+)
 DENY = dict(downloadAuthorized=False, mirrorAuthorized=False,
             redistributionAuthorized=False, publisherAuthorized=False,
             releaseAuthorized=False, independentSignedAdmission=False)
@@ -131,9 +142,9 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
     for group in sorted(groups, key=lambda item: (item[0], int(item[1]))):
         selected.extend(sorted(groups[group][1], key=lambda x: (
             x["source"], x["provider"], x["assetName"], x["packageIdentity"])))
-    # pgRouting and PostGIS refer to ONE original bundle per major. If both
-    # components are selected, preserve individual observations but count the
-    # provider ZIP only once. This is a review dedup, NOT an authorized batch.
+    # Every listed component of a PG major shares ONE OSGeo ZIP identity.
+    # Keep each component's review row, count the ZIP once. Review dedup
+    # never permits any download or claims individual component runtime proof.
     packages = sorted(set(item["packageIdentity"] for item in selected))
     coverage = {}
     for item in selected:
