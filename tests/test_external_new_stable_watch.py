@@ -50,6 +50,15 @@ class DailyWatchTests(unittest.TestCase):
         self.assertEqual(r["providers"][0]["untrackedAssets"], ["test-201.zip"])
         self.assertEqual(r["newStableCount"], 1)
 
+    def test_untracked_initial_provider_does_not_claim_new_release(self):
+        report = watch.analyze(inventory(release("v20260107", 4, (501,))),
+                               CONFIG, {})
+        self.assertEqual(report["newStableCount"], 0)
+        self.assertEqual(report["baselineMissingCount"], 1)
+        self.assertEqual(report["providers"][0]["status"], "BASELINE_NOT_ESTABLISHED")
+        self.assertFalse(report["publicationAuthorized"])
+        self.assertFalse(report["downloadAuthorized"])
+
     def test_same_stable_version_new_asset_is_not_new_version(self):
         r = watch.analyze(inventory(release("1.4.1", 2, (101, 102))),
                           CONFIG, {"example/provider": {("1.4.1", 101)}})
