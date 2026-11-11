@@ -60,9 +60,11 @@ jobs:
               $commit.commit.verification.reason -cne 'valid' -or $commit.committer.login -cne 'web-flow') { throw 'Source lacks protected GitHub merge signature' }
           $ready=$false
           for ($attempt=0; $attempt -lt 20; $attempt++) {
-            $checks=gh api "repos/pgextwin/catalog/commits/$source/check-runs" | ConvertFrom-Json
+            # The required validate job can be beyond GitHub's default first 30 check-runs.
+            # Enumerate every page; retain the exact source, trusted app and success checks.
+            $checkPages=gh api --paginate --slurp "repos/pgextwin/catalog/commits/$source/check-runs?per_page=100" | ConvertFrom-Json
             if ($LASTEXITCODE -ne 0) { throw 'Required CI lookup failed' }
-            $native=@($checks.check_runs | Where-Object { $_.name -ceq 'validate' -and $_.app.id -eq 15368 })
+            $native=@($checkPages | ForEach-Object { $_.check_runs } | Where-Object { $_.name -ceq 'validate' -and $_.app.id -eq 15368 })
             if ($native.Count -eq 1 -and $native[0].conclusion -ceq 'success') { $ready=$true; break }
             if ($native.Count -eq 1 -and $native[0].status -ceq 'completed') { throw 'Required native CI failed' }
             Start-Sleep -Seconds 15
