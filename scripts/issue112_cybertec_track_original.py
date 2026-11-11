@@ -17,7 +17,7 @@ SOURCE_SHA = "36a23f3c6d684c40140da1a24b1c3ee0e707b77a"
 MAX_ZIP = 2_000_000
 MAX_FILES = 128
 MAX_EXPANDED = 4_000_000
-SQL = re.compile(r"pg_track_settings--[0-9A-Za-z._-]+\\.sql\\Z")
+SQL = re.compile(r"pg_track_settings--[0-9A-Za-z._-]+\.sql\Z")
 DENIALS = dict(publicGetAuthorized=False, mirrorAuthorized=False,
                publisherAuthorized=False, releaseAuthorized=False,
                independentlySignedAdmission=False,
