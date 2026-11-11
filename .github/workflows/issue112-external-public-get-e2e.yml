@@ -103,12 +103,12 @@ jobs:
             echo "recovery=true" >> "$GITHUB_OUTPUT"
             echo "AUTHENTIC_PUBLIC_ONLY_E2E_RECOVERY=PASS SHA=$CATALOG_SHA"
           else
-            echo 'NO_SIGNED_COHORT_UPDATE_OR_EXACT_RECOVERY_COMMIT; no provider GET'
+            echo 'NO_ATOMIC_SIGNED_CATALOG_LATEST_PIN_UPDATE; no provider GET'
             exit 0
           fi
           echo "provider=$provider" >> "$GITHUB_OUTPUT"
           echo "source=$CATALOG_SHA" >> "$GITHUB_OUTPUT"
-          echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
+          echo "AUTHENTIC_LIVE_ORIGINAL_GET_GATE=PASS SHA=$CATALOG_SHA"
 
   windows-real-original-get:
     needs: authenticate-original-main
