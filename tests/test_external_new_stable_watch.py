@@ -65,7 +65,7 @@ class DailyWatchTests(unittest.TestCase):
 
     def test_missing_provider_and_unsafe_trust_fail_closed(self):
         with self.assertRaises(ValueError):
-            watch.analyze(inventory(), {"trust": "UNTRUSTED", **CONFIG}, {})
+            watch.analyze(inventory(), {**CONFIG, "trust": "UNTRUSTED"}, {})
         changed = copy.deepcopy(inventory(release("1.0")))
         changed["repositories"].append(copy.deepcopy(changed["repositories"][0]))
         with self.assertRaises(ValueError):
