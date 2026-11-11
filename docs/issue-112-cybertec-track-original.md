@@ -12,7 +12,9 @@ the entirety of any Cybertec ZIP.
 
 Cybertec PGEE public directory index-only verification previously observed
 pg_track_settings-14-public-2.1.2.zip through
-pg_track_settings-18-public-2.1.2.zip on the five PG-major indexes.
+pg_track_settings-17-public-2.1.2.zip, and the distinct PG18 file
+pg_track_settings-18-public-2.1.2-1.zip on the five PG-major indexes.
+The PG18 -1 packaging suffix is not a distinct upstream semantic version.
 These are **Cybertec PGEE packages**, not proven community PostgreSQL/EDB
 Windows-compatible and not authenticated producer artifacts.
 
