@@ -11,6 +11,9 @@ namespace PgExtWin.Releases;
 /// </summary>
 public static class BatchReleaseDownloader
 {
+    // Historical --fixed / external local policy remains usable for PG14.
+    // Latest mode passes the independently verified signed feed's majors.
+    private static readonly string[] LegacyFixedMajors = ["14", "15", "16", "17", "18"];
     public sealed record BatchResult(string Directory, int Count, long Bytes,
         string VerificationLevel = "INTEGRITY_ONLY");
 
@@ -20,8 +23,8 @@ public static class BatchReleaseDownloader
         CancellationToken cancellationToken = default, bool usePinnedBrowserTransport = false,
         Action<string>? progress = null)
     {
-        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all"))
-            throw new InvalidDataException("Batch PG selection must be 14, 15, 16, 17, 18 or all");
+        if (pgSelection != "all" && !LegacyFixedMajors.Contains(pgSelection, StringComparer.Ordinal))
+            throw new InvalidDataException("Unsupported historical fixed batch PG selection");
         var records = CatalogReader.LoadLocal(catalogDirectory);
         // v0.2 operates on the exact 14-extension production fleet. Never silently
         // make a partial 'all' selection from a broken or incomplete Catalog.
@@ -29,8 +32,7 @@ public static class BatchReleaseDownloader
             records.Select(r => r.Name).Distinct(StringComparer.Ordinal).Count() !=
                 VerifiedFleetRoster.MinimumCount)
             throw new InvalidDataException("Batch requires an intact 14-extension Catalog");
-        var majors = pgSelection == "all"
-            ? new[] { "14", "15", "16", "17", "18" } : new[] { pgSelection };
+        var majors = pgSelection == "all" ? LegacyFixedMajors : new[] { pgSelection };
         var pins = new List<ReleasePins>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var major in majors)
@@ -71,7 +73,7 @@ public static class BatchReleaseDownloader
     {
         // Only the Sigstore-verified feed caller supplies a forward PG cohort.
         // Legacy pinned policy and synthetic callers remain PG14-18 by default.
-        var accepted = approvedMajors?.ToArray() ?? ["14", "15", "16", "17", "18"];
+        var accepted = approvedMajors?.ToArray() ?? LegacyFixedMajors;
         if (accepted.Length is < 1 or > 12 ||
             accepted.Any(x => !int.TryParse(x, out var n) || n < 14 || n > 32 ||
                               n.ToString(System.Globalization.CultureInfo.InvariantCulture) != x) ||
