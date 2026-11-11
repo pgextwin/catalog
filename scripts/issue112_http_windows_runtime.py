@@ -5,17 +5,19 @@ This test is not signed admission, license acceptance or a public GET adapter.
 Reuse the existing original ZIP guards; never upload downloaded/staged bytes.
 """
 import argparse
+from contextlib import contextmanager
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
-import tempfile
 import threading
 import time
 import urllib.request
+import uuid
 import zipfile
 
 from issue112_http_original_receipts import (
@@ -103,8 +105,25 @@ class Fixture(BaseHTTPRequestHandler):
 
 
 def run(command):
-    return subprocess.run(command, check=True, capture_output=True, text=True,
-                          timeout=90).stdout.strip()
+    result = subprocess.run(command, capture_output=True, text=True, timeout=90)
+    if result.returncode:
+        print(result.stdout, flush=True)
+        print(result.stderr, flush=True)
+        result.check_returncode()
+    return result.stdout.strip()
+
+
+@contextmanager
+def runtime_workspace(parent):
+    # Python 3.12.4+ mkdtemp uses a Windows 0700 DACL. initdb launches with
+    # PostgreSQL's restricted token and must inherit the runner temp ACL,
+    # as in the existing successful PowerShell runtime pilots. No ACL edit.
+    path = Path(parent) / ('issue112-http-' + uuid.uuid4().hex)
+    path.mkdir()
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path)
 
 
 def loaded_modules(backend_pid):
@@ -133,8 +152,7 @@ def qualify(pg):
     if not re.match(r'^PostgreSQL\s+' + pg + r'(?:[.]|\s)', version):
         raise ValueError('PostgreSQL host major mismatch')
     host_receipts = {str(p): digest(p) for p in bin_dir.glob('*.dll')}
-    with tempfile.TemporaryDirectory(prefix='issue112-http-', dir=os.environ['RUNNER_TEMP']) as tmp:
-        tmp = Path(tmp)
+    with runtime_workspace(os.environ['RUNNER_TEMP']) as tmp:
         archive_path = tmp / CANDIDATES[pg][0]
         url = ORIGIN + CANDIDATES[pg][0]
         request = urllib.request.Request(url, headers={'User-Agent': 'pgextwin-issue112-private-sql/1'})

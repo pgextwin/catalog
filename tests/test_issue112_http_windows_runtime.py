@@ -111,6 +111,16 @@ class StagingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'ephemeral'):
             runtime.qualify('18')
 
+    def test_runtime_workspace_cleans_up_on_failure(self):
+        created = None
+        with self.assertRaisesRegex(RuntimeError, 'simulated'):
+            with runtime.runtime_workspace(self.tmp.name) as path:
+                created = path
+                self.assertTrue(path.is_dir())
+                (path / 'probe').write_bytes(b'temporary')
+                raise RuntimeError('simulated')
+        self.assertFalse(created.exists())
+
 
 if __name__ == '__main__':
     unittest.main()
