@@ -48,6 +48,8 @@ class CatalogFeedPublicationGate(unittest.TestCase):
         self.assertIn("if: needs.gate.outputs.source != ''", self.workflow)
         self.assertEqual(self.workflow.count("if: needs.gate.outputs.source != ''"), 2)
         self.assertIn("CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE", self.workflow)
+        self.assertTrue(self.accepted(["config/cli-feed-majors.json"]))
+        self.assertFalse(self.accepted(["tests/test_cli_signed_feed.py"]))
         self.assertLess(
             self.workflow.index("CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE"),
             self.workflow.index('echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"'),

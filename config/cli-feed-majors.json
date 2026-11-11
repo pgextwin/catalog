@@ -1,4 +1,4 @@
 {
   "schemaVersion": 1,
-  "postgresqlMajors": ["14", "15", "16", "17", "18"]
+  "postgresqlMajors": ["15", "16", "17", "18"]
 }

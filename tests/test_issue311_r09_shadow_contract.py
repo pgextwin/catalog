@@ -34,7 +34,10 @@ class PrivatePreview(unittest.TestCase):
         self.assertIn("orafce",self.index["extensions"])
         self.assertEqual(self.record["latest"]["releaseTag"],self.e["historicalPublicReleaseTag"])
         self.assertEqual(self.record["latest"]["publishedAt"],"2026-10-10T15:49:07Z")
-        self.assertEqual(self.majors["postgresqlMajors"],self.e["pgMajors"])
+        # Historical public record is immutable; its signed-feed cohort may
+        # omit EOL PG14 while the five-major published asset ledger remains.
+        self.assertIn(self.majors["postgresqlMajors"],
+                      [self.e["pgMajors"], self.e["pgMajors"][1:]])
         self.assertEqual(set(self.record["postgresql"]),set(self.e["pgMajors"]))
     def test_deny_all_publication(self):
         for key in ("publicReleaseAuthorized","proposedPublicRecord","writeOutcomeUnknown",
