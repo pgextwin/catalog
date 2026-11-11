@@ -21,6 +21,7 @@ internal static class AuthenticatedCatalogHeadTests
         public bool DropHistorical = false;
         public bool AddUnknown = false;
         public bool InvalidName = false;
+        public string[] Majors = ["14", "15", "16", "17", "18"];
         private static readonly string[] Wave3 = ["pgtap", "pg_variables", "pg_store_plans"];
         private string[] Inventory => Names
             .Concat(Wave3.Take(WaveThreeCount))
@@ -121,6 +122,10 @@ internal static class AuthenticatedCatalogHeadTests
                 else
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             }
+            else if (path.EndsWith("/config/cli-feed-majors.json", StringComparison.Ordinal))
+            {
+                body = JsonSerializer.Serialize(new { schemaVersion = 1, postgresqlMajors = Majors });
+            }
             else if (path.EndsWith("/index.json", StringComparison.Ordinal))
             {
                 body = JsonSerializer.Serialize(new { schemaVersion = 2, extensions = Inventory });
@@ -191,6 +196,29 @@ internal static class AuthenticatedCatalogHeadTests
                 catch (InvalidDataException) { draftDenied = true; }
                 check(draftDenied, "draft unpublished Release fails closed");
             }
+            // The EOL Catalog retains historical PG14 in each immutable record,
+            // but post-EOL approved selections include only PG15-18.
+            using (var postEol = new FixtureHandler { Majors = ["15", "16", "17", "18"] })
+            {
+                using var session = await AuthenticatedCatalogHead.AcquireAsync(parent, postEol);
+                check(session.ApprovedMajors.SequenceEqual(new[] { "15", "16", "17", "18" }),
+                    "protected approved PG cohort is sourced from immutable config");
+                var plan = await AuthenticatedLatestReleasePins.ResolveAsync(session, "all", postEol);
+                check(plan.Count == 56 && plan.All(x => x.PgMajor != "14"),
+                    "PG14 remains in Catalog but is excluded from latest ZIP selection");
+                var denied = false;
+                try { await AuthenticatedLatestReleasePins.ResolveAsync(session, "14", postEol); }
+                catch (InvalidDataException) { denied = true; }
+                check(denied, "Post-EOL PG14 latest selection fails closed");
+            }
+            using (var malformed = new FixtureHandler { Majors = ["15", "17", "18"] })
+            {
+                var denied = false;
+                try { using var session = await AuthenticatedCatalogHead.AcquireAsync(parent, malformed); }
+                catch (InvalidDataException) { denied = true; }
+                check(denied, "noncontiguous approved cohort fails closed");
+            }
+
             // All synthetic: the live Catalog still indexes only 14 signed public Releases.
             for (var extra = 1; extra <= 3; extra++)
             {
