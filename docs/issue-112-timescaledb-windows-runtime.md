@@ -1,0 +1,11 @@
+# Issue #112 — TimescaleDB 2.31.0 Windows SQL qualification (deny-only)
+
+Scope: official timescale/timescaledb Release 2.31.0, pinned PG16/PG17/PG18 Windows AMD64 ZIPs. The baseline and independent original-byte/CRC/SHA256 audit remain in `external/timescaledb-release-watch-baseline-v1.json` and `issue112_timescaledb_original_rehash.py` (merged Catalog PR #322).
+
+This addition checks a **different acceptance dimension**: native Windows PostgreSQL runtime compatibility. Each isolated GitHub-hosted Windows runner independently re-downloads the exact upstream Release ZIP through the already-reviewed GitHub-host redirect policy, rejects changed size/hash or unsafe ZIP structure, stages to a new temporary directory without overwrite, and invokes the *original verified upstream installer* `timescaledb/setup.exe -yes-tune -pgconfig`. This follows the upstream source-tag `.github/workflows/windows-packages.yaml` installation method, not a reimplementation of the installer.
+
+The runner reuses pgextwin's immutable proven EDB PostgreSQL installer and explicitly pinned package versions for PG16/17/18. It initializes a disposable database, starts PostgreSQL with `shared_preload_libraries=timescaledb`, confirms `CREATE EXTENSION timescaledb` and exact `extversion=2.31.0`, creates a hypertable, inserts deterministic rows and verifies a query. Failure or skipped jobs do **not** count as runtime acceptance. No original ZIP artifacts are uploaded or copied to public storage.
+
+Security boundary: `permissions: contents: read`, no long-lived tokens, credentials not persisted, no release/publisher/issuer or signed feed changes, no source/provider admission change. Original byte equality does not establish upstream producer cryptographic source-to-binary attestation, all component licenses and NOTICE closure, dependency closure, or owner-signed source-specific admission. Even if the PG16–18 SQL jobs pass, **PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY / PUBLISH_DENY** remain in force. This is only `CANDIDATE_ONLY` progress; do not mark `PUBLIC_COMPLETE`.
+
+Files: `.github/workflows/issue112-timescaledb-windows-runtime.yml`, `scripts/issue112_timescaledb_windows_runtime_stage.py`, `scripts/issue112-timescaledb-windows-runtime.ps1`, and `tests/test_issue112_timescaledb_windows_runtime_stage.py`.
