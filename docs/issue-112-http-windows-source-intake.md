@@ -25,3 +25,35 @@ Existing pgextwin `download-all --source external` requires immutable GitHub Rel
 Follow-up, only if independently justified: inspect and hash the five original ZIPs via the publisher origin; verify source revisions, build history, package contents, exact PG ABI, loader dependencies, licenses and notices; then design and review a separate strictly pinned HTTPS transport and authenticated source-specific admission before any public GET. Preserve all current fail-closed behavior and independent Publisher/Website gates.
 
 **Current deliverable:** research metadata added to `landscape/extensions/http.json` and the 25-entry landscape index. This candidate is not added to distribution `index.json`, a signed `qualified_cohort`, or any published release. No original ZIP, third-party source, license file or binary is mirrored.
+
+
+## Exact-origin original-byte observation pilot (2026-11-11; NONPUBLISHING)
+
+New `scripts/issue112_http_original_receipts.py` and PR-only matrix
+`.github/workflows/issue112-http-original-receipts.yml` attempt actual
+original publisher HTTPS ZIP GET for **PG14, 15, 16, 17 and 18** without any
+mirror, cross-origin redirect, signed feed, release asset identity fabrication,
+artifact upload, user-facing CLI invocation or Publisher call.
+
+For each responding original the inspector **observes**, but does not
+authenticate, a complete streamed byte count/SHA256 and bounded original ZIP
+structure, member CRC, safe paths, exactly one AMD64 `http.dll`,
+`http.control`, and candidate rights-file names. These are **untrusted
+initial receipts**, not pre-established SHA pins, rights/source-version
+acceptance, upstream-producer signature, Windows runtime closure or a
+cryptographic source-to-exact-binary attestation. The ZIP stays temporary and
+is deleted. The workflow also executes adversarial offline tests. A failing
+remote transfer or malformed archive remains **FAILURE** and must never be
+treated as successful GET verification.
+
+All versions here are **Windows publisher-advertised**, NOT established as
+upstream v1.7.2. No actual original hash should be entered in a promoted
+Catalog pin until separately reviewed and reproduced. The original earlier
+PG18 local GET failure is preserved as earlier evidence, not silently
+overwritten.
+
+**Admission boundary unchanged:** CANDIDATE_ONLY / PUBLIC_GET_DENY /
+MIRROR_DENY / RELEASE_DENY. Independent publisher identity, legal/NOTICE
+closure, exact source revision/build provenance, Windows loader/SQL acceptance,
+new strict external-HTTPS source-specific signed issuer design and formal
+authorization all remain open.
