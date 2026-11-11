@@ -22,7 +22,7 @@ LATEST_UPSTREAM_COMMIT = '3360447e0668fed2b9db6a0ae1d086533781f9bd'
 MAX_ZIP = 3_000_000
 MAX_FILES = 128
 MAX_EXPANDED = 8_000_000
-SQL = re.compile(r'pg_permissions--[0-9A-Za-z.\\-]+\\.sql\\Z')
+SQL = re.compile(r'pg_permissions--[0-9A-Za-z.\-]+\.sql\Z')
 REQUIRED_SQL = frozenset((
     'pg_permissions--1.0.sql', 'pg_permissions--1.0--1.1.sql',
     'pg_permissions--1.1.sql', 'pg_permissions--1.1--1.2.sql',
@@ -87,7 +87,7 @@ def review_zip(raw, pg, source=None):
             raise ValueError('ZIP CRC check failed')
     if set(found) != REQUIRED:
         raise ValueError('Missing, added or unrecognized installable SQL/control member')
-    if not re.search(rb"(?m)^default_version\\s*=\\s*'1\\.4'\\s*$", found['pg_permissions.control']):
+    if not re.search(rb"(?m)^default_version\s*=\s*'1\.4'\s*$", found['pg_permissions.control']):
         raise ValueError('Unrecognized SQL extension default version')
     matched, different, missing = [], [], []
     if source is not None:
