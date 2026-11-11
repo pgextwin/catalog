@@ -19,6 +19,10 @@ internal sealed record ExternalOriginalPin(
 internal sealed class ExternalProviderAssetTransport : IDisposable
 {
     private readonly HttpClient http;
+    // One transport instance per signed, atomic CLI batch. Cache GitHub JSON only
+    // in memory; revalidate every pin against the snapshot before each asset GET.
+    // No disk cache, cross-batch reuse, or substitution for signed admission.
+    private readonly Dictionary<string, JsonElement> metadataSnapshots = new(StringComparer.Ordinal);
     private static readonly Regex Repo = new(
         @"\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z", RegexOptions.CultureInvariant);
     private static readonly Regex Extension = new(
@@ -71,16 +75,14 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         RequireAbsent(folder, pin.AssetName);
 
         var baseUrl = "https://api.github.com/repos/" + pin.SourceRepo;
-        using (var repo = await JsonAsync(baseUrl, token))
         {
-            var root = repo.RootElement;
+            var root = await CachedMetadataAsync(baseUrl, token);
             if (root.GetProperty("full_name").GetString() != pin.SourceRepo ||
                 root.GetProperty("id").GetInt64() != pin.RepositoryId)
                 throw new InvalidDataException("External repository identity mismatch");
         }
-        using (var release = await JsonAsync(baseUrl + "/releases/tags/" + pin.Tag, token))
         {
-            var root = release.RootElement;
+            var root = await CachedMetadataAsync(baseUrl + "/releases/tags/" + pin.Tag, token);
             if (root.GetProperty("id").GetInt64() != pin.ReleaseId ||
                 root.GetProperty("tag_name").GetString() != pin.Tag ||
                 root.GetProperty("draft").ValueKind != JsonValueKind.False ||
@@ -170,6 +172,17 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         {
             if (File.Exists(temporary)) File.Delete(temporary);
         }
+    }
+
+    private async Task<JsonElement> CachedMetadataAsync(string url, CancellationToken token)
+    {
+        if (metadataSnapshots.TryGetValue(url, out var snapshot))
+            return snapshot;
+        // JsonElement.Clone owns its backing data after JsonDocument disposal.
+        using var document = await JsonAsync(url, token);
+        snapshot = document.RootElement.Clone();
+        metadataSnapshots.Add(url, snapshot);
+        return snapshot;
     }
 
     private async Task<JsonDocument> JsonAsync(string url, CancellationToken token)
