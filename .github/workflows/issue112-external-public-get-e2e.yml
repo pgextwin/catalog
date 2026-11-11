@@ -1,9 +1,10 @@
 name: Issue112 real Windows original-provider GET-only E2E (no publication)
 
-# Only original successful protected Catalog/main Validate following an
-# atomic signed admission + Catalog latest-pin update may start this test.
-# Every GET still requires an active, independently verified signed admission.
-# Never runs on PR, synthetic push, dispatch, schedule or an arbitrary artifact.
+# Only genuine protected-main Validate after an atomic signed admission, or
+# the single protected recovery merge immediately following the independently
+# tested transport cache fix, can start this read-only original-byte test.
+# Every GET still requires active owner-reviewed independent Sigstore admission.
+# Never runs on PR, synthetic push, dispatch, schedule or arbitrary artifacts.
 on:
   workflow_run:
     workflows: ["Validate catalog"]
@@ -26,8 +27,9 @@ jobs:
     outputs:
       source: ${{ steps.gate.outputs.source }}
       provider: ${{ steps.gate.outputs.provider }}
+      recovery: ${{ steps.gate.outputs.recovery }}
     steps:
-      - name: Authenticate real exact-head protected main Validate and new signed files
+      - name: Authenticate exact-main signed-admission merge or one-shot public E2E recovery
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,7 +56,8 @@ jobs:
             .committer.login=="web-flow" and
             .commit.committer.email=="noreply@github.com"
           ' <<< "$commit" >/dev/null
-          if ! jq -e '
+          # Original immutable signed cohort merge remains the normal entry.
+          if jq -e '
             ([.files[]? | select(
               (.status=="added" or .status=="modified") and
               .filename=="external/signed-direct-get/qualified_cohort/latest.json"
@@ -69,22 +72,40 @@ jobs:
               .filename | startswith("external/signed-direct-get/")
             )] | length==3)
           ' <<< "$commit" >/dev/null; then
-            echo 'NO_ATOMIC_SIGNED_CATALOG_LATEST_PIN_UPDATE; no provider GET'
+            cohort="$(jq -r '.files[]? | select(.status=="added") | .filename |
+              select(test("^external/signed-direct-get/qualified_cohort/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
+              sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\\1/\\2#' | sort -u)"
+            if [ -z "$cohort" ] || [ "$(printf '%s\\n' "$cohort" | wc -l)" -ne 1 ]; then
+              echo 'Invalid or mixed signed cohort, DENY'
+              exit 1
+            fi
+            provider="${cohort%%/*}"
+            case "$provider" in qualified_cohort) ;; *) exit 1 ;; esac
+            echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
+          elif jq -e '
+            # This exception is bounded to the immediate next protected Squash
+            # merge after the tested transport fix, with exactly three recovery
+            # review files. It cannot be replayed on any later main commit.
+            (.parents | length)==1 and
+            .parents[0].sha=="82ed47a48d65278582f848a3964f5eb14699fe41" and
+            ([.files[]?] | length)==3 and
+            ([.files[]? | select(.status=="modified") | .filename] | sort)==
+              ([
+                ".github/workflows/issue112-external-public-get-e2e.yml",
+                "scripts/issue112-public-original-get-e2e.ps1",
+                "tests/test_issue112_public_original_get_e2e_guard.py"
+              ] | sort)
+          ' <<< "$commit" >/dev/null; then
+            # The Windows job independently verifies current signed issuer,
+            # original owner review, Catalog pins, Sigstore, and expiry. Recovery
+            # does NOT issue a new permission and runs the PUBLIC CLI only.
+            provider="qualified_cohort"
+            echo "recovery=true" >> "$GITHUB_OUTPUT"
+            echo "AUTHENTIC_PUBLIC_ONLY_E2E_RECOVERY=PASS SHA=$CATALOG_SHA"
+          else
+            echo 'NO_SIGNED_COHORT_UPDATE_OR_EXACT_RECOVERY_COMMIT; no provider GET'
             exit 0
           fi
-          cohort="$(jq -r '.files[]? | select(.status=="added") | .filename |
-            select(test("^external/signed-direct-get/qualified_cohort/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
-            sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\1/\2#' | sort -u)"
-          if [ -z "$cohort" ]; then
-            echo 'Latest pin update has no signed Run archive; no provider GET'
-            exit 1
-          fi
-          if [ "$(printf '%s\n' "$cohort" | wc -l)" -ne 1 ]; then
-            echo 'Mixed signed cohorts in one commit; DENY'
-            exit 1
-          fi
-          provider="${cohort%%/*}"
-          case "$provider" in qualified_cohort) ;; *) exit 1 ;; esac
           echo "provider=$provider" >> "$GITHUB_OUTPUT"
           echo "source=$CATALOG_SHA" >> "$GITHUB_OUTPUT"
           echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
@@ -184,6 +205,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PIN_PROVIDER: ${{ needs.authenticate-original-main.outputs.provider }}
+          RECOVERY_PUBLIC_ONLY: ${{ needs.authenticate-original-main.outputs.recovery }}
         run: |
           $ErrorActionPreference='Stop'
-          ./scripts/issue112-public-original-get-e2e.ps1 -Source $env:PIN_PROVIDER
+          if ($env:RECOVERY_PUBLIC_ONLY -ceq 'true') {
+            ./scripts/issue112-public-original-get-e2e.ps1 -Source $env:PIN_PROVIDER -PublicOnly
+          } else {
+            ./scripts/issue112-public-original-get-e2e.ps1 -Source $env:PIN_PROVIDER
+          }
