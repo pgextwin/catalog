@@ -1,5 +1,6 @@
 """Offline contract tests for metadata-only daily stable provider watch."""
 import copy
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -83,6 +84,72 @@ class DailyWatchTests(unittest.TestCase):
         changed["publicationAuthorized"] = True
         with self.assertRaises(ValueError):
             watch.analyze(changed, CONFIG, {})
+
+
+    def test_pgroonga_five_originals_cross_check_existing_pins_and_live_api(self):
+        baseline = json.loads(watch.PGROONGA_WATCH_BASELINE.read_text("utf-8"))
+        assets = [{"assetId": r["assetId"], "name": r["assetName"],
+                   "size": r["originalBytes"],
+                   "digest": "sha256:" + r["originalSha256"],
+                   "state": "uploaded"} for r in baseline["records"]]
+        observed = {
+            "schemaVersion": "pgextwin-external-windows-release-inventory/v1",
+            "trust": "UNVERIFIED_METADATA_ONLY",
+            "publicationAuthorized": False,
+            "redistributionAuthorized": False,
+            "repositories": [{
+                "repo": "pgroonga/pgroonga",
+                "releases": [{
+                    "releaseId": baseline["releaseId"],
+                    "tag": baseline["releaseTag"],
+                    "draft": False, "prerelease": False,
+                    "publishedAt": "2026-10-09T00:00:00Z",
+                    "windowsAssets": assets,
+                }],
+            }],
+        }
+        tracked = watch.reviewed_pgroonga_baseline(baseline, observed)
+        self.assertEqual(5, len(tracked))
+        self.assertEqual({("4.1.0", r["assetId"]) for r in baseline["records"]}, tracked)
+        config = {"trust": "READ_ONLY_METADATA_NEVER_AUTHORIZE",
+                  "providers": [{"repo": "pgroonga/pgroonga",
+                                 "extension": "pgroonga"}]}
+        report = watch.analyze(observed, config, {"pgroonga/pgroonga": tracked})
+        self.assertEqual("TRACKED", report["providers"][0]["status"])
+        self.assertFalse(report["downloadAuthorized"])
+
+        changed = copy.deepcopy(observed)
+        changed["repositories"][0]["releases"][0]["windowsAssets"][0]["digest"] = (
+            "sha256:" + "0" * 64)
+        with self.assertRaises(ValueError):
+            watch.reviewed_pgroonga_baseline(baseline, changed)
+        changed = copy.deepcopy(observed)
+        changed["repositories"][0]["releases"][0]["windowsAssets"][0]["size"] += 1
+        with self.assertRaises(ValueError):
+            watch.reviewed_pgroonga_baseline(baseline, changed)
+        changed = copy.deepcopy(baseline)
+        changed["records"][0]["originalSha256"] = "0" * 64
+        with self.assertRaises(ValueError):
+            watch.reviewed_pgroonga_baseline(changed, observed)
+        changed = copy.deepcopy(baseline)
+        changed["downloadAuthorized"] = True
+        with self.assertRaises(ValueError):
+            watch.reviewed_pgroonga_baseline(changed, observed)
+        changed = copy.deepcopy(baseline)
+        changed["records"] = changed["records"][:-1]
+        with self.assertRaises(ValueError):
+            watch.reviewed_pgroonga_baseline(changed, observed)
+        altered = copy.deepcopy(observed)
+        altered["repositories"][0]["releases"].append(release("4.2.0", 407467159, (999,)))
+        result = watch.analyze(altered, config, {"pgroonga/pgroonga": tracked})
+        self.assertEqual("NEW_STABLE_RELEASE", result["providers"][0]["status"])
+        self.assertEqual(["test-999.zip"], result["providers"][0]["untrackedAssets"])
+        self.assertFalse(result["publicationAuthorized"])
+
+    def test_duplicate_pgroonga_json_baseline_key_rejected(self):
+        with self.assertRaises(ValueError):
+            json.loads('{"trust":"DENY","trust":"ALLOW"}',
+                       object_pairs_hook=watch.unique_json_pairs)
 
     def test_historical_issuer_is_only_tracking_not_live_authorization(self):
         cohort = {"schemaVersion": "pgextwin-external-latest-original-pins/v1",
