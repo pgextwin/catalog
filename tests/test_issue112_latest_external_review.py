@@ -95,11 +95,14 @@ class LatestExternalReviewTests(unittest.TestCase):
 
     def test_postgis_pgrouting_one_original_per_major(self):
         result = make_plan(self.root, source="osgeo")
-        self.assertEqual(result["selectedReviewRows"], 10)
+        self.assertEqual(result["selectedReviewRows"], 35)
         self.assertEqual(result["uniqueOriginalPackages"], 5)
+        majors = ["14", "15", "16", "17", "18"]
         self.assertEqual(result["observedMajorCoverageNotSupportClaim"],
-                         {"pgrouting": ["14", "15", "16", "17", "18"],
-                          "postgis": ["14", "15", "16", "17", "18"]})
+                         {name: majors for name in (
+                             "address_standardizer", "pgrouting", "postgis",
+                             "postgis_raster", "postgis_sfcgal",
+                             "postgis_tiger_geocoder", "postgis_topology")})
         self.assertTrue(all(row["versionMeaning"] ==
                             "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"
                             for row in result["selected"]))
@@ -108,6 +111,29 @@ class LatestExternalReviewTests(unittest.TestCase):
                                    "3.7.0", "osgeo")["uniqueOriginalPackages"], 1)
         self.assertEqual(make_plan(self.root, "18", "pgrouting",
                                    "4.0.1", "osgeo")["selectedReviewRows"], 0)
+
+    def test_postgis_subextensions_share_exact_original_no_public_admission(self):
+        for major in ("14", "15", "16", "17", "18"):
+            result = make_plan(self.root, pg=major, source="osgeo")
+            self.assertEqual(result["selectedReviewRows"], 7)
+            self.assertEqual(result["uniqueOriginalPackages"], 1)
+            self.assertEqual({row["extension"] for row in result["selected"]},
+                             {"postgis", "pgrouting", "postgis_raster",
+                              "postgis_sfcgal", "postgis_topology",
+                              "address_standardizer", "postgis_tiger_geocoder"})
+            self.assertEqual(
+                {row["packageIdentity"] for row in result["selected"]},
+                set(result["uniqueOriginalPackageIdentities"]))
+            self.assertTrue(all(row["downloadAuthorized"] is False
+                                and row["publisherAuthorized"] is False
+                                and row["independentSignedAdmission"] is False
+                                and row["blockers"]
+                                for row in result["selected"]))
+        single = make_plan(self.root, pg="18", extension="postgis_raster",
+                           source="osgeo")
+        self.assertEqual(single["selectedReviewRows"], 1)
+        self.assertEqual(single["uniqueOriginalPackages"], 1)
+        self.assertEqual(single["admittedAssets"], 0)
 
     def test_no_promotion_and_no_implicit_fallback(self):
         result = make_plan(self.root)
