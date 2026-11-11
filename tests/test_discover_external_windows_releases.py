@@ -29,10 +29,10 @@ def sample(repo="portalcorp/pgvector_compiled", name="pgvector-Windows-pg16.zip"
 
 class DiscoveryTests(unittest.TestCase):
     def test_pinned_baselines_all_match_explicit_windows_patterns(self):
-        self.assertEqual(7, len(PROVIDERS))
+        self.assertEqual(8, len(PROVIDERS))
         for p in PROVIDERS:
             if p["repo"] in ("trickle-labs/pg-trickle", "HiraokaHyperTools/pg_bigm",
-                                "pgroonga/pgroonga"):
+                                "pgroonga/pgroonga", "timescale/timescaledb"):
                 continue  # New provider has no pinned historical baseline yet.
             historical = next(repo for b in BASELINES for repo in b["repositories"]
                               if repo["repo"] == p["repo"])
@@ -207,6 +207,35 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(1, row["windowsAssets"])
         self.assertFalse(d.scan([provider], lambda repo, page:
                                 [raw] if page == 1 else [])["publicationAuthorized"])
+
+
+    def test_timescaledb_release_asset_filter_and_read_only(self):
+        p = next(x for x in PROVIDERS if x["repo"] == "timescale/timescaledb")
+        self.assertEqual("upstream-official", p["providerType"])
+        self.assertEqual("timescaledb", p["extension"])
+        pattern = re.compile(p["assetPattern"])
+        for major in (16, 17, 18):
+            self.assertIsNotNone(pattern.fullmatch(
+                f"timescaledb-postgresql-{major}-windows-amd64.zip"))
+        for name in ("timescaledb-postgresql-19-windows-amd64.zip",
+                     "timescaledb-postgresql-18-linux-amd64.zip",
+                     "timescaledb-postgresql-18-windows-amd64.zip.sha256",
+                     "timescaledb-postgresql-18-windows-arm64.zip"):
+            self.assertIsNone(pattern.fullmatch(name))
+        a = sample(repo=p["repo"], name="timescaledb-postgresql-18-windows-amd64.zip")
+        a["tag_name"] = "2.31.0"
+        a["assets"][0]["browser_download_url"] = (
+            "https://github.com/timescale/timescaledb/releases/download/2.31.0/"
+            "timescaledb-postgresql-18-windows-amd64.zip")
+        a["assets"][0]["digest"] = "sha256:" + "a" * 64
+        result = d.scan([p], lambda repo, page: [a] if page == 1 else [])
+        self.assertEqual(1, result["repositories"][0]["windowsAssets"])
+        self.assertFalse(result["publicationAuthorized"])
+        self.assertFalse(result["redistributionAuthorized"])
+        changed = copy.deepcopy(a)
+        changed["assets"][0]["browser_download_url"] = "https://evil.invalid/a"
+        with self.assertRaises(ValueError):
+            d.summarize_pages(p, [[changed], []])
 
     def test_readonly_and_no_publisher_imports(self):
         source = (ROOT / "scripts/discover_external_windows_releases.py").read_text()

@@ -40,6 +40,12 @@
       "assetPattern": "^pgroonga-[0-9]+(?:\\.[0-9]+){1,3}-postgresql-(?:14|15|16|17|18)-x64\\.zip$"
     },
     {
+      "repo": "timescale/timescaledb",
+      "providerType": "upstream-official",
+      "extension": "timescaledb",
+      "assetPattern": "^timescaledb-postgresql-(?:14|15|16|17|18)-windows-amd64\\.zip$"
+    },
+    {
       "repo": "portalcorp/pgvector_compiled",
       "providerType": "community",
       "extension": "pgvector",

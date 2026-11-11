@@ -144,3 +144,21 @@ originals, available through the published CLI: `PUBLIC_GET_DENY`,
 The original signed feed, formal Publisher, Website and user-facing CLI
 are unchanged.
 
+
+## TimescaleDB official Windows stable Release monitor (metadata only, 2026-11-12)
+
+The existing read-only GitHub Release monitor now includes official
+`timescale/timescaledb` Windows x64 ZIP names for PostgreSQL 14–18 *where
+upstream provides them*. The observed latest stable Release `2.31.0`
+(Release ID `418582851`, 2026-10-20) supplies PG16, PG17 and PG18 ZIPs
+only; PG14/15 support is **not inferred**. The three exact asset IDs, names,
+API-reported lengths and API-reported SHA256 digests are frozen in
+`external/timescaledb-release-watch-baseline-v1.json`. Missing or modified original metadata fails closed,
+while a higher numeric stable tag generates a review alert only.
+
+These pins are **untrusted GitHub API observations**, not independent original
+ZIP byte hashes, producer signatures, source-to-binary provenance or license
+and dependency admission. No provider binary GET, additional schedule, new
+privilege, release, signed feed, public CLI or Website change is added.
+All new assets remain CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY /
+RELEASE_DENY / PUBLISH_DENY.

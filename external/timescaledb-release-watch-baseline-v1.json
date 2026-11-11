@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "pgextwin-issue112-timescaledb-official-release-watch-baseline/v1",
+  "trust": "UNVERIFIED_API_DIGEST_NEVER_AUTHORIZE",
+  "sourceRepo": "timescale/timescaledb",
+  "releaseTag": "2.31.0",
+  "releaseId": 418582851,
+  "downloadAuthorized": false,
+  "publicationAuthorized": false,
+  "redistributionAuthorized": false,
+  "records": [
+    {
+      "pgMajor": "16",
+      "assetId": 659788299,
+      "assetName": "timescaledb-postgresql-16-windows-amd64.zip",
+      "apiBytes": 9537404,
+      "apiSha256": "bacc19d2da8a47d6442f95ec28a1867b777786acbe8398deb958d4e5206bc52f"
+    },
+    {
+      "pgMajor": "17",
+      "assetId": 659795995,
+      "assetName": "timescaledb-postgresql-17-windows-amd64.zip",
+      "apiBytes": 9537297,
+      "apiSha256": "1a79207d46ecdf626d4fd39310da3a490cfec13cbb5e9510413b748f512ae2f4"
+    },
+    {
+      "pgMajor": "18",
+      "assetId": 659790321,
+      "assetName": "timescaledb-postgresql-18-windows-amd64.zip",
+      "apiBytes": 9538882,
+      "apiSha256": "7a0c5c7401eca080432de1ebb96239fdd8f4af46c401e82a82756bb8bac479c5"
+    }
+  ]
+}

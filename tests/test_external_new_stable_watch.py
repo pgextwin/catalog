@@ -168,6 +168,56 @@ class DailyWatchTests(unittest.TestCase):
         self.assertEqual(report["providers"][0]["status"], "TRACKED")
         self.assertFalse(report["downloadAuthorized"])
 
+    def test_timescaledb_official_baseline_denies_and_detects_changes(self):
+        baseline = json.loads(watch.TIMESCALEDB_WATCH_BASELINE.read_text("utf-8"),
+                              object_pairs_hook=watch.unique_json_pairs)
+        self.assertEqual(["16", "17", "18"],
+                         [x["pgMajor"] for x in baseline["records"]])
+        assets = [{"assetId": x["assetId"], "name": x["assetName"],
+                   "size": x["apiBytes"], "digest": "sha256:" + x["apiSha256"],
+                   "state": "uploaded"} for x in baseline["records"]]
+        observed = {
+            "schemaVersion": "pgextwin-external-windows-release-inventory/v1",
+            "trust": "UNVERIFIED_METADATA_ONLY", "publicationAuthorized": False,
+            "redistributionAuthorized": False,
+            "repositories": [{"repo": "timescale/timescaledb", "releases": [{
+                "releaseId": baseline["releaseId"], "tag": baseline["releaseTag"],
+                "draft": False, "prerelease": False,
+                "publishedAt": "2026-10-20T16:06:02Z", "windowsAssets": assets}]}]}
+        tracked = watch.reviewed_timescaledb_baseline(baseline, observed)
+        self.assertEqual(3, len(tracked))
+        config = {"trust": "READ_ONLY_METADATA_NEVER_AUTHORIZE",
+                  "providers": [{"repo": "timescale/timescaledb",
+                                 "extension": "timescaledb"}]}
+        report = watch.analyze(observed, config, {"timescale/timescaledb": tracked})
+        self.assertEqual("TRACKED", report["providers"][0]["status"])
+        self.assertEqual(0, report["newStableCount"])
+        self.assertFalse(report["downloadAuthorized"])
+        self.assertFalse(report["publicationAuthorized"])
+        tampered = copy.deepcopy(observed)
+        tampered["repositories"][0]["releases"][0]["windowsAssets"][0]["digest"] = (
+            "sha256:" + "0" * 64)
+        with self.assertRaises(ValueError):
+            watch.reviewed_timescaledb_baseline(baseline, tampered)
+        tampered = copy.deepcopy(observed)
+        tampered["repositories"][0]["releases"][0]["windowsAssets"].pop()
+        with self.assertRaises(ValueError):
+            watch.reviewed_timescaledb_baseline(baseline, tampered)
+        tampered = copy.deepcopy(baseline)
+        tampered["downloadAuthorized"] = True
+        with self.assertRaises(ValueError):
+            watch.reviewed_timescaledb_baseline(tampered, observed)
+        tampered = copy.deepcopy(baseline)
+        tampered["records"][0]["apiSha256"] = "0" * 64
+        with self.assertRaises(ValueError):
+            watch.reviewed_timescaledb_baseline(tampered, observed)
+        newer = copy.deepcopy(observed)
+        newer["repositories"][0]["releases"].append(
+            release("2.32.0", 418582852, (999,)))
+        alert = watch.analyze(newer, config, {"timescale/timescaledb": tracked})
+        self.assertEqual("NEW_STABLE_RELEASE", alert["providers"][0]["status"])
+        self.assertFalse(alert["downloadAuthorized"])
+
 
 if __name__ == "__main__":
     unittest.main()
