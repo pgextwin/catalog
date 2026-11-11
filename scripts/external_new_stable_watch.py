@@ -17,6 +17,7 @@ LEDGERS = (
     ROOT / "external/windows-candidates-v1.json",
     ROOT / "external/windows-candidates-portalcorp-v1.json",
 )
+HISTORICAL_ADMISSIONS = ROOT / "external/signed-direct-get"
 SEMVER = re.compile(r"v?([0-9]+(?:[.][0-9]+){1,3})\Z")
 ORACLE = re.compile(r"ORACLE_FDW_([0-9]+_[0-9]+_[0-9]+)\Z")
 DATE = re.compile(r"v?(20[0-9]{6})\Z")
@@ -42,7 +43,7 @@ def tag_key(tag):
     return numbers + (0,) * (4 - len(numbers))
 
 
-def tracked_assets(cohort, ledgers):
+def tracked_assets(cohort, ledgers, historical_admissions=()):
     if cohort.get("schemaVersion") != "pgextwin-external-latest-original-pins/v1":
         raise ValueError("Unknown cohort reference schema")
     results = {}
@@ -55,6 +56,17 @@ def tracked_assets(cohort, ledgers):
             ledger.get("redistributionAuthorized") is not False):
             raise ValueError("Unknown or promoted candidate ledger")
         for record in ledger["candidates"]:
+            results.setdefault(record["sourceRepo"].lower(), set()).add(
+                (record["releaseTag"], record["assetId"]))
+    # Historical issuer receipts are tracking evidence only. Even an expired
+    # or once-approved admission grants NO new access through this watcher.
+    for receipt in historical_admissions:
+        if (receipt.get("schemaVersion") != "pgextwin-external-direct-get-admission/v1" or
+            receipt.get("sourceKind") != "EXTERNAL_GITHUB_RELEASE_ASSET" or
+            receipt.get("mirrorAuthorized") is not False or
+            receipt.get("redistributionAuthorized") is not False):
+            raise ValueError("Malformed historical issuer receipt reference")
+        for record in receipt["records"]:
             results.setdefault(record["sourceRepo"].lower(), set()).add(
                 (record["releaseTag"], record["assetId"]))
     return results
@@ -122,7 +134,9 @@ def main():
     inventory = json.loads(args.inventory.read_text(encoding="utf-8"))
     cohort = json.loads(COHORT.read_text(encoding="utf-8"))
     ledgers = [json.loads(f.read_text(encoding="utf-8")) for f in LEDGERS]
-    report = analyze(inventory, providers, tracked_assets(cohort, ledgers))
+    receipts = [json.loads(p.read_text(encoding="utf-8"))
+                for p in sorted(HISTORICAL_ADMISSIONS.glob("*/run-*/external-get-admission.json"))]
+    report = analyze(inventory, providers, tracked_assets(cohort, ledgers, receipts))
     if args.output.exists() or args.output.is_symlink():
         raise ValueError("Refuse overwrite of prior discovery output")
     args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
