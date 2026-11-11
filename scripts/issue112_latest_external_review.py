@@ -19,6 +19,7 @@ from issue112_pgroonga_rights_audit import (
 )
 from issue112_http_original_receipts import CANDIDATES as HTTP_CANDIDATES
 from issue112_http_windows_runtime import PINS as HTTP_PINS
+from external_new_stable_watch import unique_json_pairs
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "pgextwin-issue112-latest-external-review/v1"
@@ -58,9 +59,62 @@ def version_key(value):
     return numbers + (0,) * (4 - len(numbers))
 
 
+def timescaledb_observed_baseline(root):
+    """Untrusted official Release API observations, NEVER original rehashed bytes.
+
+    Reuse the read-only watcher ledger; reject any changed shape, missing PG
+    major, unexpected package or permission elevation even on filtered plans.
+    """
+    path = Path(root) / "external/timescaledb-release-watch-baseline-v1.json"
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"),
+                              object_pairs_hook=unique_json_pairs)
+    except (OSError, ValueError) as exc:
+        raise Denied("missing, duplicate-key or malformed TimescaleDB baseline") from exc
+    require(type(document) is dict and set(document) == {
+        "schemaVersion", "trust", "sourceRepo", "releaseTag", "releaseId",
+        "downloadAuthorized", "publicationAuthorized",
+        "redistributionAuthorized", "records",
+    }, "unknown TimescaleDB baseline fields")
+    require(document["schemaVersion"] ==
+            "pgextwin-issue112-timescaledb-official-release-watch-baseline/v1"
+            and document["trust"] == "UNVERIFIED_API_DIGEST_NEVER_AUTHORIZE"
+            and document["sourceRepo"] == "timescale/timescaledb"
+            and document["releaseTag"] == "2.31.0"
+            and type(document["releaseId"]) is int and document["releaseId"] > 0
+            and all(document[flag] is False for flag in (
+                "downloadAuthorized", "publicationAuthorized",
+                "redistributionAuthorized")),
+            "unreviewed TimescaleDB source/version or authorization")
+    records = document["records"]
+    require(type(records) is list and len(records) == 3,
+            "TimescaleDB observed PG-major set must be exactly three")
+    seen_majors, seen_ids = set(), set()
+    for record in records:
+        require(type(record) is dict and set(record) == {
+            "pgMajor", "assetId", "assetName", "apiBytes", "apiSha256",
+        }, "untrusted TimescaleDB asset fields")
+        major, asset_id = record["pgMajor"], record["assetId"]
+        require(type(major) is str and major in ("16", "17", "18")
+                and major not in seen_majors
+                and type(asset_id) is int and asset_id > 0
+                and asset_id not in seen_ids
+                and record["assetName"] ==
+                f"timescaledb-postgresql-{major}-windows-amd64.zip"
+                and type(record["apiBytes"]) is int and record["apiBytes"] > 0
+                and type(record["apiSha256"]) is str
+                and re.fullmatch(r"[0-9a-f]{64}", record["apiSha256"]) is not None,
+                "untrusted TimescaleDB original API identity")
+        seen_majors.add(major)
+        seen_ids.add(asset_id)
+    require(seen_majors == {"16", "17", "18"},
+            "TimescaleDB baseline does not cover reviewed majors")
+    return document
+
+
 def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
     require(pg == "all" or pg in SUPPORTED, "unsupported PG major")
-    require(source in ("all", "github", "osgeo", "pgroonga", "http"), "unsupported source type")
+    require(source in ("all", "github", "osgeo", "pgroonga", "http", "timescaledb"), "unsupported source type")
     require(extension is None or
             (type(extension) is str and NAME.fullmatch(extension) is not None),
             "unsafe extension filter")
@@ -71,6 +125,7 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
     # Always validate the COMPLETE GitHub candidate registry before filtering.
     # Source, PG and version selectors must never hide a poisoned unselected row.
     baseline = github_review(root)
+    timescale = timescaledb_observed_baseline(root)
     rows = []
     if source in ("all", "github"):
         for batch in baseline["batches"]:
@@ -187,6 +242,37 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
                 ],
                 **DENY,
             })
+    # Official TimescaleDB PG16–18 GitHub API observations. API-provided
+    # SHA/size are NOT independently rehashed original ZIP bytes. The
+    # watcher separately checks live Release identity; this offline selector
+    # must not imply that live verification occurred or grant public GET.
+    if source in ("all", "timescaledb"):
+        for observed in timescale["records"]:
+            major = observed["pgMajor"]
+            rows.append({
+                "source": "TIMESCALEDB_GITHUB_API_METADATA_ONLY",
+                "extension": "timescaledb", "pgMajor": major,
+                "version": timescale["releaseTag"],
+                "versionMeaning": "UPSTREAM_RELEASE_VERSION_OBSERVED_ONLY",
+                "provider": timescale["sourceRepo"],
+                "releaseTag": timescale["releaseTag"],
+                "assetName": observed["assetName"], "format": "zip",
+                "packageIdentity": (
+                    "github-metadata:timescale/timescaledb:"
+                    + str(timescale["releaseId"]) + ":"
+                    + str(observed["assetId"])
+                ),
+                "originalBytes": None, "originalSha256": None,
+                "apiObservedBytes": observed["apiBytes"],
+                "apiObservedSha256": observed["apiSha256"],
+                "blockers": [
+                    "INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
+                    "SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
+                    "ALL_COMPONENT_LICENSE_NOTICE_DEPENDENCY_CLOSURE_MISSING",
+                    "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
+                ],
+                **DENY,
+            })
     # Do not equate 'highest in a bounded inventory' to upstream's latest.
     # Crucially, keep ALL same-version variants for manual source review.
     groups = {}
@@ -247,7 +333,7 @@ def main():
     parser.add_argument("--extension")
     parser.add_argument("--version")
     parser.add_argument("--source", default="all",
-                        choices=("all", "github", "osgeo", "pgroonga", "http"))
+                        choices=("all", "github", "osgeo", "pgroonga", "http", "timescaledb"))
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     result = make_plan(args.catalog, args.pg, args.extension,
