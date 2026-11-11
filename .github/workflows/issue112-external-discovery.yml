@@ -1,19 +1,30 @@
 name: Issue112 read-only external Windows provider discovery
 
 on:
+  schedule:
+    # Daily read-only provider version watch (11:17 JST).
+    - cron: '17 2 * * *'
   pull_request:
     paths:
       - external/discovery-providers-v1.json
+      - external/pgroonga-release-watch-baseline-v1.json
+      - external/timescaledb-release-watch-baseline-v1.json
       - external/windows-candidates-portalcorp-v1.json
       - scripts/discover_external_windows_releases.py
+      - scripts/external_new_stable_watch.py
       - tests/test_discover_external_windows_releases.py
+      - tests/test_external_new_stable_watch.py
       - .github/workflows/issue112-external-discovery.yml
   push:
     branches:
       - main
     paths:
       - external/discovery-providers-v1.json
+      - external/pgroonga-release-watch-baseline-v1.json
+      - external/timescaledb-release-watch-baseline-v1.json
       - scripts/discover_external_windows_releases.py
+      - scripts/external_new_stable_watch.py
+      - tests/test_external_new_stable_watch.py
       - .github/workflows/issue112-external-discovery.yml
   workflow_dispatch:
 
@@ -31,7 +42,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Offline hostile discovery tests
-        run: python3 -m unittest tests.test_discover_external_windows_releases -v
+        run: |
+          python3 -m unittest tests.test_discover_external_windows_releases -v
+          python3 -m unittest tests.test_external_new_stable_watch -v
       - name: Authenticated all-page GET and metadata-only delta against pinned snapshots
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -39,4 +52,18 @@ jobs:
           python3 scripts/discover_external_windows_releases.py \
             --output "$RUNNER_TEMP/issue112-discovery-untrusted.json"
           test -s "$RUNNER_TEMP/issue112-discovery-untrusted.json"
-          # No upload, commit, release, signed feed mutation or distribution authorization.
+          python3 scripts/external_new_stable_watch.py \
+            --inventory "$RUNNER_TEMP/issue112-discovery-untrusted.json" \
+            --output "$RUNNER_TEMP/issue112-stable-delta-untrusted.json"
+          test -s "$RUNNER_TEMP/issue112-stable-delta-untrusted.json"
+          # No commit, GitHub issue write, Release, signed feed mutation or admission.
+      - name: Save daily read-only discovery evidence (never publication)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: issue112-external-stable-watch-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/issue112-discovery-untrusted.json
+            ${{ runner.temp }}/issue112-stable-delta-untrusted.json
+          retention-days: 14
+          if-no-files-found: error

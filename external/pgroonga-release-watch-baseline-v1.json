@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "pgextwin-issue112-pgroonga-official-release-watch-baseline/v1",
+  "trust": "UNVERIFIED_METADATA_NEVER_AUTHORIZE",
+  "sourceRepo": "pgroonga/pgroonga",
+  "releaseTag": "4.1.0",
+  "releaseId": 407467158,
+  "downloadAuthorized": false,
+  "publicationAuthorized": false,
+  "redistributionAuthorized": false,
+  "records": [
+    {
+      "pgMajor": "14",
+      "assetId": 623766852,
+      "assetName": "pgroonga-4.1.0-postgresql-14-x64.zip",
+      "originalBytes": 53806600,
+      "originalSha256": "39d2685f234c8b45563f57f113bd8c84cc1ae4e8c0c22e6826bf168ba1c0ab39"
+    },
+    {
+      "pgMajor": "15",
+      "assetId": 623766864,
+      "assetName": "pgroonga-4.1.0-postgresql-15-x64.zip",
+      "originalBytes": 53863529,
+      "originalSha256": "fbc73734028b0b2372a6ee6538863999c2f9f06ec9f1be633ac460c7d8a0d4f1"
+    },
+    {
+      "pgMajor": "16",
+      "assetId": 623766863,
+      "assetName": "pgroonga-4.1.0-postgresql-16-x64.zip",
+      "originalBytes": 53751780,
+      "originalSha256": "40c71f7890e6ceb46f79fdc10e596da21bfb622f7c9d1f8be7784175d96df7e8"
+    },
+    {
+      "pgMajor": "17",
+      "assetId": 623766894,
+      "assetName": "pgroonga-4.1.0-postgresql-17-x64.zip",
+      "originalBytes": 53836587,
+      "originalSha256": "dcbd356ab8a7c8fc3a3cc7082b4f99a1884b5a68674e25ef4bbe56583c38147b"
+    },
+    {
+      "pgMajor": "18",
+      "assetId": 623766896,
+      "assetName": "pgroonga-4.1.0-postgresql-18-x64.zip",
+      "originalBytes": 53826667,
+      "originalSha256": "3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab"
+    }
+  ]
+}

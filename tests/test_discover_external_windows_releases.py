@@ -29,9 +29,10 @@ def sample(repo="portalcorp/pgvector_compiled", name="pgvector-Windows-pg16.zip"
 
 class DiscoveryTests(unittest.TestCase):
     def test_pinned_baselines_all_match_explicit_windows_patterns(self):
-        self.assertEqual(6, len(PROVIDERS))
+        self.assertEqual(8, len(PROVIDERS))
         for p in PROVIDERS:
-            if p["repo"] in ("trickle-labs/pg-trickle", "HiraokaHyperTools/pg_bigm"):
+            if p["repo"] in ("trickle-labs/pg-trickle", "HiraokaHyperTools/pg_bigm",
+                                "pgroonga/pgroonga", "timescale/timescaledb"):
                 continue  # New provider has no pinned historical baseline yet.
             historical = next(repo for b in BASELINES for repo in b["repositories"]
                               if repo["repo"] == p["repo"])
@@ -73,6 +74,10 @@ class DiscoveryTests(unittest.TestCase):
         portal = PROVIDERS[-1]
         with self.assertRaises(ValueError):
             d.summarize_pages(portal, [[sample()]])
+        self.assertEqual(20, d.PAGE_SIZE)
+        with self.assertRaises(ValueError):
+            d.summarize_pages(portal, [[sample() for _ in
+                                        range(d.PAGE_SIZE + 1)], []])
         with self.assertRaises(ValueError):
             d.summarize_pages(portal, [[sample()], [sample()], []])
 
@@ -178,6 +183,59 @@ class DiscoveryTests(unittest.TestCase):
             "https://attacker.invalid/20260107.7z")
         with self.assertRaises(ValueError):
             d.summarize_pages(provider, [[modified], []])
+
+
+    def test_pgroonga_official_release_five_windows_assets_only(self):
+        provider = next(p for p in PROVIDERS if p["repo"] == "pgroonga/pgroonga")
+        self.assertEqual("upstream-official", provider["providerType"])
+        pattern = re.compile(provider["assetPattern"])
+        for major in range(14, 19):
+            self.assertIsNotNone(pattern.fullmatch(
+                f"pgroonga-4.1.0-postgresql-{major}-x64.zip"))
+        for forbidden in ("pgroonga-4.1.0-postgresql-18-x64.zip.asc",
+                          "pgroonga-4.1.0.zip", "pgroonga-4.1.0.tar.gz",
+                          "pgroonga-4.1.0-postgresql-19-x64.zip",
+                          "pgroonga-4.1.0-postgresql-18-x86.zip"):
+            self.assertIsNone(pattern.fullmatch(forbidden))
+        raw = sample(repo="pgroonga/pgroonga",
+                     name="pgroonga-4.1.0-postgresql-18-x64.zip")
+        raw["tag_name"] = "4.1.0"
+        raw["assets"][0]["browser_download_url"] = (
+            "https://github.com/pgroonga/pgroonga/releases/download/4.1.0/"
+            "pgroonga-4.1.0-postgresql-18-x64.zip")
+        row = d.summarize_pages(provider, [[raw], []])
+        self.assertEqual(1, row["windowsAssets"])
+        self.assertFalse(d.scan([provider], lambda repo, page:
+                                [raw] if page == 1 else [])["publicationAuthorized"])
+
+
+    def test_timescaledb_release_asset_filter_and_read_only(self):
+        p = next(x for x in PROVIDERS if x["repo"] == "timescale/timescaledb")
+        self.assertEqual("upstream-official", p["providerType"])
+        self.assertEqual("timescaledb", p["extension"])
+        pattern = re.compile(p["assetPattern"])
+        for major in (16, 17, 18):
+            self.assertIsNotNone(pattern.fullmatch(
+                f"timescaledb-postgresql-{major}-windows-amd64.zip"))
+        for name in ("timescaledb-postgresql-19-windows-amd64.zip",
+                     "timescaledb-postgresql-18-linux-amd64.zip",
+                     "timescaledb-postgresql-18-windows-amd64.zip.sha256",
+                     "timescaledb-postgresql-18-windows-arm64.zip"):
+            self.assertIsNone(pattern.fullmatch(name))
+        a = sample(repo=p["repo"], name="timescaledb-postgresql-18-windows-amd64.zip")
+        a["tag_name"] = "2.31.0"
+        a["assets"][0]["browser_download_url"] = (
+            "https://github.com/timescale/timescaledb/releases/download/2.31.0/"
+            "timescaledb-postgresql-18-windows-amd64.zip")
+        a["assets"][0]["digest"] = "sha256:" + "a" * 64
+        result = d.scan([p], lambda repo, page: [a] if page == 1 else [])
+        self.assertEqual(1, result["repositories"][0]["windowsAssets"])
+        self.assertFalse(result["publicationAuthorized"])
+        self.assertFalse(result["redistributionAuthorized"])
+        changed = copy.deepcopy(a)
+        changed["assets"][0]["browser_download_url"] = "https://evil.invalid/a"
+        with self.assertRaises(ValueError):
+            d.summarize_pages(p, [[changed], []])
 
     def test_readonly_and_no_publisher_imports(self):
         source = (ROOT / "scripts/discover_external_windows_releases.py").read_text()

@@ -60,9 +60,11 @@ jobs:
               $commit.commit.verification.reason -cne 'valid' -or $commit.committer.login -cne 'web-flow') { throw 'Source lacks protected GitHub merge signature' }
           $ready=$false
           for ($attempt=0; $attempt -lt 20; $attempt++) {
-            $checks=gh api "repos/pgextwin/catalog/commits/$source/check-runs" | ConvertFrom-Json
+            # The required validate job can be beyond GitHub's default first 30 check-runs.
+            # Enumerate every page; retain the exact source, trusted app and success checks.
+            $checkPages=gh api --paginate --slurp "repos/pgextwin/catalog/commits/$source/check-runs?per_page=100" | ConvertFrom-Json
             if ($LASTEXITCODE -ne 0) { throw 'Required CI lookup failed' }
-            $native=@($checks.check_runs | Where-Object { $_.name -ceq 'validate' -and $_.app.id -eq 15368 })
+            $native=@($checkPages | ForEach-Object { $_.check_runs } | Where-Object { $_.name -ceq 'validate' -and $_.app.id -eq 15368 })
             if ($native.Count -eq 1 -and $native[0].conclusion -ceq 'success') { $ready=$true; break }
             if ($native.Count -eq 1 -and $native[0].status -ceq 'completed') { throw 'Required native CI failed' }
             Start-Sleep -Seconds 15
@@ -151,10 +153,33 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.source }}
           persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: verified-cli-release-assets
-          path: ${{ runner.temp }}/cli-release
+      - name: Download same-Run verified CLI assets with bounded retries
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.prepare.outputs.source }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $runId=[long]$env:GITHUB_RUN_ID
+          $inventory=gh api "repos/pgextwin/catalog/actions/runs/$runId/artifacts?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $inventory.total_count -ne 1) { throw 'Same-Run artifact inventory unavailable or ambiguous' }
+          $artifact=@($inventory.artifacts | Where-Object { $_.name -ceq 'verified-cli-release-assets' -and !$_.expired })
+          if ($artifact.Count -ne 1 -or
+              $artifact[0].workflow_run.id -ne $runId -or
+              $artifact[0].workflow_run.head_sha -cne $env:SOURCE -or
+              $artifact[0].size_in_bytes -le 0 -or
+              $artifact[0].digest -cnotmatch '^sha256:[0-9a-f]{64}$') { throw 'Untrusted same-Run artifact' }
+          $dir=Join-Path $env:RUNNER_TEMP 'cli-release'
+          $downloaded=$false
+          for ($attempt=1; $attempt -le 3; $attempt++) {
+            if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
+            New-Item -ItemType Directory -Path $dir | Out-Null
+            gh run download $runId --repo pgextwin/catalog --name verified-cli-release-assets --dir $dir
+            if ($LASTEXITCODE -eq 0) { $downloaded=$true; break }
+            if ($attempt -lt 3) { Start-Sleep -Seconds (10 * $attempt) }
+          }
+          if (!$downloaded) { throw 'Original same-Run assets unavailable after bounded retries' }
+          & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
       - name: Independently verify original same-Run owner Publisher Environment approval
         shell: pwsh
         env:

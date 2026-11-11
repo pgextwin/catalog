@@ -1,0 +1,11 @@
+# Issue #112 — TimescaleDB 2.31.0 official Windows original-byte rehash
+
+**Nonpublishing original-provider audit; PUBLIC_GET_DENY, MIRROR_DENY, RELEASE_DENY, PUBLISH_DENY.**
+
+Official `timescale/timescaledb` Release `2.31.0`, Release ID `418582851`, has three previously observed Windows AMD64 ZIP assets: PG16 asset 659788299, PG17 asset 659795995, PG18 asset 659790321. PG14/15 are not claimed. Catalog PR #315 pinned untrusted GitHub API metadata, and #317 added an **offline review-only selector**. Neither provided an independent SHA256 reading from the actual original ZIP bytes.
+
+This targeted CI audit reuses the existing strict baseline parser and existing PGroonga bounded stream/SHA256 checker. For each **exact pinned** PG16/17/18 original, it GETs the official public Release URL over HTTPS, allows redirects only to known GitHub asset hosts, bounds bytes to its fixed metadata size, independently calculates the SHA256, requires an exact hash/byte match, and examines ZIP member path safety, DLL presence, CRC and bounded declared expansion. CI performs offline hostile tests first. No write permissions, tokens, production CLI GET grants, CI artifact uploads, permanent source copies, mirrors, releases or new cron are introduced.
+
+A successful independent rehash would close **only** the API-metadata-vs-actual-original-bytes integrity gap, not upstream producer source-to-binary attestation. Embedded or missing LICENSE/NOTICE documents require a separate per-component legal/dependency audit. Windows DLL loader, ABI and SQL behavior for PG16–18 remain unproven until native PostgreSQL tests pass. New owner-signed source-specific admission and formal Publisher approval remain required for user-facing CLI GET. Hash equivalence to a GitHub API digest is not equivalent to a producer signature.
+
+Workflow: `.github/workflows/issue112-timescaledb-original-rehash.yml`. The workflow triggers only for relevant PR/main changes and runs its three original-asset jobs independently; a failure/SKIPPED result must not be counted as acceptance. The current qualification remains `CANDIDATE_ONLY` with `admittedAssets=0`; this change does not update signed Catalog feeds, Build issuers, published CLI, Website or source-selection permissions.

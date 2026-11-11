@@ -137,6 +137,73 @@ internal static class ExternalProviderAssetTransportTests
                 File.Delete(Path.Combine(folder, name));
             }
 
+            // An 11-asset signed cohort can share a provider repository and Release.
+            // Anonymous API metadata may be requested once per transport instance,
+            // but all individual signed original-asset pins must still be checked.
+            var cohortFirst = Pin("laurenz/oracle_fdw", "oracle_fdw",
+                "oracle_fdw-test-pg18.zip", 901L, bytes);
+            var cohortSecond = cohortFirst with {
+                PgMajor = "17",
+                AssetId = 902L,
+                AssetName = "oracle_fdw-test-pg17.zip",
+                OriginalProviderUrl =
+                    "https://github.com/laurenz/oracle_fdw/releases/download/v1.2.3/oracle_fdw-test-pg17.zip"
+            };
+            var cohortBase = "https://api.github.com/repos/" + cohortFirst.SourceRepo;
+            var cohortNetwork = new FakeNetwork(request =>
+            {
+                var url = request.RequestUri!.AbsoluteUri;
+                if (url == cohortBase)
+                    return Json(new { full_name = cohortFirst.SourceRepo,
+                        id = cohortFirst.RepositoryId });
+                if (url == cohortBase + "/releases/tags/" + cohortFirst.Tag)
+                    return Json(new {
+                        id = cohortFirst.ReleaseId, tag_name = cohortFirst.Tag,
+                        draft = false, published_at = "2026-11-01T00:00:00Z",
+                        assets = new[] { cohortFirst, cohortSecond }.Select(pin => new {
+                            id = pin.AssetId, name = pin.AssetName,
+                            size = pin.OriginalBytes, digest = "sha256:" + pin.OriginalSha256,
+                            state = "uploaded", browser_download_url = pin.OriginalProviderUrl
+                        }).ToArray()
+                    });
+                if (url == cohortBase + "/releases/assets/" + cohortFirst.AssetId ||
+                    url == cohortBase + "/releases/assets/" + cohortSecond.AssetId)
+                    return new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new ByteArrayContent(bytes) {
+                            Headers = { ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+                                "application/octet-stream") }
+                        }
+                    };
+                throw new InvalidOperationException("Unexpected cohort request " + url);
+            });
+            using (var transport = new ExternalProviderAssetTransport(cohortNetwork))
+            {
+                var first = await transport.DownloadAsync(cohortFirst, folder);
+                var second = await transport.DownloadAsync(cohortSecond, folder);
+                check(first.AssetId == cohortFirst.AssetId &&
+                      second.AssetId == cohortSecond.AssetId &&
+                      File.ReadAllBytes(first.FilePath).SequenceEqual(bytes) &&
+                      File.ReadAllBytes(second.FilePath).SequenceEqual(bytes) &&
+                      cohortNetwork.Requests == 4 &&
+                      cohortNetwork.Paths.Count(url => url == cohortBase) == 1 &&
+                      cohortNetwork.Paths.Count(url =>
+                          url == cohortBase + "/releases/tags/" + cohortFirst.Tag) == 1,
+                    "One repository + one Release JSON request, two independently verified original ZIPs");
+
+                var absentAsset = cohortSecond with {
+                    AssetId = 903L,
+                    AssetName = "oracle_fdw-unpinned-pg16.zip",
+                    OriginalProviderUrl =
+                        "https://github.com/laurenz/oracle_fdw/releases/download/v1.2.3/oracle_fdw-unpinned-pg16.zip"
+                };
+                check(await DeniedAsync(transport, absentAsset, folder) &&
+                      cohortNetwork.Requests == 4 &&
+                      !File.Exists(Path.Combine(folder, absentAsset.AssetName)),
+                    "In-memory cached Release never authorizes an absent signed asset ID");
+            }
+            File.Delete(Path.Combine(folder, cohortFirst.AssetName));
+            File.Delete(Path.Combine(folder, cohortSecond.AssetName));
+
             // Missing GitHub API digest for historical provider originals does NOT
             // relax the separately pinned original-byte SHA256/size requirement.
             // The synthetic source is explicitly NOT an actual signed permission.

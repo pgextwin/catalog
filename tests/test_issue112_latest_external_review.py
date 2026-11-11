@@ -9,7 +9,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from issue112_external_batch_plan import INPUTS, PROVIDERS, Denied
-from issue112_latest_external_review import make_plan, version_key, DENY
+from issue112_latest_external_review import (
+    make_plan, version_key, DENY, PGROONGA_PINS, HTTP_PINS,
+)
+from unittest.mock import patch
 
 
 class LatestExternalReviewTests(unittest.TestCase):
@@ -18,6 +21,12 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
         (self.root / "external").mkdir()
+        self.timescale_path = (
+            self.root / "external/timescaledb-release-watch-baseline-v1.json")
+        self.timescale_path.write_text(
+            (Path(__file__).resolve().parents[1] /
+             "external/timescaledb-release-watch-baseline-v1.json").read_text(
+                 encoding="utf-8"), encoding="utf-8")
         self.providers = {
             "schemaVersion": "pgextwin-external-discovery-providers/v1",
             "trust": "READ_ONLY_METADATA_NEVER_AUTHORIZE",
@@ -134,6 +143,99 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.assertEqual(single["selectedReviewRows"], 1)
         self.assertEqual(single["uniqueOriginalPackages"], 1)
         self.assertEqual(single["admittedAssets"], 0)
+
+    def test_pgroonga_and_http_reuse_exact_major_pins_without_public_admission(self):
+        majors = ["14", "15", "16", "17", "18"]
+        for name, source, pins in (("pgroonga", "pgroonga", PGROONGA_PINS),
+                                   ("http", "http", HTTP_PINS)):
+            report = make_plan(self.root, source=source)
+            self.assertEqual(report["selectedReviewRows"], 5)
+            self.assertEqual(report["uniqueOriginalPackages"], 5)
+            self.assertEqual(report["observedMajorCoverageNotSupportClaim"], {name: majors})
+            self.assertFalse(report["latestUpstreamVerified"])
+            self.assertEqual(report["admittedAssets"], 0)
+            for row in report["selected"]:
+                key = int(row["pgMajor"]) if name == "pgroonga" else row["pgMajor"]
+                self.assertEqual((row["originalBytes"], row["originalSha256"]), pins[key])
+                self.assertTrue(row["blockers"])
+                for flag in DENY:
+                    self.assertIs(row[flag], False)
+        self.assertEqual(make_plan(self.root, source="pgroonga", extension="pgroonga",
+                                   version="4.1.0")["selectedReviewRows"], 5)
+        self.assertEqual(make_plan(self.root, source="http", extension="http",
+                                   version="1.7.1")["observedMajorCoverageNotSupportClaim"],
+                         {"http": ["17", "18"]})
+        self.assertEqual(make_plan(self.root, pg="16", source="http", extension="http",
+                                   version="1.7.1")["selectedReviewRows"], 0)
+        self.assertIn("pgroonga", make_plan(self.root)["observedMajorCoverageNotSupportClaim"])
+        self.assertIn("http", make_plan(self.root)["observedMajorCoverageNotSupportClaim"])
+
+    def test_new_source_pins_are_fail_closed_even_on_filtered_request(self):
+        with patch.dict(PGROONGA_PINS, {18: (0, "0" * 64)}):
+            with self.assertRaises(Denied):
+                make_plan(self.root, source="pgroonga", pg="14")
+        with patch.dict(HTTP_PINS, {"18": (1, "not-sha256")}):
+            with self.assertRaises(Denied):
+                make_plan(self.root, source="http", pg="14")
+        self.assertEqual(make_plan(self.root, source="pgroonga",
+                                   extension="http")["selectedReviewRows"], 0)
+
+    def test_timescaledb_official_three_major_observed_selection_not_get(self):
+        report = make_plan(self.root, source="timescaledb")
+        self.assertEqual(report["selectedReviewRows"], 3)
+        self.assertEqual(report["uniqueOriginalPackages"], 3)
+        self.assertEqual(report["observedMajorCoverageNotSupportClaim"],
+                         {"timescaledb": ["16", "17", "18"]})
+        self.assertFalse(report["latestUpstreamVerified"])
+        self.assertEqual(report["admittedAssets"], 0)
+        for row in report["selected"]:
+            self.assertEqual(row["version"], "2.31.0")
+            self.assertEqual(row["source"],
+                             "TIMESCALEDB_GITHUB_API_METADATA_ONLY")
+            self.assertIsNone(row["originalBytes"])
+            self.assertIsNone(row["originalSha256"])
+            self.assertGreater(row["apiObservedBytes"], 0)
+            self.assertEqual(len(row["apiObservedSha256"]), 64)
+            self.assertIn("INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
+                          row["blockers"])
+            for flag in DENY:
+                self.assertIs(row[flag], False)
+        selected = make_plan(self.root, pg="17", source="timescaledb",
+                             extension="timescaledb", version="2.31.0")
+        self.assertEqual(selected["selectedReviewRows"], 1)
+        self.assertEqual(selected["uniqueOriginalPackages"], 1)
+        self.assertEqual(make_plan(self.root, pg="14",
+                                   source="timescaledb")["selectedReviewRows"], 0)
+        self.assertEqual(make_plan(self.root, source="timescaledb",
+                                   extension="timescaledb",
+                                   version="2.32.0")["selectedReviewRows"], 0)
+        self.assertIn("timescaledb",
+                      make_plan(self.root)["observedMajorCoverageNotSupportClaim"])
+
+    def test_timescaledb_baseline_poison_rejected_even_when_source_filtered(self):
+        baseline = json.loads(self.timescale_path.read_text("utf-8"))
+        tampered = copy.deepcopy(baseline)
+        tampered["downloadAuthorized"] = True
+        self.timescale_path.write_text(json.dumps(tampered), encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="osgeo")
+        tampered = copy.deepcopy(baseline)
+        tampered["records"][1]["assetId"] = tampered["records"][0]["assetId"]
+        self.timescale_path.write_text(json.dumps(tampered), encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="github")
+        tampered = copy.deepcopy(baseline)
+        tampered["records"][0]["assetName"] = "timescaledb-pg16-bad.zip"
+        self.timescale_path.write_text(json.dumps(tampered), encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="pgroonga")
+        self.timescale_path.write_text(
+            '{"trust":"DENY","trust":"ALLOW"}', encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="timescaledb")
+        self.timescale_path.unlink()
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="http")
 
     def test_no_promotion_and_no_implicit_fallback(self):
         result = make_plan(self.root)
