@@ -1,0 +1,30 @@
+name: Issue112 OSGeo exact original Winnie version receipt (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_osgeo_winnie_live_original.py
+      - tests/test_issue112_osgeo_winnie_live_original.py
+      - .github/workflows/issue112-osgeo-winnie-live-original.yml
+permissions:
+  contents: read
+jobs:
+  exact-original-receipt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['14', '15', '16', '17', '18']
+    env:
+      PG_MAJOR: ${{ matrix.pg }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Hostile offline test before exact-origin network observation
+        run: python3 -m unittest discover -s tests -p 'test_issue112_osgeo_winnie_live_original.py' -v
+      - name: Read exact original byte-pinned ZIP; print version metadata claims only
+        run: python3 scripts/issue112_osgeo_winnie_live_original.py --pg "$PG_MAJOR"
+      - name: Preserve signed admission and public publication denials
+        if: always()
+        run: echo 'ORIGINAL_ZIP_UPLOAD=NONE CANDIDATE_ONLY=YES SIGNED_GET=DENY MIRROR=DENY RELEASE=DENY'
