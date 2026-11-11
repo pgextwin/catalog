@@ -1,7 +1,7 @@
 # Issue #112: actual published and privately compiled CLI direct original GET E2E.
 # Only invoked by workflow_run after authenticated original Catalog/main push Validate.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet('qualified_cohort')][string]$Source)
+param([Parameter(Mandatory=$true)][ValidateSet('qualified_cohort')][string]$Source, [switch]$PublicOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
@@ -29,15 +29,25 @@ if ([long]$signed.issuerRunId -ne [long]$latest.issuerRunId -or
     throw 'Catalog latest admission Run is future-dated or mismatched'
 }
 if ($now -ge [DateTimeOffset]::Parse($signed.expiresAt)) {
+    if ($PublicOnly) { throw 'Public E2E recovery DENY: original admission expired' }
     Write-Output 'Catalog latest admission Run is expired; provider GET skipped until fresh owner authorization'
     exit 0
 }
-$binaries=@(@{kind='private';path=(Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe')})
 $public=Join-Path $env:RUNNER_TEMP 'issue112-public-cli/pgextwin.exe'
-if (Test-Path -LiteralPath $public -PathType Leaf) {
-    $binaries+=@{kind='public';path=$public}
+if ($PublicOnly) {
+    # Bounded one-shot recovery: do not repeat the already-successful private
+    # 11/11 GET. A fresh, independently verified public EXE must exist.
+    if (-not (Test-Path -LiteralPath $public -PathType Leaf)) {
+        throw 'Public E2E recovery requires actual published CLI'
+    }
+    $binaries=@(@{kind='public';path=$public})
 } else {
-    Write-Output 'PUBLIC_CLI_ORIGINAL_GET=SKIPPED_NO_FORMAL_CLI_RELEASE'
+    $binaries=@(@{kind='private';path=(Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe')})
+    if (Test-Path -LiteralPath $public -PathType Leaf) {
+        $binaries+=@{kind='public';path=$public}
+    } else {
+        Write-Output 'PUBLIC_CLI_ORIGINAL_GET=SKIPPED_NO_FORMAL_CLI_RELEASE'
+    }
 }
 $pgArg='all'
 $expected=@($latest.records | ForEach-Object {
