@@ -153,7 +153,7 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.source }}
           persist-credentials: false
-      - name: Recover same-Run verified assets with finite GitHub CLI retries
+      - name: Download same-Run verified CLI assets with bounded retries
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -161,222 +161,14 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $runId=[long]$env:GITHUB_RUN_ID
-          # Inventory is pinned to this authentic Publisher Run; another Run,
-          # an expired archive or an unexpected additional archive fails closed.
-          $inventory=& gh api "repos/pgextwin/catalog/actions/runs/$runId/artifacts?per_page=100" | ConvertFrom-Json
+          $inventory=gh api "repos/pgextwin/catalog/actions/runs/$runId/artifacts?per_page=100" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $inventory.total_count -ne 1) { throw 'Same-Run artifact inventory unavailable or ambiguous' }
           $artifact=@($inventory.artifacts | Where-Object { $_.name -ceq 'verified-cli-release-assets' -and !$_.expired })
           if ($artifact.Count -ne 1 -or
               $artifact[0].workflow_run.id -ne $runId -or
               $artifact[0].workflow_run.head_sha -cne $env:SOURCE -or
               $artifact[0].size_in_bytes -le 0 -or
-              $artifact[0].digest -cnotmatch '^sha256:[0-9a-f]{64}      - name: Independently verify original same-Run owner Publisher Environment approval
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          $ErrorActionPreference='Stop'
-          $runFile=Join-Path $env:RUNNER_TEMP 'cli-formal-release-run.json'
-          $reviewsFile=Join-Path $env:RUNNER_TEMP 'cli-formal-release-approvals.json'
-          $runData=& gh api "repos/pgextwin/catalog/actions/runs/$env:GITHUB_RUN_ID"
-          if ($LASTEXITCODE -ne 0) { throw 'Original Publisher Run GET denied' }
-          $runData | Set-Content -LiteralPath $runFile -Encoding utf8
-          $reviewsData=& gh api "repos/pgextwin/catalog/actions/runs/$env:GITHUB_RUN_ID/approvals"
-          if ($LASTEXITCODE -ne 0) { throw 'No genuine Environment review GET; deny' }
-          $reviewsData | Set-Content -LiteralPath $reviewsFile -Encoding utf8
-          & python scripts/cli_external_get_formal_publisher.py approval --policy config/cli-external-get-formal-publisher-v1.json --version $env:VERSION --run $runFile --approvals $reviewsFile --run-id $env:GITHUB_RUN_ID
-          if ($LASTEXITCODE -ne 0) { throw 'No separately authorized owner-review Publisher approval; deny Release' }
-      - name: Create-only CLI draft, rehash every public asset, then publish
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE: ${{ needs.prepare.outputs.source }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-          DIGEST: ${{ needs.prepare.outputs.digest }}
-        run: |
-          $ErrorActionPreference='Stop'
-          $tag="cli-v$env:VERSION"
-          $dir=Join-Path $env:RUNNER_TEMP 'cli-release'
-          & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
-          if ((Get-FileHash (Join-Path $dir 'pgextwin.exe') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:DIGEST) { throw 'Original EXE changed before publication' }
-          $proof=gh attestation verify (Join-Path $dir 'pgextwin.exe') --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest $env:SOURCE --deny-self-hosted-runners --format json
-          if ($LASTEXITCODE -ne 0 -or @(($proof | ConvertFrom-Json)).Count -lt 1) { throw 'Publisher EXE signature failed' }
-          gh api --method POST repos/pgextwin/catalog/git/refs -f "ref=refs/tags/$tag" -f "sha=$env:SOURCE"
-          if ($LASTEXITCODE -ne 0) { throw 'Occupied CLI tag or denied reservation; never overwrite' }
-          $notes=Join-Path $env:RUNNER_TEMP 'cli-release-notes.md'
-          @"
-          ## English
-
-          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs. The provider-original ``download-all --source external`` uses the signed Catalog's current 11-ZIP selection: pg_trickle 0.108.3 PG18, official oracle_fdw 2.9.0 PG14–18 and unofficial community pgvector 0.8.7 PG14–18. ``--pg`` filters majors; ``--extension`` plus ``--version`` requests one exact signed source version. No historical fallback is used. Actual provider bytes are fetched only with genuine unexpired owner-reviewed independently Sigstore-verified original GET permission, and are checked against signed SHA256/size/ZIP integrity. Oracle Client remains separately licensed and installed. Community pgvector lacks bundled LICENSE/NOTICE and requires visible upstream license attribution. No mirroring, redistribution or automatic installation. Provider API SHA256 may be null for old assets; the independent signed original-byte SHA256, size and ZIP integrity are mandatory regardless. All other external sources remain DOWNLOAD_DENY; no third-party ZIP mirror, redistribution, or automatic install.
-
-          ## 日本語
-
-          Windows x64 CLI $env:VERSION は、登録拡張機能が増えた最新の署名付きCatalogに追従します。``download-all`` は、署名付きCatalogへの登録が完了したpgTAP・pg_variables・pg_store_plansを含め、各PostgreSQLバージョン向けの登録済みZIPを既定でまとめて取得します。``--fixed`` は過去の固定版を選択し、``--verbose`` は進行状況を表示します。Catalogフィードの署名と元ZIPのSHA256を検証しますが、個別の拡張ZIPの検証状態は ``INTEGRITY_ONLY`` です。
-
-          ``verify-external-all`` は、利用者が別途取得した外部提供元の原本ZIPを、ローカルの確認用台帳とオフラインで照合します。このコマンドは外部ZIPの取得・インストール・再配布を行いません。
-
-          外部原本の ``download-all --source external`` は、署名付きCatalogの最新11 ZIP（pg_trickle 0.108.3 PG18、公式oracle_fdw 2.9.0 PG14〜18、非公式コミュニティpgvector 0.8.7 PG14〜18）を対象とします。``--pg`` でPGメジャーを絞り込み、``--extension`` と ``--version`` で署名済みの正確な拡張機能バージョンを選択できます。古い版への黙示フォールバックはありません。所有者による有効期限内の真正署名・独立検証が成立した原本に限り取得し、SHA256・サイズ・ZIP構造を確認します。Oracle Clientは別途入手・ライセンス確認が必要で、非公式pgvectorには上流ライセンスへの案内が必要です。ミラー・再配布・自動インストールは認めません。
-
-          古いGitHub ReleaseのAPIでSHA256欄が空の場合も、独立した署名付きの原本SHA256、サイズ、ZIP構造の検証は必須です。その他の外部提供元は ``DOWNLOAD_DENY`` のままです。第三者のZIPのミラー・再配布・自動インストールは行いません。
-          "@ | Set-Content $notes -Encoding utf8
-          $request=@{tag_name=$tag;target_commitish=$env:SOURCE;name="pgextwin CLI v$env:VERSION";draft=$true;prerelease=$true;make_latest='false';body=(Get-Content $notes -Raw)}
-          $requestFile=Join-Path $env:RUNNER_TEMP 'cli-draft-request.json'
-          $request | ConvertTo-Json -Depth 4 | Set-Content $requestFile -Encoding utf8
-          $release=gh api --method POST repos/pgextwin/catalog/releases --input $requestFile | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or $release.id -le 0 -or !$release.draft -or
-              $release.tag_name -cne $tag -or $release.target_commitish -cne $env:SOURCE) { throw 'Unexpected newly created Draft ID' }
-          $files=@(Get-ChildItem $dir -File)
-          $names=@($files | ForEach-Object { $_.Name })
-          foreach ($file in $files) {
-            $url="https://uploads.github.com/repos/pgextwin/catalog/releases/$($release.id)/assets?name=$([Uri]::EscapeDataString($file.Name))"
-            $asset=Invoke-RestMethod -Method Post -Uri $url -Headers @{Authorization="Bearer $env:GH_TOKEN";Accept='application/vnd.github+json'} -ContentType 'application/octet-stream' -InFile $file.FullName -MaximumRedirection 0
-            $hash=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($asset.name -cne $file.Name -or $asset.state -cne 'uploaded' -or $asset.digest -cne "sha256:$hash") { throw 'Draft uploaded asset digest differs' }
-          }
-          $draft=gh api "repos/pgextwin/catalog/releases/$($release.id)" | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or !$draft.draft -or $draft.tag_name -cne $tag -or
-              $draft.target_commitish -cne $env:SOURCE -or @($draft.assets).Count -ne $names.Count) { throw 'Draft ID asset inventory incomplete' }
-          foreach ($asset in $draft.assets) {
-            if ($names -cnotcontains $asset.name) { throw 'Unexpected Draft asset' }
-            $hash=(Get-FileHash (Join-Path $dir $asset.name) -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($asset.digest -cne "sha256:$hash") { throw 'Draft asset digest changed' }
-          }
-          gh api --method PATCH "repos/pgextwin/catalog/releases/$($release.id)" -F draft=false
-          if ($LASTEXITCODE -ne 0) { throw 'Draft publication failed' }
-          $public=gh api "repos/pgextwin/catalog/releases/$($release.id)" | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or $public.draft -or $public.tag_name -cne $tag -or @($public.assets).Count -ne 5) { throw 'Public CLI identity incomplete' }
-          foreach ($asset in $public.assets) {
-            $hash=(Get-FileHash (Join-Path $dir $asset.name) -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($asset.digest -cne "sha256:$hash") { throw 'Public CLI asset digest mismatch' }
-          }
-          $audit=Join-Path $env:RUNNER_TEMP 'public-assets-audit'
-          New-Item -ItemType Directory $audit | Out-Null
-          gh release download $tag --repo pgextwin/catalog --dir $audit
-          if ($LASTEXITCODE -ne 0) { throw 'Public asset download failed' }
-          & ./scripts/cli_r7_asset_set.ps1 -Directory $audit
-          foreach ($file in $files) {
-            if ((Get-FileHash $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash (Join-Path $audit $file.Name) -Algorithm SHA256).Hash) { throw 'Public downloaded asset bytes differ' }
-          }
-          Write-Output "CLI_PUBLIC_RELEASE=PASS TAG=$tag EXE_SHA256=$env:DIGEST SOURCE=$env:SOURCE"
-
-  public-smoke:
-    needs: [prepare, publish]
-    if: needs.publish.result == 'success'
-    runs-on: windows-latest
-    timeout-minutes: 40
-    permissions:
-      contents: read
-    steps:
-      - name: Read the current signed external GET-only cohort
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: main
-          persist-credentials: false
-      - name: Download and rehash the newly public original CLI executable
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-          DIGEST: ${{ needs.prepare.outputs.digest }}
-        run: |
-          $dir=Join-Path $env:RUNNER_TEMP 'public-cli'
-          New-Item -ItemType Directory $dir | Out-Null
-          gh release download "cli-v$env:VERSION" --repo pgextwin/catalog --pattern pgextwin.exe --dir $dir
-          if ($LASTEXITCODE -ne 0) { throw 'Public EXE download failed' }
-          $exe=Join-Path $dir 'pgextwin.exe'
-          if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:DIGEST) { throw 'Public original EXE hash mismatch' }
-          if ((& $exe --version).Trim() -cne $env:VERSION -or $LASTEXITCODE -ne 0) { throw 'Public CLI version differs' }
-      - name: Run anonymous latest download on actual public EXE and rehash current roster
-        shell: pwsh
-        env:
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          $ErrorActionPreference='Stop'
-          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-          $exe=Join-Path $env:RUNNER_TEMP 'public-cli/pgextwin.exe'
-          $parent=Join-Path $env:RUNNER_TEMP 'public-latest'
-          New-Item -ItemType Directory $parent | Out-Null
-          Push-Location $parent
-          try {
-            $log=Join-Path $env:RUNNER_TEMP 'public-cli-verbose.log'
-            $result=& $exe download-all --pg all --verbose 2> $log | Out-String
-            if ($LASTEXITCODE -ne 0 -or $result -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw "Public latest command failed: $result" }
-            $folder=Join-Path $parent 'pgextwin-pg14-18'
-            $receipt=Get-Content (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
-            $count=[int]$receipt.zipCount
-            if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or $result -notmatch "ZIP_COUNT=$count\b" -or
-                $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
-                $receipt.signatureVerified -ne $false -or $receipt.installAuthorized -ne $false -or
-                $receipt.verificationLevel -cne 'INTEGRITY_ONLY') { throw 'Invalid or incorrectly elevated ZIP receipt' }
-            $index=Invoke-RestMethod 'https://raw.githubusercontent.com/pgextwin/catalog/main/index.json'
-            $expected=[string[]]@($index.extensions)
-            $actual=[string[]]@($receipt.packages | Select-Object -ExpandProperty extension -Unique)
-            [Array]::Sort($expected,[StringComparer]::Ordinal)
-            [Array]::Sort($actual,[StringComparer]::Ordinal)
-            if (($actual -join ',') -cne ($expected -join ',')) { throw 'Public EXE did not fetch the current full Catalog roster' }
-            foreach ($row in $receipt.packages) {
-              $path=Join-Path $folder $row.relativePath
-              if (!(Test-Path $path -PathType Leaf) -or (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Public ZIP original bytes differ' }
-            }
-            $trace=Get-Content $log -Raw
-            if ([regex]::Matches($trace,'ZIP_START index=').Count -ne $count -or
-                [regex]::Matches($trace,'ZIP_VERIFIED index=').Count -ne $count -or
-                $trace -notmatch "BATCH_COMPLETE zip_count=$count\b" -or $trace -match 'Authorization:|Bearer |GH_TOKEN=') { throw 'Verbose coverage or redaction failed' }
-            Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS VERSION=$env:VERSION SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED"
-          } finally { Pop-Location }
-      - name: Verify owner-signed original-provider cohort through public CLI without proof flags
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $ErrorActionPreference='Stop'
-          python scripts/validate_public_get_pin.py --catalog .
-          if ($LASTEXITCODE -ne 0) { throw 'Current published external admission invalid' }
-          $root='external/signed-direct-get/qualified_cohort'
-          $now=[DateTimeOffset]::UtcNow
-          # An older signed Run may still be active, but is never the
-          # current approved latest selection. Bind to the verified pointer.
-          $latest=Get-Content (Join-Path $root 'latest.json') -Raw | ConvertFrom-Json
-          if ($latest.schemaVersion -cne 'pgextwin-external-latest-original-pins/v1' -or
-              [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -ne 11) {
-            throw 'Current signed Catalog latest eleven-pointer is invalid'
-          }
-          $current=Join-Path $root ("run-" + [string]$latest.issuerRunId)
-          $signed=Get-Content (Join-Path $current 'external-get-admission.json') -Raw | ConvertFrom-Json
-          if ([long]$signed.issuerRunId -ne [long]$latest.issuerRunId -or
-              ([DateTimeOffset]::Parse($signed.issuedAt) -gt $now) -or
-              ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))) {
-            throw 'Selected owner-signed latest cohort is not currently authorized'
-          }
-          $expected=@($signed.records)
-          if ($expected.Count -ne 11) { throw 'Signed current original cohort length is not eleven' }
-          $exe=Join-Path $env:RUNNER_TEMP 'public-cli/pgextwin.exe'
-          $dest=Join-Path $env:RUNNER_TEMP 'public-external-originals'
-          New-Item -ItemType Directory -Path $dest | Out-Null
-          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-          try {
-            & $exe download-all --source external --pg all --output $dest
-            if ($LASTEXITCODE -ne 0) { throw 'Actual public CLI automatic external GET failed' }
-            $files=@(Get-ChildItem $dest -Recurse -File -Filter '*.zip')
-            if ($files.Count -ne $expected.Count) { throw 'Public original ZIP count differs from signed cohort' }
-            foreach ($record in $expected) {
-              $matching=@($files | Where-Object { $_.Name -ceq $record.assetName })
-              if ($matching.Count -ne 1) { throw "Missing original ZIP: $($record.assetName)" }
-              $sha=(Get-FileHash $matching[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-              if ($matching[0].Length -ne [long]$record.originalBytes -or
-                  $sha -cne [string]$record.originalSha256) {
-                throw "Original provider SHA256 or size mismatch: $($record.assetName)"
-              }
-              Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINAL=PASS FILE=$($record.assetName) BYTES=$($matching[0].Length) SHA256=$sha"
-            }
-            Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINALS=PASS ZIP_COUNT=$($expected.Count) SIGNED_COHORT=TRUE"
-          } finally {
-            Remove-Item $dest -Recurse -Force -ErrorAction SilentlyContinue
-          }
-) { throw 'Untrusted same-Run artifact' }
+              $artifact[0].digest -cnotmatch '^sha256:[0-9a-f]{64}$') { throw 'Untrusted same-Run artifact' }
           $dir=Join-Path $env:RUNNER_TEMP 'cli-release'
           $downloaded=$false
           for ($attempt=1; $attempt -le 3; $attempt++) {
@@ -387,8 +179,6 @@ jobs:
             if ($attempt -lt 3) { Start-Sleep -Seconds (10 * $attempt) }
           }
           if (!$downloaded) { throw 'Original same-Run assets unavailable after bounded retries' }
-          # Verify all five extracted assets before the existing Environment
-          # authorization, original EXE attestation and create-only gates.
           & ./scripts/cli_r7_asset_set.ps1 -Directory $dir
       - name: Independently verify original same-Run owner Publisher Environment approval
         shell: pwsh
