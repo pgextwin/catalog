@@ -120,3 +120,27 @@ version; bundle-specific versions are not per-component version claims.
 
 All existing signed-feed checks, CLI real GET paths, P3 holds, protected
 branches, and formal Publisher authorization gates remain unchanged.
+
+## PGroonga latest-stable official Release watch (metadata only, 2026-11-12)
+
+The existing read-only GitHub discovery monitor also scans official
+`pgroonga/pgroonga` Releases for Windows PG14–18 ZIPs. Its first immutable
+metadata baseline is the official 4.1.0 GitHub Release (ID `407467158`)
+and the five original ZIP asset IDs in
+`external/pgroonga-release-watch-baseline-v1.json`.
+Each baseline size and SHA256 is strictly cross-checked against the already
+independently rehashed `issue112_pgroonga_rights_audit.PINS`. Every run
+also checks the original GitHub asset names, IDs, sizes and API digests.
+Changed or missing pinned assets are rejected, not automatically upgraded.
+A newly observed higher stable Release tag is only a **new review alert**;
+it is never an automatic source/rights/runtime approval.
+
+The watcher includes no `.asc` signatures, source archives or non-PG14–18
+binaries as candidate Windows ZIPs. The public original signatures are
+**not** counted as independently verified producer provenance in this
+change. This does not make newer Release assets, or the unchanged 4.1.0
+originals, available through the published CLI: `PUBLIC_GET_DENY`,
+`MIRROR_DENY`, `RELEASE_DENY` and `PUBLISH_DENY` remain in force.
+The original signed feed, formal Publisher, Website and user-facing CLI
+are unchanged.
+

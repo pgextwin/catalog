@@ -127,6 +127,88 @@ def analyze(inventory, provider_config, known):
                 r["status"] == "UNTRACKED_ASSET_IN_KNOWN_VERSION" for r in rows)}
 
 
+# Official GitHub Release metadata baseline, not an issuer or download permission.
+PGROONGA_WATCH_BASELINE = ROOT / "external/pgroonga-release-watch-baseline-v1.json"
+
+
+def unique_json_pairs(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate PGroonga baseline JSON key")
+        result[key] = value
+    return result
+
+
+def reviewed_pgroonga_baseline(document, inventory):
+    """Track the existing 5 exact original ZIP IDs without authorizing them.
+
+    A changed live GitHub asset size/digest is an integrity alarm, not a new
+    admissible artifact. The independent per-major original pins are reused.
+    """
+    from issue112_pgroonga_rights_audit import (
+        PINS as original_pins, VERSION as source_version, original_name
+    )
+
+    if (type(document) is not dict or set(document) != {
+            "schemaVersion", "trust", "sourceRepo", "releaseTag", "releaseId",
+            "downloadAuthorized", "publicationAuthorized",
+            "redistributionAuthorized", "records"}
+            or document["schemaVersion"] !=
+            "pgextwin-issue112-pgroonga-official-release-watch-baseline/v1"
+            or document["trust"] != "UNVERIFIED_METADATA_NEVER_AUTHORIZE"
+            or document["sourceRepo"] != "pgroonga/pgroonga"
+            or document["releaseTag"] != source_version
+            or type(document["releaseId"]) is not int
+            or document["releaseId"] <= 0
+            or any(document[flag] is not False for flag in (
+                "downloadAuthorized", "publicationAuthorized",
+                "redistributionAuthorized"))):
+        raise ValueError("Invalid PGroonga read-only watch baseline")
+
+    records = document["records"]
+    if type(records) is not list or len(records) != 5:
+        raise ValueError("Incomplete PGroonga original-release matrix")
+    expected = {}
+    for record in records:
+        if type(record) is not dict or set(record) != {
+                "pgMajor", "assetId", "assetName", "originalBytes",
+                "originalSha256"}:
+            raise ValueError("Malformed PGroonga asset baseline")
+        major = record["pgMajor"]
+        if (type(major) is not str or major not in ("14", "15", "16", "17", "18")
+                or major in expected or type(record["assetId"]) is not int
+                or record["assetId"] <= 0
+                or record["assetName"] != original_name(int(major))
+                or (record["originalBytes"], record["originalSha256"])
+                != original_pins[int(major)]):
+            raise ValueError("PGroonga baseline mismatches independent original pins")
+        expected[major] = record
+    if set(expected) != {"14", "15", "16", "17", "18"} or len({
+            row["assetId"] for row in records}) != 5:
+        raise ValueError("Missing/duplicate PGroonga Release asset ID")
+
+    providers = [r for r in inventory.get("repositories", [])
+                 if r.get("repo", "").lower() == "pgroonga/pgroonga"]
+    if len(providers) != 1:
+        raise ValueError("PGroonga source missing/duplicated in live scan")
+    releases = [r for r in providers[0]["releases"]
+                if r["releaseId"] == document["releaseId"]]
+    if len(releases) != 1 or releases[0]["tag"] != source_version or (
+            releases[0]["draft"] is not False or
+            releases[0]["prerelease"] is not False):
+        raise ValueError("PGroonga observed release identity drift")
+    assets = {a["assetId"]: a for a in releases[0]["windowsAssets"]}
+    for record in records:
+        live = assets.get(record["assetId"])
+        if (live is None or live.get("name") != record["assetName"]
+                or live.get("size") != record["originalBytes"]
+                or live.get("digest") != "sha256:" + record["originalSha256"]
+                or live.get("state") != "uploaded"):
+            raise ValueError("PGroonga exact original metadata changed or disappeared")
+    return {(document["releaseTag"], row["assetId"]) for row in records}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True, type=Path)
@@ -141,7 +223,12 @@ def main():
     ledgers = [json.loads(f.read_text(encoding="utf-8")) for f in LEDGERS]
     receipts = [json.loads(p.read_text(encoding="utf-8"))
                 for p in sorted(HISTORICAL_ADMISSIONS.glob("*/run-*/external-get-admission.json"))]
-    report = analyze(inventory, providers, tracked_assets(cohort, ledgers, receipts))
+    known = tracked_assets(cohort, ledgers, receipts)
+    baseline = json.loads(PGROONGA_WATCH_BASELINE.read_text(encoding="utf-8"),
+                          object_pairs_hook=unique_json_pairs)
+    known.setdefault("pgroonga/pgroonga", set()).update(
+        reviewed_pgroonga_baseline(baseline, inventory))
+    report = analyze(inventory, providers, known)
     if args.output.exists() or args.output.is_symlink():
         raise ValueError("Refuse overwrite of prior discovery output")
     args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
