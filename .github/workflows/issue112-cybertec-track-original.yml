@@ -1,0 +1,43 @@
+name: Issue112 Cybertec pg_track_settings exact-original private audit
+
+# PR-only. No dispatch, credential issuance, artifact upload, signing, publisher or release.
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_cybertec_track_original.py
+      - tests/test_issue112_cybertec_track_original.py
+      - docs/issue-112-cybertec-track-original.md
+      - .github/workflows/issue112-cybertec-track-original.yml
+
+permissions:
+  contents: read
+
+jobs:
+  private-original-pg14-18:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['14', '15', '16', '17', '18']
+    env:
+      PG_MAJOR: ${{ matrix.pg }}
+    steps:
+      - name: Checkout candidate with no retained write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read fixed upstream 2.1.2 source tree, not provider source claim
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: rjuju/pg_track_settings
+          ref: 36a23f3c6d684c40140da1a24b1c3ee0e707b77a
+          path: pinned-upstream
+          persist-credentials: false
+      - name: Hostile offline verifier tests
+        run: python3 -m unittest discover -s tests -p 'test_issue112_cybertec_track_original.py' -v
+      - name: Read only one exact Cybertec original ZIP, rehash and compare SQL
+        run: python3 scripts/issue112_cybertec_track_original.py --pg "$PG_MAJOR" --source pinned-upstream
+      - name: Preserve denial of public use and redistribution
+        if: always()
+        run: echo 'CANDIDATE_ONLY=YES ORIGINAL_ZIP_UPLOAD=NONE WINDOWS_RUNTIME=UNVERIFIED PROVIDER_ORIGIN_ATTESTATION=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
