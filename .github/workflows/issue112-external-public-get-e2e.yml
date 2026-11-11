@@ -74,8 +74,8 @@ jobs:
           ' <<< "$commit" >/dev/null; then
             cohort="$(jq -r '.files[]? | select(.status=="added") | .filename |
               select(test("^external/signed-direct-get/qualified_cohort/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
-              sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\\1/\\2#' | sort -u)"
-            if [ -z "$cohort" ] || [ "$(printf '%s\\n' "$cohort" | wc -l)" -ne 1 ]; then
+              sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\1/\2#' | sort -u)"
+            if [ -z "$cohort" ] || [ "$(printf '%s\n' "$cohort" | wc -l)" -ne 1 ]; then
               echo 'Invalid or mixed signed cohort, DENY'
               exit 1
             fi
