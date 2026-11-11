@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   independent-windows-sql:
-    name: TimescaleDB 2.31.0 PG\${{ matrix.pg }} original SQL (deny-only)
+    name: TimescaleDB 2.31.0 PG${{ matrix.pg }} original SQL (deny-only)
     runs-on: windows-latest
     timeout-minutes: 55
     strategy:
@@ -46,16 +46,16 @@ jobs:
           ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
           path: build-tools
           persist-credentials: false
-      - name: Install disposable EDB PostgreSQL PG\${{ matrix.pg }}
+      - name: Install disposable EDB PostgreSQL PG${{ matrix.pg }}
         shell: pwsh
         env:
-          PG_MAJOR: \${{ matrix.pg }}
-          EDB_VERSION: \${{ matrix.edb }}
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
         run: ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55461
       - name: Independently GET exact official original, run upstream setup and real SQL
         shell: pwsh
         env:
-          PG_MAJOR: \${{ matrix.pg }}
+          PG_MAJOR: ${{ matrix.pg }}
         run: ./scripts/issue112-timescaledb-windows-runtime.ps1 -Major ([int]$env:PG_MAJOR)
       - name: Explicitly preserve owner/source admission and publishing denial
         if: always()
