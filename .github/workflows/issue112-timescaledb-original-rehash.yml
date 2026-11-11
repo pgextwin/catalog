@@ -1,0 +1,47 @@
+name: Issue112 TimescaleDB official original ZIP rehash (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-timescaledb-original-rehash.yml
+      - scripts/issue112_timescaledb_original_rehash.py
+      - tests/test_issue112_timescaledb_original_rehash.py
+      - docs/issue-112-timescaledb-original-rehash.md
+      - external/timescaledb-release-watch-baseline-v1.json
+      - scripts/issue112_latest_external_review.py
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-timescaledb-original-rehash.yml
+      - scripts/issue112_timescaledb_original_rehash.py
+      - tests/test_issue112_timescaledb_original_rehash.py
+      - docs/issue-112-timescaledb-original-rehash.md
+      - external/timescaledb-release-watch-baseline-v1.json
+      - scripts/issue112_latest_external_review.py
+
+permissions:
+  contents: read
+
+jobs:
+  original-official-byte-audit:
+    name: TimescaleDB 2.31.0 PG${{ matrix.pg }} original bytes (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['16', '17', '18']
+    steps:
+      - name: Checkout without persisted write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline malicious ZIP, HTTP redirect and authorization tests
+        run: python3 -m unittest discover -s tests -p test_issue112_timescaledb_original_rehash.py -v
+      - name: Independently GET official 2.31.0 PG${{ matrix.pg }} original ZIP bytes and audit
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: python3 scripts/issue112_timescaledb_original_rehash.py --pg "$PG_MAJOR"
+      - name: Preserve source, rights, signer, runtime and Publisher denial
+        if: always()
+        run: echo 'TIMESCALEDB_ORIGINAL_AUDIT_ONLY=YES ORIGINAL_GET_ADMISSION=DENY SOURCE_ATTESTATION=DENY RUNTIME=UNVERIFIED RIGHTS=UNVERIFIED MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
