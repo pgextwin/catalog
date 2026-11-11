@@ -60,7 +60,9 @@ PATH_GROUPS = {
 DOC_CANDIDATES = {
     "pgroonga": ("share/pgroonga/COPYING",),
     "groonga": ("share/groonga/COPYING",),
-    "mecab": ("share/groonga/mecab/COPYING",),
+    "mecab": ("share/groonga/mecab/COPYING",
+              "share/groonga/mecab/BSD", "share/groonga/mecab/GPL",
+              "share/groonga/mecab/LGPL"),
     "xxhash": (),  # No xxHash-specific license among 20 captured documents.
     "msgpack_c": ("share/groonga/msgpack-c/COPYING",
                   "share/groonga/msgpack-c/LICENSE_1_0.txt",
@@ -131,7 +133,7 @@ def join_receipts(receipts, *, strict=False):
     if len(binary_paths) != len(set(binary_paths)) or len(doc_paths) != len(set(doc_paths)):
         raise ValueError("Duplicate original member path in evidence")
     if strict and (set(binary_paths) != set(PATH_TO_GROUP)
-                   or len(binary_paths) != 43 or len(docs) != 20):
+                   or len(binary_paths) != 43 or len(docs) != 24):
         raise ValueError("Exact 4.1.0 package inventory changed; re-audit, never infer rights")
     docs_by_path = {r["path"]: r for r in docs}
     result = []

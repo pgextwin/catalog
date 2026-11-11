@@ -29,10 +29,10 @@ class RightsJoinTests(unittest.TestCase):
     def test_each_observed_binary_retains_hash_and_never_authorizes(self):
         paths = sorted(join.PATH_TO_GROUP)
         docs = sorted({d for group in join.DOC_CANDIDATES.values() for d in group})
-        docs += [f"share/other/{i}/LICENSE" for i in range(20 - len(docs))]
+        docs += [f"share/other/{i}/LICENSE" for i in range(24 - len(docs))]
         evidence = join.join_receipts(receipt(paths, docs), strict=True)
         self.assertEqual(evidence["binaryCount"], 43)
-        self.assertEqual(evidence["documentCount"], 20)
+        self.assertEqual(evidence["documentCount"], 24)
         self.assertEqual(evidence["pathIdentityCoverage"], 43)
         for original, mapped in zip(sorted(receipt(paths, docs)["binaryMemberReceipts"], key=lambda x:x["path"]), evidence["binaryRightsReviewRows"]):
             self.assertEqual(original["sha256"], mapped["sha256"])
@@ -44,7 +44,16 @@ class RightsJoinTests(unittest.TestCase):
                      "publicGetAuthorized", "mirrorAuthorized", "publisherAuthorized"):
             self.assertIs(evidence[flag], False)
         self.assertEqual(evidence["binaryWithoutNamedDocumentCandidateCount"], 2)
-        self.assertEqual(len(evidence["documentsNotLinkedByBinaryNameTriage"]), 11)
+        self.assertEqual(len(evidence["documentsNotLinkedByBinaryNameTriage"]), 12)
+
+    def test_mecab_copying_alone_does_not_supply_referenced_license_bodies(self):
+        x = join.join_receipts(receipt(["bin/libmecab.dll"],
+                                      ["share/groonga/mecab/COPYING"]))
+        row = x["binaryRightsReviewRows"][0]
+        self.assertEqual(set(row["missingExpectedCandidateDocuments"]),
+                         {"share/groonga/mecab/BSD", "share/groonga/mecab/GPL",
+                          "share/groonga/mecab/LGPL"})
+        self.assertFalse(row["componentLicenseNoticeVerified"])
 
     def test_xxhash_has_no_fabricated_license_document(self):
         x = join.join_receipts(receipt(["bin/libxxhash.dll", "bin/xxhsum.exe"],

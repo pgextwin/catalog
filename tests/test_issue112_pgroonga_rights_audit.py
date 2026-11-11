@@ -48,9 +48,32 @@ class ReceiptTests(unittest.TestCase):
 
     def test_similarly_named_binary_does_not_inherit_license(self):
         make(self.path, extra={"bin/copyright-vendor.dll": b"MZ:other"})
-        row = next(x for x in self.report()["binaryMemberReceipts"]
+        result = self.report()
+        self.assertEqual(result["licenseNoticeCandidatesCount"], 2)
+        row = next(x for x in result["binaryMemberReceipts"]
                    if x["path"].endswith("copyright-vendor.dll"))
         self.assertFalse(row["exactProducerProvenanceVerified"])
+
+    def test_referenced_license_bodies_are_inventoried_without_electing_terms(self):
+        paths = ("share/groonga/mecab/BSD", "share/groonga/mecab/GPL",
+                 "share/groonga/mecab/LGPL", "share/groonga/groonga-log/lgpl-2.1.txt")
+        make(self.path, extra={p: b"complete legal body" for p in paths})
+        result = self.report()
+        self.assertEqual(result["licenseNoticeCandidatesCount"], 6)
+        docs = {r["path"]: r for r in result["licenseNoticeFiles"]}
+        for path in paths:
+            self.assertEqual(docs[path]["sha256"],
+                             hashlib.sha256(b"complete legal body").hexdigest())
+        self.assertFalse(result["licenseNoticeClosureVerified"])
+        self.assertFalse(result["redistributionAuthorized"])
+
+    def test_empty_or_oversized_alternate_license_body_fails(self):
+        for path in ("share/mecab/BSD", "share/mecab/GPL", "share/mecab/LGPL",
+                     "share/groonga-log/lgpl-2.1.txt"):
+            for data in (b"", b"X" * (audit.MAX_LICENSE + 1)):
+                make(self.path, extra={path: data})
+                with self.assertRaises(ValueError):
+                    self.report()
 
     def test_duplicate_basename_retains_separate_receipts(self):
         make(self.path, extra={"lib/libgroonga.dll": b"MZ:distinct"})
