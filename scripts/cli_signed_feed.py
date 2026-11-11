@@ -115,7 +115,14 @@ def build_feed(root, commit, load):
         raw = source_bytes(root, location)
         source_hashes[location] = hashlib.sha256(raw).hexdigest()
         data = strict_object(raw.decode("utf-8"))
-        if type(data.get("postgresql")) is not dict or set(data["postgresql"]) != set(majors):
+        pg_matrix = data.get("postgresql")
+        # Historical published majors (e.g. PG14 after EOL) remain in the
+        # immutable Catalog record but cannot enter the signer-approved feed.
+        # Never tolerate a missing cohort major or an unapproved future major.
+        if (type(pg_matrix) is not dict or not set(majors).issubset(pg_matrix) or
+            any(not re.fullmatch(r"[1-9][0-9]*", major) or
+                (major not in majors and not 14 <= int(major) < int(majors[0]))
+                for major in pg_matrix)):
             raise ValueError("Catalog major set differs from protected PG cohort")
         tag = data["latest"]["releaseTag"]
         repo = "pgextwin/" + name
@@ -152,7 +159,7 @@ def build_feed(root, commit, load):
         for major in majors:
             pg = data["postgresql"][major]
             if pg.get("available") is not True:
-                raise ValueError("Incomplete Catalog PG14-18 availability")
+                raise ValueError("Incomplete signed-feed cohort availability")
             filename = pg["asset"]
             digest = pg["sha256"]
             url = f"https://github.com/{repo}/releases/download/{tag}/{filename}"
