@@ -27,8 +27,9 @@ if (-not (Test-Path -LiteralPath $upstream -PathType Container)) { throw 'Pinned
 $lines=@(& python scripts/issue112_cybertec_track_original.py --pg ([string]$Major) --source $upstream 2>&1)
 if ($LASTEXITCODE -ne 0 -or $lines.Count -ne 2) { throw "Original verifier failed: $($lines -join ' ')" }
 $r=$lines[0] | ConvertFrom-Json
+Write-Host "PRIVATE_ORIGINAL_ASSERT PG=$Major SHA_MATCH=$($r.originalSha256 -ceq $pins[[string]$Major]) SIZE=$($r.originalSizeBytes) ZIP_CRC=$($r.zipCrc) SQL_CONTROL_BYTE_MATCH=$($r.upstreamCompleteSqlControlMatch) MODIFIED=$(@($r.upstreamByteDiffers).Count) ABSENT=$(@($r.upstreamNotPresent).Count) INSTALLABLE=$(@($r.installableSqlAndControl).Count) DENIAL=$($r.publicGetAuthorized)/$($r.mirrorAuthorized)/$($r.releaseAuthorized)"
 if ($null -eq $r -or $r.postgresqlMajor -cne ([string]$Major) -or
-    $r.originalSha256 -cne $pins[$Major] -or $r.originalSizeBytes -ne 29613 -or
+    $r.originalSha256 -cne $pins[[string]$Major] -or $r.originalSizeBytes -ne 29613 -or
     $r.zipCrc -cne 'PASS' -or $r.zipMemberCount -ne 18 -or
     -not $r.upstreamCompleteSqlControlMatch -or
     @($r.upstreamByteDiffers).Count -ne 0 -or @($r.upstreamNotPresent).Count -ne 0 -or
