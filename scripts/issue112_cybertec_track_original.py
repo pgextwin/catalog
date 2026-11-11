@@ -34,7 +34,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def original_url(pg):
     if pg not in MAJORS:
         raise ValueError("Unsupported PG major")
-    return f"{BASE}{pg}/extension/pg_track_settings-{pg}-public-{VERSION}.zip"
+    suffix = "-1" if pg == "18" else ""
+    return f"{BASE}{pg}/extension/pg_track_settings-{pg}-public-{VERSION}{suffix}.zip"
 
 
 def review_zip(raw, pg, source=None):
