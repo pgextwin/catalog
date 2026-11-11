@@ -207,7 +207,11 @@ def qualify(pg):
                    "THEN 'HTTP_LOOPBACK_SQL=PASS' ELSE 'HTTP_LOOPBACK_SQL=FAIL' END "
                    "FROM http_get('http://127.0.0.1:" + str(fixture.server_port) +
                    "/issue112'); SELECT pg_sleep(20);")
-            probe = subprocess.Popen(psql + ['-c', sql], stdout=subprocess.PIPE,
+            # PG14 psql -c prints only the final command result (pg_sleep).
+            # A command file preserves the HTTP assertion result on all majors.
+            sql_path = tmp / 'http-probe.sql'
+            sql_path.write_text(sql, encoding='utf-8')
+            probe = subprocess.Popen(psql + ['-f', str(sql_path)], stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE, text=True)
             modules = None
             for _ in range(30):
@@ -221,7 +225,7 @@ def qualify(pg):
                 time.sleep(0.25)
             output, errors = probe.communicate(timeout=50)
             if probe.returncode != 0 or 'HTTP_LOOPBACK_SQL=PASS' not in output or 'HTTP_LOOPBACK_SQL=FAIL' in output:
-                raise ValueError('Loopback SQL failed: ' + output + errors)
+                raise ValueError('Loopback SQL failed, psql exit=' + str(probe.returncode) + ': ' + output + errors)
             if not modules:
                 raise ValueError('Live tested backend module capture missing')
             http_rows = [r for r in modules if r['module'].casefold() == 'http.dll']
