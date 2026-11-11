@@ -22,11 +22,53 @@ VERSION = "4.1.0"
 # merely because their basenames lack the word LICENSE. This is discovery,
 # never a license election or component/source-to-binary acceptance.
 DOC_PATTERN = re.compile(
-    r"(?:^|[._-])(?:licen[cs]e|notice|copying|copyright|bsd|(?:a|l)?gpl)(?:$|[._-])",
+    r"(?:^|[._-])(?:licen[cs]e|notice|copying|copyright|legal|bsd|(?:a|l)?gpl)(?:$|[._-])",
     re.I,
 )
 MAX_LICENSE = 512 * 1024
 MAX_BIN = 64 * 1024 * 1024
+MRUBY_LEGAL_PATH = "share/groonga/mruby/LEGAL"
+
+def mruby_gem_claims(data, document):
+    """Observe generated metadata; license labels never prove complete terms.
+
+    Groonga installs MRuby's generated LEGAL file in addition to LICENSE.
+    Retain the document receipt and each declared gem, including BSD and
+    MIT-like exceptions that a blanket MRuby/MIT attribution would hide.
+    Unknown formats fail rather than silently dropping a dependency.
+    """
+    if not data or len(data) > MAX_LICENSE:
+        raise ValueError("Invalid MRuby LEGAL size")
+    text = data.decode("utf-8", errors="strict").replace("\r\n", "\n")
+    if "\r" in text or any(ord(c) < 32 and c not in "\n\t" for c in text):
+        raise ValueError("Invalid MRuby LEGAL text")
+    sections = text.split("\nAdditional Licenses\n")
+    if len(sections) != 2 or "\nGEM:" in sections[0]:
+        raise ValueError("Unknown MRuby LEGAL section format")
+    blocks = re.split(r"(?m)^GEM: ", sections[1])
+    if len(blocks) < 2 or "GEM:" in blocks[0] or len(blocks) > 129:
+        raise ValueError("Missing or unbounded MRuby gem claims")
+    claims, names = [], set()
+    for block in blocks[1:]:
+        lines = block.strip().splitlines()
+        if (len(lines) != 3 or not re.fullmatch(r"mruby-[a-z0-9-]{1,80}", lines[0])
+                or not lines[1].startswith("Copyright (c) ")
+                or not lines[1][len("Copyright (c) "):].strip()
+                or not lines[2].startswith("License: ")
+                or not 1 <= len(lines[2][len("License: "):].strip()) <= 128):
+            raise ValueError("Malformed MRuby gem claim")
+        if lines[0] in names:
+            raise ValueError("Duplicate MRuby gem claim")
+        names.add(lines[0])
+        claims.append({
+            "gem": lines[0], "copyrightClaim": lines[1],
+            "licenseClaim": lines[2][len("License: "):],
+            "legalDocumentPath": document["path"],
+            "legalDocumentSha256": document["sha256"],
+            "completeLicenseTextVerified": False,
+            "exactSourceToBinaryBindingVerified": False,
+        })
+    return sorted(claims, key=lambda row: row["gem"])
 
 def original_name(major):
     if major not in PINS:
@@ -53,6 +95,7 @@ def audit_members(path, major, *, require_pin=True):
     if require_pin:
         verify_file(path, major)
     records, docs, by_basename, seen = [], [], {}, set()
+    gem_claims = []
     expanded = 0
     with zipfile.ZipFile(path) as archive:
         entries = archive.infolist()
@@ -85,6 +128,7 @@ def audit_members(path, major, *, require_pin=True):
                 raise ValueError("Invalid notice/binary member size")
             digest = hashlib.sha256()
             preview = bytearray()
+            legal_data = bytearray()
             count = 0
             with archive.open(entry) as stream:
                 while chunk := stream.read(1024 * 1024):
@@ -92,6 +136,8 @@ def audit_members(path, major, *, require_pin=True):
                     if count > entry.file_size:
                         raise ValueError("Member length overflow")
                     digest.update(chunk)
+                    if name == MRUBY_LEGAL_PATH:
+                        legal_data.extend(chunk)
                     if doc and len(preview) < 300:
                         preview.extend(chunk[:300 - len(preview)])
             if count != entry.file_size:
@@ -100,6 +146,8 @@ def audit_members(path, major, *, require_pin=True):
             if doc:
                 row["openingText"] = " ".join(preview.decode("utf-8", errors="replace").split())[:180]
                 docs.append(row)
+                if name == MRUBY_LEGAL_PATH:
+                    gem_claims = mruby_gem_claims(bytes(legal_data), row)
             if binary:
                 row.update(componentIdentityVerified=False,
                            componentLicenseNoticeVerified=False,
@@ -122,6 +170,8 @@ def audit_members(path, major, *, require_pin=True):
         "binaryMemberReceipts": sorted(records, key=lambda r: r["path"]),
         "duplicateBinaryBasenames": {k: v for k, v in sorted(by_basename.items()) if len(v) > 1},
         "licenseNoticeCandidatesCount": len(docs),
+        "embeddedGemLicenseClaims": gem_claims,
+        "embeddedGemLicenseClaimsCount": len(gem_claims),
         "binaryMemberCount": len(records),
         "sourceTagWindowsBuildWorkflow": "https://github.com/pgroonga/pgroonga/blob/4.1.0/.github/workflows/windows.yml",
         "officialLicenseExplanation": "https://pgroonga.github.io/#license",

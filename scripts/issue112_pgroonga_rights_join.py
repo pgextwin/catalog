@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 
 from issue112_pgroonga_rights_audit import (
-    PINS, audit_members, download_original, original_name,
+    PINS, MRUBY_LEGAL_PATH, audit_members, download_original, original_name,
 )
 
 # Exhaustive paths observed in five pinned official ZIPs, NOT trusted component
@@ -133,7 +133,8 @@ def join_receipts(receipts, *, strict=False):
     if len(binary_paths) != len(set(binary_paths)) or len(doc_paths) != len(set(doc_paths)):
         raise ValueError("Duplicate original member path in evidence")
     if strict and (set(binary_paths) != set(PATH_TO_GROUP)
-                   or len(binary_paths) != 43 or len(docs) != 24):
+                   or len(binary_paths) != 43 or len(docs) != 25
+                   or MRUBY_LEGAL_PATH not in doc_paths):
         raise ValueError("Exact 4.1.0 package inventory changed; re-audit, never infer rights")
     docs_by_path = {r["path"]: r for r in docs}
     result = []

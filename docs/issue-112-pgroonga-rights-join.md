@@ -26,3 +26,13 @@ DLL/EXE basenames containing legal keywords now remain exclusively binary receip
 The path-exact mapping covers the 43 observed binary names but **does not establish** actual producer component identity/version, header/library static linkage, dynamic DLL loading, binary-specific license conditions, exact source-to-released-binary provenance, independent Sigstore issuer, or formal publisher admission. Official PGroonga 4.1.0's Windows workflow uses mutable `groonga-latest.zip`; no asserted exact Groonga source SHA is inferred. Explicitly preserve `CANDIDATE_ONLY`, `PUBLIC_GET=DENY`, `MIRROR=DENY`, and `RELEASE=DENY`.
 
 A new path-scoped, contents:read workflow exercises seven adversarial offline tests and the five original ZIPs for the **new candidate-join evidence only**. It never uploads the original ZIP, publishes a feed, signs an admission, invokes an Environment, or replays an earlier successful Run. The earlier real Windows same-PID `liblz4.dll` proof remains separately accepted but does not close every load path or vendor provenance. OSGeo proceeds independently. Existing published CLI v0.3.13 and qualified-cohort admissions are untouched.
+
+### Generated MRuby LEGAL follow-up
+
+The subsequent [MRuby review](issue-112-pgroonga-rights-intake.md#mruby-generated-legal-correction-2026-11-11)
+finds a 25th document, `share/groonga/mruby/LEGAL`, containing 31 generated gem
+license declarations. Strict production joins now require 25 documents and the
+exact LEGAL path. The extra document remains **outside binary-name triage**;
+its static gem declarations are not attributed to every Groonga DLL. There are
+13 unlinked documents at this review stage. Previous 24-document runs remain
+historical evidence; the additional document does not grant rights or GET.

@@ -75,6 +75,53 @@ class ReceiptTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.report()
 
+    def test_generated_legal_retains_mixed_gem_terms_and_exact_document_hash(self):
+        data = (b"MRuby license body\n\nAdditional Licenses\n\n"
+                b"Generated license declarations:\n\n"
+                b"GEM: mruby-pp\nCopyright (c) 2026 Authors\nLicense: BSD-2-Clause\n\n"
+                b"GEM: mruby-dir\nCopyright (c) 2026 Authors\nLicense: MIT and MIT-like license\n")
+        make(self.path, extra={audit.MRUBY_LEGAL_PATH: data,
+                               "bin/legal-vendor.dll": b"MZ:vendor"})
+        result = self.report()
+        self.assertEqual(result["licenseNoticeCandidatesCount"], 3)
+        self.assertEqual(result["binaryMemberCount"], 3)
+        self.assertEqual(result["embeddedGemLicenseClaimsCount"], 2)
+        rows = result["embeddedGemLicenseClaims"]
+        self.assertEqual([r["licenseClaim"] for r in rows],
+                         ["MIT and MIT-like license", "BSD-2-Clause"])
+        for row in rows:
+            self.assertEqual(row["legalDocumentPath"], audit.MRUBY_LEGAL_PATH)
+            self.assertEqual(row["legalDocumentSha256"], hashlib.sha256(data).hexdigest())
+            self.assertIs(row["completeLicenseTextVerified"], False)
+            self.assertIs(row["exactSourceToBinaryBindingVerified"], False)
+        self.assertFalse(result["publicGetAuthorized"])
+        self.assertFalse(result["licenseNoticeClosureVerified"])
+
+    def test_malformed_duplicate_or_non_utf8_gem_claims_fail_closed(self):
+        prefix = b"MRuby\n\nAdditional Licenses\n\n"
+        claim = b"GEM: mruby-pp\nCopyright (c) 2026 Authors\nLicense: BSD-2-Clause\n\n"
+        for data in (prefix + claim + claim,
+                     prefix + claim.replace(b"License: BSD-2-Clause", b"License: "),
+                     prefix + claim.replace(b"Copyright (c) 2026 Authors\n", b""),
+                     prefix + claim.replace(b"mruby-pp", b"../escape"),
+                     prefix + claim + b"\xff", prefix + b"GEM: unknown\n",
+                     b"Unknown format", prefix + claim + b"\x00",
+                     prefix + claim * 129):
+            make(self.path, extra={audit.MRUBY_LEGAL_PATH: data})
+            with self.assertRaises((ValueError, UnicodeError)):
+                self.report()
+
+    def test_empty_oversized_legal_or_unrelated_path_never_grants_gem_acceptance(self):
+        for data in (b"", b"X" * (audit.MAX_LICENSE + 1)):
+            make(self.path, extra={audit.MRUBY_LEGAL_PATH: data})
+            with self.assertRaises(ValueError):
+                self.report()
+        make(self.path, extra={"share/unrelated/LEGAL": b"unattributed legal text"})
+        result = self.report()
+        self.assertEqual(result["licenseNoticeCandidatesCount"], 3)
+        self.assertEqual(result["embeddedGemLicenseClaims"], [])
+        self.assertFalse(result["licenseNoticeClosureVerified"])
+
     def test_duplicate_basename_retains_separate_receipts(self):
         make(self.path, extra={"lib/libgroonga.dll": b"MZ:distinct"})
         result = self.report()

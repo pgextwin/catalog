@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "pgextwin-pgroonga-mruby-source-review-candidates/v1",
+  "trust": "SOURCE_TEXT_COMPARISON_ONLY",
+  "pgMajorObserved": 18,
+  "originalZipSha256": "3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab",
+  "originalLegal": {
+    "path": "share/groonga/mruby/LEGAL",
+    "bytes": 3502,
+    "sha256": "020dcd4ec1ee0826cb5cb4ee61f6dacb5a7786a9ff4e27335bf0e4c51dc47b56",
+    "openingText": "Copyright (c) 2026 mruby developers Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\""
+  },
+  "originalGemClaimsCount": 31,
+  "candidateBuildConfigGemNamesMatch": true,
+  "candidateExternalGemLicenseLabelsMatch": 5,
+  "immutableSourceReceipts": {
+    "kou/mruby-pp:LICENSE.txt": {
+      "repo": "kou/mruby-pp",
+      "commit": "a208b14886e664785b4722dc076e4d33f2fbd1e9",
+      "path": "LICENSE.txt",
+      "blob": "27c88944fc88c84d9fa5e9486dfdd2e332f8d5f6",
+      "bytes": 1363,
+      "sha256": "614462b476815ae1f372fd45fca061e418cfc1b0fbdf8fd004aeb488eddc0b2d",
+      "newlineNormalizedMatchesInOriginal": []
+    },
+    "kou/mruby-pp:README.md": {
+      "repo": "kou/mruby-pp",
+      "commit": "a208b14886e664785b4722dc076e4d33f2fbd1e9",
+      "path": "README.md",
+      "blob": "4cbbbbe3bb15846c9bbc906c1e7acf9ab805dbb1",
+      "bytes": 559,
+      "sha256": "787bf2ede531efbbc469eda59d59a5dcaa3a6050d663df140a164ba1886b5180"
+    },
+    "kou/mruby-pp:mrbgem.rake": {
+      "repo": "kou/mruby-pp",
+      "commit": "a208b14886e664785b4722dc076e4d33f2fbd1e9",
+      "path": "mrbgem.rake",
+      "blob": "20c6bfff7d97d55866e0c3db2baff042e8bd4e3f",
+      "bytes": 394,
+      "sha256": "c812eaa21592c7fd862dadacd8b9cc443a285640e4c6a2fba43772f4c6cf46e6"
+    },
+    "kou/mruby-slop:LICENSE.txt": {
+      "repo": "kou/mruby-slop",
+      "commit": "38f4795712c8f92e4c9412b5fc81646b3972b12a",
+      "path": "LICENSE.txt",
+      "blob": "85c6f4927929007798bc305bc0777ebf3ef8bbdd",
+      "bytes": 1123,
+      "sha256": "08a72dbdb13de24b3809818695fb5b5683a6d41072201624dbe0edc443943275",
+      "newlineNormalizedMatchesInOriginal": []
+    },
+    "kou/mruby-slop:README.md": {
+      "repo": "kou/mruby-slop",
+      "commit": "38f4795712c8f92e4c9412b5fc81646b3972b12a",
+      "path": "README.md",
+      "blob": "22d7e763d7538928d06e434892ef97577bb244cd",
+      "bytes": 362,
+      "sha256": "aeaade7aeaafa5391745179efdf0ac56ec82d7fe87f38cef649232ccd24b4b84"
+    },
+    "kou/mruby-slop:mrbgem.rake": {
+      "repo": "kou/mruby-slop",
+      "commit": "38f4795712c8f92e4c9412b5fc81646b3972b12a",
+      "path": "mrbgem.rake",
+      "blob": "e117334883cb2ce7f0702f77e7edd07e32799623",
+      "bytes": 655,
+      "sha256": "ca334cbc839cf7e4536309c96e6fb2734ff356c02dc91d6561ab139b2d742b9a"
+    },
+    "kou/mruby-tsort:LICENSE.txt": {
+      "repo": "kou/mruby-tsort",
+      "commit": "29e87327387c9c878b05cb259c91b74ac73ea997",
+      "path": "LICENSE.txt",
+      "blob": "6dc1c46c2eff3726711e5016a463ae4756c17a15",
+      "bytes": 1365,
+      "sha256": "a0e3a6ed77fcf0b59e1a554ffda3f1e0eb29ba53d2ff5c3ac250518d5a19926c",
+      "newlineNormalizedMatchesInOriginal": []
+    },
+    "kou/mruby-tsort:README.md": {
+      "repo": "kou/mruby-tsort",
+      "commit": "29e87327387c9c878b05cb259c91b74ac73ea997",
+      "path": "README.md",
+      "blob": "c3ff5f10ff0226ed7bd48d2ddc49d5f2f2724127",
+      "bytes": 372,
+      "sha256": "e0a2a30a96c837a5213eaf0b098bc33589cec2f5d0befc2cc5522841c350d0c9"
+    },
+    "kou/mruby-tsort:mrbgem.rake": {
+      "repo": "kou/mruby-tsort",
+      "commit": "29e87327387c9c878b05cb259c91b74ac73ea997",
+      "path": "mrbgem.rake",
+      "blob": "c005ac998db6708b24914156a247cf6126dab396",
+      "bytes": 441,
+      "sha256": "ec8e6ff6162bb017dad33f24e418365488570d4a632f0a85b81c50426e5275f9"
+    },
+    "ksss/mruby-file-stat:README.md": {
+      "repo": "ksss/mruby-file-stat",
+      "commit": "7d0e63a95a38b34c635b708874ec624c7c860507",
+      "path": "README.md",
+      "blob": "92c1b42e7bdab8d0f75ddff6d0225520186b6e2e",
+      "bytes": 1882,
+      "sha256": "2e0dae440ce5aaf1975c085472f8788c7c146fa2d263b5e7820d7c189de8f684"
+    },
+    "ksss/mruby-file-stat:mrbgem.rake": {
+      "repo": "ksss/mruby-file-stat",
+      "commit": "7d0e63a95a38b34c635b708874ec624c7c860507",
+      "path": "mrbgem.rake",
+      "blob": "a5740f0ece61aa71ebce4e9745f2a0567a9b0e38",
+      "bytes": 1131,
+      "sha256": "144d983d8a45d86ab184e0bc49ddd3b9b7fa07260f9f28ca0f369cb6168cb7b4"
+    },
+    "mattn/mruby-onig-regexp:README.md": {
+      "repo": "mattn/mruby-onig-regexp",
+      "commit": "4962d7eb42de079f6b3faec4b40560eb2941eeec",
+      "path": "README.md",
+      "blob": "d27378f4c5ccfc72636d833b8d3cf500142efc51",
+      "bytes": 1234,
+      "sha256": "48cbfcdd66bc760fda8a2eaf177adecd26ef65a312563b581b003843918ebd11"
+    },
+    "mattn/mruby-onig-regexp:mrbgem.rake": {
+      "repo": "mattn/mruby-onig-regexp",
+      "commit": "4962d7eb42de079f6b3faec4b40560eb2941eeec",
+      "path": "mrbgem.rake",
+      "blob": "db609849434ecc9ea5b36a3a215eb692ce71dd24",
+      "bytes": 4110,
+      "sha256": "71e757e365efc69451fa81c68f08ac7897107d5f57f0e2a71f013c2766dafabf"
+    },
+    "groonga/groonga:.gitmodules": {
+      "repo": "groonga/groonga",
+      "commit": "9085dd417e5cd42cd8f1a367aaf24cfe45dd9f1f",
+      "path": ".gitmodules",
+      "blob": "bc7778c0a1b510b13be1698c22e69760c2757676",
+      "bytes": 1257,
+      "sha256": "9b8fbf0b15eaf3913778da0e790738f11c4800c0f9d5e63613f4048d6ed3b639"
+    },
+    "groonga/groonga:vendor/mruby/build_config.rb": {
+      "repo": "groonga/groonga",
+      "commit": "9085dd417e5cd42cd8f1a367aaf24cfe45dd9f1f",
+      "path": "vendor/mruby/build_config.rb",
+      "blob": "f3b54a3ca9513534bf7ec388e167640612881ee3",
+      "bytes": 3144,
+      "sha256": "f14e0c76e9c09d9c662d21db8ee0f229b1f76c05a7d813ff475c2cfebf5c7a7e"
+    },
+    "groonga/groonga:vendor/mruby/CMakeLists.txt": {
+      "repo": "groonga/groonga",
+      "commit": "9085dd417e5cd42cd8f1a367aaf24cfe45dd9f1f",
+      "path": "vendor/mruby/CMakeLists.txt",
+      "blob": "c0240928e5cae6399b4824914f67634de30084df",
+      "bytes": 8595,
+      "sha256": "9efc073f6181744fabbd6521d5124fe6e9662e420cbf0aa974ba1814a7d156fb"
+    }
+  },
+  "exactHistoricalGroongaInputVerified": false,
+  "allGemTermsAndNoticesComplete": false,
+  "sourceToBinaryProvenanceVerified": false,
+  "downloadAuthorized": false,
+  "mirrorAuthorized": false,
+  "publisherAuthorized": false
+}
