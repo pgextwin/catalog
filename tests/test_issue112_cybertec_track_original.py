@@ -134,9 +134,10 @@ class PrivateOriginalTests(unittest.TestCase):
     def test_source_link_refused(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d)
-            (p / "pg_track_settings.control").symlink_to("missing")
-            with self.assertRaisesRegex(ValueError, "Linked upstream"):
-                verifier.review_zip(package(), "16", p)
+            # Also exercise Windows runners without SeCreateSymbolicLinkPrivilege.
+            with mock.patch.object(Path, "is_symlink", lambda q: q.name == "pg_track_settings.control"):
+                with self.assertRaisesRegex(ValueError, "Linked upstream"):
+                    verifier.review_zip(package(), "16", p)
 
 
 if __name__ == "__main__":
