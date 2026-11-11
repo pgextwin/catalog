@@ -1,0 +1,63 @@
+name: Issue112 OSGeo PG14-17 real Windows PostGIS pgRouting SQL (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_osgeo_pg14_17_windows_selection.py
+      - scripts/issue112-osgeo-pg14-17-windows-runtime.ps1
+      - tests/test_issue112_osgeo_pg14_17_windows_selection.py
+      - .github/workflows/issue112-osgeo-pg14-17-windows-runtime.yml
+
+permissions:
+  contents: read
+
+jobs:
+  osgeo-original-runtime:
+    runs-on: windows-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { pg: '14', edb: '14.24.0' }
+          - { pg: '15', edb: '15.19.0' }
+          - { pg: '16', edb: '16.15.5' }
+          - { pg: '17', edb: '17.11.4' }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline candidate identity and deny tests
+        shell: pwsh
+        run: python -m unittest discover -s tests -p 'test_issue112_osgeo_pg14_17_windows_selection.py' -v
+      - name: Check out immutable proven EDB PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - name: Install disposable exact EDB PostgreSQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
+        run: ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55449
+      - name: Re-evaluate candidate-only OSGeo latest-per-major metadata
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: |
+          python scripts/discover_osgeo_windows_bundles.py --index osgeo-cache --latest-only --output "$env:RUNNER_TEMP/selection.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Original directory discovery failed' }
+          python scripts/issue112_osgeo_pg14_17_windows_selection.py --selection-file "$env:RUNNER_TEMP/selection.json" --pg-major $env:PG_MAJOR --output "$env:RUNNER_TEMP/locked.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Observed original identity changed' }
+      - name: Independent exact original ZIP GET and actual Windows PostGIS pgRouting SQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: ./scripts/issue112-osgeo-pg14-17-windows-runtime.ps1 -Major ([int]$env:PG_MAJOR) -SelectionFile "$env:RUNNER_TEMP/locked.json"
+      - name: Preserve candidate-only public deny gates
+        if: always()
+        shell: pwsh
+        run: Write-Host 'OSGEO_CANDIDATE_ONLY=YES ORIGINAL_ZIP_UPLOAD=NONE SIGNED_GET=DENY MIRROR=DENY RELEASE=DENY'
