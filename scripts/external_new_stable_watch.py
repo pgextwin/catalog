@@ -103,8 +103,12 @@ def analyze(inventory, provider_config, known):
         new = [a["name"] for a, ident in zip(release["windowsAssets"], ids)
                if ident not in tracked]
         historical_tags = [tag_key(tag) for tag, _ in tracked if tag_key(tag) is not None]
-        newer = not historical_tags or tag_key(release["tag"]) > max(historical_tags)
-        status = ("NEW_STABLE_RELEASE" if new and newer else
+        # A provider with no qualified pin or candidate ledger has no
+        # baseline to establish a *newer* version. Report this inventory
+        # coverage gap separately rather than a false upgrade alert.
+        newer = bool(historical_tags) and tag_key(release["tag"]) > max(historical_tags)
+        status = ("BASELINE_NOT_ESTABLISHED" if not historical_tags else
+                  "NEW_STABLE_RELEASE" if new and newer else
                   "UNTRACKED_ASSET_IN_KNOWN_VERSION" if new else "TRACKED")
         rows.append({"repo": repo, "extension": declared[repo.lower()]["extension"],
                      "status": status, "latestTag": release["tag"],
@@ -118,6 +122,7 @@ def analyze(inventory, provider_config, known):
             "tagMeaning": "PROVIDER_RELEASE_VERSION_NOT_EXTENSION_VERSION",
             "providers": rows,
             "newStableCount": sum(r["status"] == "NEW_STABLE_RELEASE" for r in rows),
+            "baselineMissingCount": sum(r["status"] == "BASELINE_NOT_ESTABLISHED" for r in rows),
             "untrackedAssetProviderCount": sum(
                 r["status"] == "UNTRACKED_ASSET_IN_KNOWN_VERSION" for r in rows)}
 
@@ -141,6 +146,7 @@ def main():
         raise ValueError("Refuse overwrite of prior discovery output")
     args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"newStableCount": report["newStableCount"],
+                      "baselineMissingCount": report["baselineMissingCount"],
                       "untrackedAssetProviderCount": report["untrackedAssetProviderCount"],
                       "trust": report["trust"], "downloadAuthorized": False}))
     import os
