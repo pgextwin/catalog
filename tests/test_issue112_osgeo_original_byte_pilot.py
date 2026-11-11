@@ -27,6 +27,21 @@ def snapshot():
                                       "mirrorAuthorized": False, "selected": [row]}}
 
 
+
+def latest_snapshot():
+    report = snapshot()
+    selected = []
+    for pg in ("14", "15", "16", "17", "18"):
+        filename = f"postgis-bundle-pg{pg}-3.7.0x64.zip"
+        selected.append({"fileName": filename, "pgMajor": pg,
+                         "version": "3.7.0",
+                         "sourceRelativePath": f"pg{pg}/{filename}",
+                         "downloadAuthorized": False, "mirrorAuthorized": False})
+    report["latestBundleSelection"]["mode"] = "latest-per-supported-pg"
+    report["latestBundleSelection"]["selected"] = selected
+    return report
+
+
 def pe():
     raw = bytearray(128)
     raw[:2] = b"MZ"
@@ -66,6 +81,55 @@ class OriginalBytePilotTests(unittest.TestCase):
         bad["publicationAuthorized"] = True
         with self.assertRaises(ValueError):
             p.choose(bad)
+
+
+    def test_pg14_to_17_independent_original_selectors(self):
+        report = latest_snapshot()
+        for pg in ("14", "15", "16", "17"):
+            with self.subTest(pg=pg):
+                url, row = p.choose_major(report, pg)
+                self.assertEqual(url, (
+                    f"https://download-cache.osgeo.org/postgis/windows/pg{pg}/"
+                    f"postgis-bundle-pg{pg}-3.7.0x64.zip"))
+                self.assertFalse(row["downloadAuthorized"])
+                self.assertFalse(row["mirrorAuthorized"])
+        with self.assertRaises(ValueError):
+            p.choose_major(report, "18")
+
+    def test_per_major_selector_denies_incomplete_duplicates_and_escalation(self):
+        base = latest_snapshot()
+        mutations = [
+            lambda r: r["latestBundleSelection"]["selected"].pop(),
+            lambda r: r["latestBundleSelection"]["selected"][1].update(
+                {"pgMajor": "14", "fileName": "postgis-bundle-pg14-3.7.0x64.zip",
+                 "sourceRelativePath": "pg14/postgis-bundle-pg14-3.7.0x64.zip"}),
+            lambda r: r["latestBundleSelection"]["selected"][0].update(
+                {"downloadAuthorized": True}),
+            lambda r: r["latestBundleSelection"]["selected"][2].update(
+                {"sourceRelativePath": "pg16/../forged.zip"}),
+            lambda r: r["latestBundleSelection"].update(
+                {"mode": "single-newest-bundle"}),
+            lambda r: r.update({"publicationAuthorized": True}),
+        ]
+        for mutation in mutations:
+            with self.subTest(mutation=mutations.index(mutation)):
+                report = copy.deepcopy(base)
+                mutation(report)
+                with self.assertRaises(ValueError):
+                    p.choose_major(report, "14")
+
+    def test_per_major_run_remains_nonpublishing(self):
+        with mock.patch.object(p, "read_original",
+                               return_value=(123, "a" * 64)) as read, \\
+             mock.patch.object(p, "inspect",
+                               return_value={"zipMembers": 42, "peAmd64Dlls": 2}):
+            result = p.run(latest_snapshot(), pg_major="17")
+        self.assertEqual(result["pgMajor"], "17")
+        self.assertEqual(result["status"], "CANDIDATE_ONLY")
+        self.assertFalse(result["downloadAuthorized"])
+        self.assertFalse(result["publisherAuthorized"])
+        self.assertFalse(result["mirrorAuthorized"])
+        self.assertIn("/pg17/", read.call_args.args[0])
 
     def test_denies_redirect_escape(self):
         for url in ("http://download-cache.osgeo.org/postgis/windows/a.zip",
