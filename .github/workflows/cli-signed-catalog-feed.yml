@@ -75,7 +75,7 @@ jobs:
                 .filename == "index.json" or
                 (.filename | test("^extensions/[^/]+[.]json$")))
           ' <<< "$commit" >/dev/null; then
-            echo "CATALOG_FEED_NOOP_NO_APPROVED_RECORD_OR_COHORT_CHANGE HEAD=$RUN_SHA PUBLISH_DENY"
+            echo "CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE NO_COHORT_CHANGE HEAD=$RUN_SHA PUBLISH_DENY"
             exit 0
           fi
           echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"
