@@ -8,6 +8,7 @@ on:
     types: [completed]
   pull_request:
     paths:
+      - "config/cli-feed-majors.json"
       - "scripts/cli_signed_feed.py"
       - "tests/test_cli_signed_feed.py"
       - ".github/workflows/cli-signed-catalog-feed.yml"
@@ -64,14 +65,17 @@ jobs:
           jq -e '.commit.verification.verified==true and .commit.verification.reason=="valid" and .committer.login=="web-flow" and .commit.committer.email=="noreply@github.com"' <<< "$commit" >/dev/null
           jobs="$(gh api --paginate "repos/pgextwin/catalog/actions/runs/$RUN_ID/jobs?per_page=100" --jq '.jobs[] | [.name,.conclusion] | @tsv')"
           grep -Fx $'validate\tsuccess' <<< "$jobs" >/dev/null
-          # Only an actual protected Catalog roster/record change may create a
-          # new public signed metadata feed. Workflow-only, test-only and
-          # Issue311 PREPARE-shadow merges must be successful no-ops.
-          # This is the authenticated GitHub commit's own changed-file list.
+          # Only protected Catalog roster/record changes OR an explicit
+          # signed-feed PG cohort policy change may mint metadata-only feed.
+          # Workflow/test-only and unrelated shadow merges remain NOOP.
+          # Read the authenticated original GitHub commit's changed-file list.
           if ! jq -e '
-            any(.files[]?; .filename == "index.json" or (.filename | test("^extensions/[^/]+[.]json$")))
+            any(.files[]?;
+                .filename == "config/cli-feed-majors.json" or
+                .filename == "index.json" or
+                (.filename | test("^extensions/[^/]+[.]json$")))
           ' <<< "$commit" >/dev/null; then
-            echo "CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE HEAD=$RUN_SHA PUBLISH_DENY"
+            echo "CATALOG_FEED_NOOP_NO_APPROVED_RECORD_OR_COHORT_CHANGE HEAD=$RUN_SHA PUBLISH_DENY"
             exit 0
           fi
           echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"
