@@ -70,6 +70,40 @@ def choose(snapshot):
     return index + row["sourceRelativePath"], row
 
 
+
+def choose_major(snapshot, pg_major):
+    """Select exactly one PG14-17 original from complete denied per-PG metadata.
+
+    This is only an inspection selector. A directory listing is not provenance
+    or a trusted digest, and no candidate may enter a public GET path.
+    """
+    require(pg_major in ("14", "15", "16", "17"), "unsupported per-PG pilot")
+    require(type(snapshot) is dict and
+            type(snapshot.get("latestBundleSelection")) is dict,
+            "missing denied per-PG selection")
+    selection = snapshot["latestBundleSelection"]
+    require(selection.get("scope") == "UNVERIFIED_METADATA_SELECTION_ONLY" and
+            selection.get("mode") == "latest-per-supported-pg" and
+            selection.get("downloadAuthorized") is False and
+            selection.get("mirrorAuthorized") is False and
+            type(selection.get("selected")) is list and
+            len(selection["selected"]) == 5,
+            "incomplete or untrusted latest-per-PG selection")
+    found = {}
+    for row in selection["selected"]:
+        # Reuse the single-original path/major/version and DENY contract for
+        # every row, not merely for the selected major.
+        single = {**snapshot, "latestBundleSelection": {
+            **selection, "mode": "single-newest-bundle", "selected": [row]}}
+        url, checked = choose(single)
+        major = checked["pgMajor"]
+        require(major not in found, "duplicate PostgreSQL major")
+        found[major] = (url, checked)
+    require(set(found) == {"14", "15", "16", "17", "18"},
+            "missing or unexpected supported PostgreSQL major")
+    return found[pg_major]
+
+
 def safe_endpoint(url):
     p = urllib.parse.urlsplit(url)
     require(p.scheme == "https" and p.hostname in ALLOWED_HOSTS and
@@ -180,8 +214,9 @@ def inspect(path):
                 "peAmd64Dlls": amd64}
 
 
-def run(snapshot):
-    url, row = choose(snapshot)
+def run(snapshot, pg_major=None):
+    url, row = (choose_major(snapshot, pg_major) if pg_major is not None
+                else choose(snapshot))
     safe_endpoint(url)
     with tempfile.TemporaryDirectory(prefix="pgextwin-osgeo-original-") as folder:
         path = pathlib.Path(folder) / row["fileName"]
@@ -201,5 +236,7 @@ def run(snapshot):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--selection-file", type=pathlib.Path, required=True)
+    parser.add_argument("--pg-major", choices=("14", "15", "16", "17"),
+                        help="Inspect exactly one unverified PG14-17 original")
     args = parser.parse_args()
-    run(json.loads(args.selection_file.read_text("utf-8")))
+    run(json.loads(args.selection_file.read_text("utf-8")), pg_major=args.pg_major)

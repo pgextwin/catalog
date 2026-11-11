@@ -1,4 +1,4 @@
-name: Issue112 OSGeo newest bundle original-byte inspection (nonpublishing)
+name: Issue112 OSGeo PG14-17 separate original-byte receipts (nonpublishing)
 
 on:
   pull_request:
@@ -13,17 +13,21 @@ permissions:
 jobs:
   bundle-original-byte:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['14', '15', '16', '17']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Offline hostile source and ZIP tests
         run: python3 -m unittest tests.test_issue112_osgeo_original_byte_pilot -v
-      - name: Select newest OSGeo ZIP from first-party indexes only
-        run: python3 scripts/discover_osgeo_windows_bundles.py --index osgeo-cache --single-bundle --output "$RUNNER_TEMP/osgeo-untrusted-selection.json"
+      - name: Select unverified latest per PG from first-party indexes only
+        run: python3 scripts/discover_osgeo_windows_bundles.py --index osgeo-cache --latest-only --output "$RUNNER_TEMP/osgeo-untrusted-selection.json"
       - name: GET source original bytes, SHA256, ZIP, PostGIS/pgRouting and PE x64
-        run: python3 scripts/issue112_osgeo_original_byte_pilot.py --selection-file "$RUNNER_TEMP/osgeo-untrusted-selection.json"
+        run: python3 scripts/issue112_osgeo_original_byte_pilot.py --selection-file "$RUNNER_TEMP/osgeo-untrusted-selection.json" --pg-major "${{ matrix.pg }}"
       - name: Never publish or grant distribution admission
         if: always()
-        run: echo 'OSGEO_PILOT=CANDIDATE_ONLY GET_AUTHORIZED=NO SIGNATURE=NO PGRUNTIME=NO RIGHTS=NO MIRROR=DENY RELEASE=DENY'
+        run: echo 'OSGEO_PG${{ matrix.pg }}_PILOT=CANDIDATE_ONLY GET_AUTHORIZED=NO SIGNATURE=NO PGRUNTIME=NO RIGHTS=NO MIRROR=DENY RELEASE=DENY'
