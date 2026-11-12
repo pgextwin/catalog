@@ -63,14 +63,43 @@ class PackageCohortTests(unittest.TestCase):
     def test_many_originals_chunk_without_duplication(self):
         rows = []
         for i in range(5):
-            r = row("postgis", ident=f"osgeo:{i}")
-            r["assetName"] = f"postgis-bundle-pg18-3.7.{i}x64.zip"
-            r["version"] = f"3.7.{i}"
+            r = row(f"component_{i}", ident=f"osgeo:{i}")
+            r["assetName"] = f"postgis-bundle-pg18-{i}x64.zip"
             rows.append(r)
         out = self.compile(plan(rows), max_batch=2)
         self.assertEqual([len(b["packages"]) for b in out["batches"]],
                          [2, 2, 1])
         self.assertEqual(out["uniqueOriginalPackages"], 5)
+
+    def test_latest_global_version_omits_older_pg_without_fallback(self):
+        older = row("hypopg", ident="github:older", pg="16")
+        older.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                     assetName="hypopg-1.4.1-pg16-x64.zip",
+                     version="1.4.1", versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        latest = row("hypopg", ident="github:newer", pg="18")
+        latest.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                      assetName="hypopg-1.4.5-pg18-x64.zip",
+                      version="1.4.5", versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        out = self.compile(plan([older, latest]))
+        self.assertEqual(out["uniqueOriginalPackages"], 1)
+        self.assertEqual(out["olderObservedRowsOmitted"], 1)
+        self.assertEqual(out["observedMajorCoverageNotSupportClaim"]["hypopg"],
+                         ["18"])
+        self.assertIn("16", out["unobservedMajorsNotSupportVerdict"]["hypopg"])
+        self.assertFalse(out["userDownloadAvailable"])
+
+    def test_explicit_version_never_filtered_by_global_latest(self):
+        older = row("hypopg", ident="github:older", pg="16")
+        older.update(source="GITHUB_DISCOVERY_ONLY", version="1.4.1",
+                     versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        newer = row("hypopg", ident="github:newer", pg="18")
+        newer.update(source="GITHUB_DISCOVERY_ONLY", version="1.4.5",
+                     versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        out = self.compile(plan([older, newer]), version="1.4.1",
+                           extension="hypopg")
+        # Patched selector deliberately provides more rows than requested;
+        # this layer preserves exact selection ownership in make_plan.
+        self.assertEqual(out["olderObservedRowsOmitted"], 0)
 
     def test_exact_selection_passed_to_original_checked_selector(self):
         fixture = plan([row("postgis")])
