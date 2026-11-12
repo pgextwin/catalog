@@ -31,3 +31,41 @@ and NOTICE, mutable historical Groonga source input, signed producer lineage,
 and owner/Environment/Publisher approvals remain unverified. This observation
 is DENY-only and neither redistributes the original ZIP nor changes the
 public CLI, catalog feed, Release, or GET admission.
+
+
+## 22 external import-name runtime image triage (2026-11-13; deny-only)
+
+The existing five-major, **path-scoped** Windows job now extends its already
+required `-AuditModuleOrigins` same-backend sample (it does **not** replay
+any prior successful job). The earlier independent original-ZIP PE audit pinned
+exactly **22 unbundled static import *names***: 11 Windows CRT API-set
+contracts, five OS DLL basenames, four Visual C++ runtime basenames,
+`liblz4.dll` and `postgres.exe`.
+
+For each PG14–18 ephemeral backend, the new audit records the full path,
+on-disk SHA256 and observed Authenticode **status** of matching DLL images
+loaded *in that one backend PID*, as well as the backend executable image.
+The existing original-ZIP core DLL and preinstalled EDB `liblz4.dll`
+unchanged-byte checks still apply. The executable must be the exact
+`PGROOT/bin/postgres.exe` and LZ4 must be the exact preserved
+`PGROOT/bin/liblz4.dll`, with its original pre-staging SHA256. Names not
+observed in one sample are explicitly **NOT_OBSERVED**, not declared absent
+dependencies. The 11 API-set contracts are **never inferred to represent
+physical DLL files** merely because a module basename might be observed.
+
+Nine new offline hostile cases reject a different PID, invalid digest,
+changed LZ4, missing required host image/executable, duplicate/unknown module
+name, path traversal, or substituted executable. The receipt intentionally
+sets `exactImportResolutionVerified=false`,
+`binaryThirdPartyNoticeClosureVerified=false`,
+`signedProducerInputProvenanceVerified=false` and all admission/publication
+flags to false. A loaded image sharing an import basename **does not prove**
+that a specific PE import was resolved to that image; Authenticode status
+alone also proves neither signer trust nor redistribution rights.
+
+The separate source-specific owner signature, historical immutable input
+attestation, complete MRuby/xxHash and other third-party rights and NOTICE
+delivery, delay-load/optional dependency resolution, protected Publisher
+Environment/App approval and formal GET issuance remain **BLOCKED**. This
+read-only extension changes no CLI selection logic, policy, issuer, public
+catalog pins, Website or Release.
