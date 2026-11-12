@@ -36,7 +36,7 @@ class PrivatePreview(unittest.TestCase):
         # It cannot pin today's independently verified signed public Release.
         self.assertEqual(self.e["historicalPublicReleaseTag"],"v4.16.13-windows.1")
         self.assertRegex(self.record["latest"]["releaseTag"],
-                         r"^v[0-9]+(?:\\.[0-9]+){1,3}-windows\\.[1-9][0-9]*$")
+                         r"^v[0-9]+(?:\.[0-9]+){1,3}-windows\.[1-9][0-9]*$")
         self.assertGreaterEqual(self.record["latest"]["publishedAt"],
                                 "2026-10-10T15:49:07Z")
         # A historical shadow must not change the PG14–18 package ledger.
