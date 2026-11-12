@@ -20,6 +20,11 @@ from issue112_pgroonga_rights_audit import (
 from issue112_http_original_receipts import CANDIDATES as HTTP_CANDIDATES
 from issue112_http_windows_runtime import PINS as HTTP_PINS
 from external_new_stable_watch import unique_json_pairs
+from issue112_timescaledb_rights_gate import (
+    LEDGER_PATH as TIMESCALE_RIGHTS_LEDGER,
+    strict_json as strict_timescale_rights_json,
+    validate as validate_timescale_rights,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "pgextwin-issue112-latest-external-review/v1"
@@ -126,6 +131,21 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
     # Source, PG and version selectors must never hide a poisoned unselected row.
     baseline = github_review(root)
     timescale = timescaledb_observed_baseline(root)
+    # Reuse the existing protected, genuine original-byte rehash ledger rather
+    # than reporting its already-verified ZIPs as API-only metadata. The rights
+    # gate verifies *every* PG16-18 asset against the independent baseline and
+    # enforces the remaining nonpublishing legal/provenance DENY conditions.
+    # Validate before selectors; a poisoned unselected provider must fail closed.
+    try:
+        timescale_rights = strict_timescale_rights_json(
+            Path(root) / TIMESCALE_RIGHTS_LEDGER)
+        require(validate_timescale_rights(timescale_rights, timescale) is True,
+                "unverified TimescaleDB original-byte intake")
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        raise Denied("TimescaleDB original-byte rights intake mismatch") from exc
+    timescale_originals = {
+        item["pgMajor"]: item for item in timescale_rights["windowsAssets"]
+    }
     rows = []
     if source in ("all", "github"):
         for batch in baseline["batches"]:
@@ -242,15 +262,15 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
                 ],
                 **DENY,
             })
-    # Official TimescaleDB PG16–18 GitHub API observations. API-provided
-    # SHA/size are NOT independently rehashed original ZIP bytes. The
-    # watcher separately checks live Release identity; this offline selector
-    # must not imply that live verification occurred or grant public GET.
+    # Original ZIPs were rehashed in the previously successful genuine CI;
+    # these immutable receipts are distinct from their matching API metadata.
+    # This does NOT re-download the originals or establish producer signatures.
     if source in ("all", "timescaledb"):
         for observed in timescale["records"]:
             major = observed["pgMajor"]
+            original = timescale_originals[major]
             rows.append({
-                "source": "TIMESCALEDB_GITHUB_API_METADATA_ONLY",
+                "source": "TIMESCALEDB_REHASHED_ORIGINAL_ONLY",
                 "extension": "timescaledb", "pgMajor": major,
                 "version": timescale["releaseTag"],
                 "versionMeaning": "UPSTREAM_RELEASE_VERSION_OBSERVED_ONLY",
@@ -262,11 +282,13 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
                     + str(timescale["releaseId"]) + ":"
                     + str(observed["assetId"])
                 ),
-                "originalBytes": None, "originalSha256": None,
+                "originalBytes": original["originalBytes"],
+                "originalSha256": original["originalSha256"],
+                "originalRehashEvidenceRunId":
+                    timescale_rights["originalZipInventory"]["runId"],
                 "apiObservedBytes": observed["apiBytes"],
                 "apiObservedSha256": observed["apiSha256"],
                 "blockers": [
-                    "INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
                     "SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
                     "ALL_COMPONENT_LICENSE_NOTICE_DEPENDENCY_CLOSURE_MISSING",
                     "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
