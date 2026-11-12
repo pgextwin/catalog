@@ -103,22 +103,8 @@ try {
 
     # Invoke both extension C function and SQL wrapper in the real server.
     $plans = @(& $psql -h 127.0.0.1 -p $port -U postgres -d postgres -X -Atq -v ON_ERROR_STOP=1 -c 'SELECT count(*) FROM pg_show_plans(); SELECT count(*) FROM pg_show_plans_q;')
-    if ($LASTEXITCODE -ne 0 -or $plans.Count -lt 2 -or
-        @($plans | Where-Object { $_ -notmatch '^\d+
-        throw 'PostgreSQL did not execute pg_show_plans C/SQL functions'
-    }
-    Write-Host "PG$Major=PASS MSVC=PASS PRELOAD=PASS SQL=PASS PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY"
-}
-catch {
-    if (Test-Path $pgLog) { Get-Content $pgLog -Tail 150 | ForEach-Object { Write-Host "$_" } }
-    throw
-}
-finally {
-    if ($serverStarted) {
-        & $pgCtl -D $pgData -m immediate stop
-    }
-}
- }).Count -gt 0) {
+    $invalidPlans = @($plans | Where-Object { $_ -notmatch '^\d+$' })
+    if ($LASTEXITCODE -ne 0 -or $plans.Count -lt 2 -or $invalidPlans.Count -gt 0) {
         throw 'PostgreSQL did not execute pg_show_plans C/SQL functions'
     }
     Write-Host "PG$Major=PASS MSVC=PASS PRELOAD=PASS SQL=PASS PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY"
