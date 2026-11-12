@@ -7,24 +7,24 @@
     "repository": "ossc-db/pg_hint_plan",
     "perPostgresql": {
       "14": {
-        "version": "1.4.4",
-        "ref": "REL14_1_4_4"
+        "version": "1.4.5",
+        "ref": "REL14_1_4_5"
       },
       "15": {
-        "version": "1.5.3",
-        "ref": "REL15_1_5_3"
+        "version": "1.5.4",
+        "ref": "REL15_1_5_4"
       },
       "16": {
-        "version": "1.6.2",
-        "ref": "REL16_1_6_2"
+        "version": "1.6.3",
+        "ref": "REL16_1_6_3"
       },
       "17": {
-        "version": "1.7.1",
-        "ref": "REL17_1_7_1"
+        "version": "1.7.2",
+        "ref": "REL17_1_7_2"
       },
       "18": {
-        "version": "1.8.0",
-        "ref": "REL18_1_8_0"
+        "version": "1.8.1",
+        "ref": "REL18_1_8_1"
       }
     }
   },
@@ -32,139 +32,139 @@
   "license": "BSD-style and PostgreSQL-derived notices",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.8.0-windows.2",
-    "publishedAt": "2026-10-10T00:19:18Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_hint_plan/releases/tag/v1.8.0-windows.2",
+    "releaseTag": "v1.8.1-windows.1",
+    "publishedAt": "2026-11-12T13:08:13Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_hint_plan/releases/tag/v1.8.1-windows.1",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
       "available": true,
-      "asset": "pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip",
-      "sha256": "1a6ad445e5b334afa1fb15d7ac3e2b29ba89049eefb434dc60b2b0266af41b3a",
+      "asset": "pg_hint_plan-REL14_1_4_5-pg14-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL14_1_4_5-pg14-windows-x64.zip",
+      "sha256": "84d1bf591dc2052812f2a0cc62d6fd558ebd46489e344b4f0c216c7ae228c6aa",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_hint_plan-REL14_1_4_4-pg14-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL14_1_4_4-pg14-windows-x64.spdx.json",
-          "sha256": "1dd0cb252e40751cb14f16aecd5593d5795032f1db1e578a7f2132c68693defd"
+          "asset": "pg_hint_plan-REL14_1_4_5-pg14-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL14_1_4_5-pg14-windows-x64.spdx.json",
+          "sha256": "393320f7e6e25372b061faf4003bb54a29f6d24ccc2deabc7cc914c59691c3aa"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_hint_plan-REL14_1_4_4-pg14-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL14_1_4_4-pg14-windows-x64.vulnerabilities.json",
-          "sha256": "0c8b3ee7e9c5983f2e95719de6f5bcf88496dad35eeee3020883d86640056135"
+          "asset": "pg_hint_plan-REL14_1_4_5-pg14-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL14_1_4_5-pg14-windows-x64.vulnerabilities.json",
+          "sha256": "d36f48a08fe16391861c7692eced48e0b89dd28d1a2205f0f3fcf7a2f64e8a34"
         }
       }
     },
     "15": {
       "available": true,
-      "asset": "pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip",
-      "sha256": "d4a5d55a72ec5efd5dab9be2d6bf6a763c1dd46f7f7b1020773280519c7a3127",
+      "asset": "pg_hint_plan-REL15_1_5_4-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL15_1_5_4-pg15-windows-x64.zip",
+      "sha256": "49f77e08e56611bc7903beba3e02e24569ea4f7c22f60effc22da7695ea4aff6",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_hint_plan-REL15_1_5_3-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL15_1_5_3-pg15-windows-x64.spdx.json",
-          "sha256": "2374495993b2ae26f986bf6f9e1a2097d7a2d38a83352b0f1fe8e88a378e6071"
+          "asset": "pg_hint_plan-REL15_1_5_4-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL15_1_5_4-pg15-windows-x64.spdx.json",
+          "sha256": "c5f7d6f793440c91b0a1d7e38fda83c62db340d5a8beb55983e5b28535d1bbd2"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_hint_plan-REL15_1_5_3-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL15_1_5_3-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "d4a9f90a153b2605f79e7660d6a77f242e798da820dbc75c2c05e13accd2878e"
+          "asset": "pg_hint_plan-REL15_1_5_4-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL15_1_5_4-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "5ce15357164241efbfdbccf7d5a12fb831e8ea0e6408a7c76aa5e79249557a73"
         }
       }
     },
     "16": {
       "available": true,
-      "asset": "pg_hint_plan-REL16_1_6_2-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL16_1_6_2-pg16-windows-x64.zip",
-      "sha256": "ab82e03a1edde30d20e097b6396bd007b33e56dfa30e8d55bef85a681bbc885c",
+      "asset": "pg_hint_plan-REL16_1_6_3-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL16_1_6_3-pg16-windows-x64.zip",
+      "sha256": "c04b03c61a0a84dfed525ed18b5ccde69b609dd169a4e808ee1e73bb064da7c4",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_hint_plan-REL16_1_6_2-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL16_1_6_2-pg16-windows-x64.spdx.json",
-          "sha256": "85cbb0995ff4ab73479555906974d4f8268132e2b852345ab69343a35735df75"
+          "asset": "pg_hint_plan-REL16_1_6_3-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL16_1_6_3-pg16-windows-x64.spdx.json",
+          "sha256": "9b1ddda6cf3bb39446b2225a164e21f7a2bb39233334c95d5003b208d370cec4"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_hint_plan-REL16_1_6_2-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL16_1_6_2-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "1b9b06ab4a08bd143ebc965bd21cff059cc6077f6ef0d362219ddd31249edd53"
+          "asset": "pg_hint_plan-REL16_1_6_3-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL16_1_6_3-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "89aede06a8783f07f9c9b9dcd74fca4fd0862f977889fe946a5d6ec86ed170c2"
         }
       }
     },
     "17": {
       "available": true,
-      "asset": "pg_hint_plan-REL17_1_7_1-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL17_1_7_1-pg17-windows-x64.zip",
-      "sha256": "6cf19d7ebc9575cee2b3e57d64593836954b416db6187ef30d310e5e5afe5d28",
+      "asset": "pg_hint_plan-REL17_1_7_2-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL17_1_7_2-pg17-windows-x64.zip",
+      "sha256": "0469b69042b939e1a166c956295acb8db60532b14ac7ade0e483453ee4cfa4b4",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_hint_plan-REL17_1_7_1-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL17_1_7_1-pg17-windows-x64.spdx.json",
-          "sha256": "b4523698513ee406a97817bf7508f9c5e3b1b53f1dd1fcdbb5cc6ccc59043300"
+          "asset": "pg_hint_plan-REL17_1_7_2-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL17_1_7_2-pg17-windows-x64.spdx.json",
+          "sha256": "5b338cb4ca5dc8c3cc05775b821ccbf4a0e12e6b916f8d5b7e340c3794acf5d5"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_hint_plan-REL17_1_7_1-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL17_1_7_1-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "64bb2b64888107546e18952374eb482b9186ca8073e3f9854065179f634e586b"
+          "asset": "pg_hint_plan-REL17_1_7_2-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL17_1_7_2-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "7c40a4c8341637c09e03e6f0d72bb9c00b6b3150ae7d5edca36c8d6b763c20cd"
         }
       }
     },
     "18": {
       "available": true,
-      "asset": "pg_hint_plan-REL18_1_8_0-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL18_1_8_0-pg18-windows-x64.zip",
-      "sha256": "8ad649836964df12f744f80e63a74ce4535b99c1d27e8f6118614ad181f4555a",
+      "asset": "pg_hint_plan-REL18_1_8_1-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL18_1_8_1-pg18-windows-x64.zip",
+      "sha256": "24d040a9d805f0af77c8effeef05eebb452258cdca45fac098c92ca9bae3545f",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_hint_plan-REL18_1_8_0-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL18_1_8_0-pg18-windows-x64.spdx.json",
-          "sha256": "31b0a9934fe32530d20c20190c1866cbb91468a0eb2aa4a05cf58cb896b90516"
+          "asset": "pg_hint_plan-REL18_1_8_1-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL18_1_8_1-pg18-windows-x64.spdx.json",
+          "sha256": "8c313b4930eb55276b7e4052c19733d5e54c511d5415a8ba763133b97bb7b992"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_hint_plan-REL18_1_8_0-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.0-windows.2/pg_hint_plan-REL18_1_8_0-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "a61a05c6651f14ba5cf404f36426ffa5631fc4e17725b9f77c34bf62fed50157"
+          "asset": "pg_hint_plan-REL18_1_8_1-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_hint_plan/releases/download/v1.8.1-windows.1/pg_hint_plan-REL18_1_8_1-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "74e97c469c578f6c9082691c116050a2557c6d2fbcdf4dcc3749bb2d9e37c928"
         }
       }
     }
@@ -215,6 +215,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_hint_plan",
     "path": "config/test-contract.json",
-    "commit": "2bd98dcc75c8a76eec6a626dd2742ba8bad411b5"
+    "commit": "8793f83aad8b601daf4f6575fcea90fa72702994"
   }
 }
