@@ -1,0 +1,44 @@
+name: Issue #112 OSGeo tagged source rights (DENY-only)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-osgeo-tagged-source-rights.yml
+      - scripts/issue112_osgeo_tagged_source_rights.py
+      - tests/test_issue112_osgeo_tagged_source_rights.py
+      - docs/issue-112-osgeo-tagged-source-rights.md
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/issue112-osgeo-tagged-source-rights.yml
+      - scripts/issue112_osgeo_tagged_source_rights.py
+      - tests/test_issue112_osgeo_tagged_source_rights.py
+      - docs/issue-112-osgeo-tagged-source-rights.md
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-tagged-source-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact commit, without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Reject forged source, altered legal text and public rights
+        run: python -m unittest discover -s tests -p 'test_issue112_osgeo_tagged_source_rights.py' -v
+      - name: Verify immutable upstream PostGIS tag and source-side license references
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/issue112_osgeo_tagged_source_rights.py
+      - name: Assert no original ZIP GET or new publication authorization
+        run: |
+          test -f docs/issue-112-osgeo-tagged-source-rights.md
+          echo 'POSTGIS_TAGGED_SOURCE_ONLY=PASS EXACT_OSGEO_PRODUCER=UNVERIFIED GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
