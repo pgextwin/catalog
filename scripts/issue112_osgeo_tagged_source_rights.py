@@ -66,7 +66,7 @@ def public_get_json(url):
     return json.loads(data.decode("utf-8"))
 
 def git_blob_sha(data):
-    return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\\x00" + data).hexdigest()
+    return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\x00" + data).hexdigest()
 
 def require_markers(text, markers, path):
     for marker in markers:
