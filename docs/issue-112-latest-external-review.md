@@ -231,3 +231,31 @@ producer attestations and genuine source-specific admission remain separate
 required gates. The output and its new source rows remain CANDIDATE_ONLY,
 `admittedAssets=0`, PUBLIC_GET/MIRROR/RELEASE/PUBLISH DENY. No change to
 production signed cohort, release artifact, Website, or user-facing CLI.
+
+## TimescaleDB 2.32.0 new stable Release observation (2026-11-12)
+
+A freshly authenticated upstream GitHub Release GET identified **2.32.0**,
+published 2026-11-12 11:20:48 UTC, after the earlier 2.31.0 intake.
+The immutable, **untrusted API metadata-only** observation is in
+`external/timescaledb-release-watch-observation-2.32.0.json`.
+Release ID is `442824242`, tag commit is
+`b0474c32504c54edb44a23d33dc8a783745600cd`, and the three official
+Windows x64 original asset IDs are PG16 `739177731`, PG17 `739179170`,
+and PG18 `739179122`. Their exact API-reported byte lengths and SHA256
+digests are frozen, cross-checked in the review selector, and rejected if
+modified (including on otherwise unrelated filter paths).
+
+`--source timescaledb` now selects the newest **observed** 2.32.0
+metadata candidates for PG16–18. `--extension timescaledb --version 2.31.0`
+still selects the prior three independently rehashed originals and their
+unchanged strict rights/provenance intake. No 2.31.0 hash, legal audit, runtime
+test or producer receipt is reused for 2.32.0. PG14/15 are not inferred.
+
+The 2.32.0 rows explicitly have null `originalBytes` and
+`originalSha256`, report `INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED`, and
+retain missing producer source-to-binary attribution, NOTICE/dependency
+closure and new owner-signed authorization. All selections remain
+`CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY /
+PUBLISH_DENY`; no fresh binaries, signed admission, user-facing CLI,
+Website or formal Release are created. The 2.31.0 watch baseline is
+intentionally retained as an immutable historical receipt.

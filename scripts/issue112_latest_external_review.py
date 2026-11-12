@@ -65,13 +65,16 @@ def version_key(value):
     return numbers + (0,) * (4 - len(numbers))
 
 
-def timescaledb_observed_baseline(root):
+def timescaledb_observed_baseline(root, *,
+                                   path_rel="external/timescaledb-release-watch-baseline-v1.json",
+                                   expected_tag="2.31.0", expected_id=418582851,
+                                   exact_assets=None):
     """Untrusted official Release API observations, NEVER original rehashed bytes.
 
     Reuse the read-only watcher ledger; reject any changed shape, missing PG
     major, unexpected package or permission elevation even on filtered plans.
     """
-    path = Path(root) / "external/timescaledb-release-watch-baseline-v1.json"
+    path = Path(root) / path_rel
     try:
         document = json.loads(path.read_text(encoding="utf-8"),
                               object_pairs_hook=unique_json_pairs)
@@ -86,8 +89,8 @@ def timescaledb_observed_baseline(root):
             "pgextwin-issue112-timescaledb-official-release-watch-baseline/v1"
             and document["trust"] == "UNVERIFIED_API_DIGEST_NEVER_AUTHORIZE"
             and document["sourceRepo"] == "timescale/timescaledb"
-            and document["releaseTag"] == "2.31.0"
-            and type(document["releaseId"]) is int and document["releaseId"] > 0
+            and document["releaseTag"] == expected_tag
+            and type(document["releaseId"]) is int and document["releaseId"] == expected_id
             and all(document[flag] is False for flag in (
                 "downloadAuthorized", "publicationAuthorized",
                 "redistributionAuthorized")),
@@ -111,10 +114,17 @@ def timescaledb_observed_baseline(root):
                 and type(record["apiSha256"]) is str
                 and re.fullmatch(r"[0-9a-f]{64}", record["apiSha256"]) is not None,
                 "untrusted TimescaleDB original API identity")
+        if exact_assets is not None:
+            require(major in exact_assets and
+                    (asset_id, record["apiBytes"], record["apiSha256"]) ==
+                    exact_assets[major],
+                    "new stable release API observation changed")
         seen_majors.add(major)
         seen_ids.add(asset_id)
     require(seen_majors == {"16", "17", "18"},
             "TimescaleDB baseline does not cover reviewed majors")
+    if exact_assets is not None:
+        require(set(exact_assets) == seen_majors, "unreviewed latest major set")
     return document
 
 
@@ -142,6 +152,17 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
     # Source, PG and version selectors must never hide a poisoned unselected row.
     baseline = github_review(root)
     timescale = timescaledb_observed_baseline(root)
+    # Newest published upstream stable 2.32.0 (2026-11-12): authenticated
+    # Release/asset API metadata only. Keep historical 2.31.0 independent
+    # rehash ledger intact; never borrow its byte or provenance evidence.
+    timescale_latest = timescaledb_observed_baseline(
+        root, path_rel="external/timescaledb-release-watch-observation-2.32.0.json",
+        expected_tag="2.32.0", expected_id=442824242,
+        exact_assets={
+        "16": (739177731, 9637877, "69124f50da0206e6fa92bae9918f200875a406977cb18fd9e92187d4910f179a"),
+        "17": (739179170, 9638195, "773596b56f53ac97595b8c36e09ae7f1125bdbc28f6aaa3efa0c8d92bf129c17"),
+        "18": (739179122, 9639648, "309eba6bb24c3562b9ecfd279ff1bbe0eb638eaed8b16395c839047c670a9c45"),
+        })
     # Reuse the existing protected, genuine original-byte rehash ledger rather
     # than reporting its already-verified ZIPs as API-only metadata. The rights
     # gate verifies *every* PG16-18 asset against the independent baseline and
@@ -318,6 +339,32 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
                 "apiObservedBytes": observed["apiBytes"],
                 "apiObservedSha256": observed["apiSha256"],
                 "blockers": [
+                    "SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
+                    "ALL_COMPONENT_LICENSE_NOTICE_DEPENDENCY_CLOSURE_MISSING",
+                    "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
+                ],
+                **DENY,
+            })
+        for observed in timescale_latest["records"]:
+            major = observed["pgMajor"]
+            rows.append({
+                "source": "TIMESCALEDB_API_ONLY_NEW_STABLE_CANDIDATE",
+                "extension": "timescaledb", "pgMajor": major,
+                "version": timescale_latest["releaseTag"],
+                "versionMeaning": "UPSTREAM_RELEASE_VERSION_OBSERVED_ONLY",
+                "provider": timescale_latest["sourceRepo"],
+                "releaseTag": timescale_latest["releaseTag"],
+                "assetName": observed["assetName"], "format": "zip",
+                "packageIdentity": (
+                    "github-metadata:timescale/timescaledb:"
+                    + str(timescale_latest["releaseId"]) + ":"
+                    + str(observed["assetId"])
+                ),
+                "originalBytes": None, "originalSha256": None,
+                "apiObservedBytes": observed["apiBytes"],
+                "apiObservedSha256": observed["apiSha256"],
+                "blockers": [
+                    "INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
                     "SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
                     "ALL_COMPONENT_LICENSE_NOTICE_DEPENDENCY_CLOSURE_MISSING",
                     "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
