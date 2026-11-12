@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   sampled-windows-provider-paths:
-    name: TimescaleDB 2.31.0 ${{{ matrix.pg }} loaded module origins (deny-only)
+    name: TimescaleDB 2.31.0 ${{ matrix.pg }} loaded module origins (deny-only)
     runs-on: windows-latest
     timeout-minutes: 65
     strategy:
@@ -49,13 +49,13 @@ jobs:
       - name: Install isolated EDB PostgreSQL
         shell: pwsh
         env:
-          PG_MAJOR: ${{{ matrix.pg }}
-          EDB_VERSION: ${{{ matrix.edb }}
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
         run: ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55461
       - name: Pin original bytes and sample real loaded modules during proven SQL path
         shell: pwsh
         env:
-          PG_MAJOR: ${{{ matrix.pg }}
+          PG_MAJOR: ${{ matrix.pg }}
         run: ./scripts/issue112-timescaledb-windows-loaded-modules.ps1 -Major ([int]$env:PG_MAJOR)
       - name: Preserve every independent publication gate
         if: always()
