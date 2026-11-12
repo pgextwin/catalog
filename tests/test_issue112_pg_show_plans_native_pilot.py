@@ -57,7 +57,8 @@ class SourceGuardTests(unittest.TestCase):
         before = b"/* protected */\\n" + MSVC_OLD + b"\\n"
         patched = msvc_patch_source(before)
         self.assertIn(MSVC_NEW, patched)
-        self.assertNotIn(MSVC_OLD, patched)
+        self.assertEqual(patched.count(MSVC_NEW), 1)
+        self.assertEqual(patched.replace(MSVC_NEW, b""), before.replace(MSVC_OLD, b""))
         self.assertEqual(len(patched), len(before) + len(b"extern "))
         for bad in (b"", MSVC_OLD + MSVC_OLD, MSVC_NEW, b"Datum other(PG_FUNCTION_ARGS);"):
             with self.assertRaisesRegex(ValueError, "MSVC patch denied"):
