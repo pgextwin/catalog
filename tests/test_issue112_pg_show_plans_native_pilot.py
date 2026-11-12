@@ -9,6 +9,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from issue112_pg_show_plans_native_pilot import (
     COMMIT, DENY, PINS, git_blob, verify_files, verify_source,
+    msvc_patch_source, MSVC_OLD, MSVC_NEW,
 )
 
 
@@ -51,6 +52,16 @@ class SourceGuardTests(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 verify_files(self.root, pins)
+
+    def test_exact_compiler_only_patch_and_poisoned_original_denied(self):
+        before = b"/* protected */\\n" + MSVC_OLD + b"\\n"
+        patched = msvc_patch_source(before)
+        self.assertIn(MSVC_NEW, patched)
+        self.assertNotIn(MSVC_OLD, patched)
+        self.assertEqual(len(patched), len(before) + len(b"extern "))
+        for bad in (b"", MSVC_OLD + MSVC_OLD, MSVC_NEW, b"Datum other(PG_FUNCTION_ARGS);"):
+            with self.assertRaisesRegex(ValueError, "MSVC patch denied"):
+                msvc_patch_source(bad)
 
     def test_untrusted_source_cannot_escalate_publishing(self):
         self.assertEqual(len(PINS), 7)
