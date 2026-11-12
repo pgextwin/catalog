@@ -75,7 +75,7 @@ class ActionsInnerEvidenceTests(unittest.TestCase):
                 evidence.verify_original_outer(self.pg, self.outer)
 
     def test_inner_sha_drift_rejected_even_with_valid_outer_digest(self):
-        fake_inner = self.inner + b"modified"
+        fake_inner = self.inner[:-1] + bytes([self.inner[-1] ^ 1])
         _, new_pin = outer_fixture(self.pg, self.outer, inner=fake_inner)
         with patch.dict(evidence.ARTIFACTS, {"18": new_pin}):
             with self.assertRaisesRegex(ValueError, "differs"):
