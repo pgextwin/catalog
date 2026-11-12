@@ -1,0 +1,39 @@
+name: Issue112 TimescaleDB 2.32.0 tagged source rights (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-timescaledb-232-source-rights.yml
+      - scripts/issue112_timescaledb_232_source_rights.py
+      - tests/test_issue112_timescaledb_232_source_rights.py
+      - docs/issue-112-timescaledb-232-source-rights.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-timescaledb-232-source-rights.yml
+      - scripts/issue112_timescaledb_232_source_rights.py
+      - tests/test_issue112_timescaledb_232_source_rights.py
+      - docs/issue-112-timescaledb-232-source-rights.md
+
+permissions:
+  contents: read
+
+jobs:
+  tagged-source-rights:
+    name: Immutable TimescaleDB 2.32 source rights continuity (DENY)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout proposed exact source without write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run hostile offline source, asset and admission tests
+        run: python3 -m unittest discover -s tests -p test_issue112_timescaledb_232_source_rights.py -v
+      - name: Independently GET exact official tagged license/NOTICE source blobs only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/issue112_timescaledb_232_source_rights.py
+      - name: Preserve separate legal, producer and owner Publisher gates
+        if: always()
+        run: echo 'TIMESCALEDB_232_SOURCE_CONTINUITY=ONLY PER_BINARY_RIGHTS=UNVERIFIED PRODUCER_SIGNATURE=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
