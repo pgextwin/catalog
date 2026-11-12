@@ -106,7 +106,54 @@ jobs:
                 ForEach-Object { $_ -replace 'https?://\S+','[url]' })
               throw "Anonymous public CLI failed (exit=$exitCode): $($diagnostic -join ' | ')"
             }
-            $folder=Join-Path $parent 'pgextwin-pg14-18'
+            $folders=@(Get-ChildItem -LiteralPath $parent -Directory | Where-Object { $_.Name -cmatch '^pgextwin-pg[1-9][0-9]*-[1-9][0-9]*
+            $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
+            $count=[int]$receipt.zipCount
+            if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or $result -notmatch "ZIP_COUNT=$count\b" -or
+                $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
+                $receipt.signatureVerified -ne $false -or $receipt.provenanceVerified -ne $false -or
+                $receipt.publicationAuthorized -ne $false -or $receipt.distributionAuthorized -ne $false -or
+                $receipt.installAuthorized -ne $false -or
+                $receipt.verificationLevel -cne 'INTEGRITY_ONLY') { throw 'Unsafe or incomplete receipt' }
+            $match=[regex]::Match($result, 'CATALOG_COMMIT=([0-9a-f]{40})')
+            if (!$match.Success) { throw 'Missing signed feed source commit' }
+            $source=$match.Groups[1].Value
+            $cohort=Invoke-RestMethod -Uri "https://raw.githubusercontent.com/pgextwin/catalog/$source/config/cli-feed-majors.json"
+            $approved=[string[]]@($cohort.postgresqlMajors)
+            $actualMajors=[string[]]@($receipt.packages | ForEach-Object { [string]$_.pgMajor } | Sort-Object -Unique)
+            $extensions=[string[]]@($receipt.packages | ForEach-Object { [string]$_.extension } | Sort-Object -Unique)
+            $pairs=@($receipt.packages | ForEach-Object { "$($_.extension)|$($_.pgMajor)" })
+            if ($cohort.schemaVersion -ne 1 -or $approved.Count -lt 1 -or
+                ($approved -join ',') -cne ($actualMajors -join ',') -or
+                $count -ne ($approved.Count * $extensions.Count) -or
+                @($pairs | Sort-Object -Unique).Count -ne $count -or
+                (Split-Path $folder -Leaf) -cne "pgextwin-pg$($approved[0])-$($approved[-1])") {
+              throw 'Signed public CLI cohort and actual ZIP matrix differ'
+            }
+            $index=Invoke-RestMethod 'https://raw.githubusercontent.com/pgextwin/catalog/main/index.json'
+            $expected=[string[]]@($index.extensions)
+            $actual=[string[]]@($receipt.packages | Select-Object -ExpandProperty extension -Unique)
+            [Array]::Sort($expected,[StringComparer]::Ordinal)
+            [Array]::Sort($actual,[StringComparer]::Ordinal)
+            if (($actual -join ',') -cne ($expected -join ',')) { throw 'Public EXE roster differs from current Catalog' }
+            $keys=@($receipt.packages | ForEach-Object { "$($_.extension)|$($_.pgMajor)" })
+            if (@($keys | Select-Object -Unique).Count -ne $count) { throw 'Public EXE receipt has duplicate extension/PG pairs' }
+            foreach ($row in $receipt.packages) {
+              $file=Join-Path $folder $row.relativePath
+              if (!(Test-Path -LiteralPath $file -PathType Leaf) -or
+                  (Get-Item -LiteralPath $file).Length -ne [long]$row.bytes -or
+                  (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Public EXE original ZIP hash mismatch' }
+            }
+            $events=Get-Content -LiteralPath $trace -Raw
+            if ([regex]::Matches($events,'ZIP_START index=').Count -ne $count -or
+                [regex]::Matches($events,'ZIP_VERIFIED index=').Count -ne $count -or
+                $events -notmatch "BATCH_COMPLETE zip_count=$count\b" -or
+                $events -match 'Authorization:|Bearer |GH_TOKEN=') { throw 'Verbose coverage or redaction failed' }
+            Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED NO_TOKEN=true"
+          } finally { Pop-Location }
+ })
+            if ($folders.Count -ne 1) { throw 'Expected exactly one signed PG cohort directory' }
+            $folder=$folders[0].FullName
             $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             $count=[int]$receipt.zipCount
             if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or $result -notmatch "ZIP_COUNT=$count\b" -or
