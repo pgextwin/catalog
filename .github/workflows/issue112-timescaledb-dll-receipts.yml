@@ -1,0 +1,43 @@
+name: Issue112 TimescaleDB per-DLL exact PE receipts (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_timescaledb_dll_receipts.py
+      - tests/test_issue112_timescaledb_dll_receipts.py
+      - .github/workflows/issue112-timescaledb-dll-receipts.yml
+      - docs/issue-112-timescaledb-dll-receipts.md
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_timescaledb_dll_receipts.py
+      - tests/test_issue112_timescaledb_dll_receipts.py
+      - .github/workflows/issue112-timescaledb-dll-receipts.yml
+      - docs/issue-112-timescaledb-dll-receipts.md
+
+permissions:
+  contents: read
+
+jobs:
+  original-component-receipts:
+    name: TimescaleDB 2.31.0 PG${{ matrix.pg }} PE receipts (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['16', '17', '18']
+    steps:
+      - name: Read only checkout without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile PE/ZIP/GET tests
+        run: python3 -m unittest discover -s tests -p test_issue112_timescaledb_dll_receipts.py -v
+      - name: Inspect component bytes within independently pinned original provider ZIP
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: python3 scripts/issue112_timescaledb_dll_receipts.py --pg "$PG_MAJOR"
+      - name: Preserve every independent admission boundary
+        if: always()
+        run: echo 'COMPONENT_RECEIPT_ONLY=YES PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
