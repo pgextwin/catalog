@@ -12,8 +12,18 @@ import re
 
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 PG = ("16", "17", "18")
-DLLS = frozenset(("timescaledb.dll", "timescaledb-2.31.0.dll",
-                  "timescaledb-tsl-2.31.0.dll"))
+VERSIONS = ("2.31.0", "2.32.0")
+
+def dll_names(version):
+    if version not in VERSIONS:
+        raise ValueError("Unreviewed TimescaleDB release version")
+    return frozenset((
+        "timescaledb.dll", f"timescaledb-{version}.dll",
+        f"timescaledb-tsl-{version}.dll",
+    ))
+
+DLLS = dll_names("2.31.0")  # Preserve the reviewed historical test contract.
+
 
 
 def strict_load(path):
@@ -30,7 +40,8 @@ def strict_load(path):
     return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
 
 
-def join_receipts(static, runtime, pg):
+def join_receipts(static, runtime, pg, version="2.31.0"):
+    expected_dlls = dll_names(version)
     if pg not in PG or type(static) is not dict or type(runtime) is not dict:
         raise ValueError("Unsupported PG or invalid receipts")
     if (static.get("schemaVersion") != "pgextwin-issue112-timescaledb-pe-imports-deny-only/v1"
@@ -39,6 +50,22 @@ def join_receipts(static, runtime, pg):
             or static.get("publicGetAuthorized") is not False
             or static.get("publisherAuthorized") is not False):
         raise ValueError("Original exact PE audit has not passed its deny-only gates")
+    if version == "2.32.0":
+        # Bind the live sample to the separate 2.32.0 independent original
+        # ZIP ledger before checking any module paths. Never reuse 2.31.0.
+        from issue112_timescaledb_pe_imports import latest_original_pin
+        pin = latest_original_pin(pg)
+        if (static.get("releaseTag") != version or
+                static.get("assetId") != pin["assetId"] or
+                static.get("originalBytes") != pin["size"] or
+                static.get("originalSha256") != pin["sha256"]):
+            raise ValueError("Live 2.32.0 import receipt is not exact original")
+    elif static.get("releaseTag") not in (None, "2.31.0"):
+        raise ValueError("Historical import receipt version mismatch")
+    if (version == "2.32.0" and runtime.get("releaseVersion") != version):
+        raise ValueError("Runtime sample belongs to wrong release version")
+    if (version == "2.31.0" and runtime.get("releaseVersion") not in (None, version)):
+        raise ValueError("Historical runtime sample version mismatch")
     originals = static.get("dllImportReceipts")
     if type(originals) is not list or len(originals) != 3:
         raise ValueError("Invalid original DLL count")
@@ -49,7 +76,7 @@ def join_receipts(static, runtime, pg):
             raise ValueError("Unparsed original member")
         name = PureWindowsPath(row.get("path", "")).name.casefold()
         digest = row.get("sha256")
-        if (name not in DLLS or name in expected or
+        if (name not in expected_dlls or name in expected or
                 type(digest) is not str or not HEX.fullmatch(digest) or
                 type(row.get("nonbundledNameImports")) is not list):
             raise ValueError("Invalid exact original DLL identity")
@@ -59,7 +86,7 @@ def join_receipts(static, runtime, pg):
                     or "/" in dep or "\\" in dep):
                 raise ValueError("Invalid nonbundled imported name")
             imported.setdefault(dep, set()).add(row["path"])
-    if set(expected) != DLLS:
+    if set(expected) != expected_dlls:
         raise ValueError("Missing original DLL")
     triage = static.get("unbundledImportTriage")
     if (type(triage) is not list or
@@ -98,7 +125,7 @@ def join_receipts(static, runtime, pg):
     for row in seen.values():
         by_name.setdefault(row["name"], []).append(row)
     loaded = []
-    for name in sorted(DLLS):
+    for name in sorted(expected_dlls):
         members = sorted(by_name.get(name, []), key=lambda r: r["path"].casefold())
         loaded.append({
             "name": name,
@@ -122,7 +149,8 @@ def join_receipts(static, runtime, pg):
     return {
         "schemaVersion": "pgextwin-issue112-timescaledb-windows-loaded-module-evidence/v1",
         "scope": "CANDIDATE_ONLY_NONPUBLISHING",
-        "pgMajor": pg, "originalZipSha256": static.get("originalSha256"),
+        "pgMajor": pg, "releaseTag": version,
+        "originalZipSha256": static.get("originalSha256"),
         "sampledPostgresProcessCount": runtime["sampledProcessCount"],
         "timescaledbLoadedDlls": loaded, "nonbundledImports": providers,
         "observationLimit": "SAMPLED_POSTGRES_PROCESSES_NOT_COMPLETE_LOADER_CLOSURE",
@@ -139,12 +167,13 @@ def join_receipts(static, runtime, pg):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pg", choices=PG, required=True)
+    parser.add_argument("--version", choices=VERSIONS, default="2.31.0")
     parser.add_argument("--imports", type=Path, required=True)
     parser.add_argument("--runtime", type=Path, required=True)
     args = parser.parse_args()
-    report = join_receipts(strict_load(args.imports), strict_load(args.runtime), args.pg)
+    report = join_receipts(strict_load(args.imports), strict_load(args.runtime), args.pg, version=args.version)
     print(json.dumps(report, sort_keys=True))
-    print("TIMESCALEDB_LIVE_MODULE_OBSERVATION=PASS PG=" + args.pg +
+    print("TIMESCALEDB_LIVE_MODULE_OBSERVATION=PASS VERSION=" + args.version + " PG=" + args.pg +
           " FULL_DEPENDENCY_CLOSURE=UNVERIFIED PUBLIC_GET=DENY"
           " MIRROR=DENY RELEASE=DENY PUBLISH=DENY")
 
