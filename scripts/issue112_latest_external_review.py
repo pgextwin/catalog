@@ -21,6 +21,7 @@ from issue112_http_original_receipts import CANDIDATES as HTTP_CANDIDATES
 from issue112_http_windows_runtime import PINS as HTTP_PINS
 from external_new_stable_watch import unique_json_pairs
 from issue112_cybertec_latest_review import review as cybertec_review
+from issue112_timescaledb_232_evidence import verified_assets as timescale_232_verified_assets
 from issue112_timescaledb_rights_gate import (
     LEDGER_PATH as TIMESCALE_RIGHTS_LEDGER,
     strict_json as strict_timescale_rights_json,
@@ -163,6 +164,13 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
         "17": (739179170, 9638195, "773596b56f53ac97595b8c36e09ae7f1125bdbc28f6aaa3efa0c8d92bf129c17"),
         "18": (739179122, 9639648, "309eba6bb24c3562b9ecfd279ff1bbe0eb638eaed8b16395c839047c670a9c45"),
         })
+    # Authenticated protected-main original Run 43242594902 (PG16-18 successful).
+    # This offline ledger is byte-integrity evidence only, NOT producer-signed
+    # source-to-binary provenance, license closure or a GET admission.
+    try:
+        timescale_latest_originals = timescale_232_verified_assets(root, timescale_latest)
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        raise Denied("TimescaleDB 2.32.0 original evidence mismatch") from exc
     # Reuse the existing protected, genuine original-byte rehash ledger rather
     # than reporting its already-verified ZIPs as API-only metadata. The rights
     # gate verifies *every* PG16-18 asset against the independent baseline and
@@ -348,7 +356,7 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
         for observed in timescale_latest["records"]:
             major = observed["pgMajor"]
             rows.append({
-                "source": "TIMESCALEDB_API_ONLY_NEW_STABLE_CANDIDATE",
+                "source": "TIMESCALEDB_REHASHED_ORIGINAL_ONLY_2_32",
                 "extension": "timescaledb", "pgMajor": major,
                 "version": timescale_latest["releaseTag"],
                 "versionMeaning": "UPSTREAM_RELEASE_VERSION_OBSERVED_ONLY",
@@ -360,11 +368,14 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
                     + str(timescale_latest["releaseId"]) + ":"
                     + str(observed["assetId"])
                 ),
-                "originalBytes": None, "originalSha256": None,
+                "originalBytes": timescale_latest_originals[major]["originalBytes"],
+                "originalSha256": timescale_latest_originals[major]["originalSha256"],
+                "originalRehashEvidenceRunId": 43242594902,
+                "originalRehashEvidenceJobId": timescale_latest_originals[major]["jobId"],
+                "zipInventory": timescale_latest_originals[major]["zipInventory"],
                 "apiObservedBytes": observed["apiBytes"],
                 "apiObservedSha256": observed["apiSha256"],
                 "blockers": [
-                    "INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
                     "SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
                     "ALL_COMPONENT_LICENSE_NOTICE_DEPENDENCY_CLOSURE_MISSING",
                     "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",

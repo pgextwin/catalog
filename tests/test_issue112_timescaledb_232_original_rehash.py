@@ -86,20 +86,22 @@ class IndependentLatestAudit(unittest.TestCase):
 
     def test_fake_promoted_review_or_changed_source_deny(self):
         good = {
-            "source": "TIMESCALEDB_API_ONLY_NEW_STABLE_CANDIDATE",
+            "source": "TIMESCALEDB_REHASHED_ORIGINAL_ONLY_2_32",
             "version": "2.32.0", "pgMajor": "16",
             "provider": "timescale/timescaledb",
             "assetName": "timescaledb-postgresql-16-windows-amd64.zip",
             "format": "zip", "packageIdentity":
                 "github-metadata:timescale/timescaledb:442824242:739177731",
-            "originalBytes": None, "originalSha256": None,
+            "originalBytes": 9637877, "originalSha256": "a"*64,
+            "originalRehashEvidenceRunId": 43242594902,
+            "originalRehashEvidenceJobId": 131266732291,
             "apiObservedBytes": 9637877, "apiObservedSha256": "a"*64,
-            "blockers": ["INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED"],
+            "blockers": ["SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING"],
             **dict.fromkeys(probe.DENY, False),
         }
         for change in (
             {"source": "TIMESCALEDB_REHASHED_ORIGINAL_ONLY"},
-            {"originalSha256": "a"*64},
+            {"originalSha256": "b"*64},
             {"downloadAuthorized": True},
             {"publisherAuthorized": True},
             {"packageIdentity": "github-metadata:other/repo:442824242:739177731"},
