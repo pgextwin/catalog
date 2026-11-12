@@ -205,6 +205,41 @@ with os.add_dll_directory(str(curl_path.parent)):
 if ($LASTEXITCODE -ne 0) { throw 'Isolated EDB curl load and version call failed' }
 Write-Host 'SERVER_SCOPE_GUI_ICU_GAIL=EXCLUDED ORIGINAL_BUNDLE_GUI_COMPLETENESS=NOT_VERIFIED'
 
+# Read-only observation of the exact Windows postgres.exe while the already
+# pinned original PostGIS + pgRouting SQL path executes. No ZIP uploaded.
+$moduleDir = Join-Path $env:RUNNER_TEMP 'issue112-osgeo-pg18-live-roots'
+if (Test-Path -LiteralPath $moduleDir) { throw 'Create-only module receipt directory exists' }
+New-Item -ItemType Directory -Path $moduleDir -ErrorAction Stop | Out-Null
+$moduleStop = Join-Path $moduleDir 'stop'
+$moduleRaw = Join-Path $moduleDir 'paths.json'
+$expectedExe = Join-Path $bin 'postgres.exe'
+$moduleJob = Start-Job -ArgumentList $expectedExe,$moduleStop,$moduleRaw -ScriptBlock {
+  param($exe, $stop, $out)
+  $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+  $pids = [Collections.Generic.HashSet[int]]::new()
+  $errors = 0
+  for ($i = 0; $i -lt 1800; $i++) {
+    if (Test-Path -LiteralPath $stop) { break }
+    try {
+      foreach ($p in @(Get-CimInstance Win32_Process -Filter "name='postgres.exe'" -ErrorAction Stop)) {
+        if (-not $p.ExecutablePath -or
+            -not [string]::Equals([string]$p.ExecutablePath,[string]$exe,
+                                  [StringComparison]::OrdinalIgnoreCase)) { continue }
+        [void]$pids.Add([int]$p.ProcessId)
+        try {
+          foreach ($m in (Get-Process -Id $p.ProcessId -ErrorAction Stop).Modules) {
+            if ($m.FileName) { [void]$seen.Add([string]$m.FileName) }
+          }
+        } catch { $errors++ }
+      }
+    } catch { $errors++ }
+    Start-Sleep -Milliseconds 200
+  }
+  [ordered]@{ sampledProcessCount=$pids.Count; moduleEnumerationErrors=$errors;
+               paths=@($seen) } | ConvertTo-Json -Depth 5 |
+    Set-Content -LiteralPath $out -Encoding utf8
+}
+
 $data = Join-Path $env:RUNNER_TEMP 'osgeo-pg18-data'
 $log = Join-Path $env:RUNNER_TEMP 'osgeo-pg18-server.log'
 $initdb = Join-Path $bin 'initdb.exe'
@@ -233,6 +268,19 @@ try {
   $routeQuery = "SELECT id, source, target, cost, reverse_cost FROM (VALUES (1,1,2,1.0::float8,1.0::float8),(2,2,3,1.0::float8,1.0::float8),(3,1,3,5.0::float8,5.0::float8)) AS edges(id,source,target,cost,reverse_cost)"
   $routingSQL = (& $psql @ps -c "SELECT CASE WHEN (SELECT MAX(agg_cost) FROM pgr_dijkstra('$routeQuery', 1, 3, true))=2 THEN 'PASS' ELSE 'FAIL' END;" | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or $routingSQL -cne 'PASS') { throw "pgRouting dijkstra SQL failed: $routingSQL" }
+  # Hold one actual PG18 backend with both extension code paths already
+  # executed, avoiding a false "not observed" result for short-lived psql sessions.
+  $moduleHold = @'
+DO $audit$
+BEGIN
+  PERFORM ST_Distance(ST_GeomFromText('POINT(0 0)'), ST_GeomFromText('POINT(3 4)'));
+  PERFORM COUNT(*) FROM pgr_dijkstra('SELECT id, source, target, cost, reverse_cost FROM (VALUES (1,1,2,1.0::float8,1.0::float8),(2,2,3,1.0::float8,1.0::float8),(3,1,3,5.0::float8,5.0::float8)) AS edges(id,source,target,cost,reverse_cost)', 1, 3, true);
+  PERFORM pg_sleep(6);
+END
+$audit$;
+'@
+  & $psql @ps -c $moduleHold
+  if ($LASTEXITCODE -ne 0) { throw 'PostGIS and pgRouting live module hold failed' }
   Write-Host "OSGEO_PG18_REAL_SQL=PASS POSTGIS=3.7.0 PGR_VERSION=$versions GEOMETRY_DISTANCE=PASS DIJKSTRA=PASS"
 } catch {
   Write-Host "OSGEO_PG18_REAL_SQL=FAIL DETAIL=$($_.Exception.Message)"
@@ -243,5 +291,56 @@ try {
     & $ctl -D $data -m immediate -w stop
     if ($LASTEXITCODE -ne 0) { Write-Warning 'Disposable PG18 shutdown failed' }
   }
+  Set-Content -LiteralPath $moduleStop -Value 'stop' -Encoding utf8
+  if ($null -ne $moduleJob) {
+    $completed = $moduleJob | Wait-Job -Timeout 45
+    if ($null -eq $completed) { $moduleJob | Stop-Job -ErrorAction SilentlyContinue }
+    $moduleJob | Receive-Job | Out-Host
+    $moduleJob | Remove-Job -Force -ErrorAction SilentlyContinue
+  }
 }
+if (-not (Test-Path -LiteralPath $moduleRaw -PathType Leaf)) {
+  throw 'Live Windows module sampler did not finish'
+}
+$sample = Get-Content -LiteralPath $moduleRaw -Raw | ConvertFrom-Json
+if ([int]$sample.sampledProcessCount -lt 1) { throw 'No matching PG18 postgres process sampled' }
+# Reopen only the exact original already rehashed in this job; never GET twice.
+$expectedRoots = @()
+$originalArchive = [IO.Compression.ZipFile]::OpenRead($zip)
+try {
+  foreach ($name in @('postgis-3.dll','libpgrouting-4.0.dll')) {
+    $member = $prefix + 'lib/' + $name
+    $entry = $originalArchive.GetEntry($member)
+    if ($null -eq $entry) { throw "Missing exact original root member $member" }
+    $reader = $entry.Open()
+    try {
+      $hasher = [Security.Cryptography.SHA256]::Create()
+      try { $digest = [Convert]::ToHexString($hasher.ComputeHash($reader)).ToLowerInvariant() }
+      finally { $hasher.Dispose() }
+    } finally { $reader.Dispose() }
+    $expectedRoots += @{ name=$name; member=$member; sha256=$digest }
+  }
+} finally { $originalArchive.Dispose() }
+$observations = @()
+foreach ($path in @($sample.paths)) {
+  $name = [IO.Path]::GetFileName([string]$path).ToLowerInvariant()
+  if ($name -notin @('postgis-3.dll','libpgrouting-4.0.dll','libcurl.dll')) { continue }
+  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+  $observations += @{
+    name=$name; path=[string]$path
+    sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    authenticodeStatus=(try { [string](Get-AuthenticodeSignature -LiteralPath $path).Status }
+                        catch { 'UNREADABLE' })
+  }
+}
+$receipt = @{
+  pgMajor='18'; pgRoot=$root; sampledProcessCount=[int]$sample.sampledProcessCount
+  source=$url; originalZipSha256=$sha; expectedRoots=@($expectedRoots)
+  observedModules=@($observations)
+}
+$receiptPath = Join-Path $moduleDir 'origin-receipt.json'
+$receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $receiptPath -Encoding utf8
+& python scripts/issue112_osgeo_pg18_live_roots.py --receipt $receiptPath
+if ($LASTEXITCODE -ne 0) { throw 'Original PG18 live root-byte and origin join failed' }
+Remove-Item -LiteralPath $moduleDir -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host 'OSGEO_CANDIDATE_ONLY=YES SIGNED_GET=DENY PUBLIC_CLI_DOWNLOAD=DENY MIRROR=DENY RELEASE=DENY'
