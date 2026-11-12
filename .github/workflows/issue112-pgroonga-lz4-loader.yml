@@ -58,7 +58,7 @@ jobs:
         shell: pwsh
         env:
           PG_MAJOR: ${{ matrix.pg }}
-        run: ./scripts/issue112-pgroonga-lz4-loader.ps1 -Major ([int]$env:PG_MAJOR)
+        run: ./scripts/issue112-pgroonga-lz4-loader.ps1 -Major ([int]$env:PG_MAJOR) -AuditModuleOrigins
       - name: Always preserve denial boundary
         if: always()
         shell: pwsh
