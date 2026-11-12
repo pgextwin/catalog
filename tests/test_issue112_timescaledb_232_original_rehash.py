@@ -100,7 +100,7 @@ class IndependentLatestAudit(unittest.TestCase):
         for change in (
             {"source": "TIMESCALEDB_REHASHED_ORIGINAL_ONLY"},
             {"originalSha256": "a"*64},
-            {"publicGetAuthorized": True},
+            {"downloadAuthorized": True},
             {"publisherAuthorized": True},
             {"packageIdentity": "github-metadata:other/repo:442824242:739177731"},
         ):
