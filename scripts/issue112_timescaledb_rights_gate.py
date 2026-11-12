@@ -127,7 +127,8 @@ def validate(ledger, baseline):
         "producerRunEvidence": False
     },
     "exactProducerRunToZipShaBindingVerified": False
-}\n    if pipeline != expected_pipeline:
+}
+    if pipeline != expected_pipeline:
         raise ValueError("Upstream release / QA observation drift or forged producer proof")
     if not (max(datetime.fromisoformat(t.replace("Z", "+00:00"))
                 for t in pipeline["assetCreatedAtUtc"].values())
