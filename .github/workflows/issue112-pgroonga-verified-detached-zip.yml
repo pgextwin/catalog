@@ -1,0 +1,41 @@
+name: Issue112 PGroonga trusted key and real ZIP detached verification (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_pgroonga_verified_detached_zip.py
+      - tests/test_issue112_pgroonga_verified_detached_zip.py
+      - docs/issue-112-pgroonga-verified-detached-zip.md
+      - .github/workflows/issue112-pgroonga-verified-detached-zip.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_pgroonga_verified_detached_zip.py
+      - tests/test_issue112_pgroonga_verified_detached_zip.py
+      - docs/issue-112-pgroonga-verified-detached-zip.md
+      - .github/workflows/issue112-pgroonga-verified-detached-zip.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-trusted-detached-zip:
+    name: PGroonga original signed ZIP PG${{ matrix.pg }} (DENY-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ["14", "15", "16", "17", "18"]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline real-GnuPG wrong-key and byte-tampering rejection tests
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_verified_detached_zip.py -v
+      - name: Independent official source fingerprint, Groonga key, original ZIP and .asc check
+        run: python3 scripts/issue112_pgroonga_verified_detached_zip.py --pg ${{ matrix.pg }}
+      - name: Cryptography never authorizes GET or Publisher
+        if: always()
+        run: echo 'CRYPTOGRAPHY_NOT_PRODUCER_BUILD_ATTESTATION=YES PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
