@@ -45,7 +45,9 @@ jobs:
             $log=& $exe download-all --pg all 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "ANONYMOUS_DEFAULT_LATEST=NO_GO; original error: $log" }
             if ($log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; unsigned Catalog source' }
-            $folders=@(Get-ChildItem -LiteralPath $p -Directory | Where-Object { $_.Name -cmatch '^pgextwin-pg[1-9][0-9]*-[1-9][0-9]*
+            $folders=@(Get-ChildItem -LiteralPath $p -Directory | Where-Object { $_.Name -cmatch '^pgextwin-pg[1-9][0-9]*-[1-9][0-9]*$' })
+            if ($folders.Count -ne 1) { throw 'Expected exactly one signed PG cohort directory' }
+            $folder=$folders[0].FullName
             $manifest=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             $zipCount=[int]$manifest.zipCount
             if ($zipCount -lt 1 -or
@@ -68,27 +70,6 @@ jobs:
                 @($pairs | Sort-Object -Unique).Count -ne $zipCount -or
                 (Split-Path $folder -Leaf) -cne "pgextwin-pg$($approved[0])-$($approved[-1])") {
               throw 'Signed latest cohort and actual ZIP matrix differ'
-            }
-            $count=0
-            foreach ($row in $manifest.packages) {
-              $path=Join-Path $folder $row.relativePath
-              if (!(Test-Path -LiteralPath $path)) { throw 'Anonymous ZIP absent' }
-              if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Anonymous byte mismatch' }
-              $count++
-            }
-            if ($count -ne $zipCount) { throw 'Anonymous wrong count' }
-            Write-Output "ANONYMOUS_DEFAULT_LATEST=PASS SHA256=$count/$zipCount NO_TOKEN=true"
-          } finally { Pop-Location }
- })
-            if ($folders.Count -ne 1) { throw 'Expected exactly one signed PG cohort directory' }
-            $folder=$folders[0].FullName
-            $manifest=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
-            $zipCount=[int]$manifest.zipCount
-            if ($zipCount -lt 70 -or $zipCount -gt 85 -or ($zipCount % 5) -ne 0 -or
-                $log -notmatch "ZIP_COUNT=$zipCount\b") { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; incomplete signed fleet batch' }
-            if ($manifest.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or $manifest.releaseMetadataVerified -ne $false -or $manifest.signatureVerified -ne $false -or
-                $manifest.installAuthorized -ne $false -or $manifest.verificationLevel -cne 'INTEGRITY_ONLY') {
-              throw 'Untrusted output was incorrectly authorized'
             }
             $count=0
             foreach ($row in $manifest.packages) {
