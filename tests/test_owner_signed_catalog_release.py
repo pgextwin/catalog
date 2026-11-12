@@ -148,7 +148,7 @@ class OwnerSignedCatalogTests(TestCase):
                 mutate(bad)
                 verify_case(bad,repository=repo)
         unknown=deepcopy(x)
-        unknown_repo="pgextwin/pg_ivm"
+        unknown_repo="pgextwin/hypopg"
         unknown["marker"]["repository"]=unknown_repo
         unknown["source"]["repository"]["full_name"]=unknown_repo
         unknown["signing"]["issue_url"]=(
@@ -159,6 +159,49 @@ class OwnerSignedCatalogTests(TestCase):
             unknown["marker"],sort_keys=True,separators=(",",":"))+p.SUFFIX
         with self.assertRaises(p.Denied):
             verify_case(unknown,repository=unknown_repo)
+
+    def test_new_native_owner_signing_issues_require_exact_original_comment(self):
+        # This is only the source locator gate. Real public ZIP bytes,
+        # Sigstore and attestations remain independently verified downstream.
+        fixtures=(
+            ("pgextwin/pg_ivm", 67, "v1.17-windows.1"),
+            ("pgextwin/orafce", 94, "v4.17.1-windows.1"),
+            ("pgextwin/pg_hint_plan", 69, "v1.8.1-windows.1"),
+        )
+        for repo,issue,tag in fixtures:
+            with self.subTest(repo=repo):
+                x=fixture()
+                x["marker"]["repository"]=repo
+                x["marker"]["releaseTag"]=tag
+                x["source"]["repository"]["full_name"]=repo
+                x["signing"]["issue_url"]=(
+                    f"https://api.github.com/repos/{repo}/issues/{issue}")
+                x["publishing"]["body"]=(
+                    f"/pgextwin publish-owner-source {repo} {SRC}")
+                x["release"]["tag_name"]=tag
+                x["release"]["body"]=p.PREFIX+json.dumps(
+                    x["marker"],sort_keys=True,separators=(",",":"))+p.SUFFIX
+                result=verify_case(x,repository=repo)
+                self.assertEqual(
+                    result["status"],
+                    "INDEPENDENT_OWNER_MAIN_SIGNING_PUBLISHER_LIVE_MATCH")
+                for wrong in (issue+1, 78 if issue!=78 else 79):
+                    bad=deepcopy(x)
+                    bad["signing"]["issue_url"]=(
+                        f"https://api.github.com/repos/{repo}/issues/{wrong}")
+                    with self.subTest(wrong_issue=wrong),self.assertRaises(p.Denied):
+                        verify_case(bad,repository=repo)
+                for mutation in (
+                    lambda y:y["source"].update(event="schedule"),
+                    lambda y:y["source"].update(display_title="Chat-main-sign-comment-0"),
+                    lambda y:y["signing"].update(updated_at="2026-11-02T16:55:01Z"),
+                    lambda y:y["signing"]["user"].update(id=1),
+                    lambda y:y["publisher"].update(conclusion="failure"),
+                ):
+                    bad=deepcopy(x)
+                    mutation(bad)
+                    with self.assertRaises(p.Denied):
+                        verify_case(bad,repository=repo)
 
     def test_owner_source_cannot_coerce_push_or_manual(self):
         self.assertEqual(v.check_source_package(
