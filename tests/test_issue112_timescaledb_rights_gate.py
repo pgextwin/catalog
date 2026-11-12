@@ -71,6 +71,31 @@ class TimescaleDbRightsGateTests(unittest.TestCase):
             copy.deepcopy(x["windowsAssets"][0])))
         self.changed(lambda x: x.update(scope="PUBLIC_COMPLETE"))
 
+
+    def test_release_identity_and_postrelease_qa_are_not_producer_proof(self):
+        pipeline = self.ledger["releasePipelineObservation"]
+        self.assertFalse(pipeline["delegatedBuildWorkflowRefPinned"])
+        self.assertFalse(pipeline["delegatedBuildWorkflowSourceRetrieved"])
+        self.assertFalse(pipeline["exactProducerRunToZipShaBindingVerified"])
+        self.assertFalse(pipeline["postPublishWindowsQa"]["producerRunEvidence"])
+        self.assertEqual(pipeline["postPublishWindowsQa"]["runId"], 39454913531)
+        self.changed(lambda x: x["releasePipelineObservation"].update(
+            tagCommitSha="0" * 40))
+        self.changed(lambda x: x["releasePipelineObservation"].update(
+            delegatedBuildWorkflowRefPinned=True))
+        self.changed(lambda x: x["releasePipelineObservation"].update(
+            delegatedBuildWorkflowSourceRetrieved=True))
+        self.changed(lambda x: x["releasePipelineObservation"].update(
+            exactProducerRunToZipShaBindingVerified=True))
+        self.changed(lambda x: x["releasePipelineObservation"][
+            "postPublishWindowsQa"].update(producerRunEvidence=True))
+        self.changed(lambda x: x["releasePipelineObservation"][
+            "postPublishWindowsQa"].update(runId=39451995470))
+        self.changed(lambda x: x["releasePipelineObservation"].update(
+            releasePublishedAt="2026-10-20T16:15:00Z"))
+        self.changed(lambda x: x["releasePipelineObservation"][
+            "assetCreatedAtUtc"].update({"18": "2026-10-20T16:09:19Z"}))
+
     def test_original_license_notice_path_count_is_zero_but_rights_still_denied(self):
         observed = self.ledger["originalZipInventory"]
         self.assertEqual(observed["runId"], 43116446694)
