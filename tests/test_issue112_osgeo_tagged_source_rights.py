@@ -21,6 +21,7 @@ class FakeGitHub:
         self.wrong_commit = False
         self.forged_file_sha = False
         self.wrong_path = False
+        self.override_sha = {}
 
     def expected(self):
         return {p: audit.git_blob_sha(v.encode("utf-8")) for p, v in self.source.items()}
@@ -39,7 +40,7 @@ class FakeGitHub:
         for path, text in self.source.items():
             if url == audit.API + "/contents/" + path + "?ref=" + audit.COMMIT:
                 return {"path": path + ".forged" if self.wrong_path else path,
-                        "sha": "f" * 40 if self.forged_file_sha else self.expected()[path],
+                        "sha": "f" * 40 if self.forged_file_sha else self.override_sha.get(path, self.expected()[path]),
                         "encoding": "base64",
                         "content": base64.b64encode(text.encode("utf-8")).decode("ascii")}
         raise AssertionError("Unexpected network URL: " + url)
@@ -84,6 +85,7 @@ class SourceRightsTests(unittest.TestCase):
     def test_source_body_modified_under_unchanged_blob_denied(self):
         github = FakeGitHub()
         original = github.expected()
+        github.override_sha["LICENSE.TXT"] = original["LICENSE.TXT"]
         github.source["LICENSE.TXT"] += "\nInjected copy after original hash."
         with self.assertRaisesRegex(ValueError, "blob content"):
             audit.audit(github.get, expected_blobs=original)
