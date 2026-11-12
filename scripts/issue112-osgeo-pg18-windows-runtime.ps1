@@ -351,9 +351,7 @@ try {
   foreach ($entry in $originalArchive.Entries) {
     if (-not $entry.FullName.StartsWith($prefix, [StringComparison]::Ordinal)) { continue }
     $relative = $entry.FullName.Substring($prefix.Length)
-    if ($relative -notmatch '^(bin|lib)/[A-Za-z0-9_.+-]+[.]dllRemove-Item -LiteralPath $moduleDir -Recurse -Force -ErrorAction SilentlyContinue
-Write-Host 'OSGEO_CANDIDATE_ONLY=YES SIGNED_GET=DENY PUBLIC_CLI_DOWNLOAD=DENY MIRROR=DENY RELEASE=DENY'
-) { continue }
+    if ($relative -notmatch '^(bin|lib)/[A-Za-z0-9_.+-]+[.]dll$') { continue }
     $reader = $entry.Open()
     try {
       $hasher = [Security.Cryptography.SHA256]::Create()
