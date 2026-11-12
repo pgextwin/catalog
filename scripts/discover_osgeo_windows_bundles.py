@@ -174,9 +174,10 @@ def scan(root, fetch):
 
 
 
-# The currently supported major fleet; PG19/EOL metadata stays discoverable
-# but is never silently promoted to a supported download.
-LATEST_SUPPORTED_MAJORS = frozenset({"14", "15", "16", "17", "18"})
+# Only non-EOL PG15-18 majors may be selected for NEW latest candidates.
+# PG14/earlier directory history remains discoverable but never auto-selected.
+# This metadata selector grants no GET, mirror, release or publish permission.
+LATEST_SUPPORTED_MAJORS = frozenset({"15", "16", "17", "18"})
 
 
 def select_latest_bundles(report, *, single_bundle=False):
@@ -195,8 +196,18 @@ def select_latest_bundles(report, *, single_bundle=False):
         raise ValueError("Untrusted OSGeo source snapshot")
     by_pg = {}
     for entry in report["candidates"]:
-        if type(entry) is not dict or (
-                entry.get("pgMajor") not in LATEST_SUPPORTED_MAJORS or
+        if type(entry) is not dict:
+            raise ValueError("Malformed OSGeo candidate row")
+        # Validate DENY on EVERY discovered row before skipping EOL/history.
+        # Otherwise an excluded PG14/archived row could hide an attempted
+        # authority escalation from the fail-closed audit.
+        if any(entry.get(field) is not False for field in (
+                "downloadAuthorized", "mirrorAuthorized",
+                "bundleContentsVerified", "originalSha256Verified",
+                "licensesAndNoticesVerified", "dependenciesAndAbiVerified",
+                "provenanceVerified")):
+            raise ValueError("OSGeo metadata attempted to escalate trust")
+        if (entry.get("pgMajor") not in LATEST_SUPPORTED_MAJORS or
                 entry.get("historicalDirectory") is not False or
                 entry.get("artifactKind") != "bundle-zip"):
             continue

@@ -118,7 +118,7 @@ class OsgeoDiscoveryTests(unittest.TestCase):
         self.assertFalse(per_pg["downloadAuthorized"])
         self.assertFalse(per_pg["mirrorAuthorized"])
         self.assertEqual([(x["pgMajor"], x["version"]) for x in per_pg["selected"]],
-                         [("14", "3.6.1"), ("18", "3.6.2")])
+                         [("18", "3.6.2")])
         self.assertTrue(all(not x["downloadAuthorized"] and
                             not x["mirrorAuthorized"] for x in per_pg["selected"]))
         single = s.select_latest_bundles(report, single_bundle=True)
@@ -127,19 +127,36 @@ class OsgeoDiscoveryTests(unittest.TestCase):
         self.assertEqual(single["selected"][0]["pgMajor"], "18")
         self.assertEqual(single["selected"][0]["version"], "3.6.2")
 
-    def test_bundled_latest_prefers_semver_over_pg_major_and_ignores_archive(self):
+    def test_bundled_latest_prefers_semver_within_supported_majors_only(self):
         report = s.scan("osu-mirror", fake_fetch)
         current = copy.deepcopy(next(c for c in report["candidates"]
                                      if c["pgMajor"] == "14" and
                                      not c["historicalDirectory"]))
-        current["fileName"] = "postgis-bundle-pg14-3.7.0x64.zip"
-        current["sourceRelativePath"] = "pg14/" + current["fileName"]
+        current["pgMajor"] = "15"
+        current["fileName"] = "postgis-bundle-pg15-3.7.0x64.zip"
+        current["sourceRelativePath"] = "pg15/" + current["fileName"]
         current["packagedPostgisVersion"] = "3.7.0"
         report["candidates"].append(current)
+
+        # Even a numerically newer PG14 bundle must not win the public-latest
+        # selection after EOL; its metadata stays in the inventory.
+        eol = copy.deepcopy(current)
+        eol["pgMajor"] = "14"
+        eol["fileName"] = "postgis-bundle-pg14-9.9.9x64.zip"
+        eol["sourceRelativePath"] = "pg14/" + eol["fileName"]
+        eol["packagedPostgisVersion"] = "9.9.9"
+        report["candidates"].append(eol)
+        self.assertTrue(any(c["fileName"] == eol["fileName"]
+                            for c in report["candidates"]))
+        per_major = s.select_latest_bundles(report)
+        self.assertEqual({row["pgMajor"] for row in per_major["selected"]},
+                         {"15", "18"})
         single = s.select_latest_bundles(report, single_bundle=True)
         self.assertEqual(single["selected"][0]["fileName"],
-                         "postgis-bundle-pg14-3.7.0x64.zip")
-        self.assertEqual(single["selected"][0]["pgMajor"], "14")
+                         "postgis-bundle-pg15-3.7.0x64.zip")
+        self.assertEqual(single["selected"][0]["pgMajor"], "15")
+        self.assertFalse(single["downloadAuthorized"])
+        self.assertFalse(single["mirrorAuthorized"])
 
     def test_latest_selection_rejects_attempted_authority_escalation(self):
         original = s.scan("osu-mirror", fake_fetch)
