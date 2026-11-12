@@ -67,3 +67,37 @@ prototype across PG14-18 (PG16+ additionally marks PGDLLEXPORT). A duplicate,
 missing or prepatched declaration is rejected. The derived source hash is printed in the
 nonpublishing CI log; no upstream file, pinned commit, producer ZIP, license
 or public artifact is modified. Separate offline hostile tests cover the patch.
+
+## Private distributable-shape ZIP contract (next nonpublishing step)
+
+After compiling the exact source-owned DLL on each disposable Windows PG14–18
+runner, CI creates a **runner-local, create-only** ZIP with exactly eight
+members: `LICENSE`, `SOURCE-INPUTS.json`, `lib/pg_show_plans.dll`,
+`share/extension/pg_show_plans.control`, and the four pinned extension
+install/upgrade SQL scripts. The manifest distinguishes upstream Release
+`v2.1.8` from SQL default version `2.1`, pins the exact upstream Git
+commit, each source SHA256, DLL SHA256, LICENSE SHA256 and PostgreSQL major,
+and unconditionally records all public authorization/signature/runtime
+claims as false at packaging time.
+
+Before packaging, the verifier confirms the pristine C Git blob from the
+immutable upstream commit and the **exact single authorized MSVC prototype
+derivation** in the compiled working copy. It rejects unexpected source
+bytes and non-AMD64 PE DLLs. Private ZIPs use fixed member timestamps,
+regular-file permissions and sorted paths; the verifier checks member
+allowlists, byte-for-byte contents and full canonical ZIP bytes, then
+extracts to a new runner-local directory. Crucially, the PostgreSQL
+preload/CREATE EXTENSION/C-function/SQL-view smoke now installs **from that
+verified ZIP**, not directly from loose build outputs. Offline negative
+tests reject substituted LICENSE/DLL/manifest, extra or missing members,
+symlink members, invalid major and overwrite attempts.
+
+This is a package-layout/runtime acceptance step, **not** production
+source-owned CI, independently signed binary provenance, full dependency
+closure, SBOM/vulnerability clearance, publisher eligibility or public
+availability. CI deliberately has no artifact upload, public Catalog
+admission, Release, Publisher, workflow_dispatch or elevated token.
+No ZIP/digest generated here is eligible for public GET or mirroring;
+all **PUBLIC_GET / MIRROR / RELEASE / PUBLISH remain DENY**. Dedicated
+native-repository registration and distinct protected original
+source/signature/Publisher flows remain prerequisites for publication.
