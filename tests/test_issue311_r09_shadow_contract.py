@@ -27,15 +27,20 @@ class PrivatePreview(unittest.TestCase):
         self.assertEqual([s["centralRunId"],s["fleetRunId"],s["signedLocalRunId"],s["r09ReadOnlyRunId"]],[41073991273,41074138918,41074341848,41082159167])
         self.assertEqual(s["r09ArtifactId"],12989134273)
         self.assertEqual(s["r09ArtifactActualZipSha256"],"a6a9e5a02d45eb4dd71419726c8e1a55c701b9e4befa6935e7e3d7e8db698cb6")
-    def test_existing_public_catalog_unchanged(self):
+    def test_historical_shadow_stays_inert_as_verified_catalog_advances(self):
         self.assertEqual(self.index["schemaVersion"],2)
         self.assertEqual(self.index["extensions"],sorted(self.index["extensions"]))
         self.assertEqual(len(self.index["extensions"]),17)
         self.assertIn("orafce",self.index["extensions"])
-        self.assertEqual(self.record["latest"]["releaseTag"],self.e["historicalPublicReleaseTag"])
-        self.assertEqual(self.record["latest"]["publishedAt"],"2026-10-10T15:49:07Z")
-        # Historical public record is immutable; its signed-feed cohort may
-        # omit EOL PG14 while the five-major published asset ledger remains.
+        # The R09 receipt is an immutable historical nonpublishing snapshot.
+        # It cannot pin today's independently verified signed public Release.
+        self.assertEqual(self.e["historicalPublicReleaseTag"],"v4.16.13-windows.1")
+        self.assertRegex(self.record["latest"]["releaseTag"],
+                         r"^v[0-9]+(?:\\.[0-9]+){1,3}-windows\\.[1-9][0-9]*$")
+        self.assertGreaterEqual(self.record["latest"]["publishedAt"],
+                                "2026-10-10T15:49:07Z")
+        # A historical shadow must not change the PG14–18 package ledger.
+        # Its signed-feed cohort can omit EOL PG14 while published history remains.
         self.assertIn(self.majors["postgresqlMajors"],
                       [self.e["pgMajors"], self.e["pgMajors"][1:]])
         self.assertEqual(set(self.record["postgresql"]),set(self.e["pgMajors"]))
