@@ -1,0 +1,46 @@
+name: Issue #112 pgRouting pinned source rights (DENY-only)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pgrouting-tagged-source-rights.yml
+      - scripts/issue112_pgrouting_tagged_source_rights.py
+      - tests/test_issue112_pgrouting_tagged_source_rights.py
+      - docs/issue-112-pgrouting-tagged-source-rights.md
+      - scripts/issue112_osgeo_tagged_source_rights.py
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/issue112-pgrouting-tagged-source-rights.yml
+      - scripts/issue112_pgrouting_tagged_source_rights.py
+      - tests/test_issue112_pgrouting_tagged_source_rights.py
+      - docs/issue-112-pgrouting-tagged-source-rights.md
+      - scripts/issue112_osgeo_tagged_source_rights.py
+
+permissions:
+  contents: read
+
+jobs:
+  pgrouting-tagged-source-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact commit without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Hostile source identity and license tests
+        run: python -m unittest discover -s tests -p 'test_issue112_pgrouting_tagged_source_rights.py' -v
+      - name: Verify tagged pgRouting source legal/Boost evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/issue112_pgrouting_tagged_source_rights.py
+      - name: Assert candidate remains non-authorizing
+        run: |
+          test -f docs/issue-112-pgrouting-tagged-source-rights.md
+          echo 'PGROUTING_TAGGED_SOURCE_ONLY=PASS EXACT_OSGEO_DLL_PRODUCER=UNVERIFIED GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
