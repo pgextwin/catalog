@@ -20,7 +20,7 @@ $source = (Resolve-Path $UpstreamDir).Path
 $installer = Join-Path $BuildTools 'scripts/install-postgresql.ps1'
 if (-not (Test-Path $installer)) { throw 'Missing fixed PostgreSQL installer' }
 
-python scripts/issue112_pg_show_plans_native_pilot.py --source $source
+python scripts/issue112_pg_show_plans_native_pilot.py --source $source --msvc-adapt
 if ($LASTEXITCODE -ne 0) { throw 'Exact signed-tag source-pin verification failed' }
 
 & $installer -Major $Major -ChocolateyPackage "postgresql$Major" -ChocolateyVersion $edb[$Major] -TestPort $port
