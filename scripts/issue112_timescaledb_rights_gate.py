@@ -6,6 +6,7 @@ It never fetches assets, signs, approves a provider or publishes a ZIP.
 A PASS here is categorically NOT a publication authorization.
 """
 import argparse
+from datetime import datetime
 import json
 import re
 from pathlib import Path
@@ -48,7 +49,7 @@ def validate(ledger, baseline):
     if type(ledger) is not dict or set(ledger) != {
         "schemaVersion", "scope", "upstream", "sourceLicenseScopes",
         "licenseReview", "windowsAssets", "evidence", "permissions",
-        "originalZipInventory",
+        "originalZipInventory", "releasePipelineObservation",
     }:
         raise ValueError("Unknown TimescaleDB rights-intake schema")
     if (ledger["schemaVersion"] != SCHEMA or
@@ -101,6 +102,39 @@ def validate(ledger, baseline):
             not isinstance(row["originalSha256"], str) or
             not re.fullmatch(r"[0-9a-f]{64}", row["originalSha256"])):
             raise ValueError("Original Windows ZIP pins deviate from prior baseline")
+
+    # Public upstream release metadata establishes asset identity and timing,
+    # NOT the delegated (mutable @main) producer build or signed digest provenance.
+    pipeline = ledger["releasePipelineObservation"]
+    expected_pipeline = {
+    "tagCommitSha": "4fa2a7c6b579171a1a8966fd87a0d4189ebab43b",
+    "releaseWorkflowGitBlob": "f9cab87e5116a23f0b116690b8b3598e8c598a71",
+    "delegatedBuildWorkflow": "timescale/release-build-scripts/.github/workflows/timescaledb-windows.yml@main",
+    "delegatedBuildWorkflowRefPinned": False,
+    "delegatedBuildWorkflowSourceRetrieved": False,
+    "releasePublishedAt": "2026-10-20T16:06:02Z",
+    "assetCreatedAtUtc": {
+        "16": "2026-10-20T16:02:37Z",
+        "17": "2026-10-20T16:05:28Z",
+        "18": "2026-10-20T16:03:22Z"
+    },
+    "postPublishWindowsQa": {
+        "runId": 39454913531,
+        "event": "workflow_dispatch",
+        "headSha": "4fa2a7c6b579171a1a8966fd87a0d4189ebab43b",
+        "startedAt": "2026-10-20T16:09:19Z",
+        "conclusion": "success",
+        "producerRunEvidence": False
+    },
+    "exactProducerRunToZipShaBindingVerified": False
+}\n    if pipeline != expected_pipeline:
+        raise ValueError("Upstream release / QA observation drift or forged producer proof")
+    if not (max(datetime.fromisoformat(t.replace("Z", "+00:00"))
+                for t in pipeline["assetCreatedAtUtc"].values())
+            < datetime.fromisoformat(pipeline["releasePublishedAt"].replace("Z", "+00:00"))
+            < datetime.fromisoformat(pipeline["postPublishWindowsQa"]["startedAt"].replace("Z", "+00:00"))):
+        raise ValueError("Post-release QA cannot precede release assets")
+
     # Observed in a genuine prior successful CI Run; existing immutable log,
     # not a new retrieval or a producer/source-to-binary attestation.
     inventory = ledger["originalZipInventory"]
