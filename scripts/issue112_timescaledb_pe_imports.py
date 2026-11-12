@@ -21,15 +21,40 @@ from issue112_timescaledb_dll_receipts import dll_receipts, MAX_DLL_BYTES
 from issue112_timescaledb_original_rehash import (
     MAJORS, OnlyOfficialRedirects, checked_url, original_pin,
 )
+from issue112_timescaledb_232_original_rehash import original_pin as original_pin_232
+from issue112_timescaledb_232_evidence import verified_assets
+from issue112_timescaledb_rights_gate import strict_json
+from issue112_latest_external_review import ROOT
 
-EXPECTED_DLL_NAMES = frozenset({
-    "timescaledb.dll",
-    "timescaledb-2.31.0.dll",
-    "timescaledb-tsl-2.31.0.dll",
-})
+SUPPORTED_VERSIONS = ("2.31.0", "2.32.0")
+LATEST_BASELINE = "external/timescaledb-release-watch-observation-2.32.0.json"
 
 
-def inspect_imports(zip_path):
+def expected_dll_names(version):
+    if version not in SUPPORTED_VERSIONS:
+        raise ValueError("Unreviewed TimescaleDB original version")
+    return frozenset({
+        "timescaledb.dll",
+        f"timescaledb-{version}.dll",
+        f"timescaledb-tsl-{version}.dll",
+    })
+
+
+def latest_original_pin(pg, root=ROOT):
+    """Join the 2.32.0 candidate to independent, exact original ZIP receipts."""
+    pin = original_pin_232(pg, root)
+    baseline = strict_json(Path(root) / LATEST_BASELINE)
+    row = verified_assets(root, baseline)[pg]
+    if (pin["releaseId"] != 442824242 or
+            pin["assetId"] != row["assetId"] or
+            pin["name"] != row["assetName"] or
+            pin["size"] != row["originalBytes"] or
+            pin["sha256"] != row["originalSha256"]):
+        raise ValueError("Latest original ZIP pin differs from signed-off receipt")
+    return pin
+
+
+def inspect_imports(zip_path, version="2.31.0"):
     """Bind static import observations to exact verified DLL member receipts."""
     original = dll_receipts(zip_path)  # ZIP path/CRC/sizes and PE headers checked.
     receipts = original["dllMembers"]
@@ -39,7 +64,7 @@ def inspect_imports(zip_path):
         if basename in by_basename:
             raise ValueError("Ambiguous TimescaleDB DLL basename")
         by_basename[basename] = row
-    if frozenset(by_basename) != EXPECTED_DLL_NAMES:
+    if frozenset(by_basename) != expected_dll_names(version):
         raise ValueError("Unexpected TimescaleDB original DLL identity")
 
     rows = []
@@ -104,8 +129,10 @@ def inspect_imports(zip_path):
     }
 
 
-def audit(pg, opener=None):
-    pin = original_pin(pg)
+def audit(pg, opener=None, version="2.31.0"):
+    expected_dll_names(version)
+    pin = (original_pin(pg) if version == "2.31.0"
+           else latest_original_pin(pg))
     opener = opener or urllib.request.build_opener(OnlyOfficialRedirects())
     request = urllib.request.Request(pin["url"], headers={
         "User-Agent": "pgextwin-issue112-timescale-pe-import-intake/1",
@@ -116,11 +143,12 @@ def audit(pg, opener=None):
             checked_url(response.geturl())
             size, sha = copy_checked_bytes(
                 response, dest, pin["size"], pin["sha256"])
-        imports = inspect_imports(dest)
+        imports = inspect_imports(dest, version=version)
     return {
         "schemaVersion": "pgextwin-issue112-timescaledb-pe-imports-deny-only/v1",
         "state": "CANDIDATE_ONLY_NONPUBLISHING",
-        "pgMajor": pg, "assetId": pin["assetId"],
+        "pgMajor": pg, "releaseTag": version,
+        "assetId": pin["assetId"],
         "originalBytes": size, "originalSha256": sha,
         **imports,
         "effectiveWindowsLoaderResolutionVerified": False,
@@ -136,10 +164,12 @@ def audit(pg, opener=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pg", choices=MAJORS, required=True)
+    parser.add_argument("--version", choices=SUPPORTED_VERSIONS, default="2.31.0")
     args = parser.parse_args()
-    result = audit(args.pg)
+    result = audit(args.pg, version=args.version)
     print(json.dumps(result, sort_keys=True))
-    print("TIMESCALEDB_PE_IMPORTS=OBSERVED_NOT_AUTHORIZED PG=" + args.pg +
+    print("TIMESCALEDB_PE_IMPORTS=OBSERVED_NOT_AUTHORIZED VERSION=" +
+          args.version + " PG=" + args.pg +
           " PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY")
 
 
