@@ -80,6 +80,16 @@ class SourceLicenseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit.check_tag(forged)
 
+    def test_commit_path_mapping_required(self):
+        valid = {"type": "file", "path": "LICENSE", "sha": audit.LICENSE_BLOB, "size": 1389}
+        audit.check_path_identity(valid, "LICENSE", audit.LICENSE_BLOB)
+        for fake in ({**valid, "sha": "0" * 40},
+                     {**valid, "path": "other/LICENSE"},
+                     {**valid, "type": "dir"},
+                     {**valid, "size": 0}):
+            with self.assertRaises(ValueError):
+                audit.check_path_identity(fake, "LICENSE", audit.LICENSE_BLOB)
+
     def test_git_content_tamper_wrong_sha_and_length_denied(self):
         sha, valid = blob(LEGAL)
         self.assertEqual(audit.decode_pinned_blob(valid, sha, 10000), LEGAL)
