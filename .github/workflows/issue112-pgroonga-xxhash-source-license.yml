@@ -1,0 +1,39 @@
+name: Issue112 PGroonga original xxHash source license and external import triage (deny-only)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_pgroonga_xxhash_source_license.py
+      - tests/test_issue112_pgroonga_xxhash_source_license.py
+      - docs/issue-112-pgroonga-xxhash-source-license.md
+      - .github/workflows/issue112-pgroonga-xxhash-source-license.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_pgroonga_xxhash_source_license.py
+      - tests/test_issue112_pgroonga_xxhash_source_license.py
+      - docs/issue-112-pgroonga-xxhash-source-license.md
+      - .github/workflows/issue112-pgroonga-xxhash-source-license.yml
+permissions:
+  contents: read
+jobs:
+  independent-source-license-join:
+    name: PG${{ matrix.pg }} pinned xxHash source/legal / 22-import review (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [14, 15, 16, 17, 18]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Hostile offline tag, Git blob, rights and dependency gap tests
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_xxhash_source_license.py -v
+      - name: Authenticate upstream immutable Git blobs and rehash exact official ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/issue112_pgroonga_xxhash_source_license.py --pg ${{ matrix.pg }}
+      - name: Never treat legal source text as original ZIP NOTICE delivery or signed admission
+        if: always()
+        run: echo 'XXHASH_LICENSE_SOURCE=OBSERVED ORIGINAL_NOTICE=DENY SIGNED_PRODUCER=DENY RIGHTS=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
