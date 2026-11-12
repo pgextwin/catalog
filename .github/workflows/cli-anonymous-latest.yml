@@ -30,7 +30,7 @@ jobs:
           $dir=Join-Path $env:RUNNER_TEMP 'anon-cli'
           dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir --nologo
           if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
-      - name: Exact anonymous one-line latest PG14–18 70–85 ZIP full-batch smoke
+      - name: Exact anonymous signed latest PG cohort full-batch smoke
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -45,14 +45,31 @@ jobs:
             $log=& $exe download-all --pg all 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "ANONYMOUS_DEFAULT_LATEST=NO_GO; original error: $log" }
             if ($log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; unsigned Catalog source' }
-            $folder=Join-Path $p 'pgextwin-pg14-18'
+            $folders=@(Get-ChildItem -LiteralPath $p -Directory | Where-Object { $_.Name -cmatch '^pgextwin-pg[1-9][0-9]*-[1-9][0-9]*$' })
+            if ($folders.Count -ne 1) { throw 'Expected exactly one signed PG cohort directory' }
+            $folder=$folders[0].FullName
             $manifest=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             $zipCount=[int]$manifest.zipCount
-            if ($zipCount -lt 70 -or $zipCount -gt 85 -or ($zipCount % 5) -ne 0 -or
+            if ($zipCount -lt 1 -or
                 $log -notmatch "ZIP_COUNT=$zipCount\b") { throw 'ANONYMOUS_DEFAULT_LATEST=NO_GO; incomplete signed fleet batch' }
             if ($manifest.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or $manifest.releaseMetadataVerified -ne $false -or $manifest.signatureVerified -ne $false -or
                 $manifest.installAuthorized -ne $false -or $manifest.verificationLevel -cne 'INTEGRITY_ONLY') {
               throw 'Untrusted output was incorrectly authorized'
+            }
+            $match=[regex]::Match($log, 'CATALOG_COMMIT=([0-9a-f]{40})')
+            if (!$match.Success) { throw 'Missing signed feed source commit' }
+            $source=$match.Groups[1].Value
+            $cohort=Invoke-RestMethod -Uri "https://raw.githubusercontent.com/pgextwin/catalog/$source/config/cli-feed-majors.json"
+            $approved=[string[]]@($cohort.postgresqlMajors)
+            $actual=[string[]]@($manifest.packages | ForEach-Object { [string]$_.pgMajor } | Sort-Object -Unique)
+            $extensions=[string[]]@($manifest.packages | ForEach-Object { [string]$_.extension } | Sort-Object -Unique)
+            $pairs=@($manifest.packages | ForEach-Object { "$($_.extension)|$($_.pgMajor)" })
+            if ($cohort.schemaVersion -ne 1 -or $approved.Count -lt 1 -or
+                ($approved -join ',') -cne ($actual -join ',') -or
+                $zipCount -ne ($approved.Count * $extensions.Count) -or
+                @($pairs | Sort-Object -Unique).Count -ne $zipCount -or
+                (Split-Path $folder -Leaf) -cne "pgextwin-pg$($approved[0])-$($approved[-1])") {
+              throw 'Signed latest cohort and actual ZIP matrix differ'
             }
             $count=0
             foreach ($row in $manifest.packages) {

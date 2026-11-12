@@ -55,10 +55,12 @@ jobs:
             $receipt=& $exe download-all --pg all --latest 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) { throw "Latest download must fail closed, not be waived: $receipt" }
             if ($receipt -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw 'Authenticated latest receipt missing' }
-            $folder=Join-Path $parent 'pgextwin-pg14-18'
+            $folders=@(Get-ChildItem -LiteralPath $parent -Directory | Where-Object { $_.Name -cmatch '^pgextwin-pg[1-9][0-9]*-[1-9][0-9]*$' })
+            if ($folders.Count -ne 1) { throw 'Expected exactly one signed PG cohort directory' }
+            $folder=$folders[0].FullName
             $info=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             $expected=[int]$info.zipCount
-            if ($expected -lt 1 -or ($expected % 5) -ne 0 -or
+            if ($expected -lt 1 -or
                 $receipt -notmatch "ZIP_COUNT=$expected\b" -or
                 @($info.packages).Count -ne $expected -or
                 $info.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
@@ -66,6 +68,21 @@ jobs:
                 $info.publicationAuthorized -ne $false -or $info.distributionAuthorized -ne $false -or
                 $info.installAuthorized -ne $false -or $info.verificationLevel -cne 'INTEGRITY_ONLY') {
               throw 'Unsafe or incomplete live latest receipt'
+            }
+            $match=[regex]::Match($receipt, 'CATALOG_COMMIT=([0-9a-f]{40})')
+            if (!$match.Success) { throw 'Missing signed feed source commit' }
+            $source=$match.Groups[1].Value
+            $cohort=Invoke-RestMethod -Uri "https://raw.githubusercontent.com/pgextwin/catalog/$source/config/cli-feed-majors.json"
+            $approved=[string[]]@($cohort.postgresqlMajors)
+            $actual=[string[]]@($info.packages | ForEach-Object { [string]$_.pgMajor } | Sort-Object -Unique)
+            $extensions=[string[]]@($info.packages | ForEach-Object { [string]$_.extension } | Sort-Object -Unique)
+            $pairs=@($info.packages | ForEach-Object { "$($_.extension)|$($_.pgMajor)" })
+            if ($cohort.schemaVersion -ne 1 -or $approved.Count -lt 1 -or
+                ($approved -join ',') -cne ($actual -join ',') -or
+                $expected -ne ($approved.Count * $extensions.Count) -or
+                @($pairs | Sort-Object -Unique).Count -ne $expected -or
+                (Split-Path $folder -Leaf) -cne "pgextwin-pg$($approved[0])-$($approved[-1])") {
+              throw 'Signed latest cohort and actual ZIP matrix differ'
             }
             $hashes=0
             foreach ($row in $info.packages) {
