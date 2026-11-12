@@ -1,8 +1,8 @@
 name: Issue112 real Windows original-provider GET-only E2E (no publication)
 
 # Only genuine protected-main Validate after an atomic signed admission, or
-# the single protected recovery merge immediately following the independently
-# tested transport cache fix, can start this read-only original-byte test.
+# the single exact-parent public-only recovery after genuine original Run
+# 43192028928 reported 11/11 private PASS but anonymous public metadata 403.
 # Every GET still requires active owner-reviewed independent Sigstore admission.
 # Never runs on PR, synthetic push, dispatch, schedule or arbitrary artifacts.
 on:
@@ -83,11 +83,11 @@ jobs:
             case "$provider" in qualified_cohort) ;; *) exit 1 ;; esac
             echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
           elif jq -e '
-            # This exception is bounded to the immediate next protected Squash
-            # merge after the tested transport fix, with exactly three recovery
-            # review files. It cannot be replayed on any later main commit.
+            # One new evidence-gathering recovery after genuine failed public E2E
+            # Run 43192028928; exactly three reviewed paths and exact parent.
+            # Never replay successful private 11/11 bytes or alter issuer scope.
             (.parents | length)==1 and
-            .parents[0].sha=="82ed47a48d65278582f848a3964f5eb14699fe41" and
+            .parents[0].sha=="eefae36c4209f0feced26d7b7759837118dadae6" and
             ([.files[]?] | length)==3 and
             ([.files[]? | select(.status=="modified") | .filename] | sort)==
               ([
@@ -96,9 +96,22 @@ jobs:
                 "tests/test_issue112_public_original_get_e2e_guard.py"
               ] | sort)
           ' <<< "$commit" >/dev/null; then
-            # The Windows job independently verifies current signed issuer,
-            # original owner review, Catalog pins, Sigstore, and expiry. Recovery
-            # does NOT issue a new permission and runs the PUBLIC CLI only.
+            # Recheck the real, failed public E2E before granting a one-shot
+            # postmerge diagnostic. Never accept a fabricated failure claim.
+            prior="$(gh api repos/pgextwin/catalog/actions/runs/43192028928)"
+            jq -e --arg sha "eefae36c4209f0feced26d7b7759837118dadae6" '
+              .id==43192028928 and .status=="completed" and
+              .conclusion=="failure" and .event=="workflow_run" and
+              .head_sha==$sha and .run_attempt==1 and
+              .repository.full_name=="pgextwin/catalog"
+            ' <<< "$prior" >/dev/null
+            prior_jobs="$(gh api repos/pgextwin/catalog/actions/runs/43192028928/jobs?per_page=100)"
+            jq -e '
+              any(.jobs[]; .name=="authenticate-original-main" and .conclusion=="success") and
+              any(.jobs[]; .name=="windows-real-original-get" and .conclusion=="failure")
+            ' <<< "$prior_jobs" >/dev/null
+            # Windows independently checks current signer, owner review, exact
+            # pins, Sigstore and expiry. PUBLIC CLI only; no issuance or mirror.
             provider="qualified_cohort"
             echo "recovery=true" >> "$GITHUB_OUTPUT"
             echo "AUTHENTIC_PUBLIC_ONLY_E2E_RECOVERY=PASS SHA=$CATALOG_SHA"
