@@ -329,7 +329,7 @@ foreach ($path in @($sample.paths)) {
   $observations += @{
     name=$name; path=[string]$path
     sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-    authenticodeStatus=(try { [string](Get-AuthenticodeSignature -LiteralPath $path).Status }
+    authenticodeStatus=$(try { [string](Get-AuthenticodeSignature -LiteralPath $path).Status }
                         catch { 'UNREADABLE' })
   }
 }
