@@ -1,0 +1,47 @@
+name: Issue112 TimescaleDB 2.32.0 exact PE dependency receipts (deny-only)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_timescaledb_pe_imports.py
+      - scripts/issue112_timescaledb_232_evidence.py
+      - tests/test_issue112_timescaledb_232_pe_imports.py
+      - .github/workflows/issue112-timescaledb-232-pe-imports.yml
+      - docs/issue-112-timescaledb-232-pe-imports.md
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_timescaledb_pe_imports.py
+      - scripts/issue112_timescaledb_232_evidence.py
+      - tests/test_issue112_timescaledb_232_pe_imports.py
+      - .github/workflows/issue112-timescaledb-232-pe-imports.yml
+      - docs/issue-112-timescaledb-232-pe-imports.md
+
+permissions:
+  contents: read
+
+jobs:
+  timescaledb-232-imports:
+    name: 2.32.0 PG${{ matrix.pg }} exact original PE imports (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['16', '17', '18']
+    steps:
+      - name: Checkout without persisted write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Hostile offline exact-version, byte, ZIP and permission tests
+        run: |
+          python3 -m unittest discover -s tests -p test_issue112_timescaledb_pe_imports.py -v
+          python3 -m unittest discover -s tests -p test_issue112_timescaledb_232_pe_imports.py -v
+      - name: Inspect exact 2.32.0 original provider PE imports (no binary retained)
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: python3 scripts/issue112_timescaledb_pe_imports.py --version 2.32.0 --pg "$PG_MAJOR"
+      - name: Explicitly preserve rights, producer and publisher DENY
+        if: always()
+        run: echo 'TIMESCALEDB_232_PE_OBSERVATION_ONLY=YES RIGHTS=UNVERIFIED PRODUCER_ATTESTATION=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
