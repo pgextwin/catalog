@@ -28,6 +28,12 @@ class LatestExternalReviewTests(unittest.TestCase):
             (Path(__file__).resolve().parents[1] /
              "external/timescaledb-release-watch-baseline-v1.json").read_text(
                  encoding="utf-8"), encoding="utf-8")
+        self.timescale_new_path = (
+            self.root / "external/timescaledb-release-watch-observation-2.32.0.json")
+        self.timescale_new_path.write_text(
+            (Path(__file__).resolve().parents[1] /
+             "external/timescaledb-release-watch-observation-2.32.0.json").read_text(
+                 encoding="utf-8"), encoding="utf-8")
         self.timescale_rights_path = (
             self.root / "external/timescaledb-rights-provenance-intake-v1.json")
         self.timescale_rights_path.write_text(
@@ -187,7 +193,7 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.assertEqual(make_plan(self.root, source="pgroonga",
                                    extension="http")["selectedReviewRows"], 0)
 
-    def test_timescaledb_independently_rehashed_three_major_selection_not_get(self):
+    def test_timescaledb_latest_232_observation_and_historical_231_exact(self):
         report = make_plan(self.root, source="timescaledb")
         self.assertEqual(report["selectedReviewRows"], 3)
         self.assertEqual(report["uniqueOriginalPackages"], 3)
@@ -196,29 +202,57 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.assertFalse(report["latestUpstreamVerified"])
         self.assertEqual(report["admittedAssets"], 0)
         for row in report["selected"]:
-            self.assertEqual(row["version"], "2.31.0")
-            self.assertEqual(row["source"],
-                             "TIMESCALEDB_REHASHED_ORIGINAL_ONLY")
+            self.assertEqual(row["version"], "2.32.0")
+            self.assertEqual(row["source"], "TIMESCALEDB_API_ONLY_NEW_STABLE_CANDIDATE")
+            self.assertIsNone(row["originalBytes"])
+            self.assertIsNone(row["originalSha256"])
+            self.assertNotIn("originalRehashEvidenceRunId", row)
+            self.assertIn("INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED", row["blockers"])
+            self.assertIn("SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
+                          row["blockers"])
+            for flag in DENY:
+                self.assertIs(row[flag], False)
+        exact = make_plan(self.root, pg="17", source="timescaledb",
+                          extension="timescaledb", version="2.32.0")
+        self.assertEqual(exact["selectedReviewRows"], 1)
+        old = make_plan(self.root, source="timescaledb",
+                        extension="timescaledb", version="2.31.0")
+        self.assertEqual(old["selectedReviewRows"], 3)
+        for row in old["selected"]:
+            self.assertEqual(row["source"], "TIMESCALEDB_REHASHED_ORIGINAL_ONLY")
             self.assertEqual(row["originalRehashEvidenceRunId"], 43116446694)
             self.assertEqual(row["originalBytes"], row["apiObservedBytes"])
             self.assertEqual(row["originalSha256"], row["apiObservedSha256"])
             self.assertNotIn("INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
                              row["blockers"])
-            self.assertIn("SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
-                          row["blockers"])
-            for flag in DENY:
-                self.assertIs(row[flag], False)
-        selected = make_plan(self.root, pg="17", source="timescaledb",
-                             extension="timescaledb", version="2.31.0")
-        self.assertEqual(selected["selectedReviewRows"], 1)
-        self.assertEqual(selected["uniqueOriginalPackages"], 1)
+            self.assertFalse(row["downloadAuthorized"])
         self.assertEqual(make_plan(self.root, pg="14",
                                    source="timescaledb")["selectedReviewRows"], 0)
-        self.assertEqual(make_plan(self.root, source="timescaledb",
-                                   extension="timescaledb",
-                                   version="2.32.0")["selectedReviewRows"], 0)
         self.assertIn("timescaledb",
                       make_plan(self.root)["observedMajorCoverageNotSupportClaim"])
+
+    def test_timescaledb_new_latest_metadata_poison_fails_even_if_unselected(self):
+        original = json.loads(self.timescale_new_path.read_text("utf-8"))
+        for mutate in (
+            lambda d: d.update(downloadAuthorized=True),
+            lambda d: d.update(releaseId=418582851),
+            lambda d: d["records"][0].update(apiSha256="0"*64),
+            lambda d: d["records"][1].update(assetId=d["records"][0]["assetId"]),
+            lambda d: d["records"][2].update(apiBytes=42),
+            lambda d: d["records"][2].update(pgMajor="14"),
+        ):
+            poisoned = copy.deepcopy(original)
+            mutate(poisoned)
+            self.timescale_new_path.write_text(json.dumps(poisoned), encoding="utf-8")
+            with self.assertRaises(Denied):
+                make_plan(self.root, source="osgeo", pg="14")
+        self.timescale_new_path.write_text(
+            '{"trust":"DENY","trust":"ALLOW"}', encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="github")
+        self.timescale_new_path.unlink()
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="timescaledb")
 
     def test_timescaledb_baseline_poison_rejected_even_when_source_filtered(self):
         baseline = json.loads(self.timescale_path.read_text("utf-8"))
