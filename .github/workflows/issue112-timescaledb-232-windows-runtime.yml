@@ -1,0 +1,63 @@
+name: Issue112 TimescaleDB 2.32.0 Windows PG16-18 original SQL (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-timescaledb-232-windows-runtime.yml
+      - scripts/issue112_timescaledb_windows_runtime_stage.py
+      - scripts/issue112-timescaledb-windows-runtime.ps1
+      - tests/test_issue112_timescaledb_windows_runtime_stage.py
+      - docs/issue-112-timescaledb-232-windows-runtime.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-timescaledb-232-windows-runtime.yml
+      - scripts/issue112_timescaledb_windows_runtime_stage.py
+      - scripts/issue112-timescaledb-windows-runtime.ps1
+      - tests/test_issue112_timescaledb_windows_runtime_stage.py
+      - docs/issue-112-timescaledb-232-windows-runtime.md
+
+permissions:
+  contents: read
+
+jobs:
+  independent-windows-sql:
+    name: TimescaleDB 2.32.0 PG${{ matrix.pg }} original SQL (deny-only)
+    runs-on: windows-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { pg: '16', edb: '16.15.5' }
+          - { pg: '17', edb: '17.11.4' }
+          - { pg: '18', edb: '18.6.5' }
+    steps:
+      - name: Checkout exact candidate without write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run offline hostile original ZIP and stage tests
+        shell: pwsh
+        run: python -m unittest discover -s tests -p test_issue112_timescaledb_windows_runtime_stage.py -v
+      - name: Reuse immutable proven shared PostgreSQL installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - name: Install disposable EDB PostgreSQL PG${{ matrix.pg }}
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
+        run: ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55461
+      - name: Independently GET exact official original, run upstream setup and real SQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: ./scripts/issue112-timescaledb-windows-runtime.ps1 -Major ([int]$env:PG_MAJOR) -ReleaseVersion '2.32.0'
+      - name: Explicitly preserve owner/source admission and publishing denial
+        if: always()
+        shell: pwsh
+        run: Write-Host 'NONPUBLISHING_RUNTIME_ONLY=YES RIGHTS=UNVERIFIED SOURCE_TO_BINARY_ATTESTATION=UNVERIFIED SOURCE_SPECIFIC_SIGNED_ADMISSION=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY ZIP_UPLOAD=NONE'
