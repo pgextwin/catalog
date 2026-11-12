@@ -1,7 +1,7 @@
 # Exact-original PGroonga 4.1.0 EDB liblz4 loader-path evidence only.
 # Nonpublishing: never grants signed provider GET, ZIP upload, mirror or Release.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet(14,15,16,17,18)][int]$Major, [switch]$SelfTest)
+param([Parameter(Mandatory=$true)][ValidateSet(14,15,16,17,18)][int]$Major, [switch]$SelfTest, [switch]$AuditModuleOrigins)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -21,6 +21,378 @@ function Test-LoadedModuleSet {
         if ($all) { return $process.Id }
     }
     return $null
+}
+
+
+# Sampled, same-backend original ZIP member vs live DLL byte classifier.
+function Review-ModuleOrigins {
+    param([object[]]$Observed,[hashtable]$Original,[string]$PgRoot,[string]$HostLz4,[string]$HostSha)
+    $required = @((Join-Path $PgRoot 'lib\pgroonga.dll'),(Join-Path $PgRoot 'bin\libgroonga.dll'))
+    if (@($required | Where-Object {-not $Original.ContainsKey($_)}).Count -gt 0) {
+        throw 'Missing official original root DLL receipts'
+    }
+    $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $counts=[ordered]@{exact=0;preservedHost=0;differentBytes=0;unmapped=0}
+    $details=@()
+    foreach($item in $Observed) {
+        $path=[string]$item.path;$digest=[string]$item.sha256
+        if (-not $path.StartsWith($PgRoot.TrimEnd('\') + '\',[StringComparison]::OrdinalIgnoreCase) -or
+            $path -notmatch '(?i)[.]dll
+    $one = [pscustomobject]@{ Id=5; Modules=@(
+        [pscustomobject]@{ FileName='C:\pg\lib\pgroonga.dll' },
+        [pscustomobject]@{ FileName='C:\pg\bin\libgroonga.dll' },
+        [pscustomobject]@{ FileName='C:\pg\bin\liblz4.dll' }) }
+    $wrong = [pscustomobject]@{ Id=6; Modules=@([pscustomobject]@{ FileName='C:\other\liblz4.dll' }) }
+    $expect = @('C:\pg\lib\pgroonga.dll', 'C:\pg\bin\libgroonga.dll', 'C:\pg\bin\liblz4.dll')
+    if ((Test-LoadedModuleSet -Processes @($one) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module $expect[2]) -ne 5) { throw 'positive self-test failed' }
+    if ($null -ne (Test-LoadedModuleSet -Processes @($one) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module 'C:\other\liblz4.dll')) { throw 'wrong-path self-test failed' }
+    if ($null -ne (Test-LoadedModuleSet -Processes @($one, $wrong) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module 'C:\other\liblz4.dll')) { throw 'cross-process self-test failed' }
+    Write-Host 'PGROONGA_LZ4_MODULE_PAIR_OFFLINE=PASS PATH_AND_PID_REQUIRED=YES'
+    return
+}
+if ($env:GITHUB_ACTIONS -cne 'true' -or $env:GITHUB_REPOSITORY -cne 'pgextwin/catalog' -or
+    $env:RUNNER_OS -cne 'Windows' -or -not $env:RUNNER_TEMP -or -not $env:PGROOT) {
+    throw 'Only ephemeral pgextwin/catalog Windows runner with pinned EDB PGROOT may execute'
+}
+$pg = [string]$Major
+$pins = @{
+    '14' = @{ bytes=53806600; sha='39d2685f234c8b45563f57f113bd8c84cc1ae4e8c0c22e6826bf168ba1c0ab39' }
+    '15' = @{ bytes=53863529; sha='fbc73734028b0b2372a6ee6538863999c2f9f06ec9f1be633ac460c7d8a0d4f1' }
+    '16' = @{ bytes=53751780; sha='40c71f7890e6ceb46f79fdc10e596da21bfb622f7c9d1f8be7784175d96df7e8' }
+    '17' = @{ bytes=53836587; sha='dcbd356ab8a7c8fc3a3cc7082b4f99a1884b5a68674e25ef4bbe56583c38147b' }
+    '18' = @{ bytes=53826667; sha='3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab' }
+}
+$pin = $pins[$pg]
+$root = [IO.Path]::GetFullPath($env:PGROOT).TrimEnd('\')
+$bin = Join-Path $root 'bin'
+$version = (& (Join-Path $bin 'pg_config.exe') --version | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or $version -notmatch ('^PostgreSQL\s+' + $pg + '(?:\.|\s)')) { throw "EDB major mismatch: $version" }
+# EDB's own file must exist: never fetch or inject an unpinned LZ4 DLL.
+$hostLz4 = Join-Path $bin 'liblz4.dll'
+if (-not (Test-Path -LiteralPath $hostLz4 -PathType Leaf)) {
+    throw "EDB_HOST_LZ4=ABSENT PG=$pg; real loader resolution remains unverified"
+}
+$before = (Get-FileHash -LiteralPath $hostLz4 -Algorithm SHA256).Hash.ToLowerInvariant()
+$hostVersion = (Get-Item -LiteralPath $hostLz4).VersionInfo.FileVersion
+$hostCompany = (Get-Item -LiteralPath $hostLz4).VersionInfo.CompanyName
+$hostSignature = (Get-AuthenticodeSignature -FilePath $hostLz4).Status.ToString()
+Write-Host "EDB_HOST_LZ4=OBSERVED PG=$pg FILE=$hostLz4 SHA256=$before FILE_VERSION=$hostVersion COMPANY=$hostCompany AUTHENTICODE=$hostSignature"
+
+$name = "pgroonga-4.1.0-postgresql-$pg-x64.zip"
+$url = "https://github.com/pgroonga/pgroonga/releases/download/4.1.0/$name"
+$archivePath = Join-Path $env:RUNNER_TEMP $name
+$zip = $null
+try {
+    & curl.exe --fail --silent --show-error --location --max-redirs 3 --proto '=https' --proto-redir '=https' --retry 2 --max-time 150 --max-filesize $pin.bytes --output $archivePath $url
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $archivePath -PathType Leaf)) { throw 'Pinned upstream GET failed' }
+    if ((Get-Item -LiteralPath $archivePath).Length -ne $pin.bytes -or
+        (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $pin.sha) {
+        throw 'Exact official ZIP size/SHA256 mismatch'
+    }
+    Add-Type -AssemblyName System.IO.Compression
+    $zip = [IO.Compression.ZipFile]::OpenRead($archivePath)
+    $expanded = [long]0
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $count = 0
+    $copied = 0
+    foreach ($entry in $zip.Entries) {
+        $count++
+        if ($count -gt 20000) { throw 'ZIP member count cap exceeded' }
+        $expanded += [long]$entry.Length
+        if ($expanded -gt 1073741824) { throw 'ZIP expansion cap exceeded' }
+        $rel = $entry.FullName.Replace('\','/')
+        if (-not $rel -or $rel.StartsWith('/') -or $rel.Contains(':') -or
+            $rel -match '(^|/)\.\.?(/|$)' -or $rel -match '[\x00-\x1f]' -or
+            ($entry.ExternalAttributes -shr 16 -band 61440) -eq 40960 -or
+            -not $seen.Add($rel)) { throw "Unsafe/colliding ZIP path: $rel" }
+        if ($rel.EndsWith('/')) { continue }
+        $first = $rel.Split('/')[0].ToLowerInvariant()
+        if ($first -notin @('bin','lib','share','include')) { continue }
+        $target = [IO.Path]::GetFullPath((Join-Path $root $rel.Replace('/','\')))
+        if (-not $target.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe ZIP extraction target' }
+        if (Test-Path -LiteralPath $target) {
+            if ($first -ne 'bin') { throw "Host collision outside bin: $rel" }
+            if ($rel -ieq 'bin/libgroonga.dll') { throw 'Competing host libgroonga.dll' }
+            continue # never overwrite host PostgreSQL DLLs
+        }
+        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target)) | Out-Null
+        $inputStream = $null
+        $outputStream = $null
+        try {
+            $inputStream = $entry.Open()
+            $outputStream = [IO.File]::Open($target, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+            $inputStream.CopyTo($outputStream)
+        } finally {
+            if ($outputStream) { $outputStream.Dispose() }
+            if ($inputStream) { $inputStream.Dispose() }
+        }
+        $copied++
+    }
+    if ($copied -lt 5 -or -not (Test-Path -LiteralPath (Join-Path $root 'lib\pgroonga.dll')) -or
+        -not (Test-Path -LiteralPath (Join-Path $root 'bin\libgroonga.dll'))) { throw 'Original DLL staging failed' }
+    if ((Get-FileHash -LiteralPath $hostLz4 -Algorithm SHA256).Hash.ToLowerInvariant() -cne $before) {
+        throw 'Host liblz4 changed during original staging'
+    }
+    Write-Host "PGROONGA_EXACT_ORIGINAL_STAGED=PASS PG=$pg ZIP_SHA256=$($pin.sha) COUNT=$count COPIED=$copied"
+} finally {
+    if ($zip) { $zip.Dispose() }
+    Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
+}
+
+# Inspect a live postgres backend during LOAD and pg_sleep. A static basename is insufficient.
+$datadir = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg-data"
+$log = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.log"
+$sql = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.sql"
+$stdout = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.stdout"
+$stderr = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.stderr"
+$port = 55453
+$started = $false
+$client = $null
+try {
+    & (Join-Path $bin 'initdb.exe') -D $datadir -A trust -U postgres --no-instructions
+    if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
+    & (Join-Path $bin 'pg_ctl.exe') -D $datadir -l $log -o "-h 127.0.0.1 -p $port" -w start
+    if ($LASTEXITCODE -ne 0) { throw 'pg_ctl start failed' }
+    $started = $true
+    Set-Content -LiteralPath $sql -Value "LOAD 'pgroonga'; SELECT pg_sleep(25);" -Encoding utf8
+    $arguments = @('-X','-v','ON_ERROR_STOP=1','-h','127.0.0.1','-p',[string]$port,
+                   '-U','postgres','-d','postgres','-f',('"'+$sql+'"'))
+    $client = Start-Process -FilePath (Join-Path $bin 'psql.exe') -ArgumentList $arguments -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    $expectedPg = Join-Path $root 'lib\pgroonga.dll'
+    $expectedGroonga = Join-Path $bin 'libgroonga.dll'
+    $observedPid = $null
+    $seenPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    for ($attempt=0; $attempt -lt 100; $attempt++) {
+        if ($client.HasExited) { break }
+        $rows = @()
+        foreach ($p in @(Get-Process -Name postgres -ErrorAction SilentlyContinue)) {
+            try {
+                $mods = @($p.Modules | ForEach-Object { [pscustomobject]@{FileName=$_.FileName} })
+                $rows += [pscustomobject]@{Id=$p.Id; Modules=$mods}
+                foreach ($m in $mods) {
+                    if ($m.FileName -match '(?i)(pgroonga|libgroonga|liblz4)\.dll$') { [void]$seenPaths.Add("PID=$($p.Id) $($m.FileName)") }
+                }
+            } catch {
+                Write-Host "POSTGRES_PROCESS_MODULE_QUERY=UNAVAILABLE PID=$($p.Id) DETAIL=$($_.Exception.Message)"
+            }
+        }
+        $observedPid = Test-LoadedModuleSet -Processes $rows -PgModule $expectedPg -GroongaModule $expectedGroonga -Lz4Module $hostLz4
+        if ($null -ne $observedPid) { break }
+        Start-Sleep -Milliseconds 200
+    }
+    $seenPaths | Sort-Object | ForEach-Object { Write-Host "PGROONGA_ACTUAL_LOADED_MODULE=$_" }
+    if ($null -eq $observedPid) { throw 'No single postgres.exe backend observed loading all three exact paths' }
+    $client.WaitForExit(35000) | Out-Null
+    if (-not $client.HasExited -or $client.ExitCode -ne 0) { throw 'Backend LOAD/pg_sleep probe exited abnormally' }
+    if ((Get-FileHash -LiteralPath $hostLz4 -Algorithm SHA256).Hash.ToLowerInvariant() -cne $before) {
+        throw 'EDB liblz4 changed after actual loader observation'
+    }
+    Write-Host "PGROONGA_EDB_LZ4_ACTUAL_PROCESS_LOAD=PASS PG=$pg PID=$observedPid PATH=$hostLz4 SHA256=$before"
+} catch {
+    if (Test-Path -LiteralPath $stderr) { Get-Content -LiteralPath $stderr -Tail 30 | ForEach-Object { Write-Host $_ } }
+    if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Tail 30 | ForEach-Object { Write-Host $_ } }
+    throw
+} finally {
+    if ($client -and -not $client.HasExited) { Stop-Process -Id $client.Id -Force -ErrorAction SilentlyContinue }
+    if ($started) { & (Join-Path $bin 'pg_ctl.exe') -D $datadir -m immediate -w stop }
+}
+Write-Host 'LZ4_RUNTIME_OBSERVATION_ONLY=YES ALL_DYNAMIC_DEPENDENCIES_VERIFIED=NO PRODUCER_PROVENANCE=UNVERIFIED NOTICE=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
+ -or $digest -cnotmatch '^[0-9a-f]{64}
+    $one = [pscustomobject]@{ Id=5; Modules=@(
+        [pscustomobject]@{ FileName='C:\pg\lib\pgroonga.dll' },
+        [pscustomobject]@{ FileName='C:\pg\bin\libgroonga.dll' },
+        [pscustomobject]@{ FileName='C:\pg\bin\liblz4.dll' }) }
+    $wrong = [pscustomobject]@{ Id=6; Modules=@([pscustomobject]@{ FileName='C:\other\liblz4.dll' }) }
+    $expect = @('C:\pg\lib\pgroonga.dll', 'C:\pg\bin\libgroonga.dll', 'C:\pg\bin\liblz4.dll')
+    if ((Test-LoadedModuleSet -Processes @($one) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module $expect[2]) -ne 5) { throw 'positive self-test failed' }
+    if ($null -ne (Test-LoadedModuleSet -Processes @($one) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module 'C:\other\liblz4.dll')) { throw 'wrong-path self-test failed' }
+    if ($null -ne (Test-LoadedModuleSet -Processes @($one, $wrong) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module 'C:\other\liblz4.dll')) { throw 'cross-process self-test failed' }
+    Write-Host 'PGROONGA_LZ4_MODULE_PAIR_OFFLINE=PASS PATH_AND_PID_REQUIRED=YES'
+    return
+}
+if ($env:GITHUB_ACTIONS -cne 'true' -or $env:GITHUB_REPOSITORY -cne 'pgextwin/catalog' -or
+    $env:RUNNER_OS -cne 'Windows' -or -not $env:RUNNER_TEMP -or -not $env:PGROOT) {
+    throw 'Only ephemeral pgextwin/catalog Windows runner with pinned EDB PGROOT may execute'
+}
+$pg = [string]$Major
+$pins = @{
+    '14' = @{ bytes=53806600; sha='39d2685f234c8b45563f57f113bd8c84cc1ae4e8c0c22e6826bf168ba1c0ab39' }
+    '15' = @{ bytes=53863529; sha='fbc73734028b0b2372a6ee6538863999c2f9f06ec9f1be633ac460c7d8a0d4f1' }
+    '16' = @{ bytes=53751780; sha='40c71f7890e6ceb46f79fdc10e596da21bfb622f7c9d1f8be7784175d96df7e8' }
+    '17' = @{ bytes=53836587; sha='dcbd356ab8a7c8fc3a3cc7082b4f99a1884b5a68674e25ef4bbe56583c38147b' }
+    '18' = @{ bytes=53826667; sha='3ccbfaf771ec7a0edf61dabe0eb60188dcc22feff8449a7e96afdb87641630ab' }
+}
+$pin = $pins[$pg]
+$root = [IO.Path]::GetFullPath($env:PGROOT).TrimEnd('\')
+$bin = Join-Path $root 'bin'
+$version = (& (Join-Path $bin 'pg_config.exe') --version | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or $version -notmatch ('^PostgreSQL\s+' + $pg + '(?:\.|\s)')) { throw "EDB major mismatch: $version" }
+# EDB's own file must exist: never fetch or inject an unpinned LZ4 DLL.
+$hostLz4 = Join-Path $bin 'liblz4.dll'
+if (-not (Test-Path -LiteralPath $hostLz4 -PathType Leaf)) {
+    throw "EDB_HOST_LZ4=ABSENT PG=$pg; real loader resolution remains unverified"
+}
+$before = (Get-FileHash -LiteralPath $hostLz4 -Algorithm SHA256).Hash.ToLowerInvariant()
+$hostVersion = (Get-Item -LiteralPath $hostLz4).VersionInfo.FileVersion
+$hostCompany = (Get-Item -LiteralPath $hostLz4).VersionInfo.CompanyName
+$hostSignature = (Get-AuthenticodeSignature -FilePath $hostLz4).Status.ToString()
+Write-Host "EDB_HOST_LZ4=OBSERVED PG=$pg FILE=$hostLz4 SHA256=$before FILE_VERSION=$hostVersion COMPANY=$hostCompany AUTHENTICODE=$hostSignature"
+
+$name = "pgroonga-4.1.0-postgresql-$pg-x64.zip"
+$url = "https://github.com/pgroonga/pgroonga/releases/download/4.1.0/$name"
+$archivePath = Join-Path $env:RUNNER_TEMP $name
+$zip = $null
+try {
+    & curl.exe --fail --silent --show-error --location --max-redirs 3 --proto '=https' --proto-redir '=https' --retry 2 --max-time 150 --max-filesize $pin.bytes --output $archivePath $url
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $archivePath -PathType Leaf)) { throw 'Pinned upstream GET failed' }
+    if ((Get-Item -LiteralPath $archivePath).Length -ne $pin.bytes -or
+        (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $pin.sha) {
+        throw 'Exact official ZIP size/SHA256 mismatch'
+    }
+    Add-Type -AssemblyName System.IO.Compression
+    $zip = [IO.Compression.ZipFile]::OpenRead($archivePath)
+    $expanded = [long]0
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $count = 0
+    $copied = 0
+    foreach ($entry in $zip.Entries) {
+        $count++
+        if ($count -gt 20000) { throw 'ZIP member count cap exceeded' }
+        $expanded += [long]$entry.Length
+        if ($expanded -gt 1073741824) { throw 'ZIP expansion cap exceeded' }
+        $rel = $entry.FullName.Replace('\','/')
+        if (-not $rel -or $rel.StartsWith('/') -or $rel.Contains(':') -or
+            $rel -match '(^|/)\.\.?(/|$)' -or $rel -match '[\x00-\x1f]' -or
+            ($entry.ExternalAttributes -shr 16 -band 61440) -eq 40960 -or
+            -not $seen.Add($rel)) { throw "Unsafe/colliding ZIP path: $rel" }
+        if ($rel.EndsWith('/')) { continue }
+        $first = $rel.Split('/')[0].ToLowerInvariant()
+        if ($first -notin @('bin','lib','share','include')) { continue }
+        $target = [IO.Path]::GetFullPath((Join-Path $root $rel.Replace('/','\')))
+        if (-not $target.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe ZIP extraction target' }
+        if (Test-Path -LiteralPath $target) {
+            if ($first -ne 'bin') { throw "Host collision outside bin: $rel" }
+            if ($rel -ieq 'bin/libgroonga.dll') { throw 'Competing host libgroonga.dll' }
+            continue # never overwrite host PostgreSQL DLLs
+        }
+        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target)) | Out-Null
+        $inputStream = $null
+        $outputStream = $null
+        try {
+            $inputStream = $entry.Open()
+            $outputStream = [IO.File]::Open($target, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+            $inputStream.CopyTo($outputStream)
+        } finally {
+            if ($outputStream) { $outputStream.Dispose() }
+            if ($inputStream) { $inputStream.Dispose() }
+        }
+        $copied++
+    }
+    if ($copied -lt 5 -or -not (Test-Path -LiteralPath (Join-Path $root 'lib\pgroonga.dll')) -or
+        -not (Test-Path -LiteralPath (Join-Path $root 'bin\libgroonga.dll'))) { throw 'Original DLL staging failed' }
+    if ((Get-FileHash -LiteralPath $hostLz4 -Algorithm SHA256).Hash.ToLowerInvariant() -cne $before) {
+        throw 'Host liblz4 changed during original staging'
+    }
+    Write-Host "PGROONGA_EXACT_ORIGINAL_STAGED=PASS PG=$pg ZIP_SHA256=$($pin.sha) COUNT=$count COPIED=$copied"
+} finally {
+    if ($zip) { $zip.Dispose() }
+    Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
+}
+
+# Inspect a live postgres backend during LOAD and pg_sleep. A static basename is insufficient.
+$datadir = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg-data"
+$log = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.log"
+$sql = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.sql"
+$stdout = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.stdout"
+$stderr = Join-Path $env:RUNNER_TEMP "pgroonga-loader-pg$pg.stderr"
+$port = 55453
+$started = $false
+$client = $null
+try {
+    & (Join-Path $bin 'initdb.exe') -D $datadir -A trust -U postgres --no-instructions
+    if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
+    & (Join-Path $bin 'pg_ctl.exe') -D $datadir -l $log -o "-h 127.0.0.1 -p $port" -w start
+    if ($LASTEXITCODE -ne 0) { throw 'pg_ctl start failed' }
+    $started = $true
+    Set-Content -LiteralPath $sql -Value "LOAD 'pgroonga'; SELECT pg_sleep(25);" -Encoding utf8
+    $arguments = @('-X','-v','ON_ERROR_STOP=1','-h','127.0.0.1','-p',[string]$port,
+                   '-U','postgres','-d','postgres','-f',('"'+$sql+'"'))
+    $client = Start-Process -FilePath (Join-Path $bin 'psql.exe') -ArgumentList $arguments -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    $expectedPg = Join-Path $root 'lib\pgroonga.dll'
+    $expectedGroonga = Join-Path $bin 'libgroonga.dll'
+    $observedPid = $null
+    $seenPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    for ($attempt=0; $attempt -lt 100; $attempt++) {
+        if ($client.HasExited) { break }
+        $rows = @()
+        foreach ($p in @(Get-Process -Name postgres -ErrorAction SilentlyContinue)) {
+            try {
+                $mods = @($p.Modules | ForEach-Object { [pscustomobject]@{FileName=$_.FileName} })
+                $rows += [pscustomobject]@{Id=$p.Id; Modules=$mods}
+                foreach ($m in $mods) {
+                    if ($m.FileName -match '(?i)(pgroonga|libgroonga|liblz4)\.dll$') { [void]$seenPaths.Add("PID=$($p.Id) $($m.FileName)") }
+                }
+            } catch {
+                Write-Host "POSTGRES_PROCESS_MODULE_QUERY=UNAVAILABLE PID=$($p.Id) DETAIL=$($_.Exception.Message)"
+            }
+        }
+        $observedPid = Test-LoadedModuleSet -Processes $rows -PgModule $expectedPg -GroongaModule $expectedGroonga -Lz4Module $hostLz4
+        if ($null -ne $observedPid) { break }
+        Start-Sleep -Milliseconds 200
+    }
+    $seenPaths | Sort-Object | ForEach-Object { Write-Host "PGROONGA_ACTUAL_LOADED_MODULE=$_" }
+    if ($null -eq $observedPid) { throw 'No single postgres.exe backend observed loading all three exact paths' }
+    $client.WaitForExit(35000) | Out-Null
+    if (-not $client.HasExited -or $client.ExitCode -ne 0) { throw 'Backend LOAD/pg_sleep probe exited abnormally' }
+    if ((Get-FileHash -LiteralPath $hostLz4 -Algorithm SHA256).Hash.ToLowerInvariant() -cne $before) {
+        throw 'EDB liblz4 changed after actual loader observation'
+    }
+    Write-Host "PGROONGA_EDB_LZ4_ACTUAL_PROCESS_LOAD=PASS PG=$pg PID=$observedPid PATH=$hostLz4 SHA256=$before"
+} catch {
+    if (Test-Path -LiteralPath $stderr) { Get-Content -LiteralPath $stderr -Tail 30 | ForEach-Object { Write-Host $_ } }
+    if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Tail 30 | ForEach-Object { Write-Host $_ } }
+    throw
+} finally {
+    if ($client -and -not $client.HasExited) { Stop-Process -Id $client.Id -Force -ErrorAction SilentlyContinue }
+    if ($started) { & (Join-Path $bin 'pg_ctl.exe') -D $datadir -m immediate -w stop }
+}
+Write-Host 'LZ4_RUNTIME_OBSERVATION_ONLY=YES ALL_DYNAMIC_DEPENDENCIES_VERIFIED=NO PRODUCER_PROVENANCE=UNVERIFIED NOTICE=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
+ -or
+            -not $seen.Add($path)) {throw 'Invalid or duplicate loaded module receipt'}
+        if ([string]::Equals($path,$HostLz4,[StringComparison]::OrdinalIgnoreCase)) {
+            if ($digest -cne $HostSha) {throw 'EDB host liblz4 byte drift'}
+            $status='PRESERVED_EDB_HOST_UNATTESTED';$counts.preservedHost++
+        } elseif($Original.ContainsKey($path)) {
+            if ($Original[$path] -ceq $digest) {
+                $status='EXACT_ORIGINAL_ZIP_MEMBER';$counts.exact++
+            } else {
+                $status='DIFFERENT_BYTES_HOST_COLLISION_UNVERIFIED';$counts.differentBytes++
+            }
+        } else {
+            $status='UNMAPPED_HOST_NOT_ORIGINAL';$counts.unmapped++
+        }
+        if ($path -in $required -and $status -cne 'EXACT_ORIGINAL_ZIP_MEMBER') {
+            throw 'Observed core module did not match official original'
+        }
+        $details += [ordered]@{path=$path;sha256=$digest;originClass=$status}
+    }
+    if (@($required + $HostLz4 | Where-Object {-not $seen.Contains($_)}).Count -gt 0) {
+        throw 'A required root or host module not sampled'
+    }
+    return [ordered]@{
+        schemaVersion='pgextwin-pgroonga-pg-live-byte-origins-deny-only/v1'
+        loadedDllOriginCounts=$counts
+        observedLoadedDlls=$details
+        originalDllMembersNotObserved=($Original.Count - $counts.exact)
+        signedSourceBuildProvenance=false
+        allDynamicDependenciesVerified=false
+        thirdPartyRightsVerified=false
+        ownerSignedAdmission=false
+        publicGetAuthorized=false
+        mirrorAuthorized=false
+        releaseAuthorized=false
+        publisherAuthorized=false
+    }
 }
 
 if ($SelfTest) {
