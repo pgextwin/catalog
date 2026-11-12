@@ -58,3 +58,27 @@ override the CLI's Sigstore or original-byte validation.
 Regression contract: `python -m unittest discover -s tests -p
 'test_issue112_pg15_signed_feed_smoke.py'`. A regression-test PASS means
 workflow expectations were updated, **not** that the real Windows jobs passed.
+
+## Independent legacy *published EXE* rollback acceptance
+
+The [read-only rollback E2E workflow](../.github/workflows/issue112-cli-legacy-rollback-e2e.yml)
+tests the exact, previously published v0.3.13 and v0.3.14 Windows EXE
+bytes with fixed per-release SHA256, size, immutable tag and release
+commit. It additionally runs genuine Sigstore verification on each
+EXE's original producer claim. No synthetic or private build may
+substitute for those released EXEs.
+
+- v0.3.13: the current four-major latest feed with historically retained
+  PG14 Catalog records must **fail closed**, leaving no committed output.
+  `--fixed --pg 14` must independently obtain and hash 14 historic ZIPs
+  using the old CLI's immutable pinned source. This is a **legacy
+  retrieval fallback**, not a public authorization to publish PG14 again.
+- v0.3.14: `--latest --pg 15` must obtain and independently hash 17
+  original ZIPs from the current four-major Sigstore-verified feed.
+  This can establish a compatible downgrade alternative *if* real CI
+  passes.
+
+Never claim a rollback is accepted until both original Release-tag
+identity and the respective **real** Windows job conclude SUCCESS.
+No token is supplied to the CLI under test; no Release, policy, mirror,
+provider admission, or publisher authorization is created.
