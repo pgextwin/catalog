@@ -41,6 +41,13 @@ jobs:
       - name: Offline hostile sampled bundle module origin checks
         shell: pwsh
         run: python -m unittest discover -s tests -p test_issue112_osgeo_pg18_loaded_bundle.py -v
+      - name: Parse PowerShell runtime script before expensive PG installation
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile([string](Resolve-Path './scripts/issue112-osgeo-pg18-windows-runtime.ps1'), [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count -ne 0) { throw ('PowerShell syntax invalid: ' + ($parseErrors | Out-String)) }
       - name: Reuse immutable shared PostgreSQL installer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
