@@ -11,10 +11,18 @@ from issue112_osgeo_tagged_source_rights import git_blob_sha
 
 
 class FakeGitHub:
-    def __init__(self):
+    def __init__(self, release_tag=target.TAG):
+        self.release_tag = release_tag
+        self.tag_object = target.TAG_OBJECT_401 if release_tag == target.TAG_401 else target.TAG_OBJECT
+        self.commit = target.COMMIT_401 if release_tag == target.TAG_401 else target.COMMIT
+        markers = dict(target.SOURCE_MARKERS)
+        if release_tag == target.TAG_401:
+            markers["CMakeLists.txt"] = tuple(
+                x.replace("VERSION 4.0.0", "VERSION 4.0.1")
+                for x in markers["CMakeLists.txt"])
         self.files = {
-            path: ("\n".join(markers) + "\n").encode("utf-8")
-            for path, markers in target.SOURCE_MARKERS.items()
+            path: ("\n".join(parts) + "\n").encode("utf-8")
+            for path, parts in markers.items()
         }
         self.wrong_ref = False
         self.wrong_tag_commit = False
@@ -26,17 +34,17 @@ class FakeGitHub:
         return {path: git_blob_sha(data) for path, data in self.files.items()}
 
     def get(self, url):
-        if url == target.API + "/git/ref/tags/" + target.TAG:
+        if url == target.API + "/git/ref/tags/" + self.release_tag:
             return {
-                "ref": "refs/tags/" + ("v0.0.0" if self.wrong_ref else target.TAG),
-                "object": {"sha": target.TAG_OBJECT, "type": "tag",
-                           "url": target.API + "/git/tags/" + target.TAG_OBJECT},
+                "ref": "refs/tags/" + ("v0.0.0" if self.wrong_ref else self.release_tag),
+                "object": {"sha": self.tag_object, "type": "tag",
+                           "url": target.API + "/git/tags/" + self.tag_object},
             }
-        if url == target.API + "/git/tags/" + target.TAG_OBJECT:
-            return {"tag": target.TAG, "object": {"type": "commit",
-                    "sha": "f" * 40 if self.wrong_tag_commit else target.COMMIT}}
+        if url == target.API + "/git/tags/" + self.tag_object:
+            return {"tag": self.release_tag, "object": {"type": "commit",
+                    "sha": "f" * 40 if self.wrong_tag_commit else self.commit}}
         for path, body in self.files.items():
-            if url == target.API + "/contents/" + path + "?ref=" + target.COMMIT:
+            if url == target.API + "/contents/" + path + "?ref=" + self.commit:
                 return {
                     "path": path + ".tampered" if self.wrong_path else path,
                     "sha": "f" * 40 if self.wrong_blob else self.forced_sha.get(path, self.pins()[path]),
@@ -121,6 +129,45 @@ class PgRoutingSourceRightsTests(unittest.TestCase):
             target.source_get_json("https://example.invalid/unknown")
         with self.assertRaisesRegex(ValueError, "Redirect rejected"):
             target.RejectRedirect().redirect_request(None, None, None, 302, None, None)
+
+    def test_401_matches_observed_extension_version_but_not_binary_attestation(self):
+        fake = FakeGitHub(target.TAG_401)
+        result = target.audit(fake.get, expected_blobs=fake.pins(),
+                              release_tag=target.TAG_401)
+        self.assertEqual(result["tag"], "v4.0.1")
+        self.assertEqual(result["tagCommit"], target.COMMIT_401)
+        self.assertEqual(result["candidateOsgeoZip"]["observedInstalledVersionFromPriorWindowsSql"], "4.0.1")
+        self.assertNotEqual(result["sourceGitBlobsSha1"]["CMakeLists.txt"],
+                            target.BLOBS["CMakeLists.txt"])
+        for key, value in result.items():
+            if key.endswith("Verified") or key.endswith("Authorized"):
+                self.assertIs(value, False, key)
+
+    def test_401_wrong_tag_and_commit_denied(self):
+        for flag, error in (("wrong_ref", "tag ref"), ("wrong_tag_commit", "tag-to-commit")):
+            fake = FakeGitHub(target.TAG_401)
+            setattr(fake, flag, True)
+            with self.assertRaisesRegex(ValueError, error):
+                target.audit(fake.get, expected_blobs=fake.pins(),
+                             release_tag=target.TAG_401)
+
+    def test_401_wrong_cmake_claim_denied(self):
+        fake = FakeGitHub(target.TAG_401)
+        fake.files["CMakeLists.txt"] = fake.files["CMakeLists.txt"].replace(
+            b"VERSION 4.0.1", b"VERSION 4.0.0")
+        with self.assertRaisesRegex(ValueError, "license/build claim absent"):
+            target.audit(fake.get, expected_blobs=fake.pins(),
+                         release_tag=target.TAG_401)
+
+    def test_401_rejects_old_cmake_pin_and_unlisted_tag(self):
+        fake = FakeGitHub(target.TAG_401)
+        pins = fake.pins()
+        pins["CMakeLists.txt"] = target.BLOBS["CMakeLists.txt"]
+        with self.assertRaisesRegex(ValueError, "path/blob"):
+            target.audit(fake.get, expected_blobs=pins,
+                         release_tag=target.TAG_401)
+        with self.assertRaisesRegex(ValueError, "Unrecognized pgRouting release tag"):
+            target.audit(fake.get, release_tag="v5.0.0")
 
 
 if __name__ == "__main__":

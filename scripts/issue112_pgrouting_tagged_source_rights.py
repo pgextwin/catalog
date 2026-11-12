@@ -22,6 +22,14 @@ BLOBS = {
     "README.md": "1f563b4b009fe77c31f578b7de05fd1934163eb7",
     "CMakeLists.txt": "b7b00200696c8045869a36d4f2fddc2c1ead9427",
 }
+# The Windows PG18 SQL receipt reported pgRouting 4.0.1, whereas the
+# previous source-only audit fixed the earlier v4.0.0 tag. Verify both without
+# assuming that either source revision produced the observed DLL.
+TAG_401 = "v4.0.1"
+TAG_OBJECT_401 = "b817fb3d9d641fb5c65c8ab1d855b398c6983677"
+COMMIT_401 = "8988eebdff0e01327c9d48fe7c80b437dc9bc992"
+BLOBS_401 = {**BLOBS, "CMakeLists.txt": "547997f8085c45e9c478d6a2632a3c0c13668cbd"}
+
 SOURCE_MARKERS = {
     "LICENSE": (
         "GNU GENERAL PUBLIC LICENSE", "Version 2, June 1991",
@@ -67,25 +75,32 @@ def source_get_json(url):
     return json.loads(content.decode("utf-8"))
 
 
-def audit(get_json=source_get_json, expected_blobs=None):
-    # Only the synthetic offline tests replace these SHA1 pins.
-    expected = BLOBS if expected_blobs is None else expected_blobs
-    if (set(expected) != set(BLOBS)
+def audit(get_json=source_get_json, expected_blobs=None, *, release_tag=TAG):
+    """Check one immutable source tag. Neither tag grants binary attribution."""
+    if release_tag not in (TAG, TAG_401):
+        raise ValueError("Unrecognized pgRouting release tag")
+    current = release_tag == TAG_401
+    tag_object = TAG_OBJECT_401 if current else TAG_OBJECT
+    commit = COMMIT_401 if current else COMMIT
+    trusted_blobs = BLOBS_401 if current else BLOBS
+    # Only the synthetic offline tests replace these SHA-1 pins.
+    expected = trusted_blobs if expected_blobs is None else expected_blobs
+    if (set(expected) != set(trusted_blobs)
             or any(not isinstance(x, str) or not re.fullmatch("[0-9a-f]{40}", x)
                    for x in expected.values())):
         raise ValueError("Untrusted or incomplete pinned source inventory")
-    ref = get_json(API + "/git/ref/tags/" + TAG)
-    if ref.get("ref") != "refs/tags/" + TAG or ref.get("object") != {
-            "sha": TAG_OBJECT, "type": "tag", "url": API + "/git/tags/" + TAG_OBJECT}:
+    ref = get_json(API + "/git/ref/tags/" + release_tag)
+    if ref.get("ref") != "refs/tags/" + release_tag or ref.get("object") != {
+            "sha": tag_object, "type": "tag", "url": API + "/git/tags/" + tag_object}:
         raise ValueError("Unverified annotated pgRouting tag ref")
-    tagged = get_json(API + "/git/tags/" + TAG_OBJECT)
-    if (tagged.get("tag") != TAG
+    tagged = get_json(API + "/git/tags/" + tag_object)
+    if (tagged.get("tag") != release_tag
             or tagged.get("object", {}).get("type") != "commit"
-            or tagged.get("object", {}).get("sha") != COMMIT):
+            or tagged.get("object", {}).get("sha") != commit):
         raise ValueError("Unverified pgRouting tag-to-commit mapping")
 
     for path, sha in sorted(expected.items()):
-        row = get_json(API + "/contents/" + path + "?ref=" + COMMIT)
+        row = get_json(API + "/contents/" + path + "?ref=" + commit)
         if (row.get("path") != path or row.get("sha") != sha
                 or row.get("encoding") != "base64"
                 or type(row.get("content")) is not str):
@@ -98,7 +113,11 @@ def audit(get_json=source_get_json, expected_blobs=None):
         except (UnicodeError, ValueError) as exc:
             raise ValueError("Invalid pinned pgRouting source: " + path) from exc
         normalized = " ".join(source.split())
-        for phrase in SOURCE_MARKERS[path]:
+        markers = SOURCE_MARKERS[path]
+        if current and path == "CMakeLists.txt":
+            markers = tuple(x.replace("VERSION 4.0.0", "VERSION 4.0.1")
+                            for x in markers)
+        for phrase in markers:
             if " ".join(phrase.split()) not in normalized:
                 raise ValueError("Source license/build claim absent: " + path + " / " + phrase)
 
@@ -106,7 +125,7 @@ def audit(get_json=source_get_json, expected_blobs=None):
         "schemaVersion": "pgextwin-issue112-pgrouting-tagged-source-rights-deny-only/v1",
         "scope": SOURCE_SCOPE,
         "sourceRepository": "pgRouting/pgrouting",
-        "tag": TAG, "annotatedTagObject": TAG_OBJECT, "tagCommit": COMMIT,
+        "tag": release_tag, "annotatedTagObject": tag_object, "tagCommit": commit,
         "sourceGitBlobsSha1": dict(sorted(expected.items())),
         "licenseObservations": {
             "projectREADME": "most features GPL-2.0-or-later, not every compiled component",
@@ -119,7 +138,9 @@ def audit(get_json=source_get_json, expected_blobs=None):
             "bytes": 83320975,
             "sha256": "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40",
             "dllBasename": "libpgrouting-4.0.dll",
+            "observedInstalledVersionFromPriorWindowsSql": "4.0.1",
         },
+        "upstreamTagSignatureVerified": False,
         "candidateDllBuiltFromThisTagVerified": False,
         "candidateDllPerFileSourceAndLicenseClosureVerified": False,
         "candidateDllBoostAndImaptoolsNoticeClosureVerified": False,
@@ -132,7 +153,8 @@ def audit(get_json=source_get_json, expected_blobs=None):
 
 
 def main():
-    print(json.dumps(audit(), sort_keys=True, ensure_ascii=True))
+    receipts = [audit(release_tag=tag) for tag in (TAG, TAG_401)]
+    print(json.dumps({"sourceOnlyReceipts": receipts}, sort_keys=True, ensure_ascii=True))
     print("PGROUTING_SOURCE_RIGHTS=OBSERVED ORIGINAL_DLL_LINK=UNVERIFIED "
           "NOTICE_CLOSURE=UNVERIFIED PRODUCER=UNVERIFIED GET=DENY "
           "MIRROR=DENY RELEASE=DENY PUBLISH=DENY")
