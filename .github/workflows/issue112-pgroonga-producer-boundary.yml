@@ -1,0 +1,34 @@
+name: Issue112 PGroonga original producer boundary (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_pgroonga_producer_boundary.py
+      - tests/test_issue112_pgroonga_producer_boundary.py
+      - docs/issue-112-pgroonga-producer-boundary.md
+      - .github/workflows/issue112-pgroonga-producer-boundary.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_pgroonga_producer_boundary.py
+      - tests/test_issue112_pgroonga_producer_boundary.py
+      - docs/issue-112-pgroonga-producer-boundary.md
+      - .github/workflows/issue112-pgroonga-producer-boundary.yml
+permissions:
+  contents: read
+jobs:
+  verify-original-upstream-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Hostile offline producer metadata tests
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_producer_boundary.py -v
+      - name: Authenticated GitHub GET pinned original run jobs artifacts and workflow source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/issue112_pgroonga_producer_boundary.py
+      - name: Never promote read-only evidence to admission
+        if: always()
+        run: echo 'SIGNED_BUILD_PROVENANCE=DENY RIGHTS=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
