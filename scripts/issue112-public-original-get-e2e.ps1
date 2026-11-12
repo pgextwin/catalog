@@ -61,7 +61,28 @@ foreach ($binary in $binaries) {
     New-Item -ItemType Directory -Path $dest -ErrorAction Stop | Out-Null
     try {
         & $($binary.path) download-all --source external --pg $pgArg --output $dest
-        if ($LASTEXITCODE -ne 0) { throw "Actual $($binary.kind) CLI provider GET failed" }
+        if ($LASTEXITCODE -ne 0) {
+            if ($PublicOnly -and $binary.kind -ceq 'public') {
+                # Read-only anonymous diagnostics ONLY after the original
+                # published CLI failed. Never use the job's GitHub token or
+                # treat a successful diagnostic as GET authorization.
+                foreach ($source in @('laurenz/oracle_fdw',
+                                      'andreiramani/pgvector_pgsql_windows',
+                                      'trickle-labs/pg-trickle')) {
+                    try {
+                        $url="https://api.github.com/repos/$source"
+                        $probe=Invoke-WebRequest -Uri $url -Method Get -SkipHttpErrorCheck `
+                            -TimeoutSec 10 -Headers @{'User-Agent'='pgextwin-public-e2e-diagnostic/1';'Accept'='application/vnd.github+json'}
+                        $remaining=[string]$probe.Headers['X-RateLimit-Remaining']
+                        $limit=[string]$probe.Headers['X-RateLimit-Limit']
+                        Write-Output "ANON_GITHUB_METADATA_DIAGNOSTIC SOURCE=$source STATUS=$([int]$probe.StatusCode) RATE_REMAINING=$remaining RATE_LIMIT=$limit"
+                    } catch {
+                        Write-Output "ANON_GITHUB_METADATA_DIAGNOSTIC SOURCE=$source STATUS=UNAVAILABLE (DENY)"
+                    }
+                }
+            }
+            throw "Actual $($binary.kind) CLI provider GET failed"
+        }
         $originals=@(Get-ChildItem -LiteralPath $dest -Recurse -File -Filter '*.zip')
         if ($originals.Count -ne $expected.Count) {
             throw "Original cohort completeness mismatch: expected=$($expected.Count) got=$($originals.Count)"

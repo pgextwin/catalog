@@ -23,9 +23,12 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         # reviewed recovery files. An ordinary later main commit cannot replay it.
         self.assertIn('github.event.workflow_run.event == \'push\'', workflow)
         self.assertIn('.committer.login=="web-flow"', workflow)
-        self.assertIn('.parents[0].sha=="82ed47a48d65278582f848a3964f5eb14699fe41"', workflow)
+        self.assertIn('.parents[0].sha=="eefae36c4209f0feced26d7b7759837118dadae6"', workflow)
         self.assertIn('([.files[]?] | length)==3', workflow)
         self.assertIn('AUTHENTIC_PUBLIC_ONLY_E2E_RECOVERY=PASS', workflow)
+        self.assertIn('repos/pgextwin/catalog/actions/runs/43192028928', workflow)
+        self.assertIn('ANON_GITHUB_METADATA_DIAGNOSTIC', script)
+        self.assertIn('if ($PublicOnly -and $binary.kind -ceq \'public\')', script)
         self.assertIn('RECOVERY_PUBLIC_ONLY:', workflow)
         self.assertIn('-PublicOnly', workflow)
         self.assertIn('python scripts/validate_public_get_pin.py --catalog .', workflow)
