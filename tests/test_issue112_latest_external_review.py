@@ -13,6 +13,7 @@ from issue112_latest_external_review import (
     make_plan, version_key, DENY, PGROONGA_PINS, HTTP_PINS,
 )
 from unittest.mock import patch
+from issue112_cybertec_windows_index import BASE as CYBERTEC_BASE, collect, parse_index
 
 
 class LatestExternalReviewTests(unittest.TestCase):
@@ -318,6 +319,103 @@ class LatestExternalReviewTests(unittest.TestCase):
                          extension="oracle_fdw")["selected"][0]
         self.assertIn("EXISTING_P3_HOLD", item["blockers"])
         self.assertIs(item["downloadAuthorized"], False)
+
+
+    def cybertec_index(self):
+        def listing(*names):
+            return ("<a href='../'>../</a>" + "".join(
+                f"<a href='{name}'>{name}</a>" for name in names)).encode()
+        receipt = collect({
+            "16": parse_index(listing(
+                "pg_partman-16-public-v5.4.2-1.zip",
+                "pg_partman-16-public-v5.4.3-1.zip",
+                "orafce-16-public-VERSION_4_16_5-1.zip"), "16"),
+            "17": parse_index(listing(
+                "pg_partman-17-public-v5.4.3-1.zip",
+                "pg_hint_plan-17-17-public-REL17_1_7_1-5-gd06add-1.zip"), "17"),
+        })
+        path = self.root / "cybertec-index.json"
+        path.write_text(json.dumps(receipt), encoding="utf-8")
+        return path, receipt
+
+    def test_cybertec_explicit_index_reuses_canonical_latest_labels_only(self):
+        path, _ = self.cybertec_index()
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="cybertec")
+        report = make_plan(self.root, source="cybertec", cybertec_index=path)
+        self.assertEqual(report["cybertecSelectedReviewRows"], 4)
+        self.assertEqual(report["uniqueOriginalPackages"], 4)
+        self.assertEqual(report["admittedAssets"], 0)
+        self.assertEqual(report["observedMajorCoverageNotSupportClaim"],
+                         {"orafce": ["16"], "pg_hint_plan": ["17"],
+                          "pg_partman": ["16", "17"]})
+        self.assertEqual(report["cybertecUnrankableGroups"], [])
+        for row in report["selected"]:
+            self.assertEqual(row["source"], "CYBERTEC_PGEE_DIRECTORY_METADATA_ONLY")
+            self.assertIsNone(row["version"])
+            self.assertIsNone(row["originalBytes"])
+            self.assertIsNone(row["originalSha256"])
+            self.assertEqual(row["versionMeaning"],
+                             "PROVIDER_PACKAGING_LABEL_NOT_UPSTREAM_VERSION")
+            self.assertTrue(row["originalUrlUntrusted"].startswith(CYBERTEC_BASE))
+            self.assertIn("COMMUNITY_POSTGRESQL_ABI_UNVERIFIED", row["blockers"])
+            for flag in DENY:
+                self.assertIs(row[flag], False)
+        scoped = make_plan(self.root, pg="16", extension="pg_partman",
+                           source="cybertec", cybertec_index=path)
+        self.assertEqual([x["providerPackagingLabel"] for x in scoped["selected"]],
+                         ["v5.4.3-1"])
+
+    def test_cybertec_exact_packaging_label_is_not_cli_version(self):
+        path, _ = self.cybertec_index()
+        exact = make_plan(self.root, source="cybertec", cybertec_index=path,
+                          extension="pg_partman", packaging_label="v5.4.2-1")
+        self.assertEqual([(r["pgMajor"], r["providerPackagingLabel"])
+                          for r in exact["selected"]], [("16", "v5.4.2-1")])
+        self.assertEqual(make_plan(self.root, source="cybertec", cybertec_index=path,
+                                   extension="pg_partman",
+                                   packaging_label="v9.0.0")["selectedReviewRows"], 0)
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="cybertec", cybertec_index=path,
+                      extension="pg_partman", version="5.4.3")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="cybertec", cybertec_index=path,
+                      packaging_label="v5.4.3-1")
+        # Exact upstream semver never consumes a Cybertec packaging label.
+        other = make_plan(self.root, source="all", cybertec_index=path,
+                          extension="hypopg", version="1.4.1")
+        self.assertEqual(other["cybertecSelectedReviewRows"], 0)
+        self.assertEqual(other["selectedReviewRows"], 1)
+        self.assertGreater(make_plan(self.root, source="all",
+                                     cybertec_index=path)["cybertecSelectedReviewRows"], 0)
+
+    def test_cybertec_unselected_tamper_and_duplicate_json_key_denied(self):
+        path, receipt = self.cybertec_index()
+        receipt["candidates"][0]["publicGetAuthorized"] = True
+        path.write_text(json.dumps(receipt), encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="github", cybertec_index=path,
+                      extension="hypopg", pg="18")
+        path.write_text('{"schemaVersion": "good", "schemaVersion": "bad"}',
+                        encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="cybertec", cybertec_index=path)
+        path.unlink()
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="cybertec", cybertec_index=path)
+
+    def test_cybertec_unrankable_label_excluded_with_explicit_gap(self):
+        path, receipt = self.cybertec_index()
+        entry = next(r for r in receipt["candidates"] if r["extension"] == "orafce")
+        entry["providerBuildLabelUntrusted"] = "preview-unknown"
+        entry["fileName"] = "orafce-16-public-preview-unknown.zip"
+        entry["originalUrlUntrusted"] = CYBERTEC_BASE + "16/extension/" + entry["fileName"]
+        path.write_text(json.dumps(receipt), encoding="utf-8")
+        report = make_plan(self.root, source="cybertec", cybertec_index=path)
+        self.assertEqual(report["cybertecUnrankableGroups"], [
+            {"extension": "orafce", "pgMajor": "16",
+             "reason": "UNRANKABLE_PROVIDER_LABEL"}])
+        self.assertNotIn("orafce", report["observedMajorCoverageNotSupportClaim"])
 
 
 if __name__ == "__main__":

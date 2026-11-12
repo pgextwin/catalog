@@ -195,3 +195,39 @@ unverified. No signed-feed, issuer, CLI Release, new public ZIP or Website
 operation is changed. Every selection remains
 `CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY / PUBLISH_DENY`,
 with `admittedAssets=0`.
+
+## Cybertec PGEE opt-in index in the shared candidate selector (nonpublishing)
+
+The shared offline plan now accepts an **explicit untrusted canonical Cybertec
+index JSON**, already produced by `issue112_cybertec_windows_index.py`. The
+existing Cybertec numeric label review is reused, not implemented twice.
+Without `--cybertec-index`, `--source all` and its original observations
+are unchanged. A Cybertec-only plan requires the index file.
+
+```bash
+python scripts/issue112_cybertec_windows_index.py > /tmp/cybertec-raw.txt
+# Save the first JSON line from the observer as /tmp/cybertec-index.json;
+# its following status line is NOT part of the JSON document.
+python scripts/issue112_latest_external_review.py --source cybertec --cybertec-index /tmp/cybertec-index.json --pg all --output /tmp/cybertec-latest.json
+python scripts/issue112_latest_external_review.py --source cybertec --cybertec-index /tmp/cybertec-index.json --extension pg_partman --packaging-label v5.4.3-1 --output /tmp/cybertec-partman.json
+```
+
+Every receipt row is validated using the canonical Cybertec parser's exact
+source, PG, filename, and all DENY fields **before** any selection, even when
+another source or major is selected. Missing, symlinked, duplicate-key,
+oversized, forged-URL, forged-authority or malformed receipts fail closed.
+Unrankable numeric labels appear in `cybertecUnrankableGroups`, rather
+than receiving an invented latest rank. Rows retain the provider URL as
+`originalUrlUntrusted`, an unverified packaging label, and **null** upstream
+version/original byte identities. A selected provider label cannot be compared
+with canonical upstream semver. `--packaging-label` requires `--extension`
+and is **never** equivalent to production CLI `--version`; exact
+`--version` excludes unversioned Cybertec rows or is rejected in
+Cybertec-only mode. No Cybertec direct GET is authorized by this observation.
+
+The original Cybertec packages are PGEE-labelled; ordinary community
+PostgreSQL ABI, precise original bytes, licensing/NOTICE, source-to-output
+producer attestations and genuine source-specific admission remain separate
+required gates. The output and its new source rows remain CANDIDATE_ONLY,
+`admittedAssets=0`, PUBLIC_GET/MIRROR/RELEASE/PUBLISH DENY. No change to
+production signed cohort, release artifact, Website, or user-facing CLI.

@@ -20,6 +20,7 @@ from issue112_pgroonga_rights_audit import (
 from issue112_http_original_receipts import CANDIDATES as HTTP_CANDIDATES
 from issue112_http_windows_runtime import PINS as HTTP_PINS
 from external_new_stable_watch import unique_json_pairs
+from issue112_cybertec_latest_review import review as cybertec_review
 from issue112_timescaledb_rights_gate import (
     LEDGER_PATH as TIMESCALE_RIGHTS_LEDGER,
     strict_json as strict_timescale_rights_json,
@@ -117,9 +118,11 @@ def timescaledb_observed_baseline(root):
     return document
 
 
-def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
+def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
+              cybertec_index=None, packaging_label=None):
     require(pg == "all" or pg in SUPPORTED, "unsupported PG major")
-    require(source in ("all", "github", "osgeo", "pgroonga", "http", "timescaledb"), "unsupported source type")
+    require(source in ("all", "github", "osgeo", "pgroonga", "http", "timescaledb",
+                       "cybertec"), "unsupported source type")
     require(extension is None or
             (type(extension) is str and NAME.fullmatch(extension) is not None),
             "unsafe extension filter")
@@ -127,6 +130,14 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
             (extension is not None and type(version) is str and
              VERSION.fullmatch(version) is not None),
             "exact --version requires a safe --extension")
+    require(source != "cybertec" or cybertec_index is not None,
+            "Cybertec requires an explicit local canonical index receipt")
+    require(not (source == "cybertec" and version is not None),
+            "Cybertec packaging labels are not upstream --version")
+    require(packaging_label is None or
+            (cybertec_index is not None and source in ("all", "cybertec")
+             and extension is not None and version is None),
+            "exact Cybertec --packaging-label requires --extension and no --version")
     # Always validate the COMPLETE GitHub candidate registry before filtering.
     # Source, PG and version selectors must never hide a poisoned unselected row.
     baseline = github_review(root)
@@ -146,6 +157,24 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
     timescale_originals = {
         item["pgMajor"]: item for item in timescale_rights["windowsAssets"]
     }
+    # Optional explicit Cybertec index receipt: read offline, never fetch a
+    # provider ZIP or interpret a packaging label as an upstream version.
+    # The existing canonical Cybertec review validates ALL source rows before
+    # extension/PG selectors; missing, poisoned and duplicate-key input DENY.
+    cybertec = None
+    if cybertec_index is not None:
+        index_path = Path(cybertec_index)
+        require(index_path.is_file() and not index_path.is_symlink()
+                and 0 < index_path.stat().st_size <= 5_000_000,
+                "missing, symlinked or oversized Cybertec index receipt")
+        try:
+            source_receipt = json.loads(index_path.read_text(encoding="utf-8"),
+                                        object_pairs_hook=unique_json_pairs)
+            cybertec = cybertec_review(
+                source_receipt, extension=extension, label=packaging_label,
+                latest_only=packaging_label is None)
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            raise Denied("Cybertec index receipt invalid or promoted") from exc
     rows = []
     if source in ("all", "github"):
         for batch in baseline["batches"]:
@@ -319,6 +348,40 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
     for group in sorted(groups, key=lambda item: (item[0], int(item[1]))):
         selected.extend(sorted(groups[group][1], key=lambda x: (
             x["source"], x["provider"], x["assetName"], x["packageIdentity"])))
+    cybertec_rows = []
+    # No semver mixing: --version is an exact upstream-version filter, while
+    # Cybertec currently exposes only untrusted packaging labels. When an
+    # upstream version is requested, omit Cybertec instead of guessing.
+    if cybertec is not None and source in ("all", "cybertec") and version is None:
+        for candidate in cybertec["candidates"]:
+            major = candidate["pgMajor"]
+            if pg != "all" and major != pg:
+                continue
+            name = candidate["fileName"]
+            cybertec_rows.append({
+                "source": "CYBERTEC_PGEE_DIRECTORY_METADATA_ONLY",
+                "extension": candidate["extension"], "pgMajor": major,
+                "version": None,
+                "versionMeaning": "PROVIDER_PACKAGING_LABEL_NOT_UPSTREAM_VERSION",
+                "providerPackagingLabel": candidate["providerBuildLabelUntrusted"],
+                "provider": "Cybertec PGEE Windows",
+                "releaseTag": None, "assetName": name, "format": "zip",
+                "originalUrlUntrusted": candidate["originalUrlUntrusted"],
+                "packageIdentity": f"cybertec-unverified:pg{major}:{name}",
+                "originalBytes": None, "originalSha256": None,
+                "blockers": [
+                    "ORIGINAL_BYTES_SHA256_NOT_VERIFIED",
+                    "UPSTREAM_VERSION_UNVERIFIED",
+                    "COMMUNITY_POSTGRESQL_ABI_UNVERIFIED",
+                    "ALL_COMPONENT_LICENSE_NOTICE_CLOSURE_MISSING",
+                    "PRODUCER_SOURCE_TO_BINARY_ATTESTATION_MISSING",
+                    "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
+                ],
+                **DENY,
+            })
+        selected.extend(cybertec_rows)
+        selected.sort(key=lambda x: (x["extension"], int(x["pgMajor"]),
+                                     x["source"], x["assetName"]))
     # Every listed component of a PG major shares ONE OSGeo ZIP identity.
     # Keep each component's review row, count the ZIP once. Review dedup
     # never permits any download or claims individual component runtime proof.
@@ -339,6 +402,12 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all"):
         "extensionSelection": extension, "exactVersionSelection": version,
         "githubDiscoveryCandidatesChecked": baseline["totalCandidateAssets"],
         "selectedReviewRows": len(selected),
+        "cybertecIndexSupplied": cybertec is not None,
+        "cybertecSelectedReviewRows": len(cybertec_rows),
+        "cybertecUnrankableGroups": [
+            item for item in (cybertec["unrankableGroups"] if cybertec else [])
+            if pg == "all" or item["pgMajor"] == pg
+        ],
         "uniqueOriginalPackages": len(packages),
         "uniqueOriginalPackageIdentities": packages,
         "observedMajorCoverageNotSupportClaim": coverage,
@@ -355,11 +424,17 @@ def main():
     parser.add_argument("--extension")
     parser.add_argument("--version")
     parser.add_argument("--source", default="all",
-                        choices=("all", "github", "osgeo", "pgroonga", "http", "timescaledb"))
+                        choices=("all", "github", "osgeo", "pgroonga", "http",
+                                 "timescaledb", "cybertec"))
+    parser.add_argument("--cybertec-index", type=Path,
+                        help="Explicit offline JSON from canonical Cybertec index observer")
+    parser.add_argument("--packaging-label",
+                        help="Cybertec exact provider label, never an upstream --version")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     result = make_plan(args.catalog, args.pg, args.extension,
-                       args.version, args.source)
+                       args.version, args.source, cybertec_index=args.cybertec_index,
+                       packaging_label=args.packaging_label)
     require(not args.output.exists() and not args.output.is_symlink(),
             "output must be create-only")
     args.output.write_text(json.dumps(result, sort_keys=True, indent=2) + "\n",
