@@ -1,7 +1,10 @@
 # Issue #112: sample actual loaded modules in disposable PostgreSQL while reusing
 # the existing genuine original TimescaleDB Windows SQL test. NONPUBLISHING ONLY.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet(16,17,18)][int]$Major)
+param(
+    [Parameter(Mandatory=$true)][ValidateSet(16,17,18)][int]$Major,
+    [ValidateSet('2.31.0','2.32.0')][string]$ReleaseVersion = '2.31.0'
+)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -13,7 +16,8 @@ $pg = [string]$Major
 $bin = Join-Path ([IO.Path]::GetFullPath($env:PGROOT)) 'bin'
 $targetExe = Join-Path $bin 'postgres.exe'
 if (-not (Test-Path -LiteralPath $targetExe -PathType Leaf)) { throw 'Expected postgres.exe missing' }
-$dir = Join-Path $env:RUNNER_TEMP "issue112-loaded-modules-pg$pg"
+$verSuffix = $ReleaseVersion.Replace('.', '-')
+$dir = Join-Path $env:RUNNER_TEMP "issue112-loaded-modules-$verSuffix-pg$pg"
 if (Test-Path -LiteralPath $dir) { throw 'Create-only receipt directory already exists' }
 New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
 $stop = Join-Path $dir 'stop'
@@ -22,13 +26,15 @@ $importsFile = Join-Path $dir 'imports.json'
 $runtimeFile = Join-Path $dir 'live.json'
 $job = $null
 try {
-    $importsText = & python scripts/issue112_timescaledb_pe_imports.py --pg $pg
+    $importsText = & python scripts/issue112_timescaledb_pe_imports.py --pg $pg --version $ReleaseVersion
     if ($LASTEXITCODE -ne 0) { throw 'Pinned original per-DLL import check failed' }
     $jsonLines = @($importsText | Where-Object { $_ -is [string] -and $_.StartsWith('{') })
     if ($jsonLines.Count -ne 1) { throw 'Expected exactly one original JSON evidence record' }
     Set-Content -LiteralPath $importsFile -Value $jsonLines[0] -Encoding utf8
     $static = Get-Content -LiteralPath $importsFile -Raw | ConvertFrom-Json
-    if (-not $static.allImportTablesParsed) { throw 'Original PE import tables are not all parsed' }
+    if (-not $static.allImportTablesParsed -or $static.releaseTag -cne $ReleaseVersion) {
+        throw 'Wrong exact original PE version or unparsed import tables'
+    }
     $interesting = [System.Collections.Generic.HashSet[string]]::new(
         [StringComparer]::OrdinalIgnoreCase)
     foreach ($r in $static.unbundledImportTriage) { [void]$interesting.Add([string]$r.name) }
@@ -72,7 +78,7 @@ try {
         $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $outPath -Encoding utf8
     }
     # Existing genuine original SQL path is not modified or replaced.
-    & ./scripts/issue112-timescaledb-windows-runtime.ps1 -Major $Major
+    & ./scripts/issue112-timescaledb-windows-runtime.ps1 -Major $Major -ReleaseVersion $ReleaseVersion
     if ($LASTEXITCODE -ne 0) { throw 'Original Windows PostgreSQL SQL test failed' }
 } finally {
     Set-Content -LiteralPath $stop -Value 'stop'
@@ -102,11 +108,12 @@ try {
     }
     $report = [ordered]@{
         pgMajor = $pg
+        releaseVersion = $ReleaseVersion
         sampledProcessCount = [int]$sample.sampledProcessCount
         modules = @($rows)
     }
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $runtimeFile -Encoding utf8
-    & python scripts/issue112_timescaledb_windows_loaded_modules.py --pg $pg --imports $importsFile --runtime $runtimeFile
+    & python scripts/issue112_timescaledb_windows_loaded_modules.py --pg $pg --version $ReleaseVersion --imports $importsFile --runtime $runtimeFile
     if ($LASTEXITCODE -ne 0) { throw 'Live process receipt join failed' }
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
