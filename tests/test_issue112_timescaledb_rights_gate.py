@@ -71,6 +71,38 @@ class TimescaleDbRightsGateTests(unittest.TestCase):
             copy.deepcopy(x["windowsAssets"][0])))
         self.changed(lambda x: x.update(scope="PUBLIC_COMPLETE"))
 
+    def test_original_license_notice_path_count_is_zero_but_rights_still_denied(self):
+        observed = self.ledger["originalZipInventory"]
+        self.assertEqual(observed["runId"], 43116446694)
+        self.assertEqual(
+            [(x["pgMajor"], x["members"], x["dllMembers"],
+              x["potentialNoticePaths"]) for x in observed["rows"]],
+            [("16", 77, 3, []), ("17", 77, 3, []),
+             ("18", 77, 3, [])],
+        )
+        self.assertIs(observed["licenseNoticeBundlingVerified"], False)
+        self.assertEqual(
+            self.ledger["evidence"]["bundledLicenseNoticeCompleteness"],
+            "UNVERIFIED",
+        )
+
+    def test_original_notice_source_gaps_cannot_be_silently_promoted(self):
+        self.changed(lambda x: x["originalZipInventory"].update(
+            licenseNoticeBundlingVerified=True))
+        self.changed(lambda x: x["originalZipInventory"].update(
+            producerBuildFlagsVerified=True))
+        self.changed(lambda x: x["originalZipInventory"].update(
+            runId=43116446695))
+        self.changed(lambda x: x["originalZipInventory"].update(
+            observationLimit="ALL_CONTENTS_EXHAUSTIVELY_SEARCHED"))
+        self.changed(lambda x: x["originalZipInventory"]["rows"][0].update(
+            potentialNoticePaths=["LICENSE"]))
+        self.changed(lambda x: x["originalZipInventory"]["rows"][1].update(
+            declaredUncompressedBytes=33783222))
+        self.changed(lambda x: x["originalZipInventory"]["rows"][2].update(
+            dllMembers=4))
+        self.changed(lambda x: x["originalZipInventory"]["rows"].pop())
+
     def test_strict_json_rejects_duplicate_keys_and_symlinks(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

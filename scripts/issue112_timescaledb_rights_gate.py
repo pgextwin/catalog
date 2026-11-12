@@ -48,6 +48,7 @@ def validate(ledger, baseline):
     if type(ledger) is not dict or set(ledger) != {
         "schemaVersion", "scope", "upstream", "sourceLicenseScopes",
         "licenseReview", "windowsAssets", "evidence", "permissions",
+        "originalZipInventory",
     }:
         raise ValueError("Unknown TimescaleDB rights-intake schema")
     if (ledger["schemaVersion"] != SCHEMA or
@@ -100,6 +101,40 @@ def validate(ledger, baseline):
             not isinstance(row["originalSha256"], str) or
             not re.fullmatch(r"[0-9a-f]{64}", row["originalSha256"])):
             raise ValueError("Original Windows ZIP pins deviate from prior baseline")
+    # Observed in a genuine prior successful CI Run; existing immutable log,
+    # not a new retrieval or a producer/source-to-binary attestation.
+    inventory = ledger["originalZipInventory"]
+    if type(inventory) is not dict or set(inventory) != {
+        "source", "runId", "sourceRef", "observationLimit", "rows",
+        "licenseNoticeBundlingVerified", "producerBuildFlagsVerified",
+    } or inventory["source"] != "EXISTING_GENUINE_ORIGINAL_REHASH_CI_LOGS_ONLY" or (
+        inventory["runId"] != 43116446694 or
+        inventory["sourceRef"] != "pgextwin/catalog" or
+        inventory["observationLimit"] !=
+            "ZIP_METADATA_FILENAME_REGEX_ONLY_NOT_SETUP_EXE_EMBEDDED_CONTENT" or
+        inventory["licenseNoticeBundlingVerified"] is not False or
+        inventory["producerBuildFlagsVerified"] is not False
+    ):
+        raise ValueError("Unverified archived original ZIP component inventory")
+    expected_inventory = [
+        ("16", 130845554299, 33783221),
+        ("17", 130845554217, 33783221),
+        ("18", 130845553821, 33785269),
+    ]
+    if type(inventory["rows"]) is not list or len(inventory["rows"]) != 3:
+        raise ValueError("Incomplete genuine source ZIP inventories")
+    for observed, (major, job, expanded_bytes) in zip(
+            inventory["rows"], expected_inventory):
+        if (type(observed) is not dict or set(observed) != {
+            "pgMajor", "jobId", "members", "dllMembers",
+            "declaredUncompressedBytes", "potentialNoticePaths",
+        } or observed["pgMajor"] != major or observed["jobId"] != job or
+            observed["members"] != 77 or observed["dllMembers"] != 3 or
+            observed["declaredUncompressedBytes"] != expanded_bytes or
+            observed["potentialNoticePaths"] != []):
+            raise ValueError("Original CI ZIP metadata/notice-path receipt drift")
+    # No filename match does not prove no notices embedded in setup.exe or
+    # documents under unrelated filenames, and NEVER grants rights clearance.
     evidence = ledger["evidence"]
     if (type(evidence) is not dict or set(evidence) !=
         OPEN_GATES | {"originalZipIndependentRehash", "windowsPostgresqlSqlPg16Pg17Pg18",
