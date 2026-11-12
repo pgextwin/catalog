@@ -1,0 +1,36 @@
+name: Issue112 PGroonga official detached signature assets (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_pgroonga_detached_signature_review.py
+      - tests/test_issue112_pgroonga_detached_signature_review.py
+      - docs/issue-112-pgroonga-detached-signature-review.md
+      - .github/workflows/issue112-pgroonga-detached-signature-review.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_pgroonga_detached_signature_review.py
+      - tests/test_issue112_pgroonga_detached_signature_review.py
+      - docs/issue-112-pgroonga-detached-signature-review.md
+      - .github/workflows/issue112-pgroonga-detached-signature-review.yml
+
+permissions:
+  contents: read
+jobs:
+  inspect-official-sidecars:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline adversarial identity and permission tests
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_detached_signature_review.py -v
+      - name: Independently GET original tiny detached signature assets, never ZIPs
+        run: python3 scripts/issue112_pgroonga_detached_signature_review.py
+      - name: Keep producer trust, rights, GET and Publisher DENY
+        if: always()
+        run: echo 'PACKET_PARSE_ONLY=YES TRUSTED_PRODUCER_SIGNATURE=NO PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
