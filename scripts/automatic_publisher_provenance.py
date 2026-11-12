@@ -39,6 +39,9 @@ OWNER_ID=27071164
 OWNER_SIGNING_ISSUES={
     "pgextwin/plpgsql_check":78,
     "pgextwin/set_user":60,
+    "pgextwin/pg_ivm":67,
+    "pgextwin/orafce":94,
+    "pgextwin/pg_hint_plan":69,
 }
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),
