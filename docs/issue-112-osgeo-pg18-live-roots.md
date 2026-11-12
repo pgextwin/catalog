@@ -40,3 +40,39 @@ be claimed to have inherited its rights or build lineage.
 **Decision:** CANDIDATE_ONLY. `PUBLIC_GET=DENY`,
 `MIRROR=DENY`, `RELEASE=DENY`, `PUBLISH=DENY`.
 Do not reuse this evidence for another original bundle/version/PG major.
+
+
+## Follow-up: sampled server dependency original-member reconciliation
+
+The Windows SQL test now reopens the **same** independently pinned original
+83,320,975-byte ZIP after successful PostGIS and pgRouting execution. It hashes
+each direct original server-directory DLL member under `bin/` and `lib/`
+(the GUI subtree is excluded), and checks all actually sampled DLL paths
+directly under the disposable EDB PostgreSQL 18 `bin` and `lib` directories.
+
+The strict offline join reports, by exact loaded path and SHA256:
+
+- `EXACT_ORIGINAL_MEMBER_BYTE_MATCH`: sampled live file equals a corresponding
+  member of the independently pinned OSGeo original archive.
+- `PRESERVED_EDB_HOST_NOT_ORIGINAL`: observed PostgreSQL-host `libcurl.dll`
+  equals the separately pinned pre-staging EDB copy; **this is not** OSGeo
+  component provenance or OSGeo's dependency/rights acceptance.
+- `UNVERIFIED_ORIGINAL_PATH_HASH_MISMATCH` or
+  `PG_HOST_OR_UNMAPPED_NOT_ORIGINAL`: unresolved original/host relationship.
+  Such files are never silently promoted to a verified bundled dependency.
+
+Both root DLLs must still be observed at the exact PG18 lib paths with byte
+matches. All original members that were not observed, DLLs outside the two
+sampled EDB directories, GUI components and future dynamic loading remain
+**unverified**. In particular, a non-root mismatch may be reported, but cannot
+be converted into a PASS for full dependency closure.
+
+The receipt rejects changed original ZIP identity, cross-PG data, path escapes,
+wrong directory/basename, duplicate modules and attempts to assert public GET
+or publisher permissions. The test creates no artifact and has no issuer,
+private signer, mirror, public downloader or Publisher credentials.
+
+**State remains CANDIDATE_ONLY.** Full dependency search-order and transitive
+rights/NOTICE completeness, complete load coverage, producer-signed source-to-
+binary provenance, current owner-signed authorization and protected Publisher
+acceptance remain unresolved. All formal-publication and GET gates stay DENY.
