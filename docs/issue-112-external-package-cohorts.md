@@ -9,8 +9,15 @@ The prior `issue112_latest_external_review.py` already selects the highest
 It also preserves OSGeo's PostGIS/pgRouting/subextension sharing of one ZIP.
 
 This follow-up reuses that tested selector **without copying its source-specific
-validation**, and compiles the selected logical extension rows into bounded,
-physical-original review cohorts. A shared OSGeo bundle is represented **once**
+validation**, then prefers the single highest observed stable version of each
+non-bundle extension **across PG majors**. A PG major with only an older binary
+is reported as unobserved at that newest version, **not silently downgraded**.
+Explicit `--extension NAME --version EXACT` bypasses this latest-only filter.
+Unrankable Cybertec packaging labels remain separate unverified leads, not
+claimed newest upstream semver. Bundles retain per-major observed versions:
+there is no false requirement that a PostGIS bundle's label equals the
+pgRouting component version. The selected logical extension rows are compiled
+into bounded, physical-original review cohorts. A shared OSGeo bundle is represented **once**
 for each PostgreSQL major rather than downloading seven copies. Plain per-major
 provider ZIPs retain independent package identities. Versions in OSGeo filenames
 are *bundle versions*, not verified pgRouting component versions.
@@ -24,7 +31,8 @@ python scripts/issue112_external_package_cohorts.py --catalog . --source osgeo -
 python scripts/issue112_external_package_cohorts.py --catalog . --source github --extension hypopg --version 1.4.1 --pg 16 --output /tmp/hypopg-historical-review.json
 ```
 
-Output is **create-only** JSON with `reviewBatchCount`, distinct
+Output is **create-only** JSON with `reviewBatchCount`,
+`olderObservedRowsOmitted`, distinct
 `uniqueOriginalPackages`, per-package `extensions`, immutable candidate
 identities, observed bytes/SHA256 *where independently known*, and
 `unobservedMajorsNotSupportVerdict`. The last field identifies missing
