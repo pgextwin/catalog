@@ -1,0 +1,19 @@
+# Issue #112 — PGroonga 4.1.0 xxHash upstream license source and 22 external imports (deny-only)
+
+**Status: CANDIDATE_ONLY; PUBLIC_GET / MIRROR / RELEASE / PUBLISH DENY.** This is an additional source-rights and dependency triage, not a source-specific publisher authorization.
+
+## What the independently checked inputs establish
+
+The original PGroonga 4.1.0 source tag resolves to commit `47d0252f76dccbdc2ebeee9ed6cf941dd9552bcc`. Its exact `subprojects/xxhash.wrap` Git blob `35cfd29d909dd6c6c60f22568bc1ce06add35d4e` declares **xxHash v0.8.3**, source archive SHA256 `aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80` and Meson patch SHA256 `c7f78fc2d08ec21ff1bae928d7bdcddb42713a07d9d973a885c59ea7f8cf6bc8`. These are *declared build inputs*, **not a retrieved/rehash-verified historical source archive or signed producer attestation**.
+
+The independently checked upstream `Cyan4973/xxHash` `v0.8.3` tag maps to source commit `e626a72bc2321cd320e953a0ccf1584cad60f363`. Its `LICENSE` Git blob `e4c5da7234eca7baad9a46f0b144e49ccad2e500` contains **BSD 2-Clause** terms. In particular, binary redistribution requires reproduction of its copyright, conditions and disclaimer in accompanying documentation or other materials. The verifier checks both immutable commit-to-path mappings and exact length-prefixed Git blob SHA1, then checks the text/conditions. It never treats a filename or asserted license identifier as sufficient evidence of satisfied delivery obligations.
+
+For each **independently SHA256/size-pinned original PG14–18 Release ZIP**, reuse the existing ZIP auditor, complete 43-of-43 PE import parser and rights graph. The original has 25 legal-document candidates, but **no named xxHash-specific license candidate** for `bin/libxxhash.dll` and `bin/xxhsum.exe`; `lib/pgroonga.dll` is a third *transitively affected* binary. Finding the upstream source LICENSE does **not** put that text into the original ZIP, and does not prove that the built binaries actually derive from that particular source revision.
+
+The 22 static import names absent from the original package are grouped for investigation, not marked resolved: **11** Windows CRT API-set names, **5** Windows OS DLL-name hints, **4** Visual C++ runtime DLL-name hints, **1** host `liblz4.dll` and **1** host `postgres.exe`. Some of these are API-set contracts, not separate physical files. Previous same-PID EDB LZ4 sampling in PR #368 is separate evidence; name matching here does not upgrade any other import to a verified Windows load path, signer, installation dependency or redistribution right.
+
+## Fail-closed controls and remaining requirements
+
+The read-only CI checks source tag, immutable tree path/blob identity and legal content; rehashes the five original ZIPs on five real jobs; rejects unexpected external import names, missing binary rows, a changed notice-gap set, tampered Git contents, modified license conditions and incorrect declared source/patch hashes. No upstream original Release/CI success is replayed. It uses only `contents: read` and does not upload source ZIPs, replace existing CLI policy, create issuer authorization, mirror or publish.
+
+**Still unproven:** signed immutable historical `groonga-latest.zip` producer input and full build-toolchain provenance; exact xxHash source-to-released-binary identity; satisfaction of source-license text delivery obligations and MRuby/other third-party notices across **all** 43 binaries; actual Windows origin, signature and license closure of all runtime/delay/optional imports; independent owner-signed source-specific GET grant; formal Publisher Environment/App authorization. The separately verified signed **final** ZIP does not substitute for those inputs. Consequently every public GET/Release/Publisher admission boolean stays **false**, and no new external distribution is authorized.
