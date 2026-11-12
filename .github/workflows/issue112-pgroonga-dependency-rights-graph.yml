@@ -1,0 +1,37 @@
+name: Issue112 PGroonga transitive static dependency rights gap (deny-only)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_pgroonga_dependency_rights_graph.py
+      - tests/test_issue112_pgroonga_dependency_rights_graph.py
+      - docs/issue-112-pgroonga-dependency-rights-graph.md
+      - .github/workflows/issue112-pgroonga-dependency-rights-graph.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_pgroonga_dependency_rights_graph.py
+      - tests/test_issue112_pgroonga_dependency_rights_graph.py
+      - docs/issue-112-pgroonga-dependency-rights-graph.md
+      - .github/workflows/issue112-pgroonga-dependency-rights-graph.yml
+permissions:
+  contents: read
+jobs:
+  dependency-rights-graph:
+    name: PG${{ matrix.pg }} original static dependency/NOTICE gaps (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [14, 15, 16, 17, 18]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Hostile offline joins and missing-rights regressions
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_dependency_rights_graph.py -v
+      - name: Rehash original and derive transitive static import-name rights gaps
+        run: python3 scripts/issue112_pgroonga_dependency_rights_graph.py --pg ${{ matrix.pg }}
+      - name: Never sign, publish, or grant original-provider GET
+        if: always()
+        run: echo 'CANDIDATE_ONLY=YES SIGNED_PRODUCER=DENY RIGHTS=DENY GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
