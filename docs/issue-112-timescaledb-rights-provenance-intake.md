@@ -48,6 +48,41 @@ cross-checked against the existing
 `external/timescaledb-release-watch-baseline-v1.json`. The JSON records
 unresolved gates as `UNVERIFIED` or `MISSING`, never as `PASS`.
 
+
+## Exact original ZIP filename-level legal/NOTICE observations
+
+**No original Run was rerun**: the following entries are extracted from the
+existing successful, authenticated
+[TimescaleDB original rehash Run 43116446694](https://github.com/pgextwin/catalog/actions/runs/43116446694)
+and individually identified genuine original Windows ZIP audit jobs.
+
+| PG | Original Run job | ZIP members | DLL members | Declared expanded bytes | Potential LICENSE / NOTICE / COPYING filenames |
+| --- | --- | ---: | ---: | ---: | --- |
+| 16 | 130845554299 | 77 | 3 | 33,783,221 | **0** |
+| 17 | 130845554217 | 77 | 3 | 33,783,221 | **0** |
+| 18 | 130845553821 | 77 | 3 | 33,785,269 | **0** |
+
+The original auditor's `zipInventory.potentialNoticePaths` array is empty
+for all three original provider archives. Its name test is
+`(?:^|/)(?:licen[cs]e|notice|copying|third.party)(?:[./_-]|$)`,
+case-insensitive. Its result is **only a ZIP path-name inspection**: it
+does **not** verify the embedded setup.exe contents, binary resources, an
+alternative-named document, or license/NOTICE text outside the ZIP.
+Consequently neither document absence in every possible location nor
+legal noncompliance is proven. But **bundled license/NOTICE completeness is
+not verified**, so publish permission remains **DENY** and cannot be
+derived from exact ZIP SHA256, Windows SQL tests or this intake. Relevant
+upstream source `NOTICE` and `tsl/LICENSE-TIMESCALE` exist separately
+at tag `2.31.0`; their presence in source is not evidence of shipping them
+to end users.
+
+The archived original findings are pinned in the JSON ledger. The offline
+guard rejects tampered job IDs, member counts, purported notice paths,
+invented legal clearance and substituted provenance. Need per-binary
+component/license mapping, any necessary downstream notice delivery method,
+verified upstream build identity and an independent new scoped owner
+signature before any direct GET admission.
+
 ## Acceptance still required
 
 1. Inspect **each exact original ZIP** offline for all LICENSE/NOTICE files,
