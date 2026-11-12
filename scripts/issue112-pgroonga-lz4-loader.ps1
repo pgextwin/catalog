@@ -70,6 +70,101 @@ function Review-ModuleOrigins {
     }
 }
 
+
+# PR #370 has 22 external static import *names*. This is only a same-PID
+# module sample, never a claim of binding a particular PE import to a file.
+function Review-ExternalImportSample {
+    param([object[]]$Observed,[string]$PgRoot,[int]$BackendPid,[string]$HostLz4Sha)
+    $groups=[ordered]@{
+        WINDOWS_CRT_API_SET=@(
+            'api-ms-win-crt-convert-l1-1-0.dll','api-ms-win-crt-environment-l1-1-0.dll',
+            'api-ms-win-crt-filesystem-l1-1-0.dll','api-ms-win-crt-heap-l1-1-0.dll',
+            'api-ms-win-crt-locale-l1-1-0.dll','api-ms-win-crt-math-l1-1-0.dll',
+            'api-ms-win-crt-runtime-l1-1-0.dll','api-ms-win-crt-stdio-l1-1-0.dll',
+            'api-ms-win-crt-string-l1-1-0.dll','api-ms-win-crt-time-l1-1-0.dll',
+            'api-ms-win-crt-utility-l1-1-0.dll')
+        WINDOWS_OS_IMAGE=@('advapi32.dll','dbghelp.dll','kernel32.dll','psapi.dll','ws2_32.dll')
+        VC_RUNTIME_IMAGE=@('msvcp140.dll','vcomp140.dll','vcruntime140.dll','vcruntime140_1.dll')
+        HOST_IMAGE=@('liblz4.dll')
+        POSTGRES_IMAGE=@('postgres.exe')
+    }
+    $types=@{}
+    foreach($type in $groups.Keys){
+        foreach($name in $groups[$type]){
+            if($types.ContainsKey($name)){throw 'Duplicate expected import name'}
+            $types[$name]=$type
+        }
+    }
+    if($types.Count -ne 22){throw 'Static import classification drift'}
+    $images=@{}
+    foreach($item in @($Observed)){
+        $name=[string]$item.name
+        $path=[string]$item.path
+        $sha=[string]$item.sha256
+        $status=[string]$item.authenticode
+        if(-not $types.ContainsKey($name) -or $images.ContainsKey($name) -or
+           [int]$item.pid -ne $BackendPid -or
+           -not [IO.Path]::IsPathFullyQualified($path) -or
+           $path -match '(?i)(^|\\)\.\.?\\' -or
+           -not [string]::Equals([IO.Path]::GetFileName($path),$name,[StringComparison]::OrdinalIgnoreCase) -or
+           $sha -cnotmatch '^[0-9a-f]{64}$' -or
+           $status -cnotmatch '^[A-Za-z]{2,40}$'){
+            throw 'Untrusted, duplicate, wrong-PID or incomplete module receipt'
+        }
+        $images[$name]=$item
+    }
+    foreach($required in @('liblz4.dll','postgres.exe')){
+        if(-not $images.ContainsKey($required)){throw "Required same-PID image missing: $required"}
+        $expectedPath=Join-Path $PgRoot ('bin\' + $required)
+        if(-not [string]::Equals([string]$images[$required].path,$expectedPath,[StringComparison]::OrdinalIgnoreCase)){
+            throw "Required same-PID image path mismatch: $required"
+        }
+    }
+    if($images['liblz4.dll'].sha256 -cne $HostLz4Sha){throw 'EDB LZ4 SHA256 mismatch'}
+    $entries=@();$physical=0;$missing=0
+    foreach($name in @($types.Keys | Sort-Object)){
+        $type=$types[$name];$found=$images.ContainsKey($name)
+        $item=$null
+        if($found){$item=$images[$name]}
+        $observation=if($type -eq 'WINDOWS_CRT_API_SET'){
+            'API_SET_CONTRACT_NOT_PHYSICAL_PATH_PROOF'
+        }elseif($found){
+            $physical++
+            'SAME_BACKEND_MODULE_NAME_MATCH_NOT_DIRECT_IMPORT_PROOF'
+        }else{
+            $missing++
+            'NOT_OBSERVED_IN_SAMPLED_BACKEND'
+        }
+        $entries += [ordered]@{
+            name=$name;category=$type;observation=$observation
+            imageObservedInSamePid=$found
+            path=if($found){[string]$item.path}else{$null}
+            sha256=if($found){[string]$item.sha256}else{$null}
+            authenticodeStatus=if($found){[string]$item.authenticode}else{$null}
+            exactPeImportBindingVerified=$false
+            thirdPartyRightsVerified=$false
+        }
+    }
+    return [ordered]@{
+        schemaVersion='pgextwin-pgroonga-sampled-external-import-names-deny-only/v1'
+        sampledBackendPid=$BackendPid
+        externalImportNames=22
+        virtualApiSetContracts=11
+        sampledPhysicalNameMatches=$physical
+        notSeenPhysicalNames=$missing
+        perImport=$entries
+        exactImportResolutionVerified=$false
+        completeOptionalDynamicDependenciesVerified=$false
+        binaryThirdPartyNoticeClosureVerified=$false
+        signedProducerInputProvenanceVerified=$false
+        ownerSignedAdmission=$false
+        publicGetAuthorized=$false
+        mirrorAuthorized=$false
+        releaseAuthorized=$false
+        publisherAuthorized=$false
+    }
+}
+
 if ($SelfTest) {
     $one = [pscustomobject]@{ Id=5; Modules=@(
         [pscustomobject]@{ FileName='C:\pg\lib\pgroonga.dll' },
@@ -107,6 +202,37 @@ if ($SelfTest) {
         try{$null=Review-ModuleOrigins -Observed $altered -Original $orig -PgRoot $fake -HostLz4 'C:\pg\bin\liblz4.dll' -HostSha $c}catch{$denied=$true}
         if(-not $denied){throw "Forged sample accepted: $kind"}
     }
+    $externalRows=@(
+        [pscustomobject]@{name='liblz4.dll';path='C:\pg\bin\liblz4.dll';sha256=$c;authenticode='NotSigned';pid=5},
+        [pscustomobject]@{name='postgres.exe';path='C:\pg\bin\postgres.exe';sha256=$a;authenticode='NotSigned';pid=5},
+        [pscustomobject]@{name='kernel32.dll';path='C:\Windows\System32\kernel32.dll';sha256=$b;authenticode='Valid';pid=5}
+    )
+    $reviewExternal=Review-ExternalImportSample -Observed $externalRows -PgRoot $fake -BackendPid 5 -HostLz4Sha $c
+    if($reviewExternal.externalImportNames -ne 22 -or $reviewExternal.virtualApiSetContracts -ne 11 -or
+       $reviewExternal.sampledPhysicalNameMatches -ne 3 -or $reviewExternal.publicGetAuthorized -or
+       @($reviewExternal.perImport | Where-Object {$_.exactPeImportBindingVerified}).Count -ne 0){
+        throw 'External import positive control failed'
+    }
+    foreach($kind in @('wrong-pid','wrong-sha','wrong-lz4','missing-host','missing-exe','duplicate','unknown','traversal','wrong-exe')){
+        $bad=@($externalRows | ForEach-Object {
+            [pscustomobject]@{name=$_.name;path=$_.path;sha256=$_.sha256;authenticode=$_.authenticode;pid=$_.pid}
+        })
+        switch($kind){
+            'wrong-pid' {$bad[2].pid=6}
+            'wrong-sha' {$bad[2].sha256='invalid'}
+            'wrong-lz4' {$bad[0].sha256=$b}
+            'missing-host' {$bad=@($bad | Where-Object {$_.name -ne 'liblz4.dll'})}
+            'missing-exe' {$bad=@($bad | Where-Object {$_.name -ne 'postgres.exe'})}
+            'duplicate' {$bad+= $bad[0]}
+            'unknown' {$bad[2].name='unlisted.dll'}
+            'traversal' {$bad[2].path='C:\Windows\..\wrong\kernel32.dll'}
+            'wrong-exe' {$bad[1].path='C:\other\postgres.exe'}
+        }
+        $rejected=$false
+        try{$null=Review-ExternalImportSample -Observed $bad -PgRoot $fake -BackendPid 5 -HostLz4Sha $c}catch{$rejected=$true}
+        if(-not $rejected){throw "Forged external import accepted: $kind"}
+    }
+    Write-Host 'PGROONGA_EXTERNAL_NAME_SAMPLE_OFFLINE=PASS HOSTILE_CASES=9 PUBLIC_GET=DENY'
     Write-Host 'PGROONGA_DLL_ORIGINS_OFFLINE=PASS HOSTILE_CASES=5 PUBLIC_GET=DENY'
     Write-Host 'PGROONGA_LZ4_MODULE_PAIR_OFFLINE=PASS PATH_AND_PID_REQUIRED=YES'
     return
@@ -274,6 +400,38 @@ try {
         $review['pgMajor']=$Major
         $review['observedBackendPid']=$observedPid
         $review['unsampledExternalWindowsDlls']=$external
+        # PR #370 names: 11 API-set contracts cannot be inferred from
+        # physical module paths. Other basenames are sampled in this exact PID.
+        $importNames=@('advapi32.dll','dbghelp.dll','kernel32.dll','psapi.dll','ws2_32.dll',
+                       'msvcp140.dll','vcomp140.dll','vcruntime140.dll','vcruntime140_1.dll',
+                       'liblz4.dll')
+        $importObserved=@()
+        foreach($module in $loaded){
+            $path=[string]$module.FileName
+            $name=[IO.Path]::GetFileName($path).ToLowerInvariant()
+            if($name -notin $importNames){continue}
+            if(-not (Test-Path -LiteralPath $path -PathType Leaf)){throw "Module vanished: $path"}
+            $importObserved += [pscustomobject]@{
+                name=$name;path=$path
+                sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+                authenticode=(Get-AuthenticodeSignature -FilePath $path).Status.ToString()
+                pid=$observedPid
+            }
+        }
+        $backend=(Get-Process -Id $observedPid -ErrorAction Stop)
+        $exe=[string]$backend.MainModule.FileName
+        if(-not (Test-Path -LiteralPath $exe -PathType Leaf)){throw 'Backend EXE vanished'}
+        $importObserved += [pscustomobject]@{
+            name='postgres.exe';path=$exe
+            sha256=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+            authenticode=(Get-AuthenticodeSignature -FilePath $exe).Status.ToString()
+            pid=$observedPid
+        }
+        $externalReview=Review-ExternalImportSample -Observed $importObserved -PgRoot $root -BackendPid $observedPid -HostLz4Sha $before
+        $externalReview['pgMajor']=$Major
+        $externalReview | ConvertTo-Json -Depth 6 -Compress | Write-Host
+        Write-Host "PGROONGA_EXTERNAL_22_IMPORT_NAMES=OBSERVED PG=$pg PHYSICAL_SAMPLED=$($externalReview.sampledPhysicalNameMatches) NOT_SEEN=$($externalReview.notSeenPhysicalNames) API_SET=11 EXACT_IMPORT_BINDING=DENY PUBLIC_GET=DENY"
+
         $review | ConvertTo-Json -Depth 5 -Compress | Write-Host
         Write-Host "PGROONGA_LIVE_DLL_ORIGINS=PASS PG=$pg EXACT=$($review.originCounts.exact) HOST=$($review.originCounts.preservedHost) DIFFERENT_BYTES=$($review.originCounts.differentBytes) UNMAPPED=$($review.originCounts.unmapped) EXTERNAL_UNVERIFIED=$external"
     }
