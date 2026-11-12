@@ -1,0 +1,63 @@
+name: Issue112 TimescaleDB actual Windows module origins (deny-only)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-timescaledb-windows-loaded-modules.yml
+      - scripts/issue112-timescaledb-windows-loaded-modules.ps1
+      - scripts/issue112_timescaledb_windows_loaded_modules.py
+      - tests/test_issue112_timescaledb_windows_loaded_modules.py
+      - docs/issue-112-timescaledb-windows-loaded-modules.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-timescaledb-windows-loaded-modules.yml
+      - scripts/issue112-timescaledb-windows-loaded-modules.ps1
+      - scripts/issue112_timescaledb_windows_loaded_modules.py
+      - tests/test_issue112_timescaledb_windows_loaded_modules.py
+      - docs/issue-112-timescaledb-windows-loaded-modules.md
+
+permissions:
+  contents: read
+
+jobs:
+  sampled-windows-provider-paths:
+    name: TimescaleDB 2.31.0 ${{ matrix.pg }} loaded module origins (deny-only)
+    runs-on: windows-latest
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { pg: '16', edb: '16.15.5' }
+          - { pg: '17', edb: '17.11.4' }
+          - { pg: '18', edb: '18.6.5' }
+    steps:
+      - name: Checkout with no persisted token
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile receipt join tests
+        shell: pwsh
+        run: python -m unittest discover -s tests -p test_issue112_timescaledb_windows_loaded_modules.py -v
+      - name: Checkout pinned shared EDB installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - name: Install isolated EDB PostgreSQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
+        run: ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55461
+      - name: Pin original bytes and sample real loaded modules during proven SQL path
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: ./scripts/issue112-timescaledb-windows-loaded-modules.ps1 -Major ([int]$env:PG_MAJOR)
+      - name: Preserve every independent publication gate
+        if: always()
+        shell: pwsh
+        run: Write-Host 'LIVE_MODULE_OBSERVATION_ONLY=YES LICENSE=UNVERIFIED PRODUCER=UNVERIFIED SIGNED_ADMISSION=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
