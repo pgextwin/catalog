@@ -36,15 +36,17 @@ def original_pin(pg, root=ROOT):
     name = f"timescaledb-postgresql-{pg}-windows-amd64.zip"
     prefix = f"github-metadata:timescale/timescaledb:{RELEASE_ID}:"
     ident = row["packageIdentity"]
-    if (row["source"] != "TIMESCALEDB_API_ONLY_NEW_STABLE_CANDIDATE" or
+    if (row["source"] != "TIMESCALEDB_REHASHED_ORIGINAL_ONLY_2_32" or
             row["version"] != VERSION or row["pgMajor"] != pg or
             row["provider"] != "timescale/timescaledb" or
             row["assetName"] != name or row["format"] != "zip" or
-            row["originalBytes"] is not None or
-            row["originalSha256"] is not None or
+            row["originalBytes"] != row["apiObservedBytes"] or
+            row["originalSha256"] != row["apiObservedSha256"] or
+            row["originalRehashEvidenceRunId"] != 43242594902 or
+            not isinstance(row.get("originalRehashEvidenceJobId"), int) or
             not isinstance(ident, str) or not ident.startswith(prefix) or
             not ident[len(prefix):].isdigit() or
-            "INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED" not in row["blockers"] or
+            "INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED" in row["blockers"] or
             any(row.get(flag) is not False for flag in DENY)):
         raise ValueError("Candidate was silently promoted or source changed")
     return {
