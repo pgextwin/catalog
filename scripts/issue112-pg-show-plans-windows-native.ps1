@@ -73,12 +73,26 @@ $majorOut = (Get-Item $dll).Length
 if ($majorOut -lt 1000) { throw 'Implausibly small MSVC binary' }
 Write-Host ("PG{0}_PRIVATE_DLL_BYTES={1} SHA256={2}" -f $Major,$majorOut,(Get-FileHash $dll -Algorithm SHA256).Hash.ToLowerInvariant())
 
+# Create-only, deterministic private ZIP; verify exact contents and reinstall
+# from the validated ZIP rather than from a loose build-tree DLL. No upload.
+$privateZip = Join-Path $runTemp "pg_show_plans-v2.1.8-pg$Major-private.zip"
+$privateStage = Join-Path $runTemp "pg_show_plans-private-stage-pg$Major"
+python scripts/issue112_pg_show_plans_private_package.py --mode create --source $source --dll $dll --major $Major --zip $privateZip
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $privateZip)) {
+    throw 'Private Windows ZIP packaging failed'
+}
+python scripts/issue112_pg_show_plans_private_package.py --mode verify-and-stage --source $source --dll $dll --major $Major --zip $privateZip --stage $privateStage
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $privateStage 'LICENSE'))) {
+    throw 'Private ZIP independent source/DLL/rights rehash or extraction failed'
+}
+
 $extensionDir = Join-Path $pgRoot 'share/extension'
 $libDir = Join-Path $pgRoot 'lib'
-Copy-Item -LiteralPath $dll -Destination (Join-Path $libDir 'pg_show_plans.dll') -Force
-Copy-Item -LiteralPath (Join-Path $source 'pg_show_plans.control') -Destination $extensionDir -Force
-$sql = @(Get-ChildItem -LiteralPath $source -Filter 'pg_show_plans--*.sql' -File)
-if ($sql.Count -ne 4) { throw 'Unexpected pinned install SQL count' }
+$zipExtensionDir = Join-Path $privateStage 'share/extension'
+Copy-Item -LiteralPath (Join-Path $privateStage 'lib/pg_show_plans.dll') -Destination (Join-Path $libDir 'pg_show_plans.dll') -Force
+Copy-Item -LiteralPath (Join-Path $zipExtensionDir 'pg_show_plans.control') -Destination $extensionDir -Force
+$sql = @(Get-ChildItem -LiteralPath $zipExtensionDir -Filter 'pg_show_plans--*.sql' -File)
+if ($sql.Count -ne 4) { throw 'Unexpected private ZIP install SQL count' }
 foreach ($file in $sql) { Copy-Item -LiteralPath $file.FullName -Destination $extensionDir -Force }
 
 $initdb = Join-Path $pgRoot 'bin/initdb.exe'
