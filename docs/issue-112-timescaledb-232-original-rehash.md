@@ -30,3 +30,21 @@ signed admission, user-facing GET, redistribution, Release and Publisher.
 Only a separate authentic owner-signed/Environment-controlled Publisher and
 signed Catalog admission can authorize future public delivery. The older
 2.31.0 independent audits are not manually re-run by this workflow.
+
+## Bound protected-main independent original evidence
+
+The original protected-main `push` Run [43242594902](https://github.com/pgextwin/catalog/actions/runs/43242594902),
+attempt 1 at exact merge HEAD `84f6aa357a4b7dcbc33af4db72986b29a9530de9`, has three successful original GET
+jobs: PG16 `131266732291`, PG17 `131266732923`, PG18 `131266732862`.
+The authenticated job logs independently report the exact 2.32.0 API-size
+and SHA256 matches, bounded CRC-checked ZIP inventories (78 members, three
+DLLs per major), and zero candidate notices by filename search.
+
+The separate `external/timescaledb-232-original-evidence-v1.json` ledger
+is validated as an all-major exact source/asset/job/run/ZIP join before any
+`--pg`, `--extension`, `--version` or source filter. The latest review
+accurately reports original SHA256 and size without falsely reusing the
+2.31.0 receipts. The ledger is **not** a producer-signed build attestation,
+independent owner signature, complete notice scan or runtime acceptance.
+Publication, GET, mirror, and release are always denied; no ZIP is stored
+in the repository. A later genuine Windows SQL test is separate.

@@ -34,6 +34,12 @@ class LatestExternalReviewTests(unittest.TestCase):
             (Path(__file__).resolve().parents[1] /
              "external/timescaledb-release-watch-observation-2.32.0.json").read_text(
                  encoding="utf-8"), encoding="utf-8")
+        self.timescale_232_evidence_path = (
+            self.root / "external/timescaledb-232-original-evidence-v1.json")
+        self.timescale_232_evidence_path.write_text(
+            (Path(__file__).resolve().parents[1] /
+             "external/timescaledb-232-original-evidence-v1.json").read_text(
+                 encoding="utf-8"), encoding="utf-8")
         self.timescale_rights_path = (
             self.root / "external/timescaledb-rights-provenance-intake-v1.json")
         self.timescale_rights_path.write_text(
@@ -203,11 +209,12 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.assertEqual(report["admittedAssets"], 0)
         for row in report["selected"]:
             self.assertEqual(row["version"], "2.32.0")
-            self.assertEqual(row["source"], "TIMESCALEDB_API_ONLY_NEW_STABLE_CANDIDATE")
-            self.assertIsNone(row["originalBytes"])
-            self.assertIsNone(row["originalSha256"])
-            self.assertNotIn("originalRehashEvidenceRunId", row)
-            self.assertIn("INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED", row["blockers"])
+            self.assertEqual(row["source"], "TIMESCALEDB_REHASHED_ORIGINAL_ONLY_2_32")
+            self.assertEqual(row["originalBytes"], row["apiObservedBytes"])
+            self.assertEqual(row["originalSha256"], row["apiObservedSha256"])
+            self.assertEqual(row["originalRehashEvidenceRunId"], 43242594902)
+            self.assertIsInstance(row["originalRehashEvidenceJobId"], int)
+            self.assertNotIn("INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED", row["blockers"])
             self.assertIn("SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
                           row["blockers"])
             for flag in DENY:
@@ -230,6 +237,34 @@ class LatestExternalReviewTests(unittest.TestCase):
                                    source="timescaledb")["selectedReviewRows"], 0)
         self.assertIn("timescaledb",
                       make_plan(self.root)["observedMajorCoverageNotSupportClaim"])
+
+    def test_timescaledb_232_evidence_poison_fails_even_if_unselected(self):
+        original = json.loads(self.timescale_232_evidence_path.read_text("utf-8"))
+        for mutate in (
+            lambda d: d["originalRehashRun"].update(runId=43242594903),
+            lambda d: d["originalRehashRun"].update(event="workflow_dispatch"),
+            lambda d: d["originalRehashRun"].update(headSha="0" * 40),
+            lambda d: d["assets"][0].update(originalSha256="0" * 64),
+            lambda d: d["assets"][1].update(jobId=d["assets"][0]["jobId"]),
+            lambda d: d["assets"][2]["zipInventory"].update(members=77),
+            lambda d: d["verification"].update(windowsRuntime=True),
+            lambda d: d["verification"].update(producerSignedSourceToZipProvenance=True),
+            lambda d: d["permissions"].update(publicGet=True),
+        ):
+            poisoned = copy.deepcopy(original)
+            mutate(poisoned)
+            self.timescale_232_evidence_path.write_text(
+                json.dumps(poisoned), encoding="utf-8")
+            with self.assertRaises(Denied):
+                make_plan(self.root, source="osgeo", pg="14")
+        self.timescale_232_evidence_path.write_text(
+            '{"scope":"CANDIDATE_ONLY","scope":"PUBLIC_COMPLETE"}',
+            encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="github")
+        self.timescale_232_evidence_path.unlink()
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="timescaledb")
 
     def test_timescaledb_new_latest_metadata_poison_fails_even_if_unselected(self):
         original = json.loads(self.timescale_new_path.read_text("utf-8"))

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "pgextwin-issue112-timescaledb-232-independent-original-evidence/v1",
+  "scope": "CANDIDATE_ONLY_NONPUBLISHING",
+  "sourceRepo": "timescale/timescaledb",
+  "releaseTag": "2.32.0",
+  "releaseId": 442824242,
+  "originalRehashRun": {
+    "repository": "pgextwin/catalog",
+    "runId": 43242594902,
+    "event": "push",
+    "attempt": 1,
+    "headSha": "84f6aa357a4b7dcbc33af4db72986b29a9530de9",
+    "workflowPath": ".github/workflows/issue112-timescaledb-232-original-rehash.yml",
+    "conclusion": "success",
+    "trust": "GITHUB_AUTHENTICATED_RUN_AND_JOBS_GET_NOT_SIGNED_PROVENANCE"
+  },
+  "assets": [
+    {
+      "pgMajor": "16",
+      "assetId": 739177731,
+      "assetName": "timescaledb-postgresql-16-windows-amd64.zip",
+      "originalBytes": 9637877,
+      "originalSha256": "69124f50da0206e6fa92bae9918f200875a406977cb18fd9e92187d4910f179a",
+      "jobId": 131266732291,
+      "zipInventory": {
+        "members": 78,
+        "dllMembers": 3,
+        "declaredUncompressedBytes": 33752961,
+        "potentialNoticePaths": []
+      }
+    },
+    {
+      "pgMajor": "17",
+      "assetId": 739179170,
+      "assetName": "timescaledb-postgresql-17-windows-amd64.zip",
+      "originalBytes": 9638195,
+      "originalSha256": "773596b56f53ac97595b8c36e09ae7f1125bdbc28f6aaa3efa0c8d92bf129c17",
+      "jobId": 131266732923,
+      "zipInventory": {
+        "members": 78,
+        "dllMembers": 3,
+        "declaredUncompressedBytes": 33754497,
+        "potentialNoticePaths": []
+      }
+    },
+    {
+      "pgMajor": "18",
+      "assetId": 739179122,
+      "assetName": "timescaledb-postgresql-18-windows-amd64.zip",
+      "originalBytes": 9639648,
+      "originalSha256": "309eba6bb24c3562b9ecfd279ff1bbe0eb638eaed8b16395c839047c670a9c45",
+      "jobId": 131266732862,
+      "zipInventory": {
+        "members": 78,
+        "dllMembers": 3,
+        "declaredUncompressedBytes": 33756545,
+        "potentialNoticePaths": []
+      }
+    }
+  ],
+  "verification": {
+    "actualResponseSha256AndLength": true,
+    "zipPathCrcAndBounds": true,
+    "windowsRuntime": false,
+    "rightsNoticeDependencyClosure": false,
+    "producerSignedSourceToZipProvenance": false,
+    "independentSignedAdmission": false
+  },
+  "permissions": {
+    "publicGet": false,
+    "mirror": false,
+    "redistribution": false,
+    "release": false,
+    "publisher": false
+  }
+}
