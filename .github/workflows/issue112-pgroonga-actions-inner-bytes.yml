@@ -1,0 +1,30 @@
+name: Issue112 PGroonga original Actions outer-to-Release inner bytes (deny-only)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_pgroonga_actions_inner_bytes.py
+      - tests/test_issue112_pgroonga_actions_inner_bytes.py
+      - docs/issue-112-pgroonga-actions-inner-bytes.md
+      - .github/workflows/issue112-pgroonga-actions-inner-bytes.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/issue112_pgroonga_actions_inner_bytes.py
+      - tests/test_issue112_pgroonga_actions_inner_bytes.py
+      - docs/issue-112-pgroonga-actions-inner-bytes.md
+      - .github/workflows/issue112-pgroonga-actions-inner-bytes.yml
+permissions:
+  contents: read
+jobs:
+  reject-forged-actions-and-release-receipts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline adversarial tests for original Actions outer to inner receipt
+        run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_actions_inner_bytes.py -v
+      - name: This evidence never issues GET or Publisher admission
+        if: always()
+        run: echo 'OUTER_TO_INNER_ORIGINAL_BYTES=LOCAL_VERIFIED_SIGNED_INPUT=DENY RIGHTS=DENY OWNER=DENY PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
