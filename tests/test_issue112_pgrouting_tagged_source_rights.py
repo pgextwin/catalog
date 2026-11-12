@@ -87,7 +87,7 @@ class PgRoutingSourceRightsTests(unittest.TestCase):
         old = fake.pins()
         fake.files["README.md"] += b"forged release claims"
         fake.forced_sha["README.md"] = old["README.md"]
-        with self.assertRaisesRegex(ValueError, "Source bytes"):
+        with self.assertRaisesRegex(ValueError, "Invalid pinned pgRouting source"):
             target.audit(fake.get, expected_blobs=old)
 
     def test_missing_boost_or_mit_notice_claim_denied(self):
@@ -113,7 +113,7 @@ class PgRoutingSourceRightsTests(unittest.TestCase):
     def test_expected_content_enforces_byte_bound(self):
         fake = FakeGitHub()
         fake.files["README.md"] += b"x" * (target.MAX_SOURCE_FILE + 1)
-        with self.assertRaisesRegex(ValueError, "Source bytes"):
+        with self.assertRaisesRegex(ValueError, "Invalid pinned pgRouting source"):
             target.audit(fake.get, expected_blobs=fake.pins())
 
     def test_no_redirect_or_untrusted_endpoint(self):
