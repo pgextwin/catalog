@@ -1,7 +1,7 @@
 # Exact-original PGroonga 4.1.0 EDB liblz4 loader-path evidence only.
 # Nonpublishing: never grants signed provider GET, ZIP upload, mirror or Release.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet(14,15,16,17,18)][int]$Major, [switch]$SelfTest)
+param([Parameter(Mandatory=$true)][ValidateSet(14,15,16,17,18)][int]$Major, [switch]$SelfTest, [switch]$AuditModuleOrigins)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -23,6 +23,53 @@ function Test-LoadedModuleSet {
     return $null
 }
 
+
+# One same-backend sampled DLL is not an exhaustive dynamic dependency proof.
+function Review-ModuleOrigins {
+    param([object[]]$Observed,[hashtable]$Original,[string]$PgRoot,[string]$HostLz4,[string]$HostSha)
+    $required=@((Join-Path $PgRoot 'lib\pgroonga.dll'),(Join-Path $PgRoot 'bin\libgroonga.dll'))
+    foreach($p in $required) {if(-not $Original.ContainsKey($p)){throw 'Missing exact original core receipt'}}
+    $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $counts=[ordered]@{exact=0;preservedHost=0;differentBytes=0;unmapped=0}
+    $details=@()
+    foreach($item in $Observed) {
+        $path=[string]$item.path;$digest=[string]$item.sha256
+        if(-not $path.StartsWith($PgRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase) -or
+           $path -notmatch '(?i)[.]dll$' -or $digest -cnotmatch '^[0-9a-f]{64}$' -or
+           -not $seen.Add($path)){throw 'Invalid or duplicate loaded DLL receipt'}
+        if([string]::Equals($path,$HostLz4,[StringComparison]::OrdinalIgnoreCase)){
+            if($digest -cne $HostSha){throw 'Preserved EDB LZ4 changed'}
+            $status='PRESERVED_EDB_HOST_UNATTESTED';$counts.preservedHost++
+        }elseif($Original.ContainsKey($path)){
+            if($Original[$path] -ceq $digest){
+                $status='EXACT_ORIGINAL_ZIP_MEMBER';$counts.exact++
+            }else{
+                $status='DIFFERENT_BYTES_HOST_COLLISION_UNVERIFIED';$counts.differentBytes++
+            }
+        }else{$status='UNMAPPED_HOST_NOT_ORIGINAL';$counts.unmapped++}
+        if($path -in $required -and $status -cne 'EXACT_ORIGINAL_ZIP_MEMBER'){
+            throw 'Core observed DLL differs from original bytes'
+        }
+        $details += [ordered]@{path=$path;sha256=$digest;originClass=$status}
+    }
+    foreach($p in @($required[0],$required[1],$HostLz4)){
+        if(-not $seen.Contains($p)){throw 'Required root/host module not actually observed'}
+    }
+    return [ordered]@{
+        schemaVersion='pgextwin-pgroonga-live-pg-dll-origins-deny-only/v1'
+        originCounts=$counts;sampledPgDlls=$details
+        originalDllMembersNotObserved=($Original.Count-$counts.exact)
+        signedProducerInputsVerified=$false
+        allPossibleDynamicDllsObserved=$false
+        thirdPartyRightsAndNoticesVerified=$false
+        ownerSignedAdmission=$false
+        publicGetAuthorized=$false
+        mirrorAuthorized=$false
+        releaseAuthorized=$false
+        publisherAuthorized=$false
+    }
+}
+
 if ($SelfTest) {
     $one = [pscustomobject]@{ Id=5; Modules=@(
         [pscustomobject]@{ FileName='C:\pg\lib\pgroonga.dll' },
@@ -33,6 +80,34 @@ if ($SelfTest) {
     if ((Test-LoadedModuleSet -Processes @($one) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module $expect[2]) -ne 5) { throw 'positive self-test failed' }
     if ($null -ne (Test-LoadedModuleSet -Processes @($one) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module 'C:\other\liblz4.dll')) { throw 'wrong-path self-test failed' }
     if ($null -ne (Test-LoadedModuleSet -Processes @($one, $wrong) -PgModule $expect[0] -GroongaModule $expect[1] -Lz4Module 'C:\other\liblz4.dll')) { throw 'cross-process self-test failed' }
+
+    $a='a'*64;$b='b'*64;$c='c'*64;$fake='C:\pg'
+    $orig=@{'C:\pg\lib\pgroonga.dll'=$a;'C:\pg\bin\libgroonga.dll'=$b;'C:\pg\bin\extra.dll'=$c}
+    $rows=@(
+        [pscustomobject]@{path='C:\pg\lib\pgroonga.dll';sha256=$a},
+        [pscustomobject]@{path='C:\pg\bin\libgroonga.dll';sha256=$b},
+        [pscustomobject]@{path='C:\pg\bin\liblz4.dll';sha256=$c},
+        [pscustomobject]@{path='C:\pg\bin\extra.dll';sha256=$a}
+    )
+    $positive=Review-ModuleOrigins -Observed $rows -Original $orig -PgRoot $fake -HostLz4 'C:\pg\bin\liblz4.dll' -HostSha $c
+    if($positive.originCounts.exact -ne 2 -or $positive.originCounts.differentBytes -ne 1 -or
+       $positive.originCounts.preservedHost -ne 1 -or $positive.publicGetAuthorized){
+        throw 'Classifier positive control failed'
+    }
+    foreach($kind in @('root-hash','host-hash','duplicate','missing-host','foreign-path')){
+        $altered=@($rows | ForEach-Object {[pscustomobject]@{path=$_.path;sha256=$_.sha256}})
+        switch($kind){
+            'root-hash' {$altered[0].sha256=$b}
+            'host-hash' {$altered[2].sha256=$b}
+            'duplicate' {$altered += $altered[0]}
+            'missing-host' {$altered=@($altered | Where-Object {$_.path -ne 'C:\pg\bin\liblz4.dll'})}
+            'foreign-path' {$altered[3].path='C:\outside\extra.dll'}
+        }
+        $denied=$false
+        try{$null=Review-ModuleOrigins -Observed $altered -Original $orig -PgRoot $fake -HostLz4 'C:\pg\bin\liblz4.dll' -HostSha $c}catch{$denied=$true}
+        if(-not $denied){throw "Forged sample accepted: $kind"}
+    }
+    Write-Host 'PGROONGA_DLL_ORIGINS_OFFLINE=PASS HOSTILE_CASES=5 PUBLIC_GET=DENY'
     Write-Host 'PGROONGA_LZ4_MODULE_PAIR_OFFLINE=PASS PATH_AND_PID_REQUIRED=YES'
     return
 }
@@ -81,6 +156,7 @@ try {
     $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     $count = 0
     $copied = 0
+    $originalDlls = @{}
     foreach ($entry in $zip.Entries) {
         $count++
         if ($count -gt 20000) { throw 'ZIP member count cap exceeded' }
@@ -96,6 +172,14 @@ try {
         if ($first -notin @('bin','lib','share','include')) { continue }
         $target = [IO.Path]::GetFullPath((Join-Path $root $rel.Replace('/','\')))
         if (-not $target.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe ZIP extraction target' }
+
+        if($AuditModuleOrigins -and $rel -match '(?i)^(bin|lib)/.*[.]dll$'){
+            if($originalDlls.ContainsKey($target)){throw 'Duplicate original DLL target'}
+            $originalStream=$entry.Open()
+            $digest=[Security.Cryptography.SHA256]::Create()
+            try{$originalDlls[$target]=[Convert]::ToHexString($digest.ComputeHash($originalStream)).ToLowerInvariant()}
+            finally{$originalStream.Dispose();$digest.Dispose()}
+        }
         if (Test-Path -LiteralPath $target) {
             if ($first -ne 'bin') { throw "Host collision outside bin: $rel" }
             if ($rel -ieq 'bin/libgroonga.dll') { throw 'Competing host libgroonga.dll' }
@@ -168,6 +252,31 @@ try {
     }
     $seenPaths | Sort-Object | ForEach-Object { Write-Host "PGROONGA_ACTUAL_LOADED_MODULE=$_" }
     if ($null -eq $observedPid) { throw 'No single postgres.exe backend observed loading all three exact paths' }
+
+    if($AuditModuleOrigins){
+        $loaded=@((Get-Process -Id $observedPid -ErrorAction Stop).Modules)
+        $observations=@();$external=0
+        foreach($module in $loaded){
+            $actualPath=[string]$module.FileName
+            if($actualPath -notmatch '(?i)[.]dll$'){continue}
+            if(-not $actualPath.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)){
+                $external++;continue
+            }
+            if(-not (Test-Path -LiteralPath $actualPath -PathType Leaf)){
+                throw "Live module vanished: $actualPath"
+            }
+            $observations += [pscustomobject]@{
+                path=$actualPath
+                sha256=(Get-FileHash -LiteralPath $actualPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+        }
+        $review=Review-ModuleOrigins -Observed $observations -Original $originalDlls -PgRoot $root -HostLz4 $hostLz4 -HostSha $before
+        $review['pgMajor']=$Major
+        $review['observedBackendPid']=$observedPid
+        $review['unsampledExternalWindowsDlls']=$external
+        $review | ConvertTo-Json -Depth 5 -Compress | Write-Host
+        Write-Host "PGROONGA_LIVE_DLL_ORIGINS=PASS PG=$pg EXACT=$($review.originCounts.exact) HOST=$($review.originCounts.preservedHost) DIFFERENT_BYTES=$($review.originCounts.differentBytes) UNMAPPED=$($review.originCounts.unmapped) EXTERNAL_UNVERIFIED=$external"
+    }
     $client.WaitForExit(35000) | Out-Null
     if (-not $client.HasExited -or $client.ExitCode -ne 0) { throw 'Backend LOAD/pg_sleep probe exited abnormally' }
     if ((Get-FileHash -LiteralPath $hostLz4 -Algorithm SHA256).Hash.ToLowerInvariant() -cne $before) {
