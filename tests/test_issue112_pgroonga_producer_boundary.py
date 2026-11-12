@@ -76,6 +76,15 @@ class OriginalProducerBoundary(unittest.TestCase):
             with self.assertRaises(ValueError):
                 p.validate_jobs(r, kind)
             r = jobs(kind)
+            # Unrelated checkout steps may share names in genuine GitHub jobs.
+            r["jobs"][0]["steps"].append({"name": "Run actions/checkout@v7", "conclusion": "success"})
+            r["jobs"][0]["steps"].append({"name": "Run actions/checkout@v7", "conclusion": "success"})
+            p.validate_jobs(r, kind)
+            r = jobs(kind)
+            r["jobs"][0]["steps"].append(dict(r["jobs"][0]["steps"][0]))
+            with self.assertRaises(ValueError):
+                p.validate_jobs(r, kind)
+            r = jobs(kind)
             r["jobs"][0]["run_attempt"] = 9
             with self.assertRaises(ValueError):
                 p.validate_jobs(r, kind)
