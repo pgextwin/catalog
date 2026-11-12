@@ -72,6 +72,28 @@
     "release": false,
     "publish": false
   },
+  "releasePipelineObservation": {
+    "tagCommitSha": "4fa2a7c6b579171a1a8966fd87a0d4189ebab43b",
+    "releaseWorkflowGitBlob": "f9cab87e5116a23f0b116690b8b3598e8c598a71",
+    "delegatedBuildWorkflow": "timescale/release-build-scripts/.github/workflows/timescaledb-windows.yml@main",
+    "delegatedBuildWorkflowRefPinned": false,
+    "delegatedBuildWorkflowSourceRetrieved": false,
+    "releasePublishedAt": "2026-10-20T16:06:02Z",
+    "assetCreatedAtUtc": {
+      "16": "2026-10-20T16:02:37Z",
+      "17": "2026-10-20T16:05:28Z",
+      "18": "2026-10-20T16:03:22Z"
+    },
+    "postPublishWindowsQa": {
+      "runId": 39454913531,
+      "event": "workflow_dispatch",
+      "headSha": "4fa2a7c6b579171a1a8966fd87a0d4189ebab43b",
+      "startedAt": "2026-10-20T16:09:19Z",
+      "conclusion": "success",
+      "producerRunEvidence": false
+    },
+    "exactProducerRunToZipShaBindingVerified": false
+  },
   "originalZipInventory": {
     "source": "EXISTING_GENUINE_ORIGINAL_REHASH_CI_LOGS_ONLY",
     "runId": 43116446694,
