@@ -63,3 +63,38 @@ downloaded or published. Offline hostile tests reject altered tag, source
 revision, path, blob bytes, missing rights statements and untrusted endpoints.
 The JSON result has explicit `false` fields for binary attribution,
 NOTICE closure, producer signature, public GET, mirror, release and Publisher.
+
+## Additional exact v4.0.1 source candidate — version reconciliation
+
+The original PG18 Windows SQL receipt ([Run 42871493748](https://github.com/pgextwin/catalog/actions/runs/42871493748))
+observed `pgrouting=4.0.1`, even though the loadable DLL basename is
+`libpgrouting-4.0.dll`. The previous v4.0.0 source receipt is retained,
+but **must not be substituted for the version reported by the original SQL run**.
+
+The same read-only, authenticated GitHub source auditor now independently
+checks `pgRouting/pgrouting` annotated tag `v4.0.1`
+(tag object `b817fb3d9d641fb5c65c8ab1d855b398c6983677`),
+commit `8988eebdff0e01327c9d48fe7c80b437dc9bc992`, and exact blobs:
+
+| Source file | v4.0.1 Git blob SHA-1 |
+| --- | --- |
+| `LICENSE` | `d159169d1050894d3ea3b98e1c965c4058208fe1` |
+| `BOOST_LICENSE_1_0.txt` | `36b7cd93cdfbac762f5be4c6ce276df2ea6305c2` |
+| `README.md` | `1f563b4b009fe77c31f578b7de05fd1934163eb7` |
+| `CMakeLists.txt` | `547997f8085c45e9c478d6a2632a3c0c13668cbd` |
+
+The tagged CMake file declares `project(PGROUTING VERSION 4.0.1`.
+The unchanged source-level GPL/Boost/MIT-X references are observed,
+not a complete per-compiled-file license determination. GitHub's annotated
+`v4.0.1` tag API reports `verification.verified=false` /
+`reason=unsigned`: the source tag itself is **not** a signed producer
+attestation. The audit retains the v4.0.0 source receipt for history and
+emits both, never inferring that one revision was used for the original DLL.
+
+The missing proof is still an independently verified producer chain from
+the **exact** PG18 ZIP and `libpgrouting-4.0.dll` member SHA256
+(`049a7046823d6cec4c28ebf87ff0d7786ffa0e9d062c37a53bfb25b5585d7ec4`,
+2,768,384 bytes; prior original rights Run 42892650937) to a real build
+Run/source revision, dependencies and compiler flags, plus complete
+applicable rights/NOTICE. All source-specific signatures, fresh individual
+owner admission, Publisher and public delivery remain **DENY**.

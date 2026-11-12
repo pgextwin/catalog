@@ -1,4 +1,4 @@
-name: Issue #112 pgRouting pinned source rights (DENY-only)
+name: Issue #112 pgRouting 4.0.0 and 4.0.1 pinned source rights (DENY-only)
 
 on:
   pull_request:
@@ -36,7 +36,7 @@ jobs:
           python-version: '3.13'
       - name: Hostile source identity and license tests
         run: python -m unittest discover -s tests -p 'test_issue112_pgrouting_tagged_source_rights.py' -v
-      - name: Verify tagged pgRouting source legal/Boost evidence
+      - name: Verify both immutable pgRouting tags and source legal/Boost references
         env:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/issue112_pgrouting_tagged_source_rights.py
