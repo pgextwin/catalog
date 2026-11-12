@@ -96,10 +96,15 @@ def validate_jobs(page, kind):
                 j.get("status") == "completed" and j.get("conclusion") == "success",
                 "original job identity or conclusion mismatch")
         items = j.get("steps")
-        require(type(items) is list and len({x.get("name") for x in items}) == len(items),
-                "duplicate or missing job steps")
-        by_name = {x["name"]: x for x in items}
-        require(all(by_name.get(name, {}).get("conclusion") == "success" for name in steps),
+        require(type(items) is list, "missing original job steps")
+        # GitHub Actions legitimately repeats checkout and post-checkout names.
+        # Only required evidence steps must be unique and successful.
+        selected = [x for x in items if x.get("name") in steps]
+        require(len(selected) == len(steps) and
+                len({x.get("name") for x in selected}) == len(steps),
+                "missing or duplicate required original producer steps")
+        by_name = {x["name"]: x for x in selected}
+        require(all(by_name[name].get("conclusion") == "success" for name in steps),
                 "original job required steps not successful")
     return sorted(expected.values())
 
