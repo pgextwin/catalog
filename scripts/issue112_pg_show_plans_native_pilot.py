@@ -56,11 +56,12 @@ def verify_files(root, pins):
     return hashes
 
 
-# Upstream declares the SQL function without extern; PG_FUNCTION_INFO_V1
-# redeclares it extern on MSVC (C2375). Apply one explicit, reviewed change
-# ONLY to the disposable checkout after all seven original blobs are verified.
+# PostgreSQL's PG_FUNCTION_INFO_V1 already declares this function, and
+# PG16+ uses PGDLLEXPORT where PG14/15 does not. An earlier separate
+# prototype conflicts with that declaration on MSVC (C2375). Remove only
+# this redundant prototype in disposable, fully pinned source checkout.
 MSVC_OLD = b"Datum pg_show_plans(PG_FUNCTION_ARGS);"
-MSVC_NEW = b"extern Datum pg_show_plans(PG_FUNCTION_ARGS);"
+MSVC_NEW = b"/* MSVC: PG_FUNCTION_INFO_V1 supplies the exported function declaration. */"
 
 
 def msvc_patch_source(raw):
@@ -110,7 +111,7 @@ def main():
         source_path = args.source / "pg_show_plans.c"
         patched = msvc_patch_source(source_path.read_bytes())
         source_path.write_bytes(patched)
-        report["msvcDisposableDeclarationPatch"] = "ADD_EXTERN_TO_SINGLE_FUNCTION_PROTOTYPE"
+        report["msvcDisposableDeclarationPatch"] = "REMOVE_REDUNDANT_FUNCTION_PROTOTYPE_FOR_PG14_18"
         report["msvcPatchedCSourceSha256"] = hashlib.sha256(patched).hexdigest()
     print(json.dumps(report, sort_keys=True))
     print("SOURCE_PIN=PASS BINARY=NOT_YET_ACCEPTED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY")
