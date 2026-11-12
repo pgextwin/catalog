@@ -342,5 +342,54 @@ $receiptPath = Join-Path $moduleDir 'origin-receipt.json'
 $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $receiptPath -Encoding utf8
 & python scripts/issue112_osgeo_pg18_live_roots.py --receipt $receiptPath
 if ($LASTEXITCODE -ne 0) { throw 'Original PG18 live root-byte and origin join failed' }
+# Independently enumerate direct original bin/lib DLL members and compare every
+# sampled PG18 bin/lib DLL to that exact original member. Excluded GUI files,
+# host-provided components and unsampled future loads are NOT admitted.
+$expectedServerMembers = @()
+$originalArchive = [IO.Compression.ZipFile]::OpenRead($zip)
+try {
+  foreach ($entry in $originalArchive.Entries) {
+    if (-not $entry.FullName.StartsWith($prefix, [StringComparison]::Ordinal)) { continue }
+    $relative = $entry.FullName.Substring($prefix.Length)
+    if ($relative -notmatch '^(bin|lib)/[A-Za-z0-9_.+-]+[.]dllRemove-Item -LiteralPath $moduleDir -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host 'OSGEO_CANDIDATE_ONLY=YES SIGNED_GET=DENY PUBLIC_CLI_DOWNLOAD=DENY MIRROR=DENY RELEASE=DENY'
+) { continue }
+    $reader = $entry.Open()
+    try {
+      $hasher = [Security.Cryptography.SHA256]::Create()
+      try { $digest = [Convert]::ToHexString($hasher.ComputeHash($reader)).ToLowerInvariant() }
+      finally { $hasher.Dispose() }
+    } finally { $reader.Dispose() }
+    $expectedServerMembers += @{ member=$entry.FullName; bytes=[long]$entry.Length; sha256=$digest }
+  }
+} finally { $originalArchive.Dispose() }
+if ($expectedServerMembers.Count -lt 2) { throw 'Original direct server DLL inventory incomplete' }
+$sampledPgModules = @()
+foreach ($path in @($sample.paths)) {
+  $observedPath = [string]$path
+  $inTarget = $observedPath.StartsWith($bin.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or
+              $observedPath.StartsWith($pkglib.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
+  if (-not $inTarget -or -not $observedPath.EndsWith('.dll', [StringComparison]::OrdinalIgnoreCase)) { continue }
+  $normalized = [IO.Path]::GetFullPath($observedPath)
+  if ([IO.Path]::GetDirectoryName($normalized) -notin @($bin,$pkglib)) { continue }
+  if (-not (Test-Path -LiteralPath $normalized -PathType Leaf)) { throw "Loaded PG DLL absent: $normalized" }
+  $sampledPgModules += @{
+    name=[IO.Path]::GetFileName($normalized).ToLowerInvariant()
+    path=$normalized
+    sha256=(Get-FileHash -LiteralPath $normalized -Algorithm SHA256).Hash.ToLowerInvariant()
+  }
+}
+$dependencyReceipt = @{
+  pgMajor='18'; pgRoot=$root; sampledProcessCount=[int]$sample.sampledProcessCount
+  source=$url; originalZipSha256=$sha
+  expectedServerMembers=@($expectedServerMembers)
+  observedModules=@($sampledPgModules)
+  preservedHostDll=@{ name='libcurl.dll'; path=$effectiveCurl; sha256=$preinstalledCurlSha }
+}
+$dependencyPath = Join-Path $moduleDir 'sampled-dependency-receipt.json'
+if (Test-Path -LiteralPath $dependencyPath) { throw 'Existing sampled dependency receipt' }
+$dependencyReceipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $dependencyPath -Encoding utf8
+& python scripts/issue112_osgeo_pg18_loaded_bundle.py --receipt $dependencyPath
+if ($LASTEXITCODE -ne 0) { throw 'OSGeo sampled dependency original-byte audit failed' }
 Remove-Item -LiteralPath $moduleDir -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host 'OSGEO_CANDIDATE_ONLY=YES SIGNED_GET=DENY PUBLIC_CLI_DOWNLOAD=DENY MIRROR=DENY RELEASE=DENY'
