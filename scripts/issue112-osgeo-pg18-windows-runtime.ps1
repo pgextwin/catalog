@@ -362,14 +362,32 @@ try {
   }
 } finally { $originalArchive.Dispose() }
 if ($expectedServerMembers.Count -lt 2) { throw 'Original direct server DLL inventory incomplete' }
+# Roots have already passed the exact, independently pinned live-root join
+# above. Reuse those observations before extending the sample to dependencies.
 $sampledPgModules = @()
+$observedPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($known in @($observations)) {
+  if ($known.name -notin @('postgis-3.dll','libpgrouting-4.0.dll')) { continue }
+  $normalized = [IO.Path]::GetFullPath([string]$known.path)
+  if (-not $observedPaths.Add($normalized)) { throw "Duplicate verified root: $normalized" }
+  $sampledPgModules += @{
+    name=[string]$known.name
+    path=$normalized
+    sha256=[string]$known.sha256
+  }
+}
+# pg_config may report forward slashes even on Windows. Compare canonical
+# absolute directories, not unnormalized installation strings.
+$canonicalBin = [IO.Path]::GetFullPath($bin).TrimEnd('\')
+$canonicalLib = [IO.Path]::GetFullPath($pkglib).TrimEnd('\')
 foreach ($path in @($sample.paths)) {
   $observedPath = [string]$path
-  $inTarget = $observedPath.StartsWith($bin.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or
-              $observedPath.StartsWith($pkglib.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
-  if (-not $inTarget -or -not $observedPath.EndsWith('.dll', [StringComparison]::OrdinalIgnoreCase)) { continue }
+  if (-not $observedPath.EndsWith('.dll', [StringComparison]::OrdinalIgnoreCase)) { continue }
   $normalized = [IO.Path]::GetFullPath($observedPath)
-  if ([IO.Path]::GetDirectoryName($normalized) -notin @($bin,$pkglib)) { continue }
+  $parent = [IO.Path]::GetDirectoryName($normalized)
+  if (-not ($parent.Equals($canonicalBin, [StringComparison]::OrdinalIgnoreCase) -or
+            $parent.Equals($canonicalLib, [StringComparison]::OrdinalIgnoreCase))) { continue }
+  if (-not $observedPaths.Add($normalized)) { continue }
   if (-not (Test-Path -LiteralPath $normalized -PathType Leaf)) { throw "Loaded PG DLL absent: $normalized" }
   $sampledPgModules += @{
     name=[IO.Path]::GetFileName($normalized).ToLowerInvariant()
@@ -377,6 +395,7 @@ foreach ($path in @($sample.paths)) {
     sha256=(Get-FileHash -LiteralPath $normalized -Algorithm SHA256).Hash.ToLowerInvariant()
   }
 }
+Write-Host "OSGEO_OBSERVED_PG_BIN_LIB_DLLS=$($sampledPgModules.Count) ORIGINAL_SERVER_DLLS=$($expectedServerMembers.Count)"
 $dependencyReceipt = @{
   pgMajor='18'; pgRoot=$root; sampledProcessCount=[int]$sample.sampledProcessCount
   source=$url; originalZipSha256=$sha
