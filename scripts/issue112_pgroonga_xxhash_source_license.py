@@ -70,6 +70,14 @@ def github_json(owner_repo, path):
     return json.loads(payload, object_pairs_hook=unique)
 
 
+def check_path_identity(metadata, expected_path, expected_blob):
+    require(metadata.get("type") == "file" and
+            metadata.get("path") == expected_path and
+            metadata.get("sha") == expected_blob and
+            0 < metadata.get("size", 0) <= 20000,
+            "source commit tree path did not bind expected Git blob")
+
+
 def check_tag(ref):
     require(ref.get("ref") == "refs/tags/v0.8.3" and
             ref.get("object", {}).get("type") == "commit" and
@@ -82,10 +90,10 @@ def decode_pinned_blob(reply, expected_sha, cap):
     require(reply.get("sha") == expected_sha and
             reply.get("encoding") == "base64" and
             isinstance(reply.get("content"), str), "wrong Git blob identity")
-    raw = base64.b64decode(reply["content"], validate=False)
+    raw = base64.b64decode("".join(reply["content"].split()), validate=True)
     require(0 < len(raw) <= cap and
             hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") +
-                         b"\\0" + raw).hexdigest() == expected_sha,
+                         bytes([0]) + raw).hexdigest() == expected_sha,
             "Git blob content, size or SHA1 mismatch")
     return raw.decode("utf-8", errors="strict")
 
@@ -204,6 +212,13 @@ def main():
     p.add_argument("--pg", required=True, type=int, choices=tuple(PINS))
     args = p.parse_args()
     tag = github_json("Cyan4973/xxHash", "git/ref/tags/v0.8.3")
+    wrap_path = github_json(
+        "pgroonga/pgroonga",
+        "contents/subprojects/xxhash.wrap?ref=" + PGROONGA_COMMIT)
+    check_path_identity(wrap_path, "subprojects/xxhash.wrap", WRAP_BLOB)
+    license_path = github_json(
+        "Cyan4973/xxHash", "contents/LICENSE?ref=" + XXHASH_COMMIT)
+    check_path_identity(license_path, "LICENSE", LICENSE_BLOB)
     wrap = github_json("pgroonga/pgroonga", "git/blobs/" + WRAP_BLOB)
     license_blob = github_json("Cyan4973/xxHash", "git/blobs/" + LICENSE_BLOB)
     fixed = source_legal_receipts(tag, wrap, license_blob)
