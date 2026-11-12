@@ -5,6 +5,8 @@ on:
     paths:
       - scripts/issue112-osgeo-pg18-windows-runtime.ps1
       - scripts/issue112_osgeo_pg18_live_roots.py
+      - scripts/issue112_osgeo_pg18_loaded_bundle.py
+      - tests/test_issue112_osgeo_pg18_loaded_bundle.py
       - tests/test_issue112_osgeo_pg18_live_roots.py
       - docs/issue-112-osgeo-pg18-live-roots.md
       - .github/workflows/issue112-osgeo-pg18-windows-runtime.yml
@@ -13,6 +15,8 @@ on:
     paths:
       - scripts/issue112-osgeo-pg18-windows-runtime.ps1
       - scripts/issue112_osgeo_pg18_live_roots.py
+      - scripts/issue112_osgeo_pg18_loaded_bundle.py
+      - tests/test_issue112_osgeo_pg18_loaded_bundle.py
       - tests/test_issue112_osgeo_pg18_live_roots.py
       - docs/issue-112-osgeo-pg18-live-roots.md
       - .github/workflows/issue112-osgeo-pg18-windows-runtime.yml
@@ -34,6 +38,9 @@ jobs:
       - name: Offline hostile exact-origin and rights-denial tests
         shell: pwsh
         run: python -m unittest discover -s tests -p test_issue112_osgeo_pg18_live_roots.py -v
+      - name: Offline hostile sampled bundle module origin checks
+        shell: pwsh
+        run: python -m unittest discover -s tests -p test_issue112_osgeo_pg18_loaded_bundle.py -v
       - name: Reuse immutable shared PostgreSQL installer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
