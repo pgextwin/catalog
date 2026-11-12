@@ -62,6 +62,33 @@ class RuntimeStagingTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 stage.extract_reviewed_zip(original, out)
 
+    def test_232_selection_uses_distinct_exact_original_and_keeps_denial(self):
+        data = fixture()
+        pin = {"pg": "17", "name": "timescaledb-postgresql-17-windows-amd64.zip",
+               "size": len(data), "sha256": hashlib.sha256(data).hexdigest(),
+               "releaseId": 442824242, "assetId": 739179170,
+               "url": ("https://github.com/timescale/timescaledb/releases/"
+                       "download/2.32.0/timescaledb-postgresql-17-windows-amd64.zip")}
+        with tempfile.TemporaryDirectory() as root:
+            with mock.patch.object(stage, "original_pin_232", return_value=pin) as latest, \
+                    mock.patch.object(stage, "original_pin_231") as historic:
+                dest = Path(root) / "new-original"
+                result = stage.original_stage(
+                    "17", dest, opener=FakeOpener(data), version="2.32.0")
+                latest.assert_called_once_with("17")
+                historic.assert_not_called()
+                self.assertEqual(result["version"], "2.32.0")
+                self.assertEqual(result["releaseId"], 442824242)
+                self.assertEqual(result["assetId"], 739179170)
+                self.assertEqual(result["sha256"], pin["sha256"])
+                self.assertTrue((dest / "timescaledb/setup.exe").is_file())
+                self.assertFalse(result["publicGetAuthorized"])
+                self.assertFalse(result["producerAttestationVerified"])
+                self.assertFalse(result["rightsAccepted"])
+                self.assertFalse(result["publisherAuthorized"])
+        with self.assertRaises(ValueError):
+            stage.original_pin("17", "2.30.0")
+
     def test_missing_setup_and_all_unsafe_names_fail_before_extraction(self):
         variants = [
             [("timescaledb/lib/timescaledb.dll", b"x")],

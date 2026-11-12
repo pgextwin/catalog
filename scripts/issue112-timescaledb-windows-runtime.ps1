@@ -1,7 +1,10 @@
-# Issue #112: exact TimescaleDB 2.31.0 PG16-18 upstream Windows SQL test.
+# Issue #112: exact TimescaleDB 2.31.0 / 2.32.0 PG16-18 Windows SQL test.
 # Disposable, nonpublishing, no output ZIP, never grants public download rights.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet(16,17,18)][int]$Major)
+param(
+    [Parameter(Mandatory=$true)][ValidateSet(16,17,18)][int]$Major,
+    [ValidateSet('2.31.0','2.32.0')][string]$ReleaseVersion = '2.31.0'
+)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -21,12 +24,13 @@ $installed = (& $pgConfig --version | Out-String).Trim()
 if ($LASTEXITCODE -ne 0 -or $installed -notmatch ('^PostgreSQL\s+' + $pg + '(?:\.|\s)')) {
     throw "Wrong PostgreSQL host: $installed"
 }
-$staged = Join-Path $env:RUNNER_TEMP "issue112-timescale-pg$pg-original"
-& python scripts/issue112_timescaledb_windows_runtime_stage.py --pg $pg --stage $staged
+$verSuffix = $ReleaseVersion.Replace('.', '-')
+$staged = Join-Path $env:RUNNER_TEMP "issue112-timescale-$verSuffix-pg$pg-original"
+& python scripts/issue112_timescaledb_windows_runtime_stage.py --pg $pg --version $ReleaseVersion --stage $staged
 if ($LASTEXITCODE -ne 0) { throw 'Original bytes / ZIP staging failed' }
 $setup = Join-Path $staged 'timescaledb\setup.exe'
 if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Validated setup.exe missing' }
-# Match the tested official upstream Windows package installer (tag 2.31.0).
+# Match the tested official upstream Windows package installer (pinned version).
 # No administrative persistence: ephemeral Windows runner, separate disposable DB.
 # The official upstream test changes directory into the package root before
 # launching setup.exe: its payload discovery uses paths relative to the CWD.
@@ -59,7 +63,7 @@ try {
     & $psql @common -c 'CREATE EXTENSION timescaledb;'
     if ($LASTEXITCODE -ne 0) { throw 'TimescaleDB CREATE EXTENSION failed' }
     $version = (& $psql @common -c "SELECT extversion FROM pg_extension WHERE extname='timescaledb';" | Out-String).Trim()
-    if ($LASTEXITCODE -ne 0 -or $version -cne '2.31.0') {
+    if ($LASTEXITCODE -ne 0 -or $version -cne $ReleaseVersion) {
         throw "Unexpected installed TimescaleDB version: $version"
     }
     & $psql @common -c "CREATE TABLE issue112_ts_probe(ts timestamptz NOT NULL, value integer NOT NULL); SELECT create_hypertable('issue112_ts_probe', by_range('ts')); INSERT INTO issue112_ts_probe VALUES ('2026-01-01T00:00:00Z',1),('2026-01-02T00:00:00Z',2);"
