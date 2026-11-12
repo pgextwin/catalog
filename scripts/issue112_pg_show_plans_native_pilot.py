@@ -56,6 +56,19 @@ def verify_files(root, pins):
     return hashes
 
 
+# Upstream declares the SQL function without extern; PG_FUNCTION_INFO_V1
+# redeclares it extern on MSVC (C2375). Apply one explicit, reviewed change
+# ONLY to the disposable checkout after all seven original blobs are verified.
+MSVC_OLD = b"Datum pg_show_plans(PG_FUNCTION_ARGS);"
+MSVC_NEW = b"extern Datum pg_show_plans(PG_FUNCTION_ARGS);"
+
+
+def msvc_patch_source(raw):
+    if type(raw) is not bytes or raw.count(MSVC_OLD) != 1 or MSVC_NEW in raw:
+        raise ValueError("Unexpected source declarations; MSVC patch denied")
+    return raw.replace(MSVC_OLD, MSVC_NEW)
+
+
 def verify_source(root):
     root = Path(root)
     hashes = verify_files(root, PINS)
@@ -89,8 +102,17 @@ def verify_source(root):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--source", type=Path, required=True)
+    p.add_argument("--msvc-adapt", action="store_true",
+                   help="Apply one bounded compile-only declaration change in disposable checkout")
     args = p.parse_args()
-    print(json.dumps(verify_source(args.source), sort_keys=True))
+    report = verify_source(args.source)
+    if args.msvc_adapt:
+        source_path = args.source / "pg_show_plans.c"
+        patched = msvc_patch_source(source_path.read_bytes())
+        source_path.write_bytes(patched)
+        report["msvcDisposableDeclarationPatch"] = "ADD_EXTERN_TO_SINGLE_FUNCTION_PROTOTYPE"
+        report["msvcPatchedCSourceSha256"] = hashlib.sha256(patched).hexdigest()
+    print(json.dumps(report, sort_keys=True))
     print("SOURCE_PIN=PASS BINARY=NOT_YET_ACCEPTED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY")
 
 
