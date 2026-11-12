@@ -1,0 +1,143 @@
+name: Issue112 published legacy CLI feed transition and PG14 fixed rollback (GET-only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/issue112-cli-legacy-rollback-e2e.yml'
+      - 'tests/test_issue112_cli_legacy_rollback_policy.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/issue112-cli-legacy-rollback-e2e.yml'
+      - 'tests/test_issue112_cli_legacy_rollback_policy.py'
+
+permissions:
+  contents: read
+
+jobs:
+  immutable-public-legacy:
+    if: github.repository == 'pgextwin/catalog'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['0.3.13', '0.3.14']
+    env:
+      CLI_VERSION: ${{ matrix.version }}
+    steps:
+      - name: Authenticate exact original public CLI asset identity (read-only)
+        id: source
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $tag="cli-v$env:CLI_VERSION"
+          $expected = switch ($env:CLI_VERSION) {
+            '0.3.13' { @{ digest='281fbba9b59c5d2173ecd9b9249fd22955b0ea9cb0541f23450d491c811236ed'; size=12903263; source='188d3f2d645d0583808db4bf6e8ab80029dbb65f' } }
+            '0.3.14' { @{ digest='8e7c19cfffd794519b2a63feebe2e2e9f52040787236dc1c8154cbdf40e72814'; size=12904380; source='dd5bd347cdf1a1a864b0880d0b951254e1fe0af2' } }
+            default { throw 'Unpinned CLI version' }
+          }
+          $release=gh api "repos/pgextwin/catalog/releases/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.draft -or $release.tag_name -cne $tag -or !$release.published_at) { throw 'Unverified Release' }
+          $reference=gh api "repos/pgextwin/catalog/git/ref/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $reference.object.type -cne 'commit' -or $reference.object.sha -cne $expected.source) { throw 'Historical release tag moved' }
+          $asset=@($release.assets | Where-Object { $_.name -ceq 'pgextwin.exe' })
+          $url="https://github.com/pgextwin/catalog/releases/download/$tag/pgextwin.exe"
+          if ($asset.Count -ne 1 -or $asset[0].state -cne 'uploaded' -or
+              $asset[0].browser_download_url -cne $url -or
+              $asset[0].size -ne $expected.size -or
+              $asset[0].digest -cne "sha256:$($expected.digest)") {
+            throw 'Historical public EXE metadata is not original pinned identity'
+          }
+          "url=$url" >> $env:GITHUB_OUTPUT
+          "sha=$($expected.digest)" >> $env:GITHUB_OUTPUT
+          "size=$($expected.size)" >> $env:GITHUB_OUTPUT
+          "source=$($expected.source)" >> $env:GITHUB_OUTPUT
+
+      - name: Independently rehash genuine anonymous EXE and verify its producer Sigstore
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLIC_URL: ${{ steps.source.outputs.url }}
+          EXPECTED_SHA: ${{ steps.source.outputs.sha }}
+          EXPECTED_SIZE: ${{ steps.source.outputs.size }}
+          SOURCE_SHA: ${{ steps.source.outputs.source }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP "legacy-pgextwin-$env:CLI_VERSION.exe"
+          Invoke-WebRequest -Uri $env:PUBLIC_URL -OutFile $exe
+          if ((Get-Item -LiteralPath $exe).Length -ne [long]$env:EXPECTED_SIZE -or
+              (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:EXPECTED_SHA) {
+            throw 'Original public legacy EXE byte mismatch'
+          }
+          if ((& $exe --version).Trim() -cne $env:CLI_VERSION -or $LASTEXITCODE -ne 0) { throw 'Wrong CLI version' }
+          $verified=gh attestation verify $exe --repo pgextwin/catalog --signer-workflow pgextwin/catalog/.github/workflows/cli-candidate.yml --source-ref refs/heads/main --source-digest $env:SOURCE_SHA --deny-self-hosted-runners --format json
+          if ($LASTEXITCODE -ne 0 -or @(($verified | ConvertFrom-Json)).Count -lt 1) { throw 'Legacy original EXE Sigstore validation failed' }
+          Write-Output "LEGACY_PUBLIC_EXE=PASS VERSION=$env:CLI_VERSION SHA256=$env:EXPECTED_SHA SOURCE=$env:SOURCE_SHA"
+
+      - name: v0.3.13 latest four-major feed must fail closed; independent fixed PG14 originals must pass
+        if: matrix.version == '0.3.13'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $exe=Join-Path $env:RUNNER_TEMP "legacy-pgextwin-$env:CLI_VERSION.exe"
+          $denied=Join-Path $env:RUNNER_TEMP 'v13-four-major-deny'
+          New-Item -ItemType Directory $denied | Out-Null
+          Push-Location $denied
+          try {
+            $log=& $exe download-all --pg 15 --latest 2>&1 | Out-String
+            if ($LASTEXITCODE -eq 0 -or $log -notmatch 'Signed Catalog fleet is incomplete' -or
+                @(Get-ChildItem -LiteralPath $denied -Directory -Filter 'pgextwin-pg*').Count -ne 0) {
+              throw 'Obsolete 0.3.13 must reject retained historical records in four-major latest feed'
+            }
+            Write-Output 'LEGACY_V13_LATEST_FOUR_MAJOR=EXPECTED_DENY NO_FALLBACK=true'
+          } finally { Pop-Location }
+          $fixed=Join-Path $env:RUNNER_TEMP 'v13-fixed-pg14'
+          New-Item -ItemType Directory $fixed | Out-Null
+          Push-Location $fixed
+          try {
+            $log=& $exe download-all --pg 14 --fixed 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0 -or $log -notmatch 'ZIP_COUNT=14\b') { throw 'Historical fixed PG14 rollback did not complete' }
+            $folder=Join-Path $fixed 'pgextwin-pg14'
+            $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
+            if ($receipt.zipCount -ne 14 -or @($receipt.packages).Count -ne 14 -or
+                $receipt.source -cne 'CLI_PINNED_HISTORICAL_CANDIDATE_POLICY' -or
+                $receipt.signatureVerified -ne $false -or $receipt.installAuthorized -ne $false) { throw 'Fixed PG14 receipt is incomplete or over-claims rights' }
+            foreach ($item in $receipt.packages) {
+              $file=Join-Path $folder $item.relativePath
+              if ([string]$item.pgMajor -cne '14' -or !(Test-Path -LiteralPath $file -PathType Leaf) -or
+                  (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $item.sha256) { throw 'Fixed PG14 original ZIP bytes mismatch' }
+            }
+            Write-Output 'LEGACY_V13_FIXED_PG14=PASS SHA256=14/14 NO_TOKEN=true'
+          } finally { Pop-Location }
+
+      - name: v0.3.14 latest four-major signed feed must download real PG15 originals
+        if: matrix.version == '0.3.14'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $exe=Join-Path $env:RUNNER_TEMP "legacy-pgextwin-$env:CLI_VERSION.exe"
+          $dir=Join-Path $env:RUNNER_TEMP 'v14-compatible-latest-pg15'
+          New-Item -ItemType Directory $dir | Out-Null
+          Push-Location $dir
+          try {
+            $log=& $exe download-all --pg 15 --latest 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0 -or $log -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED' -or
+                $log -notmatch 'ZIP_COUNT=17\b') { throw '0.3.14 latest signed-feed migration failed' }
+            $folder=Join-Path $dir 'pgextwin-pg15'
+            $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
+            if ($receipt.zipCount -ne 17 -or @($receipt.packages).Count -ne 17 -or
+                $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
+                $receipt.signatureVerified -ne $false -or $receipt.installAuthorized -ne $false) { throw 'Legacy compatible latest receipt over-claims rights' }
+            foreach ($item in $receipt.packages) {
+              $file=Join-Path $folder $item.relativePath
+              if ([string]$item.pgMajor -cne '15' -or !(Test-Path -LiteralPath $file -PathType Leaf) -or
+                  (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $item.sha256) { throw 'v0.3.14 real PG15 ZIP byte mismatch' }
+            }
+            Write-Output 'LEGACY_V14_LATEST_PG15=PASS SHA256=17/17 NO_TOKEN=true'
+          } finally { Pop-Location }
