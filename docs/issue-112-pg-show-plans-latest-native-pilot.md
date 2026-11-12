@@ -61,7 +61,9 @@ The initial real Windows PG14–18 compilation reported identical C2375 errors
 at upstream pg_show_plans.c line 126: its function prototype lacks the explicit
 extern used by the PostgreSQL PG_FUNCTION_INFO_V1 macro. The source guard first
 checks the pristine seven source blobs, and an opt-in, one-occurrence patch then
-adds extern to the disposable copy of that prototype. A duplicate, missing or
-prepatched declaration is rejected. The derived source hash is printed in the
+replaces the redundant prototype with a comment in the disposable copy.
+The PG_FUNCTION_INFO_V1 macro already provides the correct exported function
+prototype across PG14-18 (PG16+ additionally marks PGDLLEXPORT). A duplicate,
+missing or prepatched declaration is rejected. The derived source hash is printed in the
 nonpublishing CI log; no upstream file, pinned commit, producer ZIP, license
 or public artifact is modified. Separate offline hostile tests cover the patch.
