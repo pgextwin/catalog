@@ -25,15 +25,36 @@
     }
   ],
   "licenseReview": {
-    "timescaleClauses": ["2.1(c)", "2.2"],
+    "timescaleClauses": [
+      "2.1(c)",
+      "2.2"
+    ],
     "unmodifiedStandaloneDistributionMayBePermitted": true,
     "specificUseAndTermsCleared": false,
     "allThirdPartyNoticesCleared": false
   },
   "windowsAssets": [
-    {"pgMajor": "16", "assetId": 659788299, "assetName": "timescaledb-postgresql-16-windows-amd64.zip", "originalSha256": "bacc19d2da8a47d6442f95ec28a1867b777786acbe8398deb958d4e5206bc52f", "originalBytes": 9537404},
-    {"pgMajor": "17", "assetId": 659795995, "assetName": "timescaledb-postgresql-17-windows-amd64.zip", "originalSha256": "1a79207d46ecdf626d4fd39310da3a490cfec13cbb5e9510413b748f512ae2f4", "originalBytes": 9537297},
-    {"pgMajor": "18", "assetId": 659790321, "assetName": "timescaledb-postgresql-18-windows-amd64.zip", "originalSha256": "7a0c5c7401eca080432de1ebb96239fdd8f4af46c401e82a82756bb8bac479c5", "originalBytes": 9538882}
+    {
+      "pgMajor": "16",
+      "assetId": 659788299,
+      "assetName": "timescaledb-postgresql-16-windows-amd64.zip",
+      "originalSha256": "bacc19d2da8a47d6442f95ec28a1867b777786acbe8398deb958d4e5206bc52f",
+      "originalBytes": 9537404
+    },
+    {
+      "pgMajor": "17",
+      "assetId": 659795995,
+      "assetName": "timescaledb-postgresql-17-windows-amd64.zip",
+      "originalSha256": "1a79207d46ecdf626d4fd39310da3a490cfec13cbb5e9510413b748f512ae2f4",
+      "originalBytes": 9537297
+    },
+    {
+      "pgMajor": "18",
+      "assetId": 659790321,
+      "assetName": "timescaledb-postgresql-18-windows-amd64.zip",
+      "originalSha256": "7a0c5c7401eca080432de1ebb96239fdd8f4af46c401e82a82756bb8bac479c5",
+      "originalBytes": 9538882
+    }
   ],
   "evidence": {
     "originalZipIndependentRehash": "PASS",
@@ -50,5 +71,39 @@
     "mirror": false,
     "release": false,
     "publish": false
+  },
+  "originalZipInventory": {
+    "source": "EXISTING_GENUINE_ORIGINAL_REHASH_CI_LOGS_ONLY",
+    "runId": 43116446694,
+    "sourceRef": "pgextwin/catalog",
+    "observationLimit": "ZIP_METADATA_FILENAME_REGEX_ONLY_NOT_SETUP_EXE_EMBEDDED_CONTENT",
+    "rows": [
+      {
+        "pgMajor": "16",
+        "jobId": 130845554299,
+        "members": 77,
+        "dllMembers": 3,
+        "declaredUncompressedBytes": 33783221,
+        "potentialNoticePaths": []
+      },
+      {
+        "pgMajor": "17",
+        "jobId": 130845554217,
+        "members": 77,
+        "dllMembers": 3,
+        "declaredUncompressedBytes": 33783221,
+        "potentialNoticePaths": []
+      },
+      {
+        "pgMajor": "18",
+        "jobId": 130845553821,
+        "members": 77,
+        "dllMembers": 3,
+        "declaredUncompressedBytes": 33785269,
+        "potentialNoticePaths": []
+      }
+    ],
+    "licenseNoticeBundlingVerified": false,
+    "producerBuildFlagsVerified": false
   }
 }
