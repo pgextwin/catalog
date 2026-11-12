@@ -104,3 +104,35 @@ Run read-only guard: `python scripts/issue112_timescaledb_rights_gate.py`
 and `python -m unittest discover -s tests -p 'test_issue112_timescaledb_rights_gate.py'`.
 The guard merely verifies the current known-DENY evidence contract. Its PASS
 is explicitly **not** legal clearance, a digital signature, or publishing approval.
+
+## Release pipeline timeline: post-publish QA is not the producer (2026-11-12 review)
+
+Authenticated GitHub GET pinned upstream tag `2.31.0` to commit
+`4fa2a7c6b579171a1a8966fd87a0d4189ebab43b`. Its
+[`release_release.yml`](https://github.com/timescale/timescaledb/blob/2.31.0/.github/workflows/release_release.yml)
+(blob `f9cab87e5116a23f0b116690b8b3598e8c598a71`) delegates the Windows
+builder to `timescale/release-build-scripts/.github/workflows/timescaledb-windows.yml@main`.
+The delegated repository returned 404 to the connected authenticated GET;
+the mutable `@main` is **not** an immutable builder revision, and this audit
+does not attest its original content or identify its producer Run.
+
+The provider [Release 2.31.0](https://github.com/timescale/timescaledb/releases/tag/2.31.0)
+was published `2026-10-20T16:06:02Z`, with the three exact original assets
+created at `16:02:37Z` (PG16), `16:05:28Z` (PG17) and `16:03:22Z` (PG18).
+The separate upstream
+[Windows packaging test Run 39454913531](https://github.com/timescale/timescaledb/actions/runs/39454913531)
+started **after publication**, at `16:09:19Z` on the same tagged source SHA,
+and finished SUCCESS. Its workflow downloads the latest Release ZIPs and tests
+them; it **cannot be presented as the producer Run** for ZIPs already uploaded.
+An earlier package-test push Run
+[39451995470](https://github.com/timescale/timescaledb/actions/runs/39451995470)
+on the same SHA finished FAILURE at `15:53:37Z` and is not a substitute.
+
+These immutable source/Release/QA observations are recorded in the strict
+`releasePipelineObservation` subledger and guarded by hostile regression tests.
+They do not authenticate the build toolchain, upstream producer, release
+attestation, legal notices, or exact producer-to-three-SHA256 relation. The
+later SQL success already accepted by pgextwin is independent. The release
+authorization remains **PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY /
+PUBLISH_DENY** pending new, independently verifiable source-to-binary evidence
+and original scoped owner-signed permission.
