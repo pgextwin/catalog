@@ -176,6 +176,22 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         config = json.loads((ROOT / "config/verified-release-auto-merge.json").read_text())
         mod.validate_local_policy(config)
 
+    def test_proof_cleanup_requires_final_401_even_after_delete_race(self):
+        # Real Run 43143538535: the app-scope probe revoked successfully,
+        # but cleanup briefly saw a still-successful GET and DELETE got 401.
+        # Never equate any other transport or API failure with revocation.
+        workflow = (ROOT / ".github/workflows/auto-merge-verified-release.yml").read_text()
+        cleanup = workflow.split(
+            "      - name: Revoke proof token even if checkout, proof or output fails", 1
+        )[1].split("      - name: Preserve nonpublishing scope", 1)[0]
+        self.assertIn("if ! gh api --method DELETE installation/token", cleanup)
+        self.assertIn("grep -F 'HTTP 401' \"$RUNNER_TEMP/catalog-token-delete-status\"", cleanup)
+        self.assertIn("grep -F 'HTTP 401' \"$RUNNER_TEMP/catalog-token-status\"", cleanup)
+        self.assertIn("if gh api installation/repositories >/dev/null 2>\"$RUNNER_TEMP/catalog-token-final-status\"; then", cleanup)
+        self.assertIn("grep -F 'HTTP 401' \"$RUNNER_TEMP/catalog-token-final-status\"", cleanup)
+        self.assertIn("exit 1", cleanup)
+        self.assertNotIn("|| true", cleanup)
+
     def test_actual_deployment_policy_obeys_its_explicit_protected_optin(self):
         current = json.loads((ROOT / "config" / "verified-release-auto-merge.json").read_text())
         decision = mod.validate_local_policy(current)

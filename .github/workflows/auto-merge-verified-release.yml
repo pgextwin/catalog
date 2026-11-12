@@ -65,12 +65,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Probe normally already revoked it; only HTTP401 is accepted as done.
+          # Probe already requires DELETE + HTTP401. A stale successful GET may
+          # race the revocation; only an actual HTTP401 proves a harmless DELETE failure.
           if gh api installation/repositories >/dev/null 2>"$RUNNER_TEMP/catalog-token-status"; then
-            gh api --method DELETE installation/token >/dev/null
+            if ! gh api --method DELETE installation/token >/dev/null 2>"$RUNNER_TEMP/catalog-token-delete-status"; then
+              grep -F 'HTTP 401' "$RUNNER_TEMP/catalog-token-delete-status" >/dev/null
+            fi
           else
             grep -F 'HTTP 401' "$RUNNER_TEMP/catalog-token-status" >/dev/null
           fi
+          # Fail closed if the credential remains usable or returns anything but 401.
+          if gh api installation/repositories >/dev/null 2>"$RUNNER_TEMP/catalog-token-final-status"; then
+            echo '::error::Catalog App proof token remains active'
+            exit 1
+          fi
+          grep -F 'HTTP 401' "$RUNNER_TEMP/catalog-token-final-status" >/dev/null
       - name: Preserve nonpublishing scope and revocation evidence (no credentials)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
