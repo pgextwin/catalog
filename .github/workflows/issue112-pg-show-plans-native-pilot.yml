@@ -1,0 +1,91 @@
+name: Issue112 pg_show_plans v2.1.8 source-owned Windows PG14-18 pilot (NONPUBLISHING)
+
+# PR only. No scheduled job, dispatch, artifacts, signer, publisher or Release.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pg-show-plans-native-pilot.yml
+      - scripts/issue112_pg_show_plans_native_pilot.py
+      - scripts/issue112-pg-show-plans-windows-native.ps1
+      - tests/test_issue112_pg_show_plans_native_pilot.py
+      - docs/issue-112-pg-show-plans-latest-native-pilot.md
+
+permissions:
+  contents: read
+
+jobs:
+  immutable-source:
+    name: Check signed-tag source SHA and hostile offline tests
+    if: github.repository == 'pgextwin/catalog'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Read actual PR candidate with no saved credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout upstream v2.1.8 exact commit (not Cybertec provider ZIP)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cybertec-postgresql/pg_show_plans
+          ref: 92ecb21f8f2307a4bc7db8f01623599e75930fc2
+          path: pinned-upstream
+          persist-credentials: false
+      - name: Verify immutable actual upstream bytes and abuse denials
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_issue112_pg_show_plans_native_pilot.py' -v
+          python3 scripts/issue112_pg_show_plans_native_pilot.py --source pinned-upstream
+      - name: Do not infer binary validity or public rights
+        if: always()
+        run: echo 'SOURCE=PINNED BINARY=NOT_ACCEPTED PROVIDER_ORIGINAL=NOT_USED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY'
+
+  real-windows-msvc:
+    name: Exact source native Windows PostgreSQL ${{ matrix.pg }} (PRIVATE)
+    needs: immutable-source
+    if: github.repository == 'pgextwin/catalog'
+    runs-on: windows-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [14, 15, 16, 17, 18]
+    steps:
+      - name: Checkout candidate read-only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Configure LF Git blob checkouts
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - name: Checkout same v2.1.8 immutable upstream commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cybertec-postgresql/pg_show_plans
+          ref: 92ecb21f8f2307a4bc7db8f01623599e75930fc2
+          path: pinned-upstream
+          persist-credentials: false
+      - name: Checkout shared EDB installer at previously verified fixed SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - name: Set up Python 3.13 for exact-blob preflight
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: MSVC compile + EDB/community PostgreSQL isolated real SQL
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: |
+          & ./scripts/issue112-pg-show-plans-windows-native.ps1 -Major ([int]$env:PG_MAJOR) -UpstreamDir pinned-upstream -BuildTools build-tools
+          if ($LASTEXITCODE -ne 0) { throw 'Native Windows PG version failed' }
+      - name: Fail closed on all public and original-provider delivery
+        if: always()
+        shell: pwsh
+        run: Write-Host 'PRIVATE_SELF_BUILT_DLL_ONLY=YES ZIP_UPLOAD=NONE SIGSTORE=NONE PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
