@@ -1,0 +1,43 @@
+name: Issue112 TimescaleDB 2.32.0 new original ZIP rehash (nonpublishing)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-timescaledb-232-original-rehash.yml
+      - scripts/issue112_timescaledb_232_original_rehash.py
+      - tests/test_issue112_timescaledb_232_original_rehash.py
+      - docs/issue-112-timescaledb-232-original-rehash.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/issue112-timescaledb-232-original-rehash.yml
+      - scripts/issue112_timescaledb_232_original_rehash.py
+      - tests/test_issue112_timescaledb_232_original_rehash.py
+      - docs/issue-112-timescaledb-232-original-rehash.md
+
+permissions:
+  contents: read
+
+jobs:
+  independent-original:
+    name: TimescaleDB 2.32.0 PG${{ matrix.pg }} original SHA256 and ZIP (deny-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['16', '17', '18']
+    steps:
+      - name: Checkout without persisted write credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Offline hostile digest, redirect and no-admission tests
+        run: python3 -m unittest discover -s tests -p test_issue112_timescaledb_232_original_rehash.py -v
+      - name: Independently rehash official 2.32.0 PG${{ matrix.pg }} source ZIP (never upload)
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: python3 scripts/issue112_timescaledb_232_original_rehash.py --pg "$PG_MAJOR"
+      - name: Preserve unrelated producer, rights, runtime and Publisher denial
+        if: always()
+        run: echo 'TIMESCALEDB_232_NONPUBLISHING=YES SOURCE_ATTESTATION=DENY RUNTIME=UNVERIFIED RIGHTS=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
