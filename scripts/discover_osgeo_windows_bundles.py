@@ -174,9 +174,10 @@ def scan(root, fetch):
 
 
 
-# The currently supported major fleet; PG19/EOL metadata stays discoverable
-# but is never silently promoted to a supported download.
-LATEST_SUPPORTED_MAJORS = frozenset({"14", "15", "16", "17", "18"})
+# Only non-EOL PG15-18 majors may be selected for NEW latest candidates.
+# PG14/earlier directory history remains discoverable but never auto-selected.
+# This metadata selector grants no GET, mirror, release or publish permission.
+LATEST_SUPPORTED_MAJORS = frozenset({"15", "16", "17", "18"})
 
 
 def select_latest_bundles(report, *, single_bundle=False):
