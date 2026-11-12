@@ -104,6 +104,8 @@ def audit_loaded_bundle(data):
     unverified = 0
     host_other = 0
     for path, digest in sorted(observed.items()):
+        if path == pre_path and digest != preserved["sha256"]:
+            raise ValueError("Observed EDB libcurl changed from the pre-staging SHA256")
         origin = expected.get(path)
         if origin and origin["sha256"] == digest:
             status = "EXACT_ORIGINAL_MEMBER_BYTE_MATCH"
