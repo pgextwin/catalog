@@ -163,33 +163,35 @@ privilege, release, signed feed, public CLI or Website change is added.
 All new assets remain CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY /
 RELEASE_DENY / PUBLISH_DENY.
 
-## TimescaleDB PG16–18 observed latest selector (metadata-only, 2026-11-12)
+## TimescaleDB PG16–18 independently rehashed latest candidate selection (2026-11-12)
 
-The offline review planner now consumes the **existing**, strict
-`external/timescaledb-release-watch-baseline-v1.json` instead of inventing
-a parallel source inventory. It selects exactly three officially observed
-`2.31.0` Windows ZIP *metadata* records (PG16, PG17, PG18). No binary is
-downloaded. PG14/15 are not inferred or fabricated.
+The offline review planner reuses **both** the strict official Release metadata
+baseline and the existing protected genuine-original rehash/rights intake:
+`external/timescaledb-release-watch-baseline-v1.json` and
+`external/timescaledb-rights-provenance-intake-v1.json`.
+The existing `issue112_timescaledb_rights_gate.validate` enforces exact
+PG16/17/18 asset-ID, original-byte SHA256/size identity, prior genuine rehash
+Run evidence, missing legal/provenance prerequisites, and all DENY flags.
+No new upstream ZIP GET or CI Run rehash is required. PG14/15 are not inferred.
 
 ```bash
 python scripts/issue112_latest_external_review.py --catalog . --source timescaledb --pg all --output /tmp/issue112-timescaledb.json
 python scripts/issue112_latest_external_review.py --catalog . --source timescaledb --extension timescaledb --version 2.31.0 --pg 17 --output /tmp/issue112-timescaledb-pg17.json
 ```
 
-The planner independently rejects duplicate-key or permission-elevated
-baseline JSON, missing/duplicate PG majors or asset IDs, noncanonical
-names, inconsistent schemas and invalid digest *metadata*, even if a
-different `--source` is selected. Output rows carry the original provider's
-**API-observed** sizes and digests in `apiObservedBytes` and
-`apiObservedSha256`. The independent original-byte fields
-`originalBytes`/`originalSha256` stay `null` deliberately.
+The three rows now carry `originalBytes`, `originalSha256` and
+`originalRehashEvidenceRunId` from that immutable original-byte evidence,
+**separately from** `apiObservedBytes` and `apiObservedSha256`.
+A missing, altered, symlinked, duplicate-key, or permission-elevated ledger
+fails closed even for unrelated `--source` / `--pg` selections.
+The original-byte integrity hurdle is already satisfied, so that specific
+missing-gate label is no longer emitted; this is **not** an increase in public
+delivery permissions.
 
-This adds TimescaleDB to the shared review selection, **not** to the
-production authenticated CLI download feed. The genuine daily watcher
-independently checks live source metadata; the offline planner does not.
-Package rights, notices, dependency closure, producer provenance,
-Windows runtime, signed admission and formal publication remain unapproved.
-Every row stays `PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY /
-PUBLISH_DENY` and `admittedAssets=0`. No renewed owner signature,
-Environment review, publisher, CLI Release, Catalog signed feed or Website
-download has been produced.
+The rehashed archive is still not a producer-signed source-to-binary proof.
+Exact per-DLL rights/NOTICE assignment, dependencies, original producer Run,
+new source-specific owner admission and formal Publisher authorization remain
+unverified. No signed-feed, issuer, CLI Release, new public ZIP or Website
+operation is changed. Every selection remains
+`CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY / PUBLISH_DENY`,
+with `admittedAssets=0`.

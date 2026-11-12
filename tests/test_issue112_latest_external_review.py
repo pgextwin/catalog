@@ -27,6 +27,12 @@ class LatestExternalReviewTests(unittest.TestCase):
             (Path(__file__).resolve().parents[1] /
              "external/timescaledb-release-watch-baseline-v1.json").read_text(
                  encoding="utf-8"), encoding="utf-8")
+        self.timescale_rights_path = (
+            self.root / "external/timescaledb-rights-provenance-intake-v1.json")
+        self.timescale_rights_path.write_text(
+            (Path(__file__).resolve().parents[1] /
+             "external/timescaledb-rights-provenance-intake-v1.json").read_text(
+                 encoding="utf-8"), encoding="utf-8")
         self.providers = {
             "schemaVersion": "pgextwin-external-discovery-providers/v1",
             "trust": "READ_ONLY_METADATA_NEVER_AUTHORIZE",
@@ -180,7 +186,7 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.assertEqual(make_plan(self.root, source="pgroonga",
                                    extension="http")["selectedReviewRows"], 0)
 
-    def test_timescaledb_official_three_major_observed_selection_not_get(self):
+    def test_timescaledb_independently_rehashed_three_major_selection_not_get(self):
         report = make_plan(self.root, source="timescaledb")
         self.assertEqual(report["selectedReviewRows"], 3)
         self.assertEqual(report["uniqueOriginalPackages"], 3)
@@ -191,12 +197,13 @@ class LatestExternalReviewTests(unittest.TestCase):
         for row in report["selected"]:
             self.assertEqual(row["version"], "2.31.0")
             self.assertEqual(row["source"],
-                             "TIMESCALEDB_GITHUB_API_METADATA_ONLY")
-            self.assertIsNone(row["originalBytes"])
-            self.assertIsNone(row["originalSha256"])
-            self.assertGreater(row["apiObservedBytes"], 0)
-            self.assertEqual(len(row["apiObservedSha256"]), 64)
-            self.assertIn("INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
+                             "TIMESCALEDB_REHASHED_ORIGINAL_ONLY")
+            self.assertEqual(row["originalRehashEvidenceRunId"], 43116446694)
+            self.assertEqual(row["originalBytes"], row["apiObservedBytes"])
+            self.assertEqual(row["originalSha256"], row["apiObservedSha256"])
+            self.assertNotIn("INDEPENDENT_ORIGINAL_BYTES_NOT_REHASHED",
+                             row["blockers"])
+            self.assertIn("SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING",
                           row["blockers"])
             for flag in DENY:
                 self.assertIs(row[flag], False)
@@ -236,6 +243,31 @@ class LatestExternalReviewTests(unittest.TestCase):
         self.timescale_path.unlink()
         with self.assertRaises(Denied):
             make_plan(self.root, source="http")
+
+    def test_timescaledb_rights_intake_poison_denied_even_when_unselected(self):
+        original = json.loads(self.timescale_rights_path.read_text("utf-8"))
+        for mutate in (
+            lambda x: x["windowsAssets"][0].update(originalBytes=953740),
+            lambda x: x["windowsAssets"][1].update(originalSha256="0" * 64),
+            lambda x: x["permissions"].update(publicGet=True),
+            lambda x: x["evidence"].update(
+                upstreamReleaseSourceToBinaryProvenance="PASS"),
+            lambda x: x["originalZipInventory"].update(runId=43116446695),
+        ):
+            poisoned = copy.deepcopy(original)
+            mutate(poisoned)
+            self.timescale_rights_path.write_text(
+                json.dumps(poisoned), encoding="utf-8")
+            with self.assertRaises(Denied):
+                make_plan(self.root, source="osgeo", pg="14")
+        self.timescale_rights_path.write_text(
+            '{ "scope": "CANDIDATE_ONLY", "scope": "PUBLIC_COMPLETE" }',
+            encoding="utf-8")
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="github", pg="16")
+        self.timescale_rights_path.unlink()
+        with self.assertRaises(Denied):
+            make_plan(self.root, source="timescaledb")
 
     def test_no_promotion_and_no_implicit_fallback(self):
         result = make_plan(self.root)
