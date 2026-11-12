@@ -7,9 +7,12 @@ on:
       - .github/workflows/issue112-pg-show-plans-native-pilot.yml
       - scripts/issue112_pg_show_plans_native_pilot.py
       - scripts/issue112_pg_show_plans_private_package.py
+      - scripts/issue112_pg_show_plans_private_sbom.py
+      - scripts/issue112_osgeo_dependency_inventory.py
       - scripts/issue112-pg-show-plans-windows-native.ps1
       - tests/test_issue112_pg_show_plans_native_pilot.py
       - tests/test_issue112_pg_show_plans_private_package.py
+      - tests/test_issue112_pg_show_plans_private_sbom.py
       - docs/issue-112-pg-show-plans-latest-native-pilot.md
 
 permissions:
@@ -38,6 +41,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tests -p 'test_issue112_pg_show_plans_native_pilot.py' -v
           python3 -m unittest discover -s tests -p 'test_issue112_pg_show_plans_private_package.py' -v
+          python3 -m unittest discover -s tests -p 'test_issue112_pg_show_plans_private_sbom.py' -v
           python3 scripts/issue112_pg_show_plans_native_pilot.py --source pinned-upstream
       - name: Do not infer binary validity or public rights
         if: always()

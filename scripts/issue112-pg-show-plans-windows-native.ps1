@@ -86,6 +86,20 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $privateStag
     throw 'Private ZIP independent source/DLL/rights rehash or extraction failed'
 }
 
+
+# Runner-local SPDX 2.3 file inventory and strict PE import observation.
+# Neither file analysis nor import names prove dependency/NOTICE closure,
+# vulnerability clearance, independent provenance or publication authority.
+$privateSbom = Join-Path $runTemp "pg_show_plans-v2.1.8-pg$Major-private.spdx.json"
+python scripts/issue112_pg_show_plans_private_sbom.py --source $source --dll $dll --major $Major --zip $privateZip --sbom $privateSbom
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $privateSbom)) {
+    throw 'Private ZIP SPDX/PE import inventory failed'
+}
+$sbom = Get-Content -LiteralPath $privateSbom -Raw | ConvertFrom-Json
+if ($sbom.spdxVersion -ne 'SPDX-2.3' -or @($sbom.files).Count -ne 8) {
+    throw 'Missing or incomplete private SPDX file inventory'
+}
+
 $extensionDir = Join-Path $pgRoot 'share/extension'
 $libDir = Join-Path $pgRoot 'lib'
 $zipExtensionDir = Join-Path $privateStage 'share/extension'

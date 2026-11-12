@@ -101,3 +101,29 @@ No ZIP/digest generated here is eligible for public GET or mirroring;
 all **PUBLIC_GET / MIRROR / RELEASE / PUBLISH remain DENY**. Dedicated
 native-repository registration and distinct protected original
 source/signature/Publisher flows remain prerequisites for publication.
+
+## Runner-local SPDX file inventory and PE imports (nonpublishing)
+
+Following the exact eight-member private ZIP verification, the existing
+Windows PG14–18 job additionally creates a local, create-only SPDX 2.3 JSON
+file inventory of every original ZIP member. Each entry has actual SHA1 and
+SHA256; the package identifier is tied to the checked ZIP SHA256. Licensing
+is deliberately NOASSERTION at both package and file level: merely embedding
+the pinned upstream LICENSE does not authenticate all dependency licenses.
+
+The existing bounded OSGeo PE parser is reused to inspect the native MSVC
+DLL's static and delay import table, with rejection of malformed PE input.
+This records import names only, not dynamic loading, Windows host DLL paths,
+source-to-binary producer attestations, full third-party NOTICE closure or
+vulnerability scan clearance. The SPDX report remains inside the disposable
+runner: no artifact upload, Catalog, signed feed, GitHub Release, mirror,
+Website or public download path is added. Hostile offline tests check that
+changed ZIP member bytes, extra members, invalid PG majors, and forged
+import-verification assumptions do not pass.
+
+**Remaining true gates:** dedicated native repository and registered source-owned
+production build; native lifecycle and exact distribution contract; independently
+signed original, verified SBOM and actual vulnerability scanning with policy
+thresholds; rights/dependency closure; owner-authenticated original license
+and protected Catalog-main event; formal Publisher Environment/App authorization
+and original-byte public E2E. All PUBLIC_GET/MIRROR/RELEASE/PUBLISH remain DENY.
