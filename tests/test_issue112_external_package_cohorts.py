@@ -88,6 +88,60 @@ class PackageCohortTests(unittest.TestCase):
         self.assertIn("16", out["unobservedMajorsNotSupportVerdict"]["hypopg"])
         self.assertFalse(out["userDownloadAvailable"])
 
+    def test_latest_per_pg_keeps_observed_major_versions_without_fallback(self):
+        pg16 = row("hypopg", ident="github:pg16", pg="16")
+        pg16.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                    assetName="hypopg-1.4.1-pg16-x64.zip", version="1.4.1",
+                    versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        pg18 = row("hypopg", ident="github:pg18", pg="18")
+        pg18.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                    assetName="hypopg-1.4.5-pg18-x64.zip", version="1.4.5",
+                    versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        result = self.compile(plan([pg16, pg18]), latest_per_pg=True)
+        self.assertEqual(result["selectionRule"],
+                         "LATEST_OBSERVED_PER_EXTENSION_AND_PG")
+        self.assertTrue(result["latestPerPgMajorRequested"])
+        self.assertEqual(result["uniqueOriginalPackages"], 2)
+        self.assertEqual(result["olderObservedRowsOmitted"], 0)
+        self.assertEqual(result["observedMajorCoverageNotSupportClaim"]["hypopg"],
+                         ["16", "18"])
+        self.assertEqual(result["unobservedMajorsNotSupportVerdict"]["hypopg"],
+                         ["14", "15", "17"])
+        self.assertEqual(result["networkRequests"], 0)
+        self.assertFalse(result["downloadAuthorized"])
+        self.assertFalse(result["userDownloadAvailable"])
+        self.assertTrue(all(not p["downloadAuthorized"] for batch in
+                            result["batches"] for p in batch["packages"]))
+
+    def test_latest_per_pg_rejects_exact_version_and_non_boolean(self):
+        fixture = plan([row("postgis")])
+        for bad in ({"latest_per_pg": True, "version": "3.7.0"},
+                    {"latest_per_pg": 1}):
+            with self.subTest(bad=bad), self.assertRaises(Denied):
+                self.compile(fixture, **bad)
+
+    def test_latest_per_pg_single_bundle_keeps_other_major_candidates(self):
+        osgeo17 = row("postgis", ident="osgeo:pg17:3.6.2", pg="17")
+        osgeo17.update(assetName="postgis-bundle-pg17-3.6.2x64.zip",
+                       version="3.6.2")
+        osgeo18 = row("postgis", ident="osgeo:pg18:3.7.0", pg="18")
+        pg16 = row("hypopg", ident="github:pg16", pg="16")
+        pg16.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                    assetName="hypopg-1.4.1-pg16-x64.zip", version="1.4.1",
+                    versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        pg18 = row("hypopg", ident="github:pg18", pg="18")
+        pg18.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                    assetName="hypopg-1.4.5-pg18-x64.zip", version="1.4.5",
+                    versionMeaning="UPSTREAM_VERSION_OBSERVED")
+        result = self.compile(plan([osgeo17, osgeo18, pg16, pg18]),
+                              single_bundle=True, latest_per_pg=True)
+        self.assertEqual(result["uniqueOriginalPackages"], 3)
+        self.assertEqual(result["singleBundleOriginalIdentity"],
+                         "osgeo:pg18:3.7.0")
+        self.assertEqual(result["observedMajorCoverageNotSupportClaim"]["hypopg"],
+                         ["16", "18"])
+        self.assertFalse(result["downloadAuthorized"])
+
     def test_explicit_version_never_filtered_by_global_latest(self):
         older = row("hypopg", ident="github:older", pg="16")
         older.update(source="GITHUB_DISCOVERY_ONLY", version="1.4.1",

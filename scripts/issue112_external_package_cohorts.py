@@ -63,13 +63,16 @@ def validate_row(row):
 
 def build(root=ROOT, pg="all", extension=None, version=None, source="all",
           max_batch=12, cybertec_index=None, packaging_label=None,
-          single_bundle=False):
+          single_bundle=False, latest_per_pg=False):
     require(type(max_batch) is int and 1 <= max_batch <= 20,
             "batch size must be between 1 and 20")
     require(type(single_bundle) is bool and
             (not single_bundle or
              (pg == "all" and version is None and source in ("all", "osgeo"))),
             "--single-bundle requires --pg all, OSGeo source and no exact --version")
+    require(type(latest_per_pg) is bool and
+            (not latest_per_pg or version is None),
+            "--latest-per-pg cannot accompany exact --version")
     # The existing selector validates every upstream registry and signed-denial
     # field BEFORE filtering. Do not reproduce or weaken that validation here.
     review = make_plan(root, pg=pg, extension=extension, version=version,
@@ -111,7 +114,7 @@ def build(root=ROOT, pg="all", extension=None, version=None, source="all",
                 if r["versionMeaning"] != "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"
                 or r["packageIdentity"] == chosen_bundle["packageIdentity"]]
     older_omitted = 0
-    if version is None:
+    if version is None and not latest_per_pg:
         highest = {}
         for r in rows:
             # Bundle releases are intentionally chosen per available PG
@@ -198,11 +201,13 @@ def build(root=ROOT, pg="all", extension=None, version=None, source="all",
         "schemaVersion": SCHEMA,
         "trust": "UNTRUSTED_CANDIDATES_NEVER_SIGNED_ADMISSION",
         "selectionRule": ("EXACT_OBSERVED_VERSION" if version is not None else
+                          "LATEST_OBSERVED_PER_EXTENSION_AND_PG" if latest_per_pg else
                           "GLOBAL_HIGHEST_OBSERVED_STABLE_EXCEPT_BUNDLES"),
         "latestUpstreamVerified": False,
         "pgSelection": pg, "sourceSelection": source,
         "extensionSelection": extension, "exactVersionSelection": version,
         "singleLatestBundleRequested": single_bundle,
+        "latestPerPgMajorRequested": latest_per_pg,
         "singleBundleOriginalIdentity": (
             chosen_bundle["packageIdentity"] if chosen_bundle is not None else None),
         "singleBundleMajorIsNotCrossMajorCompatibility": single_bundle,
@@ -233,11 +238,15 @@ def main():
     parser.add_argument("--single-bundle", action="store_true",
                         help="Review the newest observed OSGeo bundle only; "
                              "does not imply cross-PG ABI compatibility")
+    parser.add_argument("--latest-per-pg", action="store_true",
+                        help="Retain newest observed binary for EACH PG major; "
+                             "not a support or admission claim")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     report = build(args.catalog, args.pg, args.extension, args.version,
                    args.source, args.max_batch, args.cybertec_index,
-                   args.packaging_label, args.single_bundle)
+                   args.packaging_label, args.single_bundle,
+                    args.latest_per_pg)
     require(not args.output.exists() and not args.output.is_symlink(),
             "output must be create-only")
     args.output.write_text(json.dumps(report, sort_keys=True, indent=2,

@@ -26,11 +26,26 @@ Example commands (offline, no provider requests):
 
 ```bash
 python scripts/issue112_external_package_cohorts.py --catalog . --pg all --output /tmp/all-external-review.json
+python scripts/issue112_external_package_cohorts.py --catalog . --pg all --latest-per-pg --output /tmp/latest-each-pg-review.json
+python scripts/issue112_external_package_cohorts.py --catalog . --pg all --single-bundle --latest-per-pg --output /tmp/all-major-one-spatial-bundle-review.json
 python scripts/issue112_external_package_cohorts.py --catalog . --source osgeo --pg all --output /tmp/spatial-review.json
 python scripts/issue112_external_package_cohorts.py --catalog . --source osgeo --pg all --single-bundle --output /tmp/latest-one-bundle-review.json
 python scripts/issue112_external_package_cohorts.py --catalog . --source osgeo --extension pgrouting --pg all --output /tmp/pgrouting-review.json
 python scripts/issue112_external_package_cohorts.py --catalog . --source github --extension hypopg --version 1.4.1 --pg 16 --output /tmp/hypopg-historical-review.json
 ```
+
+For all-major intake where the provider has different newest **observed**
+versions per PG major, `--latest-per-pg` retains the prior selector's
+per-major records rather than dropping a major simply because another major
+offers a newer version. The default global-highest-only selection is unchanged.
+This is **not** a claim that the same extension version supports every PG
+major, that an unobserved major is unsupported, or that any candidate is
+authorized for end-user download. Exact `--version` cannot be combined with
+`--latest-per-pg`. The option can be combined with `--single-bundle` to
+retain one physical latest observed OSGeo ZIP while reviewing ordinary
+extensions separately for each observed PG major. The report labels the mode
+with `latestPerPgMajorRequested` and `selectionRule`. All underlying
+records are checked before selecting or discarding candidates.
 
 Output is **create-only** JSON with `reviewBatchCount`,
 `olderObservedRowsOmitted`, distinct
