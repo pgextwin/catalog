@@ -45,6 +45,25 @@ class SourceIndexGapTests(unittest.TestCase):
         self.assertFalse(row["producerToOriginalZipAttestationVerified"])
         self.assertFalse(row["publicGetAuthorized"])
 
+    def test_new_pg18_exact_installer_source_name_is_not_producer_proof(self):
+        # OSUOSL public mirror listed this name on 2026-11-13; unlike the
+        # 2026-11-11 historical fixture, the PG18 version now name-matches.
+        # Directory names cannot prove actual source-to-binary provenance.
+        current = copy.deepcopy(LISTED)
+        current["18"].append("postgis-bundle-pg18x64-3.7.0-installer-src.zip")
+        report = gap.audit(current)
+        row = report["rows"][4]
+        self.assertEqual(row["listedInstallerSourceVersions"], ["3.6.1", "3.7.0"])
+        self.assertTrue(row["matchingInstallerSourceFilenameListed"])
+        self.assertEqual(row["status"], "NAME_MATCH_ONLY_NOT_PROVENANCE")
+        self.assertFalse(report["sourceToBinaryProvenanceVerified"])
+        for flag in ("installerSourceIsCompleteBinaryBuildInput",
+                     "producerToOriginalZipAttestationVerified",
+                     "componentLicenseNoticeClosureVerified",
+                     "publicGetAuthorized", "mirrorAuthorized",
+                     "releaseAuthorized", "publisherAuthorized"):
+            self.assertIs(row[flag], False)
+
     def test_source_filename_requires_exact_version_major_and_type(self):
         data = copy.deepcopy(LISTED)
         data["18"] += ["postgis-bundle-pg18-3.7.0x64.zip",
