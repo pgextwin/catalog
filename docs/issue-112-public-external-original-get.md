@@ -9,7 +9,7 @@
 最新選択と原本のRelease・Asset ID／サイズ／SHA256が一致するときだけ取得します。
 期限切れ、署名不正、未承認の拡張・PGメジャー・バージョン、権限不足は **DENY** です。
 
-[正式CLI v0.3.15 Release](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.15)
+[正式CLI v0.3.16 Release](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.16)
 から `pgextwin.exe` と `SHA256SUMS.txt` を取得し、実行ファイルのSHA256を確認してください。
 出力先フォルダーは事前に作成し、Windows PowerShellで実行します。
 
@@ -61,7 +61,7 @@ protected Catalog latest selection and exact release/asset/byte identities.
 There is **no unsigned or historical fallback**.
 
 Download `pgextwin.exe` and `SHA256SUMS.txt` from the
-[CLI v0.3.15 Release](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.15)
+[CLI v0.3.16 Release](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.16)
 and verify its SHA256 before running. Create the output parent directory first.
 
 ```powershell
