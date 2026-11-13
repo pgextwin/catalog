@@ -29,9 +29,10 @@ def sample(repo="portalcorp/pgvector_compiled", name="pgvector-Windows-pg16.zip"
 
 class DiscoveryTests(unittest.TestCase):
     def test_pinned_baselines_all_match_explicit_windows_patterns(self):
-        self.assertEqual(8, len(PROVIDERS))
+        self.assertEqual(9, len(PROVIDERS))
         for p in PROVIDERS:
             if p["repo"] in ("trickle-labs/pg-trickle", "HiraokaHyperTools/pg_bigm",
+                             "semihkiroglu/pglogical-windows",
                                 "pgroonga/pgroonga", "timescale/timescaledb"):
                 continue  # New provider has no pinned historical baseline yet.
             historical = next(repo for b in BASELINES for repo in b["repositories"]
@@ -42,6 +43,45 @@ class DiscoveryTests(unittest.TestCase):
                 self.assertRegex(name, re.compile(p["assetPattern"]))
         self.assertEqual(203, sum(r["windowsAssets"] for b in BASELINES
                                   for r in b["repositories"]))
+
+
+    def test_pglogical_five_major_candidate_is_readonly(self):
+        provider = next(p for p in PROVIDERS if p["repo"] ==
+                        "semihkiroglu/pglogical-windows")
+        self.assertEqual("community", provider["providerType"])
+        regex = re.compile(provider["assetPattern"])
+        manifest = json.loads(
+            (ROOT / "external/windows-candidates-pglogical-v1.json").read_text())
+        rows = manifest["candidates"]
+        self.assertEqual({"14", "15", "16", "17", "18"},
+                         {row["pgMajor"] for row in rows})
+        self.assertEqual(5, len(rows))
+        self.assertEqual(5, len({row["assetId"] for row in rows}))
+        for row in rows:
+            self.assertIsNotNone(regex.fullmatch(row["assetName"]))
+            self.assertEqual("2.4.8", row["upstreamVersion"])
+            self.assertRegex(row["apiDigest"], r"^sha256:[0-9a-f]{64}$")
+            self.assertIsNone(row["originalSha256"])
+            self.assertIsNone(row["originalBytes"])
+            self.assertFalse(row["downloadAuthorized"])
+            self.assertFalse(row["compatibilityVerified"])
+            self.assertFalse(row["provenanceVerified"])
+        for forbidden in ("pglogical-2.4.8-pg19-w1-x64.zip",
+                          "pglogical-2.4.8-pg18-w1-linux.zip",
+                          "../pglogical-2.4.8-pg18-w1-x64.zip"):
+            self.assertIsNone(regex.fullmatch(forbidden))
+        release = {"id": 381578857, "tag_name": "2.4.8-w1",
+                   "published_at": "2026-09-02T21:15:14Z",
+                   "draft": False, "prerelease": False, "assets": []}
+        for row in rows:
+            release["assets"].append({
+                "id": row["assetId"], "name": row["assetName"], "size": 176778,
+                "digest": row["apiDigest"], "state": "uploaded",
+                "browser_download_url": row["assetUrl"]})
+        report = d.scan([provider], lambda repo, page: [release] if page == 1 else [])
+        self.assertEqual(5, report["repositories"][0]["windowsAssets"])
+        self.assertFalse(report["publicationAuthorized"])
+        self.assertFalse(report["redistributionAuthorized"])
 
     def test_page_terminal_and_metadata_denial(self):
         portal = PROVIDERS[-1]
