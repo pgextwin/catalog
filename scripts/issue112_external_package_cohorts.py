@@ -55,7 +55,8 @@ def validate_row(row):
     bundle = row["versionMeaning"] == "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"
     if bundle:
         require(row["source"] == "OSGEO_REHASHED_ORIGINAL_ONLY" and
-                row["format"] == "zip" and size is not None,
+                row["format"] == "zip" and size is not None and
+                version_key(row.get("version")) is not None,
                 "unverified shared bundle metadata")
     return bundle
 
@@ -66,8 +67,9 @@ def build(root=ROOT, pg="all", extension=None, version=None, source="all",
     require(type(max_batch) is int and 1 <= max_batch <= 20,
             "batch size must be between 1 and 20")
     require(type(single_bundle) is bool and
-            (not single_bundle or (pg == "all" and version is None)),
-            "--single-bundle requires --pg all and no exact --version")
+            (not single_bundle or
+             (pg == "all" and version is None and source in ("all", "osgeo"))),
+            "--single-bundle requires --pg all, OSGeo source and no exact --version")
     # The existing selector validates every upstream registry and signed-denial
     # field BEFORE filtering. Do not reproduce or weaken that validation here.
     review = make_plan(root, pg=pg, extension=extension, version=version,
