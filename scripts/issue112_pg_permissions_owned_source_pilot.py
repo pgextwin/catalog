@@ -38,11 +38,25 @@ def exact_sources(root, pins=PINNED, require_commit=True):
                                 capture_output=True, text=True, timeout=15, check=False)
         require(result.returncode == 0 and result.stdout.strip() == NEW_COMMIT,
                 "wrong source commit")
-        status = subprocess.run(["git", "-C", str(root), "status", "--porcelain",
-                                 "--untracked-files=no"], capture_output=True, text=True,
-                                timeout=15, check=False)
-        require(status.returncode == 0 and not status.stdout.strip(),
-                "modified upstream checkout")
+        # Worktree-wide porcelain is not a source-byte proof on Windows: the
+        # upstream repository contains unrelated files normalized differently
+        # by the checkout. Compare every *used* path to the immutable Git tree
+        # instead; read_pinned also verifies the corresponding worktree bytes.
+        tree = subprocess.run(["git", "-C", str(root), "ls-tree", "HEAD", "--",
+                               *sorted(pins)], capture_output=True, text=True,
+                              timeout=15, check=False)
+        require(tree.returncode == 0, "cannot authenticate pinned source tree")
+        actual = {}
+        for line in tree.stdout.splitlines():
+            try:
+                spec, name = line.split("\\t", 1)
+                mode, kind, oid = spec.split()
+            except ValueError as exc:
+                raise ValueError("PG_PERMISSIONS_SOURCE_DENY: malformed Git tree") from exc
+            require(mode == "100644" and kind == "blob" and name not in actual,
+                    "unexpected upstream Git tree member")
+            actual[name] = oid
+        require(actual == pins, "upstream Git tree differs from exact source pins")
     sources = {name: (root / name).read_bytes() for name in sorted(pins)}
     require(all(blob_sha(data) == pins[name] for name, data in sources.items()),
             "source files changed between verification and packaging")
