@@ -313,14 +313,17 @@ jobs:
             $log=Join-Path $env:RUNNER_TEMP 'public-cli-verbose.log'
             $result=& $exe download-all --pg all --verbose 2> $log | Out-String
             if ($LASTEXITCODE -ne 0 -or $result -notmatch 'CATALOG_AUTH=SIGSTORE_VERIFIED_FEED') { throw "Public latest command failed: $result" }
-            # The signed feed selects supported PG majors; a historical hard-coded folder is unsafe.
-            $folders=@(Get-ChildItem -LiteralPath $parent -Directory | Where-Object { $_.Name -cmatch '^pgextwin-pg[1-9][0-9]*-[1-9][0-9]*
+            # Dynamically discover the selected signed PostgreSQL cohort (currently PG15-18).
+            $folders=@(Get-ChildItem -LiteralPath $parent -Directory | Where-Object { $_.Name -cmatch '^pgextwin-pg[1-9][0-9]*-[1-9][0-9]*$' })
+            if ($folders.Count -ne 1) { throw 'Expected exactly one signed PG cohort directory' }
+            $folder=$folders[0].FullName
+            $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
             $count=[int]$receipt.zipCount
             if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or $result -notmatch "ZIP_COUNT=$count\b" -or
                 $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
                 $receipt.signatureVerified -ne $false -or $receipt.installAuthorized -ne $false -or
                 $receipt.verificationLevel -cne 'INTEGRITY_ONLY') { throw 'Invalid or incorrectly elevated ZIP receipt' }
-            # Bind the output directory and ZIP matrix to the public CLI's verified Catalog commit.
+            # Compare the receipt with the exact independently verified Catalog source.
             $match=[regex]::Match($result, 'CATALOG_COMMIT=([0-9a-f]{40})')
             if (!$match.Success) { throw 'Missing signed feed source commit' }
             $source=$match.Groups[1].Value
@@ -336,81 +339,6 @@ jobs:
                 (Split-Path $folder -Leaf) -cne "pgextwin-pg$($approved[0])-$($approved[-1])") {
               throw 'Signed public CLI cohort and actual ZIP matrix differ'
             }
-            $index=Invoke-RestMethod 'https://raw.githubusercontent.com/pgextwin/catalog/main/index.json'
-            $expected=[string[]]@($index.extensions)
-            $actual=[string[]]@($receipt.packages | Select-Object -ExpandProperty extension -Unique)
-            [Array]::Sort($expected,[StringComparer]::Ordinal)
-            [Array]::Sort($actual,[StringComparer]::Ordinal)
-            if (($actual -join ',') -cne ($expected -join ',')) { throw 'Public EXE did not fetch the current full Catalog roster' }
-            foreach ($row in $receipt.packages) {
-              $path=Join-Path $folder $row.relativePath
-              if (!(Test-Path $path -PathType Leaf) -or (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.sha256) { throw 'Public ZIP original bytes differ' }
-            }
-            $trace=Get-Content $log -Raw
-            if ([regex]::Matches($trace,'ZIP_START index=').Count -ne $count -or
-                [regex]::Matches($trace,'ZIP_VERIFIED index=').Count -ne $count -or
-                $trace -notmatch "BATCH_COMPLETE zip_count=$count\b" -or $trace -match 'Authorization:|Bearer |GH_TOKEN=') { throw 'Verbose coverage or redaction failed' }
-            Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS VERSION=$env:VERSION SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED"
-          } finally { Pop-Location }
-      - name: Verify owner-signed original-provider cohort through public CLI without proof flags
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $ErrorActionPreference='Stop'
-          python scripts/validate_public_get_pin.py --catalog .
-          if ($LASTEXITCODE -ne 0) { throw 'Current published external admission invalid' }
-          $root='external/signed-direct-get/qualified_cohort'
-          $now=[DateTimeOffset]::UtcNow
-          # An older signed Run may still be active, but is never the
-          # current approved latest selection. Bind to the verified pointer.
-          $latest=Get-Content (Join-Path $root 'latest.json') -Raw | ConvertFrom-Json
-          if ($latest.schemaVersion -cne 'pgextwin-external-latest-original-pins/v1' -or
-              [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -ne 11) {
-            throw 'Current signed Catalog latest eleven-pointer is invalid'
-          }
-          $current=Join-Path $root ("run-" + [string]$latest.issuerRunId)
-          $signed=Get-Content (Join-Path $current 'external-get-admission.json') -Raw | ConvertFrom-Json
-          if ([long]$signed.issuerRunId -ne [long]$latest.issuerRunId -or
-              ([DateTimeOffset]::Parse($signed.issuedAt) -gt $now) -or
-              ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))) {
-            throw 'Selected owner-signed latest cohort is not currently authorized'
-          }
-          $expected=@($signed.records)
-          if ($expected.Count -ne 11) { throw 'Signed current original cohort length is not eleven' }
-          $exe=Join-Path $env:RUNNER_TEMP 'public-cli/pgextwin.exe'
-          $dest=Join-Path $env:RUNNER_TEMP 'public-external-originals'
-          New-Item -ItemType Directory -Path $dest | Out-Null
-          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-          try {
-            & $exe download-all --source external --pg all --output $dest
-            if ($LASTEXITCODE -ne 0) { throw 'Actual public CLI automatic external GET failed' }
-            $files=@(Get-ChildItem $dest -Recurse -File -Filter '*.zip')
-            if ($files.Count -ne $expected.Count) { throw 'Public original ZIP count differs from signed cohort' }
-            foreach ($record in $expected) {
-              $matching=@($files | Where-Object { $_.Name -ceq $record.assetName })
-              if ($matching.Count -ne 1) { throw "Missing original ZIP: $($record.assetName)" }
-              $sha=(Get-FileHash $matching[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-              if ($matching[0].Length -ne [long]$record.originalBytes -or
-                  $sha -cne [string]$record.originalSha256) {
-                throw "Original provider SHA256 or size mismatch: $($record.assetName)"
-              }
-              Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINAL=PASS FILE=$($record.assetName) BYTES=$($matching[0].Length) SHA256=$sha"
-            }
-            Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINALS=PASS ZIP_COUNT=$($expected.Count) SIGNED_COHORT=TRUE"
-          } finally {
-            Remove-Item $dest -Recurse -Force -ErrorAction SilentlyContinue
-          }
- })
-            if ($folders.Count -ne 1) { throw 'Expected exactly one signed PG cohort directory' }
-            $folder=$folders[0].FullName
-            $receipt=Get-Content -LiteralPath (Join-Path $folder 'DOWNLOAD-INFO.json') -Raw | ConvertFrom-Json
-            $count=[int]$receipt.zipCount
-            if ($count -lt 1 -or @($receipt.packages).Count -ne $count -or $result -notmatch "ZIP_COUNT=$count\b" -or
-                $receipt.source -cne 'SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS' -or
-                $receipt.signatureVerified -ne $false -or $receipt.installAuthorized -ne $false -or
-                $receipt.verificationLevel -cne 'INTEGRITY_ONLY') { throw 'Invalid or incorrectly elevated ZIP receipt' }
             $index=Invoke-RestMethod 'https://raw.githubusercontent.com/pgextwin/catalog/main/index.json'
             $expected=[string[]]@($index.extensions)
             $actual=[string[]]@($receipt.packages | Select-Object -ExpandProperty extension -Unique)
