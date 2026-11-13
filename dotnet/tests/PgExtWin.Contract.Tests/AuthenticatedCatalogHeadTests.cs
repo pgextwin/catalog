@@ -269,13 +269,19 @@ internal static class AuthenticatedCatalogHeadTests
                     RateLimit = fault == "403"
                 };
                 var denied = false;
+                Exception? failure = null;
                 try
                 {
                     using var result = await AuthenticatedCatalogHead.AcquireAsync(parent, fixture);
                 }
                 catch (Exception e) when (e is InvalidDataException or HttpRequestException)
-                { denied = true; }
+                { denied = true; failure = e; }
                 check(denied, "latest fail-closed: " + fault);
+                if (fault == "403")
+                    check(failure?.Message.Contains(
+                        "TARGET=GITHUB_API PATH=/repos/pgextwin/catalog/branches/main RATE_REMAINING=absent",
+                        StringComparison.Ordinal) == true,
+                        "anonymous 403 reports allowlisted endpoint and safe rate header without bypass");
                 check(Directory.GetFileSystemEntries(parent).Length == 0,
                     "latest staging cleaned: " + fault);
             }
