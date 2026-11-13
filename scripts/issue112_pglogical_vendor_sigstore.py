@@ -34,11 +34,25 @@ def verified_statement(proof, name, sha):
             statement.get("predicateType") == PREDICATE,
             "unexpected attested predicate")
     subjects = statement.get("subject")
-    require(type(subjects) is list and len(subjects) == 1 and
-            type(subjects[0]) is dict and
-            subjects[0].get("name") == name and
-            subjects[0].get("digest") == {"sha256": sha},
-            "verified subject not equal to original ZIP pin")
+    require(type(subjects) is list and 1 <= len(subjects) <= len(PINS),
+            "invalid signed ZIP subject count")
+    expected = {
+        "pglogical-2.4.8-pg" + str(pg) + "-w1-x64.zip": pin[2]
+        for pg, pin in PINS.items()
+    }
+    seen = set()
+    for subject in subjects:
+        require(type(subject) is dict, "invalid verified subject")
+        signed_name = subject.get("name")
+        require(type(signed_name) is str, "missing subject name")
+        if signed_name.startswith("release-assets/"):
+            signed_name = signed_name[len("release-assets/"):]
+        require(signed_name in expected and signed_name not in seen and
+                subject.get("digest") == {"sha256": expected[signed_name]},
+                "signed subject differs from a pinned original release ZIP")
+        seen.add(signed_name)
+    require(name in seen and expected[name] == sha,
+            "requested ZIP missing from signed original subjects")
     predicate = statement.get("predicate")
     require(type(predicate) is dict, "missing provenance predicate")
     invocation = (predicate.get("runDetails") or {}).get("metadata", {}).get("invocationId", "")
