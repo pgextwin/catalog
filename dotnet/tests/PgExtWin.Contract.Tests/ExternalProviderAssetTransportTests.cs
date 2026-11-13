@@ -74,7 +74,7 @@ internal static class ExternalProviderAssetTransportTests
                         browser_download_url = pin.OriginalProviderUrl
                     } }
                 });
-            if (url == prefix + "/releases/assets/" + pin.AssetId)
+            if (url == pin.OriginalProviderUrl)
             {
                 if (redirect is not null)
                 {
@@ -91,6 +91,12 @@ internal static class ExternalProviderAssetTransportTests
                     }
                 };
             }
+            if (url == "https://release-assets.githubusercontent.com/synthetic-original.zip")
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(content) {
+                        Headers = { ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream") }
+                    }
+                };
             throw new InvalidOperationException("Unexpected network request " + url);
         });
     }
@@ -131,7 +137,9 @@ internal static class ExternalProviderAssetTransportTests
                           receipt.Size == bytes.Length &&
                           receipt.Sha256 == pin.OriginalSha256 &&
                           File.ReadAllBytes(receipt.FilePath).SequenceEqual(bytes) &&
-                          fake.Requests == 3,
+                          fake.Requests == 3 &&
+                          fake.Paths[2] == pin.OriginalProviderUrl &&
+                          fake.Paths.All(x => !x.Contains("/releases/assets/", StringComparison.Ordinal)),
                         "Synthetic original provider ID/size/SHA256/ZIP validated: " + repo);
                 }
                 File.Delete(Path.Combine(folder, name));
@@ -166,8 +174,8 @@ internal static class ExternalProviderAssetTransportTests
                             state = "uploaded", browser_download_url = pin.OriginalProviderUrl
                         }).ToArray()
                     });
-                if (url == cohortBase + "/releases/assets/" + cohortFirst.AssetId ||
-                    url == cohortBase + "/releases/assets/" + cohortSecond.AssetId)
+                if (url == cohortFirst.OriginalProviderUrl ||
+                    url == cohortSecond.OriginalProviderUrl)
                     return new HttpResponseMessage(HttpStatusCode.OK) {
                         Content = new ByteArrayContent(bytes) {
                             Headers = { ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
@@ -185,6 +193,9 @@ internal static class ExternalProviderAssetTransportTests
                       File.ReadAllBytes(first.FilePath).SequenceEqual(bytes) &&
                       File.ReadAllBytes(second.FilePath).SequenceEqual(bytes) &&
                       cohortNetwork.Requests == 4 &&
+                      cohortNetwork.Paths.Contains(cohortFirst.OriginalProviderUrl) &&
+                      cohortNetwork.Paths.Contains(cohortSecond.OriginalProviderUrl) &&
+                      cohortNetwork.Paths.All(url => !url.Contains("/releases/assets/", StringComparison.Ordinal)) &&
                       cohortNetwork.Paths.Count(url => url == cohortBase) == 1 &&
                       cohortNetwork.Paths.Count(url =>
                           url == cohortBase + "/releases/tags/" + cohortFirst.Tag) == 1,
@@ -275,6 +286,22 @@ internal static class ExternalProviderAssetTransportTests
                       offsite.Requests == 3 &&
                       Directory.GetFileSystemEntries(folder).Length == 0,
                     "Off-host redirect denied without following");
+
+            // Signed direct URL may redirect only to the existing pinned
+            // GitHub release-asset object hosts; no offsite or auth fallback.
+            var objectUrl = "https://release-assets.githubusercontent.com/synthetic-original.zip";
+            var approvedRedirect = Network(original, bytes, redirect: objectUrl);
+            using (var transport = new ExternalProviderAssetTransport(approvedRedirect))
+            {
+                var receipt = await transport.DownloadAsync(original, folder);
+                check(receipt.Sha256 == original.OriginalSha256 &&
+                      receipt.Size == bytes.Length &&
+                      approvedRedirect.Requests == 4 &&
+                      approvedRedirect.Paths[2] == original.OriginalProviderUrl &&
+                      approvedRedirect.Paths[3] == objectUrl,
+                    "Strict signed original URL redirects to allowlisted GitHub object host");
+            }
+            File.Delete(Path.Combine(folder, original.AssetName));
 
             var forbidden = Network(original, bytes, binaryStatus: HttpStatusCode.Forbidden);
             using (var transport = new ExternalProviderAssetTransport(forbidden))
