@@ -131,9 +131,13 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
                 throw new InvalidDataException("External Release asset ID absent");
         }
 
-        // Only the immutable numeric provider asset endpoint; never follow
-        // arbitrary redirect hosts or substitute a different asset on failure.
-        var url = new Uri(baseUrl + "/releases/assets/" + pin.AssetId);
+        // The provider's EXACT browser_download_url is independently owner-signed
+        // and already matched against the GitHub Release asset ID, name and size.
+        // Download through github.com (not anonymous REST /releases/assets/ID)
+        // to conserve GitHub's shared anonymous REST budget. Strict redirect
+        // allowlist and independent full-byte SHA256/ZIP checks remain mandatory.
+        // On 403/404/mismatch do NOT fall back to an unreviewed transport.
+        var url = new Uri(pin.OriginalProviderUrl);
         using var response = await OriginalAsync(url, token);
         if (response.Content.Headers.ContentLength is long size && size != pin.OriginalBytes)
             throw new InvalidDataException("External original HTTP length mismatch");
@@ -211,6 +215,13 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
 
     private async Task<HttpResponseMessage> OriginalAsync(Uri initial, CancellationToken token)
     {
+        // The initial URL is derived only from ValidatePin's canonical
+        // https://github.com/REPO/releases/download/TAG/ASSET identity.
+        // Never accept another host as an original-provider starting point.
+        if (initial.Host != "github.com" || initial.Scheme != Uri.UriSchemeHttps ||
+            !initial.IsDefaultPort || initial.UserInfo.Length != 0 ||
+            initial.Fragment.Length != 0)
+            throw new InvalidDataException("Untrusted signed provider URL");
         var url = initial;
         var visited = new HashSet<string>(StringComparer.Ordinal);
         for (int hop = 0; hop < 5; hop++)
