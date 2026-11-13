@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "lastReviewed": "2026-10-08",
+  "lastReviewed": "2026-11-13",
   "windowsBinarySources": [
     {
       "provider": "PostGIS / OSGeo",
       "type": "upstream-official",
-      "url": "https://www.postgresql.org/ftp/postgis/pg18/v3.6.2/win64/",
+      "url": "https://postgis.net/documentation/getting_started/install_windows/released_versions/",
       "availability": "public",
       "postgresqlDistribution": "standard-postgresql",
       "compatibility": "standard-postgresql",
-      "notes": "PostGIS 3.6.2 PG18 x64 installer; choose a matching PostgreSQL major at the official downloads page."
+      "notes": "Official PostGIS 3.7.0 page (checked 2026-11-13) lists released Windows installers for PG18-19, PG15-17 installers forthcoming, and additional binaries under Unreleased Versions. A separately audited PG18 3.7.0 original ZIP is only a pinned candidate: source-to-binary producer provenance, complete dependency/NOTICE rights and formal pgextwin download authorization remain unverified."
     }
   ],
   "name": "postgis",
@@ -18,9 +18,9 @@
   "upstreamRepository": "postgis/postgis",
   "status": "not-planned",
   "reasonCode": "existing-windows-distribution",
-  "notPlannedReason": "Official Windows installers cover PG14–18 including dependencies; duplicating GIS dependency packaging is unnecessary now.",
+  "notPlannedReason": "Official PostGIS Windows binary/installer routes exist but release coverage differs by PostgreSQL major; duplicating the GIS toolchain for a native build is not currently planned. External original GET remains a separate gated candidate.",
   "evidenceUrls": [
     "https://postgis.net/documentation/getting_started/install_windows/released_versions/"
   ],
-  "notPlannedReasonJa": "PostGISの公式Windowsインストーラーがあり、GIS関連ライブラリをpgextwinで重複配布する必要性が低いため。"
+  "notPlannedReasonJa": "PostGISの公式Windowsバイナリ・インストーラーは存在しますが、PostgreSQLメジャー別の公開状況は異なります。GIS関連ライブラリのネイティブ再ビルドは当面行わず、外部原本GETは別途認可が必要な候補として扱います。"
 }
