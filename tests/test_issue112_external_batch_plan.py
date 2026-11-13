@@ -124,5 +124,29 @@ class Cohorts(unittest.TestCase):
         with self.assertRaises(Denied): build(self.root)
 
 
+    def test_checked_in_pglogical_candidates_are_never_admitted(self):
+        source = Path(__file__).resolve().parents[1]
+        plan = build(source)
+        matches = [row for batch in plan["batches"] for row in batch["records"]
+                   if row["extension"] == "pglogical"]
+        self.assertEqual(5, len(matches))
+        self.assertEqual({"14", "15", "16", "17", "18"},
+                         {row["pgMajor"] for row in matches})
+        self.assertEqual({row["version"] for row in matches}, {"2.4.8"})
+        self.assertTrue(all(row["originalSha256"] is None and
+                            row["originalBytes"] is None and
+                            row["downloadAuthorized"] is False and
+                            "INDEPENDENT_ORIGINAL_BYTES_NOT_PINNED" in row["blockers"] and
+                            "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED" in row["blockers"]
+                            for row in matches))
+        self.assertEqual(plan["admittedAssets"], 0)
+        from issue112_latest_external_review import make_plan
+        latest = make_plan(source, pg="all", source="github",
+                           extension="pglogical", version="2.4.8")
+        self.assertEqual(5, len(latest["selected"]))
+        self.assertEqual(latest["admittedAssets"], 0)
+        self.assertFalse(latest["downloadAuthorized"])
+
+
 if __name__ == "__main__":
     unittest.main()
