@@ -6,6 +6,8 @@ on:
       - scripts/issue112_sql_owned_archive.py
       - scripts/issue112_pg_permissions_source_pins.py
       - scripts/issue112_pg_permissions_owned_source_pilot.py
+      - scripts/issue112-pg-permissions-owned-source-windows.ps1
+      - docs/issue-112-pg-permissions-source-owned-private.md
       - tests/test_issue112_pg_permissions_owned_source_pilot.py
       - .github/workflows/issue112-pg-permissions-owned-source.yml
 
@@ -61,3 +63,65 @@ jobs:
           if (@($hashes | Select-Object -Unique).Count -ne 5) { throw 'PG-specific receipts collided' }
           Remove-Item -LiteralPath $dir -Recurse -Force
           Write-Output 'PG_PERMISSIONS_SOURCE_OWNED_PG14_18=PRIVATE_ONLY_SOURCE_PINS_PASS PUBLISH=DENY PUBLIC_GET=DENY'
+
+  source-owned-pg14-18-real-sql-windows:
+    needs: original-source-private-windows-package
+    if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { pg: 14, edb: '14.24.0' }
+          - { pg: 15, edb: '15.19.0' }
+          - { pg: 16, edb: '16.15.5' }
+          - { pg: 17, edb: '17.11.4' }
+          - { pg: 18, edb: '18.6.5' }
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout candidate without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Disable Git worktree CRLF conversion before pinned checkout
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot disable CRLF conversion' }
+          git config --global core.eol lf
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot preserve LF' }
+      - name: Checkout exact immutable SQL source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cybertec-postgresql/pg_permissions
+          ref: 3360447e0668fed2b9db6a0ae1d086533781f9bd
+          path: pinned-pg-permissions
+          persist-credentials: false
+      - name: Checkout known PostgreSQL installer implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 07449a2384ae4e2fc01820e263ed4bc45cd73abf
+          path: build-tools
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Install disposable EDB PostgreSQL for selected major
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
+        run: |
+          ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55449
+      - name: Real CREATE EXTENSION and permissions SQL from exact private ZIP
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+        run: ./scripts/issue112-pg-permissions-owned-source-windows.ps1 -Major ([int]$env:PG_MAJOR)
+      - name: Keep candidate nonpublishing after every outcome
+        if: always()
+        shell: pwsh
+        run: Write-Host 'PG_PERMISSIONS=CANDIDATE_ONLY CYBERTEC_ORIGINAL=NO ZIP_UPLOAD=NONE GET=DENY MIRROR=DENY RELEASE=DENY PUBLISHER=NONE'
