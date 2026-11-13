@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastReviewed": "2026-10-08",
+  "lastReviewed": "2026-11-13",
   "windowsBinarySources": [
     {
       "provider": "PostGIS / OSGeo Windows bundle",
@@ -9,7 +9,7 @@
       "availability": "public",
       "postgresqlDistribution": "standard-postgresql",
       "compatibility": "standard-postgresql",
-      "notes": "PostGIS 3.6.2 bundle lists pgRouting 4.0.1; verify exact PG major and included subpackage."
+      "notes": "The official PostGIS 3.7.0 Windows page now advertises pgRouting 4.0.2, while the previously audited immutable PG18 bundle SQL runtime reported pgRouting 4.0.1 (the DLL basename libpgrouting-4.0.dll is not a precise version). Do not attribute 4.0.2 to that exact ZIP or infer source/build provenance, rights/NOTICE closure or pgextwin public GET authority."
     }
   ],
   "name": "pgrouting",
