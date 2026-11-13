@@ -67,6 +67,28 @@ ZIP/OpenPGP signature and Actions-artifact identity remain independently
 verified prior evidence; rights/NOTICE and owner/Publisher admission remain
 separate DENY gates.
 
+## Original five-major Windows job logs confirm the mutable source command
+
+The official original Windows Run `37872644159`, attempt 1, has separate
+PostgreSQL 14–18 job logs. Each shows the **non-Groonga-main** source-download
+branch (`if ("" -eq "yes")`), the
+`Invoke-WebRequest https://packages.groonga.org/source/groonga/groonga-latest.zip`
+command, extraction and deletion of the downloaded archive, the exact
+`release-postgresql-<major>-x64` artifact name, version 4.1.0, and
+progression into `Configure Groonga`. GitHub reports all original jobs and
+their required downstream build/package steps successful. The audit reads all
+five exact job IDs through bounded authenticated GitHub API GET, and permits only
+token-free HTTPS result-storage redirects. Swapped PG-major context, a different
+input URL, a Groonga-main branch, missing step context, duplicate URL or oversized
+log is rejected by the verifier and offline adversarial tests.
+
+**Boundary:** The original log echoes the selected *command*, not the SHA256
+of the HTTP response body. It does not prove that all five jobs downloaded
+identical source bytes, that the current URL serves the historical bytes,
+or that the download, compiler and dependencies were covered by a signed
+producer provenance statement. Historical input SHA256, rights closure and
+owner-specific formal publication remain **DENY**.
+
 ## Remaining producer and third-party blocker
 
 The exact original Windows workflow obtains the mutable input
