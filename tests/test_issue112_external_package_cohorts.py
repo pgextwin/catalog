@@ -172,6 +172,22 @@ class PackageCohortTests(unittest.TestCase):
         with self.assertRaises(Denied):
             self.compile(plan([malicious]))
 
+    def test_real_catalog_osgeo_single_bundle_offline(self):
+        # No synthetic source metadata here: exercise the actual protected
+        # OSGeo original pin matrix and real latest external selector.
+        out = build(source="osgeo", pg="all", single_bundle=True)
+        self.assertEqual(out["uniqueOriginalPackages"], 1)
+        self.assertEqual(out["reviewBatchCount"], 1)
+        self.assertEqual(out["networkRequests"], 0)
+        self.assertEqual(out["admittedAssets"], 0)
+        self.assertFalse(out["userDownloadAvailable"])
+        one = out["batches"][0]["packages"][0]
+        self.assertTrue(one["sharedBundle"])
+        self.assertEqual(len(one["extensions"]), 7)
+        self.assertEqual(out["singleBundleOriginalIdentity"], one["packageIdentity"])
+        self.assertEqual(out["observedMajorCoverageNotSupportClaim"]["postgis"],
+                         [one["pgMajor"]])
+
     def test_single_newest_observed_osgeo_bundle_retains_other_sources(self):
         older = row("postgis", ident="osgeo:pg17:3.6.2", pg="17")
         older.update(assetName="postgis-bundle-pg17-3.6.2x64.zip", version="3.6.2")
