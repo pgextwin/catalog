@@ -81,14 +81,16 @@ def safe_log_redirect(value):
     return value
 
 
-def fetch_release_job_log():
-    """GET original upstream job logs via the authenticated GitHub API.
+def fetch_original_job_log(job_id, limit):
+    """Read a PINNED original upstream job log; never forward GitHub auth.
 
-    GitHub responds with a time-limited redirect; open it with a NEW request
-    that carries no GH_TOKEN to prevent credentials leaking to blob storage.
+    Log text is not an attestation and cannot recover an unrecorded input hash.
     """
+    require(job_id == RELEASE_JOB_ID or job_id in WINDOWS_JOBS.values(),
+            "unknown original upstream job log identity")
+    require(limit in (1000000, 2000000), "unbounded original job log limit")
     url = ("https://api.github.com/repos/pgroonga/pgroonga/actions/jobs/"
-           + str(RELEASE_JOB_ID) + "/logs")
+           + str(job_id) + "/logs")
     headers = {"Accept": "application/vnd.github+json",
                "User-Agent": "pgextwin-producer-boundary/1"}
     if os.environ.get("GH_TOKEN"):
@@ -109,9 +111,57 @@ def fetch_release_job_log():
             }), timeout=30) as response:
         require(response.status == 200 and response.geturl() == target,
                 "log storage response or additional redirect")
-        data = response.read(1000001)
-    require(0 < len(data) <= 1000000, "empty or unbounded upstream job log")
+        data = response.read(limit + 1)
+    require(0 < len(data) <= limit, "empty or unbounded upstream job log")
     return data.decode("utf-8", errors="strict")
+
+
+def fetch_release_job_log():
+    return fetch_original_job_log(RELEASE_JOB_ID, 1000000)
+
+
+def validate_windows_job_log(log, pg):
+    """Observe original Windows input-command branch, not its actual ZIP hash.
+
+    A successful original job's log proves the step got to the next build
+    step; it does not cryptographically identify its mutable download bytes.
+    """
+    require(pg in WINDOWS_JOBS and type(log) is str and 0 < len(log) <= 2000000,
+            "missing, excessive or unknown-PG original Windows job log")
+    clean = re.sub(r"\x1b\[[0-9;]*m", "", log)
+    marker = '##[group]Run if ("" -eq "yes") {'
+    require(clean.count(marker) == 1, "Windows non-Groonga-main branch not observed")
+    section = clean.split(marker, 1)[1]
+    end = section.find("##[group]Run call ")
+    require(end > 0, "Windows Groonga download-to-configure step transition missing")
+    section = section[:end]
+    expected_url = "https://packages.groonga.org/source/groonga/groonga-latest.zip"
+    expected = (
+        'if ("" -eq "yes") {',
+        "Invoke-WebRequest",
+        expected_url,
+        "-OutFile groonga-latest.zip",
+        "Expand-Archive -Path groonga-latest.zip -DestinationPath .",
+        "rm groonga-latest.zip",
+        "mv groonga-*",
+        "ARTIFACT_ID: release-postgresql-" + pg + "-x64",
+        "VERSION: 4.1.0",
+        "ARCHIVE_BASE_NAME: pgroonga-4.1.0-postgresql-" + pg + "-x64",
+        "##[endgroup]",
+    )
+    require(all(needle in section for needle in expected) and
+            section.count(expected_url) == 1 and
+            "##[error]" not in section,
+            "original Windows source-command, PG or successful step context changed")
+    return {
+        "pgMajor": int(pg),
+        "originalWindowsJobId": WINDOWS_JOBS[pg],
+        "originalSourceInputUrlObserved": expected_url,
+        "nonGroongaMainSourceBranchObserved": True,
+        "nextConfigureStepObserved": True,
+        "actualHistoricalGroongaZipSha256Verified": False,
+        "signedInputToBinaryProvenanceVerified": False,
+    }
 
 
 def validate_release_job_log(log):
@@ -253,6 +303,10 @@ def audit():
     result["outerArtifactsMetadata"] = validate_artifacts(
         api("actions/runs/" + str(RUNS["windows"][0]) + "/artifacts?per_page=100"))
     result["releaseActualWindowsSelection"] = validate_release_job_log(fetch_release_job_log())
+    result["windowsOriginalSourceDownloadSteps"] = {
+        pg: validate_windows_job_log(fetch_original_job_log(job_id, 2000000), pg)
+        for pg, job_id in sorted(WINDOWS_JOBS.items())
+    }
     result.update(originalDetachedZIPSignaturePreviouslyVerified=True,
                   historicalMutableGroongaInputSha256Known=False,
                   originalSourceInputToReleasedZIPAttested=False, **DENY)

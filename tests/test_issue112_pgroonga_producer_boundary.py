@@ -135,6 +135,49 @@ class OriginalProducerBoundary(unittest.TestCase):
             with self.subTest(invalid=invalid[:50]), self.assertRaises(ValueError):
                 p.validate_release_job_log(invalid)
 
+    def test_original_windows_download_steps_pin_mutable_input_and_never_claim_hash(self):
+        def excerpt(pg):
+            return (
+                '2026-10-09T02:00:00Z ##[group]Run if ("" -eq "yes") {\n'
+                '2026-10-09T02:00:01Z if ("" -eq "yes") {\n'
+                '2026-10-09T02:00:02Z Invoke-WebRequest\n'
+                '2026-10-09T02:00:03Z https://packages.groonga.org/source/groonga/groonga-latest.zip\n'
+                '2026-10-09T02:00:04Z -OutFile groonga-latest.zip\n'
+                '2026-10-09T02:00:05Z Expand-Archive -Path groonga-latest.zip -DestinationPath .\n'
+                '2026-10-09T02:00:06Z rm groonga-latest.zip\n'
+                '2026-10-09T02:00:07Z mv groonga-* ..\\groonga\n'
+                f'2026-10-09T02:00:08Z ARTIFACT_ID: release-postgresql-{pg}-x64\n'
+                '2026-10-09T02:00:09Z VERSION: 4.1.0\n'
+                f'2026-10-09T02:00:10Z ARCHIVE_BASE_NAME: pgroonga-4.1.0-postgresql-{pg}-x64\n'
+                '2026-10-09T02:00:11Z ##[endgroup]\n'
+                '2026-10-09T02:00:12Z ##[group]Run call "%VC_PREFIX%"\\Auxiliary\\Build\n'
+            )
+        for pg in sorted(p.WINDOWS_JOBS):
+            good = excerpt(pg)
+            receipt = p.validate_windows_job_log(good, pg)
+            self.assertEqual(receipt["originalWindowsJobId"], p.WINDOWS_JOBS[pg])
+            self.assertFalse(receipt["actualHistoricalGroongaZipSha256Verified"])
+            self.assertFalse(receipt["signedInputToBinaryProvenanceVerified"])
+            for bad in (
+                good.replace('groonga-latest.zip', 'groonga-fixed.zip'),
+                good.replace('VERSION: 4.1.0', 'VERSION: 4.0.9'),
+                good.replace(f'postgresql-{pg}-x64', 'postgresql-99-x64'),
+                good.replace('if ("" -eq "yes")', 'if ("yes" -eq "yes")'),
+                good.replace('##[group]Run call ', '##[group]Run other '),
+                good.replace('##[endgroup]', 'https://packages.groonga.org/source/groonga/groonga-latest.zip\n##[endgroup]'),
+                good.replace('##[endgroup]', '##[error]'),
+                '',
+            ):
+                with self.subTest(pg=pg, malformed=bad[:35]), self.assertRaises(ValueError):
+                    p.validate_windows_job_log(bad, pg)
+        with self.assertRaises(ValueError):
+            p.validate_windows_job_log(excerpt("18"), "19")
+        with self.assertRaises(ValueError):
+            p.fetch_original_job_log(0, 2000000)
+        with self.assertRaises(ValueError):
+            p.fetch_original_job_log(p.WINDOWS_JOBS["18"], 10000000)
+
+
     def test_original_log_redirect_allowlist_blocks_token_exfiltration(self):
         for safe in (
             "https://productionresultssa0.blob.core.windows.net/results/a?sig=123",

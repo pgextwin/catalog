@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - name: Hostile offline producer metadata tests
         run: python3 -m unittest discover -s tests -p test_issue112_pgroonga_producer_boundary.py -v
-      - name: Authenticated GitHub GET pinned upstream runs artifacts workflows and Release job log
+      - name: Authenticated GitHub GET pinned upstream runs artifacts workflows and six original job logs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/issue112_pgroonga_producer_boundary.py
