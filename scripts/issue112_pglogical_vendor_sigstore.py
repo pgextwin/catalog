@@ -16,7 +16,7 @@ import sys
 import tempfile
 
 from issue112_pglogical_original_windows import (
-    PINS, REPO, TAG_COMMIT, fetch_original, require, verify_metadata,
+    PINS, REPO, TAG_COMMIT, fetch_original, require, validate_source_registry, verify_metadata,
 )
 
 RUN_ID = "33683623757"
@@ -69,6 +69,7 @@ def audit(major):
             os.environ.get("GH_TOKEN") and os.environ.get("RUNNER_TEMP"),
             "Sigstore verification must run in original PR-only read-only CI")
     asset_id, length, sha = PINS[major]
+    validate_source_registry(major, asset_id, length, sha)
     url = verify_metadata(major, asset_id, length, sha)
     data = fetch_original(url, length, sha)
     filename = "pglogical-2.4.8-pg" + str(major) + "-w1-x64.zip"
