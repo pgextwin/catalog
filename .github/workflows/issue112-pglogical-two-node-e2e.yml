@@ -8,12 +8,27 @@ on:
       - .github/workflows/issue112-pglogical-two-node-e2e.yml
       - scripts/issue112-pglogical-two-node-e2e.ps1
       - scripts/issue112_pglogical_vendor_sigstore.py
+      - tests/test_issue112_pglogical_vendor_sigstore.py
 
 permissions:
   contents: read
 
 jobs:
+  hostile-offline-sigstore:
+    if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - run: python -m unittest discover -s tests -p 'test_issue112_pglogical_vendor_sigstore.py' -v
+
   independent-provider-sigstore:
+    needs: hostile-offline-sigstore
     if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
     runs-on: ubuntu-latest
     timeout-minutes: 15
