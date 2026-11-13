@@ -133,9 +133,52 @@ class PeImportTests(unittest.TestCase):
             deps.core_server_import_paths(duplicate)
         scope = deps.core_server_import_paths([])
         self.assertEqual(scope["missingRoots"],
-                         ["libpgrouting-4.0.dll", "postgis-3.dll"])
+                         ["libpgrouting-<version>.dll", "postgis-3.dll"])
         self.assertFalse(scope["staticServerGraphTraversed"])
 
+
+    def test_pg14_17_versioned_pgrouting_is_root_not_pg18_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "pg16-physical-bundle.zip"
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr("bundle/lib/postgis-3.dll",
+                                 fake_pe(name=b"kernel32.dll", delay=b"postgres.exe"))
+                archive.writestr("bundle/lib/libpgrouting-3.7.dll",
+                                 fake_pe(name=b"postgres.exe", delay=b"kernel32.dll"))
+            scope = deps.dependency_inventory(path)["coreServerImportPaths"]
+            self.assertEqual(scope["roots"],
+                             ["postgis-3.dll", "libpgrouting-3.7.dll"])
+            self.assertEqual(scope["selectedVersionedPgRoutingServerDll"],
+                             "libpgrouting-3.7.dll")
+            self.assertEqual(scope["missingRoots"], [])
+            self.assertEqual(scope["reachableServerModuleCount"], 2)
+            self.assertTrue(scope["staticServerGraphTraversed"])
+            self.assertFalse(scope["effectiveWindowsLoaderResolutionVerified"])
+            self.assertFalse(scope["downloadAuthorized"])
+
+    def test_ambiguous_versioned_routing_roots_fail_closed(self):
+        records = [
+            {"path": f"bundle/lib/libpgrouting-{ver}.dll",
+             "analysis": "AMD64_PE32_PLUS", "staticImports": [],
+             "delayImports": []} for ver in ("3.7", "4.0")]
+        with self.assertRaisesRegex(ValueError, "Ambiguous versioned pgRouting"):
+            deps.core_server_import_paths(records)
+
+    def test_gui_only_routing_or_unsafe_name_never_fills_server_root(self):
+        records = [
+            {"path": "bundle/bin/postgisgui/libpgrouting-4.0.dll",
+             "analysis": "AMD64_PE32_PLUS", "staticImports": [],
+             "delayImports": []},
+            {"path": "bundle/lib/libpgrouting-untrusted.dll",
+             "analysis": "AMD64_PE32_PLUS", "staticImports": [],
+             "delayImports": []},
+        ]
+        scope = deps.core_server_import_paths(records)
+        self.assertIsNone(scope["selectedVersionedPgRoutingServerDll"])
+        self.assertIn("libpgrouting-<version>.dll", scope["missingRoots"])
+        self.assertFalse(scope["staticServerGraphTraversed"])
+        self.assertFalse(scope["independentSignedAdmission"])
+        self.assertFalse(scope["downloadAuthorized"])
 
     def test_unknown_unbundled_dll_stays_unresolved(self):
         result = deps.triage_unbundled_imports(

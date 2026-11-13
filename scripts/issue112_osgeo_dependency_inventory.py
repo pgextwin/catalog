@@ -86,7 +86,17 @@ def core_server_import_paths(records):
             raise ValueError("Ambiguous server DLL basename: " + name)
         server[name] = record
 
-    roots = ("postgis-3.dll", "libpgrouting-4.0.dll")
+    # pgRouting's Windows DLL ABI name is versioned independently from the
+    # PostGIS bundle and the PostgreSQL major. The former PG18-only 4.0
+    # assumption silently omitted valid PG14-17 server roots from the graph.
+    # Select exactly one versioned non-GUI server DLL, never infer its version
+    # from a ZIP filename or promote a static name to runtime resolution.
+    routing = sorted(name for name in server if re.fullmatch(
+        r"libpgrouting-[0-9]+(?:[.][0-9]+)+[.]dll", name))
+    if len(routing) > 1:
+        raise ValueError("Ambiguous versioned pgRouting server DLL roots")
+    routing_root = routing[0] if routing else "libpgrouting-<version>.dll"
+    roots = ("postgis-3.dll", routing_root)
     missing_roots = sorted(root for root in roots if root not in server)
     pending = [(name, [name]) for name in roots if name in server]
     visited = set()
@@ -116,6 +126,7 @@ def core_server_import_paths(records):
         key=lambda entry: entry["name"])
     return {
         "roots": list(roots),
+        "selectedVersionedPgRoutingServerDll": routing[0] if routing else None,
         "missingRoots": missing_roots,
         "reachableServerModuleCount": sum(x in server for x in visited),
         "unparsedReachableServerDlls": sorted(unparsed),
