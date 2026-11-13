@@ -31,6 +31,16 @@ jobs:
           ref: 3360447e0668fed2b9db6a0ae1d086533781f9bd
           path: pinned-pg-permissions
           persist-credentials: false
+      - name: Restore canonical upstream Git blob bytes on Windows (no CRLF conversion)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git -C pinned-pg-permissions config core.autocrlf false
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot disable CRLF transformation' }
+          git -C pinned-pg-permissions config core.eol lf
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot select canonical Git LF' }
+          git -C pinned-pg-permissions checkout-index --all --force
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot restore immutable Git blob bytes' }
       - name: Offline hostile tests and genuine original source package receipts
         shell: pwsh
         run: |
