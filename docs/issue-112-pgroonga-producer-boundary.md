@@ -40,13 +40,40 @@ length-prefixed upstream workflow text at the immutable tag commit:
 - Windows workflow: c1b2497d4f43e969214ff30ccbe846ebdc7c146c
 - Release workflow: 495623c715629761a978e22a83be9269a1b5c5f3
 
+## Original Release job execution log narrows the Run-selection ambiguity
+
+An authenticated GitHub GET of official original Release run `37872644104`
+(attempt **2**, success), job `113650372251`, returned the **actual job log**.
+At 2026-10-09 03:23:32 UTC the job printed:
+
+```text
+Waiting for run to start windows.yml...
+Run Windows (37872644159) has already completed with 'success'
+```
+
+The same job's original `Download artifacts` and `Publish` steps both
+completed successfully. The audited job log thus gives a concrete observed
+Windows producer **Run ID 37872644159** instead of inferring the selected
+run from the mutable `gh run list --limit 1` workflow source alone.
+A strict original-job-log check now matches this exact one successful Run,
+rejects another Run/result or missing log context, and never treats logs
+as a cryptographically signed source-to-binary attestation.
+
+This reduces the historical **Release-to-Windows-Run selection** uncertainty.
+It does **not** supply a SHA256 for the mutable
+`groonga-latest.zip` downloaded by the original Windows job, prove source
+dependency identity, or authenticate the entire build toolchain. Original
+ZIP/OpenPGP signature and Actions-artifact identity remain independently
+verified prior evidence; rights/NOTICE and owner/Publisher admission remain
+separate DENY gates.
+
 ## Remaining producer and third-party blocker
 
 The exact original Windows workflow obtains the mutable input
 https://packages.groonga.org/source/groonga/groonga-latest.zip without a
-recorded input SHA256 or pinned source commit. The original Release workflow
-uses gh run list --limit 1 before gh run download, so **workflow source alone**
-does not prove which original Windows run was selected. Valid original
+recorded input SHA256 or pinned source commit. The original Release workflow uses gh run list --limit 1 before gh run download.
+The original job log now **observes** Run 37872644159 selected, but workflow
+source by itself and unsigned logs are not signed input provenance. Valid original
 signature bytes and successful named workflow jobs do not establish a
 signed, fixed source/toolchain/dependency-to-binary provenance attestation.
 Groonga 16.1.3 package version markers cannot stand in for the historical
