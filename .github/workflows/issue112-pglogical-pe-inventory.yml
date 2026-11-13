@@ -1,0 +1,49 @@
+name: Issue112 pglogical exact-original PE import inventory (DENY)
+
+# New nonpublishing audit of PE import names. Reuses previously proven
+# independent original-hash/ZIP parser; does not rerun successful old jobs.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pglogical-pe-inventory.yml
+      - scripts/issue112_pglogical_pe_import_inventory.py
+      - tests/test_issue112_pglogical_pe_import_inventory.py
+      - docs/issue-112-pglogical-248-intake.md
+
+permissions:
+  contents: read
+
+jobs:
+  hostile-offline-pe-imports:
+    if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Reject malformed PE imports and unauthorized execution
+        run: python -m unittest discover -s tests -p 'test_issue112_pglogical_pe_import_inventory.py' -v
+
+  independently-inventory-five-originals:
+    needs: hostile-offline-pe-imports
+    if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Rehash original 5 assets and inspect all PE static/delay module imports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/issue112_pglogical_pe_import_inventory.py
+      - name: Enforce nonpublication, including failed audits
+        if: always()
+        run: echo "PE_INVENTORY_ONLY=YES TRANSITIVE_CLOSURE=UNVERIFIED GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY"
