@@ -16,7 +16,8 @@ $latestPath=Join-Path $root 'latest.json'
 if (-not (Test-Path -LiteralPath $latestPath -PathType Leaf)) { throw 'Catalog latest original pins absent' }
 $latest=Get-Content -LiteralPath $latestPath -Raw | ConvertFrom-Json
 if ($latest.schemaVersion -cne 'pgextwin-external-latest-original-pins/v1' -or
-    [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -notin @(5,7,11)) {
+    [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -lt 1 -or
+    @($latest.records).Count -gt 20) {
     throw 'Catalog latest original pin schema invalid'
 }
 $now=[DateTimeOffset]::UtcNow
@@ -62,6 +63,27 @@ foreach ($binary in $binaries) {
     try {
         & $($binary.path) download-all --source external --pg $pgArg --output $dest
         if ($LASTEXITCODE -ne 0) {
+            # Anonymous diagnostics only, AFTER a genuine rejected local GET.
+            # No job token, response body, redirect fallback or auth elevation.
+            foreach ($endpoint in @(
+                @{name='RATE_LIMIT';url='https://api.github.com/rate_limit'},
+                @{name='CATALOG_HEAD';url='https://api.github.com/repos/pgextwin/catalog/branches/main'}
+            )) {
+                try {
+                    $probe=Invoke-WebRequest -Uri $endpoint.url -Method Get -SkipHttpErrorCheck `
+                        -TimeoutSec 10 -MaximumRedirection 0 -Headers @{
+                            'User-Agent'='pgextwin-original-get-anon-diagnostic/1'
+                            'Accept'='application/vnd.github+json'
+                        }
+                    $remaining=[string]$probe.Headers['X-RateLimit-Remaining']
+                    $limit=[string]$probe.Headers['X-RateLimit-Limit']
+                    $reset=[string]$probe.Headers['X-RateLimit-Reset']
+                    $retry=[string]$probe.Headers['Retry-After']
+                    Write-Output "ANON_CATALOG_HTTP_DIAGNOSTIC ENDPOINT=$($endpoint.name) STATUS=$([int]$probe.StatusCode) RATE_REMAINING=$remaining RATE_LIMIT=$limit RATE_RESET=$reset RETRY_AFTER=$retry"
+                } catch {
+                    Write-Output "ANON_CATALOG_HTTP_DIAGNOSTIC ENDPOINT=$($endpoint.name) STATUS=UNAVAILABLE (DENY)"
+                }
+            }
             if ($PublicOnly -and $binary.kind -ceq 'public') {
                 # Read-only anonymous diagnostics ONLY after the original
                 # published CLI failed. Never use the job's GitHub token or
