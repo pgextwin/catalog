@@ -1,0 +1,84 @@
+name: Issue112 pglogical PG14-18 original PE dependency candidate resolution (DENY)
+
+# A new strictly PR-only resolution inventory against pinned EDB Windows
+# installations. No source-specific GET admission, upload, signature, mirror,
+# release or Publisher. Prior successful Windows functional Runs are not rerun.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue112-pglogical-dependency-resolution.yml
+      - scripts/issue112_pglogical_windows_dependency_resolution.py
+      - tests/test_issue112_pglogical_windows_dependency_resolution.py
+      - docs/issue-112-pglogical-248-intake.md
+
+permissions:
+  contents: read
+
+jobs:
+  hostile-offline-dependency-resolution:
+    if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Reject invalid module names, missing assets and authority escalation
+        run: python -m unittest discover -s tests -p 'test_issue112_pglogical_windows_dependency_resolution.py' -v
+
+  independently-resolve-imports-against-edb:
+    needs: hostile-offline-dependency-resolution
+    if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
+    runs-on: windows-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { pg: 14, edb: '14.24.0' }
+          - { pg: 15, edb: '15.19.0' }
+          - { pg: 16, edb: '16.15.5' }
+          - { pg: 17, edb: '17.11.4' }
+          - { pg: 18, edb: '18.6.5' }
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout candidate without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reuse exact protected installer logic
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pgextwin/build
+          ref: 06a241f49e048abe24cce01d72ca5d972050abef
+          path: build-tools
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned EDB PostgreSQL for independent path comparison
+        shell: pwsh
+        env:
+          PG_MAJOR: ${{ matrix.pg }}
+          EDB_VERSION: ${{ matrix.edb }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./build-tools/scripts/install-postgresql.ps1 -Major ([int]$env:PG_MAJOR) -ChocolateyPackage "postgresql$($env:PG_MAJOR)" -ChocolateyVersion $env:EDB_VERSION -TestPort 55452
+      - name: Independently rehash exact provider original and inventory PE dependency paths
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PG_MAJOR: ${{ matrix.pg }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python scripts/issue112_pglogical_windows_dependency_resolution.py --pg $env:PG_MAJOR
+          if ($LASTEXITCODE -ne 0) { throw 'Read-only PE dependency inventory failed' }
+      - name: Explicitly preserve all negative authority flags
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host 'PGLOGICAL=CANDIDATE_ONLY PE_TRANSITIVE=UNVERIFIED LOADER=UNVERIFIED PATCH_RIGHTS=UNVERIFIED NOTICE=UNVERIFIED GET=DENY MIRROR=DENY RELEASE=DENY PUBLISH=DENY'
