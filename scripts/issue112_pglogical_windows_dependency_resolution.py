@@ -119,7 +119,7 @@ def main():
     require(pgconfig.is_file(), "EDB pg_config.exe absent")
     version = subprocess.run([str(pgconfig), "--version"], capture_output=True,
                              text=True, timeout=15, check=True).stdout.strip()
-    require(re.match(rf"^PostgreSQL {args.pg}(?:[.]|\\s)", version) is not None,
+    require(version.startswith("PostgreSQL " + str(args.pg) + ".") or version == "PostgreSQL " + str(args.pg),
             "installed PostgreSQL major does not match original")
     system = os.getenv("SystemRoot") or os.getenv("WINDIR")
     require(bool(system), "Windows SystemRoot absent")
