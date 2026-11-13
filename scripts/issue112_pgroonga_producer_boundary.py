@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import re
 import urllib.request
+import urllib.error
+import urllib.parse
 
 import issue112_pgroonga_detached_signature_review as prior
 
@@ -26,6 +28,8 @@ ARTIFACTS = {
     "17": (11591150953, 53294168, "0a32411389a3a81a48fffb520d1bab5963676df0a74493e38e3b4a79f35e1e84"),
     "18": (11590859682, 53278986, "fe6388d9928fda9f1d2a350e7dc6a30200ebd9f6c933e008f02315dced444c91"),
 }
+RELEASE_JOB_ID = 113650372251
+
 DENY = {"signedSourceToBinaryProvenance": False,
         "allThirdPartyRightsAndDependenciesVerified": False,
         "independentOwnerSignedAdmission": False,
@@ -51,6 +55,90 @@ def api(path):
         data = stream.read(800001)
     require(len(data) <= 800000, "unbounded REST metadata")
     return json.loads(data, object_pairs_hook=prior.unique)
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Prevent forwarding the GitHub token to a temporary log-storage host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def safe_log_redirect(value):
+    """Allow only HTTPS GitHub Actions result-storage hosts, without credentials."""
+    require(type(value) is str, "missing upstream log redirect")
+    parts = urllib.parse.urlsplit(value)
+    host = (parts.hostname or "").lower()
+    allowed = (
+        host.endswith(".blob.core.windows.net")
+        or host.endswith(".actions.githubusercontent.com")
+        or host == "objects.githubusercontent.com"
+    )
+    require(parts.scheme == "https" and allowed and
+            parts.username is None and parts.password is None and
+            parts.port in (None, 443) and bool(parts.path) and
+            not parts.fragment, "unsafe upstream log redirect")
+    return value
+
+
+def fetch_release_job_log():
+    """GET original upstream job logs via the authenticated GitHub API.
+
+    GitHub responds with a time-limited redirect; open it with a NEW request
+    that carries no GH_TOKEN to prevent credentials leaking to blob storage.
+    """
+    url = ("https://api.github.com/repos/pgroonga/pgroonga/actions/jobs/"
+           + str(RELEASE_JOB_ID) + "/logs")
+    headers = {"Accept": "application/vnd.github+json",
+               "User-Agent": "pgextwin-producer-boundary/1"}
+    if os.environ.get("GH_TOKEN"):
+        headers["Authorization"] = "Bearer " + os.environ["GH_TOKEN"]
+    opener = urllib.request.build_opener(_NoRedirect)
+    try:
+        with opener.open(urllib.request.Request(url, headers=headers),
+                         timeout=30) as response:
+            raise ValueError("PGroonga producer-chain DENY: unexpected log response "
+                             + str(response.status))
+    except urllib.error.HTTPError as error:
+        require(error.code in (302, 303, 307),
+                "upstream job log API did not return expected redirect")
+        target = safe_log_redirect(error.headers.get("Location"))
+    with urllib.request.urlopen(
+            urllib.request.Request(target, headers={
+                "User-Agent": "pgextwin-producer-boundary/1",
+            }), timeout=30) as response:
+        require(response.status == 200 and response.geturl() == target,
+                "log storage response or additional redirect")
+        data = response.read(1000001)
+    require(0 < len(data) <= 1000000, "empty or unbounded upstream job log")
+    return data.decode("utf-8", errors="strict")
+
+
+def validate_release_job_log(log):
+    """Observe the actual selected Windows run; NOT a signed input attestation."""
+    require(type(log) is str and len(log) <= 1000000,
+            "missing or excessive original Release job log")
+    expected_id = RUNS["windows"][0]
+    selections = re.findall(
+        r"Run Windows \\((\\d+)\\) has already completed with '([^']+)'", log
+    )
+    require(selections == [(str(expected_id), "success")],
+            "Release job did not report exactly the pinned successful Windows run")
+    waiting = log.find("Waiting for run to start windows.yml...")
+    selected = log.find(
+        f"Run Windows ({expected_id}) has already completed with 'success'"
+    )
+    require(waiting >= 0 and selected > waiting and
+            "gh run download ${run_id}" in log,
+            "Release artifact selection or download-command context is missing")
+    return {
+        "releaseJobId": RELEASE_JOB_ID,
+        "actualSelectedWindowsRun": expected_id,
+        "observedSelectedRunResult": "success",
+        "evidence": "original-upstream-job-log",
+        "immutableGroongaInputSha256Verified": False,
+        "cryptographicBuildInputAttestationVerified": False,
+    }
 
 
 def validate_tag(ref, tag):
@@ -164,6 +252,7 @@ def audit():
             api("contents/" + path + "?ref=" + COMMIT), kind)
     result["outerArtifactsMetadata"] = validate_artifacts(
         api("actions/runs/" + str(RUNS["windows"][0]) + "/artifacts?per_page=100"))
+    result["releaseActualWindowsSelection"] = validate_release_job_log(fetch_release_job_log())
     result.update(originalDetachedZIPSignaturePreviouslyVerified=True,
                   historicalMutableGroongaInputSha256Known=False,
                   originalSourceInputToReleasedZIPAttested=False, **DENY)
