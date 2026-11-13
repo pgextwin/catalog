@@ -65,7 +65,7 @@ class VersionedCliRelease(unittest.TestCase):
 
     def test_genuine_published_e2e_covers_both_current_catalog_and_signed_externals(self):
         e2e=(ROOT/'.github/workflows/cli-published-e2e.yml').read_text()
-        self.assertIn("on:\\n  push:",e2e)
+        self.assertIn("on:\n  push:",e2e)
         self.assertIn("branches: [main]",e2e)
         self.assertIn("'refs/heads/main'",e2e)
         self.assertIn("Independently verify the published EXE Sigstore provenance",e2e)
