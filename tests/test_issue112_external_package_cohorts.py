@@ -172,6 +172,85 @@ class PackageCohortTests(unittest.TestCase):
         with self.assertRaises(Denied):
             self.compile(plan([malicious]))
 
+    def test_real_catalog_osgeo_single_bundle_offline(self):
+        # No synthetic source metadata here: exercise the actual protected
+        # OSGeo original pin matrix and real latest external selector.
+        out = build(source="osgeo", pg="all", single_bundle=True)
+        self.assertEqual(out["uniqueOriginalPackages"], 1)
+        self.assertEqual(out["reviewBatchCount"], 1)
+        self.assertEqual(out["networkRequests"], 0)
+        self.assertEqual(out["admittedAssets"], 0)
+        self.assertFalse(out["userDownloadAvailable"])
+        one = out["batches"][0]["packages"][0]
+        self.assertTrue(one["sharedBundle"])
+        self.assertEqual(len(one["extensions"]), 7)
+        self.assertEqual(out["singleBundleOriginalIdentity"], one["packageIdentity"])
+        self.assertEqual(out["observedMajorCoverageNotSupportClaim"]["postgis"],
+                         [one["pgMajor"]])
+
+    def test_single_newest_observed_osgeo_bundle_retains_other_sources(self):
+        older = row("postgis", ident="osgeo:pg17:3.6.2", pg="17")
+        older.update(assetName="postgis-bundle-pg17-3.6.2x64.zip", version="3.6.2")
+        newer = row("postgis", ident="osgeo:pg18:3.7.0", pg="18")
+        routing = row("pgrouting", ident="osgeo:pg18:3.7.0", pg="18")
+        other = row("hypopg", ident="github:hypopg", pg="16")
+        other.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                     assetName="hypopg-1.4.1-pg16-x64.zip", version="1.4.1",
+                     versionMeaning="UPSTREAM_VERSION_OBSERVED",
+                     originalBytes=None, originalSha256=None)
+        out = self.compile(plan([older, newer, routing, other]),
+                           single_bundle=True)
+        packages = [p for b in out["batches"] for p in b["packages"]]
+        self.assertEqual(len(packages), 2)
+        self.assertEqual({p["pgMajor"] for p in packages}, {"16", "18"})
+        bundle = next(p for p in packages if p["sharedBundle"])
+        self.assertEqual(bundle["extensions"], ["pgrouting", "postgis"])
+        self.assertEqual(bundle["pgMajor"], "18")
+        self.assertEqual(out["singleBundleOriginalIdentity"], "osgeo:pg18:3.7.0")
+        self.assertTrue(out["singleBundleMajorIsNotCrossMajorCompatibility"])
+        self.assertIn("17", out["unobservedMajorsNotSupportVerdict"]["postgis"])
+        self.assertFalse(out["downloadAuthorized"])
+        self.assertFalse(out["userDownloadAvailable"])
+
+    def test_single_bundle_tie_prefers_higher_observed_pg_major(self):
+        pg17 = row("postgis", ident="osgeo:pg17:3.7.0", pg="17")
+        pg17["assetName"] = "postgis-bundle-pg17-3.7.0x64.zip"
+        pg18 = row("postgis", ident="osgeo:pg18:3.7.0", pg="18")
+        out = self.compile(plan([pg17, pg18]), single_bundle=True)
+        self.assertEqual(out["singleBundleOriginalIdentity"], "osgeo:pg18:3.7.0")
+        self.assertEqual(out["observedMajorCoverageNotSupportClaim"]["postgis"],
+                         ["18"])
+
+    def test_single_bundle_requires_all_pg_and_no_exact_version(self):
+        fixture = plan([row("postgis")])
+        for opts in ({"single_bundle": 1}, {"single_bundle": True, "pg": "18"},
+                     {"single_bundle": True, "version": "3.7.0"},
+                     {"single_bundle": True, "source": "github"}):
+            with self.subTest(opts=opts), self.assertRaises(Denied):
+                self.compile(fixture, **opts)
+
+    def test_poisoned_older_row_cannot_be_hidden_by_latest_filter(self):
+        older = row("hypopg", ident="github:old", pg="16")
+        older.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                     assetName="hypopg-1.4.1-pg16-x64.zip",
+                     versionMeaning="UPSTREAM_VERSION_OBSERVED",
+                     version="1.4.1", downloadAuthorized=True)
+        latest = row("hypopg", ident="github:new", pg="18")
+        latest.update(source="GITHUB_DISCOVERY_ONLY", provider="HypoPG/hypopg",
+                      assetName="hypopg-1.4.5-pg18-x64.zip",
+                      versionMeaning="UPSTREAM_VERSION_OBSERVED",
+                      version="1.4.5")
+        with self.assertRaises(Denied):
+            self.compile(plan([older, latest]))
+
+    def test_poisoned_unchosen_bundle_cannot_hide(self):
+        older = row("postgis", ident="osgeo:pg17:3.6.2", pg="17")
+        older.update(assetName="postgis-bundle-pg17-3.6.2x64.zip",
+                     version="3.6.2", mirrorAuthorized=True)
+        latest = row("postgis", ident="osgeo:pg18:3.7.0", pg="18")
+        with self.assertRaises(Denied):
+            self.compile(plan([older, latest]), single_bundle=True)
+
     def test_unpinned_community_candidate_stays_deny(self):
         row1 = row("pgvector", ident="github:one")
         row1.update(source="GITHUB_DISCOVERY_ONLY", provider="community/test",

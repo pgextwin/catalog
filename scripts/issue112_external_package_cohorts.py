@@ -27,10 +27,49 @@ def require(ok, reason):
         raise Denied("external original cohorts DENY: " + reason)
 
 
+def validate_row(row):
+    require(type(row) is dict and
+            type(row.get("packageIdentity")) is str and
+            0 < len(row["packageIdentity"]) <= 350 and
+            type(row.get("extension")) is str and
+            type(row.get("source")) is str and
+            type(row.get("provider")) is str and
+            type(row.get("pgMajor")) is str and
+            row["pgMajor"] in SUPPORTED and
+            type(row.get("assetName")) is str and
+            re.fullmatch(r"[A-Za-z0-9_.+-]{1,220}", row["assetName"]) is not None and
+            row.get("format") in FORMAT and
+            type(row.get("versionMeaning")) is str and
+            all(row.get(flag) is False for flag in DENY),
+            "malformed or authority-bearing review row")
+    blockers = row.get("blockers")
+    require(type(blockers) is list and len(blockers) > 0 and
+            all(type(b) is str and 0 < len(b) <= 120 for b in blockers),
+            "missing bounded admission blockers")
+    size, digest = row.get("originalBytes"), row.get("originalSha256")
+    require((size is None and digest is None) or
+            (type(size) is int and 0 < size <= 2_000_000_000 and
+             type(digest) is str and SHA256.fullmatch(digest) is not None),
+            "mismatched original SHA256/byte receipts")
+    identity = row["packageIdentity"]
+    bundle = row["versionMeaning"] == "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"
+    if bundle:
+        require(row["source"] == "OSGEO_REHASHED_ORIGINAL_ONLY" and
+                row["format"] == "zip" and size is not None and
+                version_key(row.get("version")) is not None,
+                "unverified shared bundle metadata")
+    return bundle
+
+
 def build(root=ROOT, pg="all", extension=None, version=None, source="all",
-          max_batch=12, cybertec_index=None, packaging_label=None):
+          max_batch=12, cybertec_index=None, packaging_label=None,
+          single_bundle=False):
     require(type(max_batch) is int and 1 <= max_batch <= 20,
             "batch size must be between 1 and 20")
+    require(type(single_bundle) is bool and
+            (not single_bundle or
+             (pg == "all" and version is None and source in ("all", "osgeo"))),
+            "--single-bundle requires --pg all, OSGeo source and no exact --version")
     # The existing selector validates every upstream registry and signed-denial
     # field BEFORE filtering. Do not reproduce or weaken that validation here.
     review = make_plan(root, pg=pg, extension=extension, version=version,
@@ -57,6 +96,20 @@ def build(root=ROOT, pg="all", extension=None, version=None, source="all",
             set(r["packageIdentity"] for r in rows) ==
             set(review.get("uniqueOriginalPackageIdentities", [])),
             "underlying review identity set mismatch")
+    # Both selectors must not mask an invalid row from the full inventory.
+    for row in rows:
+        validate_row(row)
+    chosen_bundle = None
+    if single_bundle:
+        bundled = [r for r in rows if
+                   r["versionMeaning"] == "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"]
+        require(bool(bundled), "no observed OSGeo bundle to choose")
+        chosen_bundle = max(
+            bundled, key=lambda r: (version_key(r["version"]),
+                                    int(r["pgMajor"]), r["packageIdentity"]))
+        rows = [r for r in rows
+                if r["versionMeaning"] != "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"
+                or r["packageIdentity"] == chosen_bundle["packageIdentity"]]
     older_omitted = 0
     if version is None:
         highest = {}
@@ -81,35 +134,10 @@ def build(root=ROOT, pg="all", extension=None, version=None, source="all",
 
     packages = {}
     for row in rows:
-        require(type(row) is dict and
-                type(row.get("packageIdentity")) is str and
-                0 < len(row["packageIdentity"]) <= 350 and
-                type(row.get("extension")) is str and
-                type(row.get("source")) is str and
-                type(row.get("provider")) is str and
-                type(row.get("pgMajor")) is str and
-                row["pgMajor"] in SUPPORTED and
-                type(row.get("assetName")) is str and
-                re.fullmatch(r"[A-Za-z0-9_.+-]{1,220}", row["assetName"]) is not None and
-                row.get("format") in FORMAT and
-                type(row.get("versionMeaning")) is str and
-                all(row.get(flag) is False for flag in DENY),
-                "malformed or authority-bearing review row")
-        blockers = row.get("blockers")
-        require(type(blockers) is list and len(blockers) > 0 and
-                all(type(b) is str and 0 < len(b) <= 120 for b in blockers),
-                "missing bounded admission blockers")
+        bundle = validate_row(row)
+        blockers = row["blockers"]
         size, digest = row.get("originalBytes"), row.get("originalSha256")
-        require((size is None and digest is None) or
-                (type(size) is int and 0 < size <= 2_000_000_000 and
-                 type(digest) is str and SHA256.fullmatch(digest) is not None),
-                "mismatched original SHA256/byte receipts")
         identity = row["packageIdentity"]
-        bundle = row["versionMeaning"] == "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"
-        if bundle:
-            require(row["source"] == "OSGEO_REHASHED_ORIGINAL_ONLY" and
-                    row["format"] == "zip" and size is not None,
-                    "unverified shared bundle metadata")
         descriptor = (row["source"], row["provider"], row["pgMajor"],
                       row["assetName"], row["format"], row.get("version"),
                       row["versionMeaning"], size, digest, bundle)
@@ -174,6 +202,10 @@ def build(root=ROOT, pg="all", extension=None, version=None, source="all",
         "latestUpstreamVerified": False,
         "pgSelection": pg, "sourceSelection": source,
         "extensionSelection": extension, "exactVersionSelection": version,
+        "singleLatestBundleRequested": single_bundle,
+        "singleBundleOriginalIdentity": (
+            chosen_bundle["packageIdentity"] if chosen_bundle is not None else None),
+        "singleBundleMajorIsNotCrossMajorCompatibility": single_bundle,
         "observedMajorCoverageNotSupportClaim": coverage,
         "unobservedMajorsNotSupportVerdict": missing,
         "selectedReviewRows": len(rows), "olderObservedRowsOmitted": older_omitted,
@@ -198,11 +230,14 @@ def main():
     parser.add_argument("--cybertec-index", type=Path)
     parser.add_argument("--packaging-label")
     parser.add_argument("--max-batch", type=int, default=12)
+    parser.add_argument("--single-bundle", action="store_true",
+                        help="Review the newest observed OSGeo bundle only; "
+                             "does not imply cross-PG ABI compatibility")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     report = build(args.catalog, args.pg, args.extension, args.version,
                    args.source, args.max_batch, args.cybertec_index,
-                   args.packaging_label)
+                   args.packaging_label, args.single_bundle)
     require(not args.output.exists() and not args.output.is_symlink(),
             "output must be create-only")
     args.output.write_text(json.dumps(report, sort_keys=True, indent=2,
