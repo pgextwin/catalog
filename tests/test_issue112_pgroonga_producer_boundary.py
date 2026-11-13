@@ -113,6 +113,47 @@ class OriginalProducerBoundary(unittest.TestCase):
             with self.assertRaises(ValueError):
                 p.validate_workflow(source, kind)
 
+
+    def test_actual_release_log_pins_selected_windows_run_without_provenance_escalation(self):
+        excerpt = ("gh run download ${run_id} --dir release-artifacts\\n"
+                   "Waiting for run to start windows.yml...\\n"
+                   "Run Windows (37872644159) has already completed with 'success'\\n")
+        receipt = p.validate_release_job_log(excerpt)
+        self.assertEqual(receipt["actualSelectedWindowsRun"], p.RUNS["windows"][0])
+        self.assertFalse(receipt["immutableGroongaInputSha256Verified"])
+        self.assertFalse(receipt["cryptographicBuildInputAttestationVerified"])
+        for invalid in (
+            excerpt.replace("37872644159", "37872644158"),
+            excerpt.replace("'success'", "'failure'"),
+            excerpt + "Run Windows (37872644159) has already completed with 'success'\\n",
+            excerpt.replace("Waiting for run to start windows.yml...", "Waiting for other.yml..."),
+            excerpt.replace("gh run download", "echo bypass"),
+            excerpt.replace("Run Windows", "Run Linux"),
+            excerpt.replace("windows.yml...\\nRun Windows", "windows.yml...\\n"),
+            "",
+        ):
+            with self.subTest(invalid=invalid[:50]), self.assertRaises(ValueError):
+                p.validate_release_job_log(invalid)
+
+    def test_original_log_redirect_allowlist_blocks_token_exfiltration(self):
+        for safe in (
+            "https://productionresultssa0.blob.core.windows.net/results/a?sig=123",
+            "https://results-receiver.actions.githubusercontent.com/results/log",
+            "https://objects.githubusercontent.com/a/b",
+        ):
+            self.assertEqual(p.safe_log_redirect(safe), safe)
+        for invalid in (
+            "http://productionresultssa0.blob.core.windows.net/log",
+            "https://evil.example.com/log",
+            "https://productionresultssa0.blob.core.windows.net.evil.com/log",
+            "https://user:pass@productionresultssa0.blob.core.windows.net/log",
+            "https://objects.githubusercontent.com:8443/log",
+            "https://objects.githubusercontent.com/log#fragment",
+            None,
+        ):
+            with self.subTest(redirect=invalid), self.assertRaises(ValueError):
+                p.safe_log_redirect(invalid)
+
     def test_permissions_and_all_majors_remain_deny(self):
         self.assertEqual(set(p.WINDOWS_JOBS), set(p.ARTIFACTS))
         self.assertTrue(all(value is False for value in p.DENY.values()))
