@@ -49,7 +49,7 @@ def require(condition, message):
 
 
 def api_json(path):
-    url = "https://api.github.com/repos/" + REPO + "/" + path
+    url = "https://api.github.com/repos/" + REPO + ("/" + path if path else "")
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "pgextwin-candidate-audit"}
     token = os.getenv("GH_TOKEN")
     if token:
