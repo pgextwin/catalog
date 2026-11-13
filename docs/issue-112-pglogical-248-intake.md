@@ -129,3 +129,31 @@ python scripts/issue112_external_package_cohorts.py --catalog . --source github 
 ```
 Both commands generate **nonpublishing** review plans only; no provider GET or
 actual public `download-all` authorization is implied.
+
+
+## PG14–18 real-EDB PE dependency path candidate audit (new PR scope)
+
+The separate `issue112-pglogical-dependency-resolution.yml` PR-only Windows
+matrix is designed to identify where **each original provider PE import name**
+can be found in a pinned, freshly installed EnterpriseDB PostgreSQL directory
+(`PGROOT/bin`, `PGROOT/lib`) or the Windows runner `System32`.
+It reuses the exact-five-original SHA256/ZIP/PE parser and the existing
+protected Build EDB installer implementation. It follows EDB application
+binary imports with a finite graph bound and marks API-set names as virtual
+contracts rather than inventing physical DLLs. It uses in-memory original ZIP
+bytes and emits text-only candidate locations; it never stages, uploads,
+mirrors, signs or publishes an original.
+
+This is **not** an assertion of a live Windows loader search order: System32
+transitive dependencies, API-set mappings, forwarded exports, SxS resolution,
+delay/dynamic `LoadLibrary`, executable runtime branching, local DLL
+search-policy differences and component copyright/NOTICE remain independent
+gates. Any unresolved, unparseable, or depth-limited name is reported
+separately. A successful inventory job only means the bounded investigation
+completed; it does **not** mean dependency closure or licensing clearance.
+
+The original successful PG14–18 Sigstore/two-node runs and earlier PE import
+inventory are reused by reference and never rerun merely for this receipt.
+Until the new PR CI passes, this proposed audit has **no passing receipt**;
+even afterward `CANDIDATE_ONLY`, `GET_DENY`, `MIRROR_DENY`,
+`REDISTRIBUTION_DENY`, `RELEASE_DENY` and `PUBLISH_DENY` persist.
