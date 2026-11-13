@@ -15,7 +15,8 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUTS = ("external/windows-candidates-v1.json",
-          "external/windows-candidates-portalcorp-v1.json")
+          "external/windows-candidates-portalcorp-v1.json",
+          "external/windows-candidates-pglogical-v1.json")
 PROVIDERS = "external/discovery-providers-v1.json"
 SCHEMA = "pgextwin-issue112-external-review-batches/v1"
 SHA256 = re.compile(r"(?:sha256:)?[0-9a-f]{64}\Z")
