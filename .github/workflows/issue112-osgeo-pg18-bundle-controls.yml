@@ -1,0 +1,32 @@
+name: Issue112 OSGeo PG18 exact bundle control inventory (nonpublishing)
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_osgeo_pg18_bundle_controls.py
+      - tests/test_issue112_osgeo_pg18_bundle_controls.py
+      - .github/workflows/issue112-osgeo-pg18-bundle-controls.yml
+permissions:
+  contents: read
+jobs:
+  hostile-offline-bundle-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reject spoofed origin, missing controls, duplicates, bad versions and authority
+        run: python3 -m unittest discover -s tests -p 'test_issue112_osgeo_pg18_bundle_controls.py' -v
+  exact-original-pg18-component-observation:
+    needs: hostile-offline-bundle-controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read immutable original PostGIS bundle exactly once; inspect controls; delete ZIP
+        run: python3 scripts/issue112_osgeo_pg18_bundle_controls.py
+      - name: Preserve nonpublishing source-specific authorization DENY
+        if: always()
+        run: echo 'ORIGINAL_ZIP_UPLOAD=NONE POSTGIS_CONTROL_INVENTORY=CANDIDATE_ONLY RIGHTS=UNVERIFIED PUBLIC_GET=DENY MIRROR=DENY PUBLISHER=DENY RELEASE=DENY'
