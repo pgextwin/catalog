@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pinned pgRouting v4.0.0 source license/Boost observations, DENY-only.
+"""Pinned pgRouting 4.0.x source/commit/license observations, DENY-only.
 
 This is NOT an OSGeo producer attestation or DLL-specific rights admission.
 All network reads are exact upstream GitHub API GETs; no binary or ZIP is fetched.
@@ -29,6 +29,14 @@ TAG_401 = "v4.0.1"
 TAG_OBJECT_401 = "b817fb3d9d641fb5c65c8ab1d855b398c6983677"
 COMMIT_401 = "8988eebdff0e01327c9d48fe7c80b437dc9bc992"
 BLOBS_401 = {**BLOBS, "CMakeLists.txt": "547997f8085c45e9c478d6a2632a3c0c13668cbd"}
+# 4.0.2 is currently advertised by the official Windows bundle page, while
+# the independently observed PG18 original SQL still returned 4.0.1.
+# GitHub verifies the commit signature but the annotated TAG is unsigned.
+# Neither observation proves what went into the 83 MB OSGeo original ZIP.
+TAG_402 = "v4.0.2"
+TAG_OBJECT_402 = "6ed80069ec55a79e1c7c06b1dc0af97f0507e284"
+COMMIT_402 = "b3fd9ef1d81661af0b1084a2646fb87fda12b8c4"
+BLOBS_402 = {**BLOBS, "CMakeLists.txt": "d446a83680de8fd2ff43c94e31a463160307ecdb"}
 
 SOURCE_MARKERS = {
     "LICENSE": (
@@ -77,12 +85,14 @@ def source_get_json(url):
 
 def audit(get_json=source_get_json, expected_blobs=None, *, release_tag=TAG):
     """Check one immutable source tag. Neither tag grants binary attribution."""
-    if release_tag not in (TAG, TAG_401):
+    pinned = {
+        TAG: (TAG_OBJECT, COMMIT, BLOBS),
+        TAG_401: (TAG_OBJECT_401, COMMIT_401, BLOBS_401),
+        TAG_402: (TAG_OBJECT_402, COMMIT_402, BLOBS_402),
+    }
+    if release_tag not in pinned:
         raise ValueError("Unrecognized pgRouting release tag")
-    current = release_tag == TAG_401
-    tag_object = TAG_OBJECT_401 if current else TAG_OBJECT
-    commit = COMMIT_401 if current else COMMIT
-    trusted_blobs = BLOBS_401 if current else BLOBS
+    tag_object, commit, trusted_blobs = pinned[release_tag]
     # Only the synthetic offline tests replace these SHA-1 pins.
     expected = trusted_blobs if expected_blobs is None else expected_blobs
     if (set(expected) != set(trusted_blobs)
@@ -99,6 +109,26 @@ def audit(get_json=source_get_json, expected_blobs=None, *, release_tag=TAG):
             or tagged.get("object", {}).get("sha") != commit):
         raise ValueError("Unverified pgRouting tag-to-commit mapping")
 
+    github_commit_signature_observed = False
+    if release_tag == TAG_402:
+        tag_verification = tagged.get("verification") or {}
+        if (tag_verification.get("verified") is not False
+                or tag_verification.get("reason") != "unsigned"):
+            raise ValueError("Expected unsigned 4.0.2 annotated tag status")
+        # Authenticated GitHub verification is useful commit evidence, but
+        # neither a signed annotated tag nor an OSGeo producer attestation.
+        source_commit = get_json(API + "/commits/" + commit)
+        verification = source_commit.get("commit", {}).get("verification", {})
+        if (source_commit.get("sha") != commit or
+                verification.get("verified") is not True or
+                verification.get("reason") != "valid" or
+                type(verification.get("signature")) is not str or
+                not verification["signature"].startswith("-----BEGIN PGP SIGNATURE-----") or
+                type(verification.get("payload")) is not str or
+                not verification["payload"].startswith("tree ")):
+            raise ValueError("4.0.2 GitHub-verified source commit missing")
+        github_commit_signature_observed = True
+
     for path, sha in sorted(expected.items()):
         row = get_json(API + "/contents/" + path + "?ref=" + commit)
         if (row.get("path") != path or row.get("sha") != sha
@@ -114,8 +144,9 @@ def audit(get_json=source_get_json, expected_blobs=None, *, release_tag=TAG):
             raise ValueError("Invalid pinned pgRouting source: " + path) from exc
         normalized = " ".join(source.split())
         markers = SOURCE_MARKERS[path]
-        if current and path == "CMakeLists.txt":
-            markers = tuple(x.replace("VERSION 4.0.0", "VERSION 4.0.1")
+        if path == "CMakeLists.txt":
+            markers = tuple(x.replace("VERSION 4.0.0",
+                                      "VERSION " + release_tag[1:])
                             for x in markers)
         for phrase in markers:
             if " ".join(phrase.split()) not in normalized:
@@ -127,6 +158,9 @@ def audit(get_json=source_get_json, expected_blobs=None, *, release_tag=TAG):
         "sourceRepository": "pgRouting/pgrouting",
         "tag": release_tag, "annotatedTagObject": tag_object, "tagCommit": commit,
         "sourceGitBlobsSha1": dict(sorted(expected.items())),
+        "upstreamCommitSignatureEvidence": (
+            "GITHUB_API_VERIFIED_COMMIT_BUT_ANNOTATED_TAG_UNSIGNED"
+            if github_commit_signature_observed else "NOT_CHECKED"),
         "licenseObservations": {
             "projectREADME": "most features GPL-2.0-or-later, not every compiled component",
             "projectLicense": "GPL-2.0 full text",
@@ -153,7 +187,7 @@ def audit(get_json=source_get_json, expected_blobs=None, *, release_tag=TAG):
 
 
 def main():
-    receipts = [audit(release_tag=tag) for tag in (TAG, TAG_401)]
+    receipts = [audit(release_tag=tag) for tag in (TAG, TAG_401, TAG_402)]
     print(json.dumps({"sourceOnlyReceipts": receipts}, sort_keys=True, ensure_ascii=True))
     print("PGROUTING_SOURCE_RIGHTS=OBSERVED ORIGINAL_DLL_LINK=UNVERIFIED "
           "NOTICE_CLOSURE=UNVERIFIED PRODUCER=UNVERIFIED GET=DENY "
