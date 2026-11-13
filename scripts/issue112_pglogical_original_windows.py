@@ -33,7 +33,7 @@ PINS = {
 }
 ALLOWED = re.compile(
     r"(?:BUILD-INFO\.json|share/pglogical/COPYRIGHT|"
-    r"lib/(?:pglogical|pglogical_output)\.dll|"
+    r"lib/(?:pglogical|pglogical_output)\.(?:dll|lib)|"
     r"bin/pglogical_create_subscriber\.exe|"
     r"share/extension/(?:pglogical|pglogical_origin)\.control|"
     r"share/extension/pglogical(?:_origin)?--[A-Za-z0-9_.-]+\.sql)\Z"
@@ -207,8 +207,9 @@ def main():
     payload = inspect_zip(data, args.pg)
     stage.mkdir(mode=0o700)
     for name, content in payload.items():
-        if not (name.startswith("lib/") or name.startswith("bin/") or
-                name.startswith("share/extension/")):
+        # Import libraries (.lib) are inspected in-memory but never installed.
+        if name.endswith(".lib") or not (name.startswith("lib/") or
+                name.startswith("bin/") or name.startswith("share/extension/")):
             continue
         destination = stage.joinpath(*name.split("/"))
         destination.parent.mkdir(parents=True, exist_ok=True)
