@@ -62,5 +62,23 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         self.assertNotIn('pull_request_target:', workflow)
 
 
+    def test_public_only_rate_limit_recovery_never_replays_private_bytes(self):
+        workflow = (ROOT / ".github/workflows/issue112-external-public-get-e2e.yml").read_text()
+        script = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
+        self.assertIn('.parents[0].sha=="5204f1df605b4aaa8d567e88fd7d7f3d19a4af1e"', workflow)
+        self.assertIn('([.files[]?] | length)==2', workflow)
+        self.assertIn('repos/pgextwin/catalog/actions/runs/43347204354', workflow)
+        self.assertIn('.id==131629451831', workflow)
+        self.assertIn('AUTHENTIC_PUBLIC_ONLY_RATE_LIMIT_RECOVERY=PASS', workflow)
+        self.assertIn('echo "recovery=true" >> "$GITHUB_OUTPUT"', workflow)
+        self.assertIn('RECOVERY_PUBLIC_ONLY: ${{ needs.authenticate-original-main.outputs.recovery }}', workflow)
+        self.assertIn("-PublicOnly", workflow)
+        self.assertIn("$binaries=@(@{kind='public';path=$public})", script)
+        self.assertIn("if ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))", script)
+        self.assertIn("Remove-Item Env:GH_TOKEN", script)
+        self.assertIn("Remove-Item Env:GITHUB_TOKEN", script)
+        self.assertNotIn("workflow_dispatch:", workflow)
+
+
 if __name__ == "__main__":
     unittest.main()
