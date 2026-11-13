@@ -98,3 +98,11 @@ the **exact** PG18 ZIP and `libpgrouting-4.0.dll` member SHA256
 Run/source revision, dependencies and compiler flags, plus complete
 applicable rights/NOTICE. All source-specific signatures, fresh individual
 owner admission, Publisher and public delivery remain **DENY**.
+
+## 2026-11-13 upstream release-page vs exact original-binary reconciliation (non-authorizing)
+
+The [official PostGIS Windows released-version page](https://postgis.net/documentation/getting_started/install_windows/released_versions/) now advertises **PostGIS 3.7.0** with Windows **PG18–19 installers** (PG15–17 installers described as forthcoming) and **pgRouting 4.0.2**. That is an upstream *current catalog description*, **not** a signed assertion about our independently pinned original PG18 ZIP. The earlier immutable PG18 Windows SQL Run **42871493748** reported **pgRouting 4.0.1**, and the `libpgrouting-4.0.dll` filename does not resolve the patch-level version. Preserve the **4.0.1 observed exact-asset receipt** without silently upgrading its identity to **4.0.2**. A subsequently released/replaced binary requires its own exact-byte evidence, runtime test and independent provider chain.
+
+The same [official page](https://postgis.net/documentation/getting_started/install_windows/released_versions/) identifies the separately indexed `*installer-src.zip` as **NSIS installer setup source** useful for making an installer, **not** a signed, reproducible source-to-DLL build record. The observed PG18 `postgis-bundle-pg18x64-3.7.0-installer-src.zip` filename does not establish the source commit, compiled dependencies, compiler/toolchain, build Run, DLL hash binding, full notices, or producer signature for `postgis-bundle-pg18-3.7.0x64.zip`. The upstream [Winnie Windows packaging scripts](https://postgis.net/development/docs/environment/windows/) are a relevant *investigation path* only, not authenticated provenance for the particular binary.
+
+This note adds no download, trust, rights, Publisher, Release, Catalog signed pin, or Website permissions. **OSGeo CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY / PUBLISH_DENY** remains unchanged. Existing separately tested exact-asset bytes and 4.0.1 source receipt remain authoritative for those observed results.
