@@ -120,7 +120,7 @@ def validate_release_job_log(log):
             "missing or excessive original Release job log")
     expected_id = RUNS["windows"][0]
     selections = re.findall(
-        r"Run Windows \\((\\d+)\\) has already completed with '([^']+)'", log
+        r"Run Windows \((\d+)\) has already completed with '([^']+)'", log
     )
     require(selections == [(str(expected_id), "success")],
             "Release job did not report exactly the pinned successful Windows run")
