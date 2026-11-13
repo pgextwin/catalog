@@ -196,7 +196,21 @@ public static class AuthenticatedCatalogHead
         request.Headers.Accept.ParseAdd("application/vnd.github+json");
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
         if (response.StatusCode != HttpStatusCode.OK)
-            throw new HttpRequestException("Catalog authenticated GET HTTP " + (int)response.StatusCode);
+        {
+            // Never log the request's Authorization header or response body.
+            // Public, allowlisted endpoint and rate-limit headers distinguish
+            // anonymous REST exhaustion from a denied immutable raw URL.
+            static string Header(HttpResponseMessage r, string key) =>
+                r.Headers.TryGetValues(key, out var values) ?
+                values.FirstOrDefault() ?? "absent" : "absent";
+            var kind = url.Host == "api.github.com" ? "GITHUB_API" : "IMMUTABLE_RAW";
+            throw new HttpRequestException("Catalog authenticated GET HTTP " +
+                (int)response.StatusCode + " TARGET=" + kind +
+                " PATH=" + url.AbsolutePath +
+                " RATE_REMAINING=" + Header(response, "X-RateLimit-Remaining") +
+                " RATE_RESET=" + Header(response, "X-RateLimit-Reset") +
+                " RETRY_AFTER=" + Header(response, "Retry-After"));
+        }
         if (response.Content.Headers.ContentLength is long size && (size == 0 || size > MaxJson))
             throw new InvalidDataException("Catalog response exceeds size cap");
         if (response.Content.Headers.ContentType?.MediaType == "text/html")
