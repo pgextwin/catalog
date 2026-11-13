@@ -13,12 +13,16 @@ from issue112_osgeo_tagged_source_rights import git_blob_sha
 class FakeGitHub:
     def __init__(self, release_tag=target.TAG):
         self.release_tag = release_tag
-        self.tag_object = target.TAG_OBJECT_401 if release_tag == target.TAG_401 else target.TAG_OBJECT
-        self.commit = target.COMMIT_401 if release_tag == target.TAG_401 else target.COMMIT
+        pinned = {
+            target.TAG: (target.TAG_OBJECT, target.COMMIT),
+            target.TAG_401: (target.TAG_OBJECT_401, target.COMMIT_401),
+            target.TAG_402: (target.TAG_OBJECT_402, target.COMMIT_402),
+        }
+        self.tag_object, self.commit = pinned[release_tag]
         markers = dict(target.SOURCE_MARKERS)
-        if release_tag == target.TAG_401:
+        if release_tag in (target.TAG_401, target.TAG_402):
             markers["CMakeLists.txt"] = tuple(
-                x.replace("VERSION 4.0.0", "VERSION 4.0.1")
+                x.replace("VERSION 4.0.0", "VERSION " + release_tag[1:])
                 for x in markers["CMakeLists.txt"])
         self.files = {
             path: ("\n".join(parts) + "\n").encode("utf-8")
@@ -26,6 +30,8 @@ class FakeGitHub:
         }
         self.wrong_ref = False
         self.wrong_tag_commit = False
+        self.wrong_commit_signature = False
+        self.wrong_unsigned_tag_status = False
         self.wrong_path = False
         self.wrong_blob = False
         self.forced_sha = {}
@@ -41,8 +47,24 @@ class FakeGitHub:
                            "url": target.API + "/git/tags/" + self.tag_object},
             }
         if url == target.API + "/git/tags/" + self.tag_object:
-            return {"tag": self.release_tag, "object": {"type": "commit",
+            row = {"tag": self.release_tag, "object": {"type": "commit",
                     "sha": "f" * 40 if self.wrong_tag_commit else self.commit}}
+            if self.release_tag == target.TAG_402:
+                row["verification"] = {
+                    "verified": self.wrong_unsigned_tag_status,
+                    "reason": "valid" if self.wrong_unsigned_tag_status else "unsigned",
+                }
+            return row
+        if self.release_tag == target.TAG_402 and url == target.API + "/commits/" + self.commit:
+            return {
+                "sha": self.commit,
+                "commit": {"verification": {
+                    "verified": not self.wrong_commit_signature,
+                    "reason": "invalid" if self.wrong_commit_signature else "valid",
+                    "signature": "-----BEGIN PGP SIGNATURE-----\nvalid",
+                    "payload": "tree signed-example",
+                }},
+            }
         for path, body in self.files.items():
             if url == target.API + "/contents/" + path + "?ref=" + self.commit:
                 return {
@@ -158,6 +180,45 @@ class PgRoutingSourceRightsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "license/build claim absent"):
             target.audit(fake.get, expected_blobs=fake.pins(),
                          release_tag=target.TAG_401)
+
+    def test_402_exact_source_and_signed_commit_never_authorize_osgeo_binary(self):
+        fake = FakeGitHub(target.TAG_402)
+        result = target.audit(fake.get, expected_blobs=fake.pins(),
+                              release_tag=target.TAG_402)
+        self.assertEqual(result["tagCommit"], target.COMMIT_402)
+        self.assertEqual(result["sourceGitBlobsSha1"]["CMakeLists.txt"],
+                         fake.pins()["CMakeLists.txt"])
+        self.assertEqual(result["upstreamCommitSignatureEvidence"],
+                         "GITHUB_API_VERIFIED_COMMIT_BUT_ANNOTATED_TAG_UNSIGNED")
+        self.assertEqual(result["candidateOsgeoZip"]["observedInstalledVersionFromPriorWindowsSql"],
+                         "4.0.1")
+        for key, value in result.items():
+            if key.endswith("Verified") or key.endswith("Authorized"):
+                self.assertIs(value, False, key)
+
+    def test_402_commit_or_tag_verification_spoof_denied(self):
+        for flag, message in (
+                ("wrong_commit_signature", "GitHub-verified source commit"),
+                ("wrong_unsigned_tag_status", "unsigned 4.0.2 annotated tag")):
+            fake = FakeGitHub(target.TAG_402)
+            setattr(fake, flag, True)
+            with self.assertRaisesRegex(ValueError, message):
+                target.audit(fake.get, expected_blobs=fake.pins(),
+                             release_tag=target.TAG_402)
+
+    def test_402_rejects_wrong_version_and_old_cmake_pin(self):
+        fake = FakeGitHub(target.TAG_402)
+        fake.files["CMakeLists.txt"] = fake.files["CMakeLists.txt"].replace(
+            b"VERSION 4.0.2", b"VERSION 4.0.1")
+        with self.assertRaisesRegex(ValueError, "license/build claim absent"):
+            target.audit(fake.get, expected_blobs=fake.pins(),
+                         release_tag=target.TAG_402)
+        fake = FakeGitHub(target.TAG_402)
+        pins = fake.pins()
+        pins["CMakeLists.txt"] = target.BLOBS_401["CMakeLists.txt"]
+        with self.assertRaisesRegex(ValueError, "path/blob"):
+            target.audit(fake.get, expected_blobs=pins,
+                         release_tag=target.TAG_402)
 
     def test_401_rejects_old_cmake_pin_and_unlisted_tag(self):
         fake = FakeGitHub(target.TAG_401)
