@@ -149,8 +149,7 @@ def inspect_zip(data, major):
     }
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         entries = archive.infolist()
-        require(8 <= len(entries) <= 120 and archive.testzip() is None,
-                "ZIP member count or CRC failure")
+        require(8 <= len(entries) <= 120, "ZIP member count")
         names = set()
         total = 0
         for member in entries:
@@ -171,6 +170,7 @@ def inspect_zip(data, major):
             total += member.file_size
             require(total <= TOTAL_BOUND, "ZIP total expanded size")
             payload[name] = archive.read(member)
+        require(archive.testzip() is None, "ZIP CRC failure")
     require(required <= set(payload), "required core file missing")
     require(any(re.fullmatch(r"share/extension/pglogical--[A-Za-z0-9_.-]+\.sql", x)
                 for x in payload), "pglogical SQL missing")
