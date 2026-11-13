@@ -1,0 +1,53 @@
+name: Issue112 pg_permissions source-owned SQL candidate (NONPUBLISHING)
+
+on:
+  pull_request:
+    paths:
+      - scripts/issue112_sql_owned_archive.py
+      - scripts/issue112_pg_permissions_source_pins.py
+      - scripts/issue112_pg_permissions_owned_source_pilot.py
+      - tests/test_issue112_pg_permissions_owned_source_pilot.py
+      - .github/workflows/issue112-pg-permissions-owned-source.yml
+
+permissions:
+  contents: read
+
+jobs:
+  original-source-private-windows-package:
+    if: github.event_name == 'pull_request' && github.repository == 'pgextwin/catalog'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the PR without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout exact upstream immutable source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cybertec-postgresql/pg_permissions
+          ref: 3360447e0668fed2b9db6a0ae1d086533781f9bd
+          path: pinned-pg-permissions
+          persist-credentials: false
+      - name: Offline hostile tests and genuine original source package receipts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m unittest discover -s tests -p 'test_issue112_pg_permissions_owned_source_pilot.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Private package adversarial tests failed' }
+          $sha = (& git -C pinned-pg-permissions rev-parse HEAD).Trim()
+          if ($sha -cne '3360447e0668fed2b9db6a0ae1d086533781f9bd') { throw 'Unexpected upstream source commit' }
+          $dir = Join-Path $env:RUNNER_TEMP 'permissions-private-only'
+          [void](New-Item -ItemType Directory -Path $dir)
+          $hashes = @()
+          foreach ($pg in @('14', '15', '16', '17', '18')) {
+            $zip = Join-Path $dir "pg_permissions-source-pg$pg.zip"
+            python scripts/issue112_pg_permissions_owned_source_pilot.py --source pinned-pg-permissions --pg $pg --output $zip
+            if ($LASTEXITCODE -ne 0) { throw "PG$pg source byte audit or package failed" }
+            $hashes += (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+          }
+          if (@($hashes | Select-Object -Unique).Count -ne 5) { throw 'PG-specific receipts collided' }
+          Remove-Item -LiteralPath $dir -Recurse -Force
+          Write-Output 'PG_PERMISSIONS_SOURCE_OWNED_PG14_18=PRIVATE_ONLY_SOURCE_PINS_PASS PUBLISH=DENY PUBLIC_GET=DENY'
