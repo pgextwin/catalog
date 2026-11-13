@@ -56,7 +56,7 @@ function Invoke-RequiredSql {
                  '-d', 'postgres', '-c', $Sql)
     $result = (& $psql @command 2>&1 | Out-String).Trim()
     if ($LASTEXITCODE -ne 0) {
-        throw "pglogical two-node SQL failed on port $Port: $($result.Substring(0, [Math]::Min($result.Length, 500)))"
+        throw "pglogical two-node SQL failed on port ${Port}: $($result.Substring(0, [Math]::Min($result.Length, 500)))"
     }
     return $result
 }
