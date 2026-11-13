@@ -37,6 +37,19 @@ VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){1,3}\Z")
 # These are *review candidates*, not independently verified/authorized
 # components. One original ZIP per PG major; never manufacture new assets.
 # Filename versions refer ONLY to the PostGIS BUNDLE, not individual modules.
+# The official Windows bundle guide also lists these separately maintained
+# extras. Treat them as DOCUMENTED REVIEW LEADS only: the exact pinned ZIP for
+# an individual PG major has not yet proved each *.control/DLL is present.
+# Never turn a generic bundle description into a support or GET claim.
+BUNDLE_EXTRAS_CANDIDATES = (
+    "ogr_fdw",
+    "pointcloud",
+    "pointcloud_postgis",
+    "h3",
+    "h3_postgis",
+    "mobilitydb",
+    "pg_sphere",
+)
 BUNDLE_COMPONENTS = (
     "postgis",
     "pgrouting",
@@ -45,7 +58,7 @@ BUNDLE_COMPONENTS = (
     "postgis_topology",
     "address_standardizer",
     "postgis_tiger_geocoder",
-)
+) + BUNDLE_EXTRAS_CANDIDATES
 DENY = dict(downloadAuthorized=False, mirrorAuthorized=False,
             redistributionAuthorized=False, publisherAuthorized=False,
             releaseAuthorized=False, independentSignedAdmission=False)
@@ -239,6 +252,14 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
             filename = f"postgis-bundle-pg{major}-{bundle_version}x64.zip"
             identity = f"osgeo:pg{major}:{bundle_version}:{sha}"
             for component in BUNDLE_COMPONENTS:
+                blockers = [
+                    "PRODUCER_SOURCE_TO_BINARY_ATTESTATION_MISSING",
+                    "ALL_COMPONENT_LICENSE_NOTICE_CLOSURE_MISSING",
+                    "RUNTIME_DEPENDENCY_CLOSURE_MISSING",
+                    "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
+                ]
+                if component in BUNDLE_EXTRAS_CANDIDATES:
+                    blockers.insert(0, "EXACT_PG_MAJOR_BUNDLE_MEMBER_NOT_VERIFIED")
                 rows.append({
                     "source": "OSGEO_REHASHED_ORIGINAL_ONLY",
                     "extension": component, "pgMajor": major,
@@ -249,12 +270,7 @@ def make_plan(root=ROOT, pg="all", extension=None, version=None, source="all",
                     "assetName": filename, "format": "zip",
                     "packageIdentity": identity,
                     "originalBytes": size, "originalSha256": sha,
-                    "blockers": [
-                        "PRODUCER_SOURCE_TO_BINARY_ATTESTATION_MISSING",
-                        "ALL_COMPONENT_LICENSE_NOTICE_CLOSURE_MISSING",
-                        "RUNTIME_DEPENDENCY_CLOSURE_MISSING",
-                        "INDEPENDENT_SIGNED_SOURCE_AUTHORIZATION_REQUIRED",
-                    ],
+                    "blockers": blockers,
                     **DENY,
                 })
     # Reuse fixed, independently observed original PGroonga 4.1.0 ZIP pins.

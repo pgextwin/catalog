@@ -237,7 +237,9 @@ class PackageCohortTests(unittest.TestCase):
         self.assertFalse(out["userDownloadAvailable"])
         one = out["batches"][0]["packages"][0]
         self.assertTrue(one["sharedBundle"])
-        self.assertEqual(len(one["extensions"]), 7)
+        self.assertEqual(len(one["extensions"]), 14)
+        self.assertIn("ogr_fdw", one["extensions"])
+        self.assertIn("pg_sphere", one["extensions"])
         self.assertEqual(out["singleBundleOriginalIdentity"], one["packageIdentity"])
         self.assertEqual(out["observedMajorCoverageNotSupportClaim"]["postgis"],
                          [one["pgMajor"]])

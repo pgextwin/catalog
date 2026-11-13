@@ -55,17 +55,31 @@ No implicit fallback or publishing operation is performed.
 
 For each selected PG14–18 major, **one** previously rehashed
 `postgis-bundle-pg<PG>-<POSTGIS_BUNDLE_VERSION>x64.zip` is the shared
-review candidate for seven named extension components:
+review candidate for fourteen named extension review leads:
 
-- `postgis`, `pgrouting`
-- `postgis_raster`, `postgis_sfcgal`, `postgis_topology`
-- `address_standardizer`, `postgis_tiger_geocoder`
+- Core previously observed: `postgis`, `pgrouting`,
+  `postgis_raster`, `postgis_sfcgal`, `postgis_topology`,
+  `address_standardizer`, `postgis_tiger_geocoder`.
+- Newly documented bundle extras: `ogr_fdw`, `pointcloud`,
+  `pointcloud_postgis`, `h3`, `h3_postgis`, `mobilitydb`, `pg_sphere`.
 
-This expands component selection from 2 to 7 **without increasing the five
-unique original ZIPs**. `uniqueOriginalPackageIdentities` still deduplicates
-the shared ZIP, while separate rows retain requested component and PG coverage.
-The component names follow the official PostGIS Windows installation
-instructions: https://postgis.net/documentation/getting_started/install_windows/enabling_postgis/
+The new seven extras come from the official PostGIS Windows enabling guide:
+https://postgis.net/documentation/getting_started/install_windows/enabling_postgis/
+They are **documentation-based leads only**. Inclusion of each exact
+`*.control`, SQL file and native DLL in each of the five pinned ZIPs has
+**not** been independently enumerated or tested; separate `extras` folders
+must not be silently confused with the exact original ZIP. Every newly
+selected extra therefore carries
+`EXACT_PG_MAJOR_BUNDLE_MEMBER_NOT_VERIFIED`. The tool's
+`observedMajorCoverageNotSupportClaim` must not be presented as proof of
+PostgreSQL-major compatibility or archive membership.
+
+Component candidate selection has grown from 7 to 14 with **no increase in the
+five unique original ZIPs**. `uniqueOriginalPackageIdentities` deduplicates
+the shared ZIP, while separate rows retain requested component and PG-major
+review scopes. For example:
+`python scripts/issue112_latest_external_review.py --catalog . --source osgeo --extension ogr_fdw --pg all --output /tmp/issue112-ogr-fdw-review.json`.
+This generates a nonpublishing *review plan*, never a download.
 This is a **documented bundle-component observation only**: individual
 control/SQL/DLL inclusion and Windows runtime/ABI acceptance, producer
 provenance, applicable NOTICE/dependency clearance and authorization are

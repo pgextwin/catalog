@@ -123,14 +123,16 @@ class LatestExternalReviewTests(unittest.TestCase):
 
     def test_postgis_pgrouting_one_original_per_major(self):
         result = make_plan(self.root, source="osgeo")
-        self.assertEqual(result["selectedReviewRows"], 35)
+        self.assertEqual(result["selectedReviewRows"], 70)
         self.assertEqual(result["uniqueOriginalPackages"], 5)
         majors = ["14", "15", "16", "17", "18"]
         self.assertEqual(result["observedMajorCoverageNotSupportClaim"],
                          {name: majors for name in (
                              "address_standardizer", "pgrouting", "postgis",
                              "postgis_raster", "postgis_sfcgal",
-                             "postgis_tiger_geocoder", "postgis_topology")})
+                             "postgis_tiger_geocoder", "postgis_topology",
+                             "ogr_fdw", "pointcloud", "pointcloud_postgis",
+                             "h3", "h3_postgis", "mobilitydb", "pg_sphere")})
         self.assertTrue(all(row["versionMeaning"] ==
                             "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION"
                             for row in result["selected"]))
@@ -143,12 +145,14 @@ class LatestExternalReviewTests(unittest.TestCase):
     def test_postgis_subextensions_share_exact_original_no_public_admission(self):
         for major in ("14", "15", "16", "17", "18"):
             result = make_plan(self.root, pg=major, source="osgeo")
-            self.assertEqual(result["selectedReviewRows"], 7)
+            self.assertEqual(result["selectedReviewRows"], 14)
             self.assertEqual(result["uniqueOriginalPackages"], 1)
             self.assertEqual({row["extension"] for row in result["selected"]},
                              {"postgis", "pgrouting", "postgis_raster",
                               "postgis_sfcgal", "postgis_topology",
-                              "address_standardizer", "postgis_tiger_geocoder"})
+                              "address_standardizer", "postgis_tiger_geocoder",
+                              "ogr_fdw", "pointcloud", "pointcloud_postgis",
+                              "h3", "h3_postgis", "mobilitydb", "pg_sphere"})
             self.assertEqual(
                 {row["packageIdentity"] for row in result["selected"]},
                 set(result["uniqueOriginalPackageIdentities"]))
@@ -157,6 +161,11 @@ class LatestExternalReviewTests(unittest.TestCase):
                                 and row["independentSignedAdmission"] is False
                                 and row["blockers"]
                                 for row in result["selected"]))
+            extras = {"ogr_fdw", "pointcloud", "pointcloud_postgis",
+                      "h3", "h3_postgis", "mobilitydb", "pg_sphere"}
+            self.assertTrue(all(
+                "EXACT_PG_MAJOR_BUNDLE_MEMBER_NOT_VERIFIED" in row["blockers"]
+                for row in result["selected"] if row["extension"] in extras))
         single = make_plan(self.root, pg="18", extension="postgis_raster",
                            source="osgeo")
         self.assertEqual(single["selectedReviewRows"], 1)
