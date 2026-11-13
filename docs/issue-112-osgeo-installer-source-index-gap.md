@@ -31,6 +31,26 @@ revision used to compile the final bundled DLLs**. The indexed matching-version
 absence is a narrow observed **listing gap**, not proof the source was never
 published or is missing from a different producer build location.
 
+## Subsequent OSUOSL mirror filename observation, 2026-11-13 JST
+
+The public OSGeo OSUOSL mirror directory now lists
+`postgis-bundle-pg18x64-3.7.0-installer-src.zip` (displayed modification date
+2026-11-08). Thus the previous **PG18 no-name-match** observation is historical:
+a matching **installer-source filename** is now visible on the mirror for
+the independently pinned PG18 binary 3.7.0. The PG14-17 directories still do
+not list matching names for the pinned 3.6.1/3.6.2 binaries.
+
+Mirror index (observational, not signing authority):
+https://ftp2.osuosl.org/pub/osgeo/download/postgis/windows/source/pg18/
+
+This new finding establishes **only NAME_MATCH_ONLY_NOT_PROVENANCE**.
+No source-archive bytes, build input closure, Winnie job identity, binary
+producer signature, dependency licenses/NOTICE or original ZIP attestations
+were verified by inspecting the directory. Do not issue an owner-signed
+admission, change Publisher or turn on public GET based on this name match.
+The offline adversarial tests now cover the old nonmatching and newly matching
+PG18 listing states while preserving every publication DENY.
+
 ## Bounded repeatable metadata audit
 
 Run: python scripts/issue112_osgeo_installer_source_gap.py
