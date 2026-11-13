@@ -86,6 +86,11 @@ class PgLogicalOriginalAdversarialTests(unittest.TestCase):
         self.assertFalse(audit.pe_x64(b"MZ" + bytes(200)))
         self.assertIn("lib/pglogical.dll", audit.inspect_zip(fixture(), 18))
 
+    def test_provider_import_library_is_inspected_but_not_installable(self):
+        files = audit.inspect_zip(fixture({"lib/pglogical_output.lib": b"archive importer only"}), 18)
+        self.assertIn("lib/pglogical_output.lib", files)
+        self.assertNotIn("lib/untrusted.lib", files)
+
     def test_cross_major_and_wrong_commit_deny(self):
         with self.assertRaises(ValueError):
             audit.inspect_zip(fixture(), 17)
