@@ -17,7 +17,7 @@ and verification evidence, see [external sources and selection policy](docs/issu
 
 ## Verified direct external ZIP acquisition (GET-only)
 
-The [published Windows CLI](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.15) can acquire the **currently owner-authorized** external original ZIPs directly from their providers, as one verified local batch. An unexpired Build/main signed admission and the exact current protected Catalog pins are mandatory; discovery alone never authorizes downloads. The real Windows E2E on 2026-11-13 verified 11 ZIPs for oracle_fdw 2.9.0 (PG14–18), community pgvector 0.8.7 (PG14–18), and pg_trickle 0.108.3 (PG18), not a permanent authorization. See the [verified external GET usage and scope](docs/issue-112-public-external-original-get.md) for `--pg all`, `--extension` and `--version` examples, expiry, dependencies, and the still-denied PostGIS/pgRouting and other review candidates.
+The [published Windows CLI](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.16) can acquire the **currently owner-authorized** external original ZIPs directly from their providers, as one verified local batch. An unexpired Build/main signed admission and the exact current protected Catalog pins are mandatory; discovery alone never authorizes downloads. The real Windows E2E on 2026-11-13 verified 11 ZIPs for oracle_fdw 2.9.0 (PG14–18), community pgvector 0.8.7 (PG14–18), and pg_trickle 0.108.3 (PG18), not a permanent authorization. See the [verified external GET usage and scope](docs/issue-112-public-external-original-get.md) for `--pg all`, `--extension` and `--version` examples, expiry, dependencies, and the still-denied PostGIS/pgRouting and other review candidates.
 
 ## What you can check
 
