@@ -26,18 +26,29 @@ To build a private candidate from an exact clean source checkout:
 
 The PR-only Windows workflow fetches the exact source ref, checks its Git
 commit and source member bytes, creates five local ZIP candidates, validates
-distinct SHA256 and removes all temporary files. It does not upload artifacts,
-issue OIDC/issuer admission, enable Provider GET, sign, create Releases or
-invoke Publisher. Its passing result would establish package reproducibility,
-NOT real PostgreSQL Windows CREATE EXTENSION from the ZIP.
+distinct SHA256 and removes all temporary files. A separate PR-only Windows
+PG14–18 matrix then installs disposable PostgreSQL with a pinned installer,
+reconstructs each exact private ZIP, independently hashes it and verifies the
+eight extracted SQL/control files against immutable source-byte SHA256 and the
+nine-file receipt (including the complete original LICENSE). The extracted
+files, not the provider's original ZIP, are installed with create-only paths.
+The matrix runs CREATE EXTENSION, checks extversion 1.4 and exercises
+permission view, target and diff SQL. Temporary files and installed members
+are removed. Required checks must actually pass before claiming Windows
+runtime acceptance; merely adding a workflow is not acceptance.
+
+No workflow uploads ZIP artifacts, issues OIDC/admission, enables provider GET,
+signs, creates Releases or invokes Publisher. The independently signed
+source-owned producer and formal public delivery gates remain unfulfilled.
 
 Unlike signed producer provenance, a developer-authored manifest does not
 authenticate Cybertec's original ZIP. Existing Windows SQL functional evidence
 from Cybertec originals is not attributed to these distinct ZIP bytes.
-Further requirements: protected original-main build, native PG14-18 runtime
-from the own-source package, independent attestation, rights and dependency
-closure, Publisher Environment/App admission, protected Catalog pin, official
-create-only Release, public EXE Windows E2E and Website download.
+Further requirements: protected original-main producer build and its native
+Windows postmerge acceptance, independent attestation, SBOM/rights/dependency
+closure, Publisher Environment/App admission, protected Catalog signed pin,
+official create-only Release, public EXE Windows E2E and Website download.
+The independent Cybertec-original runtime remains a separate evidence stream.
 
 PGroonga remains held; TimescaleDB remains DENY; OSGeo has separate unclosed
 producer-provenance, DLL dependency and NOTICE requirements. The existing
