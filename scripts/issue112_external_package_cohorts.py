@@ -135,6 +135,9 @@ def build(root=ROOT, pg="all", extension=None, version=None, source="all",
     packages = {}
     for row in rows:
         bundle = validate_row(row)
+        blockers = row["blockers"]
+        size, digest = row.get("originalBytes"), row.get("originalSha256")
+        identity = row["packageIdentity"]
         descriptor = (row["source"], row["provider"], row["pgMajor"],
                       row["assetName"], row["format"], row.get("version"),
                       row["versionMeaning"], size, digest, bundle)
