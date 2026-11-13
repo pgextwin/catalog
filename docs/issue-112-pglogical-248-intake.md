@@ -35,24 +35,92 @@ provider's `2.4.8-w1` release. The upstream/producer documented PostgreSQL
 License and third-party copyright/NOTICE material in `THIRD_PARTY_NOTICES.md`.
 Provider reports source SHA pinning, Windows smoke, and artifact attestation.
 
-## Admission gap and acceptance
+## Independently established technical evidence (2026-11-13 JST)
 
-The sizes and hashes above are **GitHub REST Release metadata only**; neither
-independently rehashed original bytes nor verified the provider's attestation.
-The discovery configuration and five candidate records deliberately retain
-`originalSha256=null`, `originalBytes=null`, all approval flags FALSE, and
-no signed admission. Published GitHub API digests are **not** promoted to an
-independently verified original hash. No ZIP is fetched by this change.
+- Original provider ZIP SHA256, fixed release identity, bounded archive
+  contents and Windows x64 PE identity verified for PG14–18 in genuine
+  PR-only GitHub Actions. Original bytes were fetched ephemerally.
+- [PR Run 43443993355](https://github.com/pgextwin/catalog/actions/runs/43443993355),
+  exact PR head `be04287af8da83c990446e1f8950d836a197ddb9`,
+  completed SUCCESS, attempt 1: independently pinned five original ZIPs
+  to GitHub Sigstore verified signer workflow, source commit and provider
+  release-run provenance, and exercised real two-node Windows provider /
+  subscriber replication with initial sync and UPDATE for PG14–18.
+- [PR Validate 43443993384](https://github.com/pgextwin/catalog/actions/runs/43443993384),
+  and original postmerge Validate 43444701990 / Website 43444702243,
+  all SUCCESS at their respective original heads.
+- **Historical failure is not a pass:** Run 43443397870 at older
+  `d9a194e8` was FAILURE (two-node replication 5/5 FAILURE).
+  The changed-head PR Run above resolved it; the failed run was not rerun
+  or reclassified as SUCCESS.
 
-Before real pgextwin GET: independently fetch the original provider ZIPs,
-compare actual sizes/SHA256, inspect archive/member safety and PE imports,
-verify Windows PG14–18 runtime per corresponding major (including plugin
-loading/replication), establish source-to-binary manufacturer provenance,
-evaluate upstream and patch licensing/NOTICE/dependency closure, and obtain
-a fresh authentic owner/Build issuer source-specific signed admission through
-protected main and required CI. Publisher App/Environment and all distribution
-gates remain unchanged; do not reuse older or unrelated signed admissions.
-The current 11-asset authorized cohort and v0.3.16 public CLI remain unchanged.
+The independent Sigstore check authenticates a provider's signed assertions
+about the original ZIP hashes and source/run identity; it does NOT establish
+reproducible builds, all compiled-source attribution, patch copyright or
+transitive runtime/NOTICE clearance.
+
+## Windows patch and third-party rights inventory (not closed)
+
+Authenticated provider source evidence:
+
+- `semihkiroglu/pglogical-windows` source
+  `patches/pglogical-2.4.8-windows.patch` Git blob
+  `06f5797641f58b5ca3c30e3394f6c78dbb34d623`.
+- Provider `THIRD_PARTY_NOTICES.md` Git blob
+  `d45005bdc61e1781e695d4d1ac8d54972e5151dd`
+  identifies a patch derived from upstream issue
+  [#442](https://github.com/2ndQuadrant/pglogical/issues/442),
+  including contributions attributed to **ljackwilson** and **MickeyYadav**,
+  and producer-specific subscriber-catchup changes. The provider asserts
+  PostgreSQL License; this statement has not yet been independently
+  reconciled with the exact contributing authors' permissions.
+- Provider `LICENSE` Git blob `255a60b8aafccefc331109c99e2f7270d04ed60c`
+  contains the PostgreSQL License. The original ZIP allowlist includes
+  `share/pglogical/COPYRIGHT`; it does **not** contain the provider's
+  `THIRD_PARTY_NOTICES.md` or separately identify all patch contributors.
+  Determine whether the packaged copyright/license text and external
+  companion notices fulfill each applicable attribution/distribution
+  requirement. Do not alter the third-party original ZIP to add notices.
+
+### Exact PE import inventory — new independent candidate audit
+
+`scripts/issue112_pglogical_pe_import_inventory.py` verifies each original
+asset's SHA256, safe ZIP members and PE32+ AMD64 headers, then enumerates
+**static and delay-loaded import-module names** from all three packaged
+binaries for each PostgreSQL 14–18 major. A PR-only read-only workflow
+rejects invalid import RVA, malformed sections, unsafe module names,
+duplicate descriptors, unsupported VA delay imports and absent imports
+before any inventory can pass. It outputs no ZIP artifact, signed admission
+or public download. Its results are not final until the corresponding
+new PR's genuine source-audit CI checks complete.
+
+Even a complete static import-name inventory cannot establish actual
+Windows DLL loader search, transitive imports or non-import dynamic
+LoadLibrary dependencies. Compare exact import names against the real
+pinned EDB PostgreSQL installation and Windows runtime for **each major**,
+including the client executable, and resolve unmatched or incompatible
+modules without making an automatic source-specific authorization grant.
+
+## Still-required authentic admission and publication gates
+
+Before user-facing pgextwin GET: close patch copyright/notice obligations,
+all applicable binary/transitive dependencies and runtime loader paths,
+and the exact source-to-binary rights basis. Obtain genuine fresh
+source-specific owner-signed Build issuer admission through protected main,
+independent verifier, and all formal Publisher App/Environment requirements.
+The independently successful technical tests do not grant those rights.
+
+The five registry candidates intentionally continue to retain
+`originalSha256=null`, `originalBytes=null`, `rightsReviewed=false`,
+`provenanceVerified=false`, `compatibilityVerified=false`,
+`dependenciesVerified=false`, `downloadAuthorized=false`.
+Those fields are **unadmitted registry authority**, not a denial of the
+separate independent nonpublishing test results. Do not promote them
+until every required admission gate is genuinely met.
+
+**Current state: CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY /
+REDISTRIBUTION_DENY / RELEASE_DENY / PUBLISH_DENY.** The separately
+admitted 11-asset cohort and public CLI v0.3.16 are unchanged.
 
 Offline review:
 ```bash
