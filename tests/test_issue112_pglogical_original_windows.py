@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import struct
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,6 +62,24 @@ class PgLogicalOriginalAdversarialTests(unittest.TestCase):
             audit.validate_source_registry(major, asset_id, length, digest)
         self.assertEqual({14, 15, 16, 17, 18}, set(audit.PINS))
         self.assertEqual(audit.REPO_ID, 1324318750)
+
+    def test_provider_api_root_has_no_trailing_slash(self):
+        expected = "https://api.github.com/repos/semihkiroglu/pglogical-windows"
+        class Response:
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc, tb):
+                return False
+            def geturl(self):
+                return expected
+            def read(self, limit):
+                return b'{"id":1324318750}'
+        def fake_open(request, timeout):
+            self.assertEqual(request.full_url, expected)
+            self.assertEqual(timeout, 30)
+            return Response()
+        with patch.object(audit.urllib.request, "urlopen", side_effect=fake_open):
+            self.assertEqual(audit.api_json("").get("id"), audit.REPO_ID)
 
     def test_valid_amd64_and_package_fixture(self):
         self.assertTrue(audit.pe_x64(fake_pe()))
