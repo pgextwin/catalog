@@ -164,7 +164,7 @@ class OriginalProducerBoundary(unittest.TestCase):
                 good.replace(f'postgresql-{pg}-x64', 'postgresql-99-x64'),
                 good.replace('if ("" -eq "yes")', 'if ("yes" -eq "yes")'),
                 good.replace('##[group]Run call ', '##[group]Run other '),
-                good + 'https://packages.groonga.org/source/groonga/groonga-latest.zip\n',
+                good.replace('##[endgroup]', 'https://packages.groonga.org/source/groonga/groonga-latest.zip\\n##[endgroup]'),
                 good.replace('##[endgroup]', '##[error]'),
                 '',
             ):
