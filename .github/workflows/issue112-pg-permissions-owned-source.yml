@@ -9,6 +9,8 @@ on:
       - scripts/issue112-pg-permissions-owned-source-windows.ps1
       - docs/issue-112-pg-permissions-source-owned-private.md
       - tests/test_issue112_pg_permissions_owned_source_pilot.py
+      - tests/test_issue112_pg_permissions_private_sbom.py
+      - scripts/issue112_pg_permissions_private_sbom.py
       - .github/workflows/issue112-pg-permissions-owned-source.yml
 
 permissions:
@@ -49,6 +51,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           python -m unittest discover -s tests -p 'test_issue112_pg_permissions_owned_source_pilot.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'Private package adversarial tests failed' }
+          python -m unittest discover -s tests -p 'test_issue112_pg_permissions_private_sbom.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Private SPDX hostile tests failed' }
           $sha = (& git -C pinned-pg-permissions rev-parse HEAD).Trim()
           if ($sha -cne '3360447e0668fed2b9db6a0ae1d086533781f9bd') { throw 'Unexpected upstream source commit' }
           $dir = Join-Path $env:RUNNER_TEMP 'permissions-private-only'
@@ -58,6 +62,9 @@ jobs:
             $zip = Join-Path $dir "pg_permissions-source-pg$pg.zip"
             python scripts/issue112_pg_permissions_owned_source_pilot.py --source pinned-pg-permissions --pg $pg --output $zip
             if ($LASTEXITCODE -ne 0) { throw "PG$pg source byte audit or package failed" }
+            $spdx = Join-Path $dir "pg_permissions-source-pg$pg.spdx.json"
+            python scripts/issue112_pg_permissions_private_sbom.py --source pinned-pg-permissions --pg $pg --zip $zip --output $spdx
+            if ($LASTEXITCODE -ne 0) { throw "PG$pg exact private SPDX failed" }
             $hashes += (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
           }
           if (@($hashes | Select-Object -Unique).Count -ne 5) { throw 'PG-specific receipts collided' }

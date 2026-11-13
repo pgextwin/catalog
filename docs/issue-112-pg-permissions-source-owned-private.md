@@ -53,3 +53,33 @@ The independent Cybertec-original runtime remains a separate evidence stream.
 PGroonga remains held; TimescaleDB remains DENY; OSGeo has separate unclosed
 producer-provenance, DLL dependency and NOTICE requirements. The existing
 11 authenticated external original-provider GET assets are unchanged.
+
+
+## Follow-on: exact private SQL-only SPDX inventory (2026-11-13)
+
+A shared canonical archive verifier now checks the **actual private ZIP bytes**
+against the immutable source-owned output before producing an SPDX 2.3
+**file-level inventory** for every PG14–18 candidate. The ten original members
+(including complete LICENSE and SOURCE-INPUTS.json) each receive SHA1/SHA256
+checksums and package containment relationships; the package SHA256 binds the
+report to one physical ZIP. Source-input SHA256 values, exact upstream commit,
+PG major and all negative admission flags are checked before report generation.
+
+This is runner-local and **create-only**; the PR Windows source job builds and
+checks five distinct ZIP/SBOM pairs, then deletes all local output. It does not
+upload any ZIP or SBOM, start a signing workflow, change the public CLI, obtain
+an independent signature, declare license/NOTICE closure, approve dependencies,
+run a Publisher, or create a Release.
+
+For an existing private exact-source checkout and locally created ZIP:
+
+    python scripts/issue112_pg_permissions_private_sbom.py --source SOURCE_DIR --pg 18 --zip PRIVATE_ZIP --output NEW_LOCAL_FILE.spdx.json
+
+Hostile tests deny ZIP-byte substitutions, unexpected members, wrong PG/source
+identity, malformed manifests, duplicate JSON keys, wrong file hashes and
+public/Publisher flag escalation. The existing successful PG14–18 runtime
+evidence is reused by reference, not rerun merely for a new evidence record.
+
+**State:** CANDIDATE_ONLY / PUBLIC_GET_DENY / MIRROR_DENY /
+RELEASE_DENY / PUBLISH_DENY. Full producer signing, independent verification
+and formal Publisher prerequisites remain separate outstanding work.
