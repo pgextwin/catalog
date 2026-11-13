@@ -49,7 +49,7 @@ def exact_sources(root, pins=PINNED, require_commit=True):
         actual = {}
         for line in tree.stdout.splitlines():
             try:
-                spec, name = line.split("\\t", 1)
+                spec, name = line.split("\t", 1)
                 mode, kind, oid = spec.split()
             except ValueError as exc:
                 raise ValueError("PG_PERMISSIONS_SOURCE_DENY: malformed Git tree") from exc
