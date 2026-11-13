@@ -2,7 +2,8 @@ name: Issue112 real Windows original-provider GET-only E2E (no publication)
 
 # Only genuine protected-main Validate after an atomic signed admission, or
 # the single exact-parent public-only recovery after genuine original Run
-# 43192028928 reported 11/11 private PASS but anonymous public metadata 403.
+# 43192028928 reported 11/11 private PASS but anonymous public metadata 403,
+# or a bounded diagnosis of genuine Run 43343335451 attempt 2 anonymous 403.
 # Every GET still requires active owner-reviewed independent Sigstore admission.
 # Never runs on PR, synthetic push, dispatch, schedule or arbitrary artifacts.
 on:
@@ -115,6 +116,39 @@ jobs:
             provider="qualified_cohort"
             echo "recovery=true" >> "$GITHUB_OUTPUT"
             echo "AUTHENTIC_PUBLIC_ONLY_E2E_RECOVERY=PASS SHA=$CATALOG_SHA"
+          elif jq -e '
+            # Single genuine protected-main postmerge diagnostic of the
+            # observed anonymous 403. No fake event, issuer or download grant.
+            # It is reachable only from this exact parent and these five files.
+            (.parents | length)==1 and
+            .parents[0].sha=="c57b1a1a357461ea4ba6b0559e6d892af4fc2d23" and
+            ([.files[]?] | length)==5 and
+            ([.files[]? | select(.status=="modified") | .filename] | sort)==
+              ([
+                ".github/workflows/issue112-external-public-get-e2e.yml",
+                "scripts/issue112-public-original-get-e2e.ps1",
+                "dotnet/src/PgExtWin.Releases/AuthenticatedCatalogHead.cs",
+                "dotnet/tests/PgExtWin.Contract.Tests/AuthenticatedCatalogHeadTests.cs",
+                "tests/test_issue112_public_original_get_e2e_guard.py"
+              ] | sort)
+          ' <<< "$commit" >/dev/null; then
+            prior="$(gh api repos/pgextwin/catalog/actions/runs/43343335451)"
+            jq -e --arg sha "c57b1a1a357461ea4ba6b0559e6d892af4fc2d23" '
+              .id==43343335451 and .status=="completed" and
+              .conclusion=="failure" and .event=="workflow_run" and
+              .head_sha==$sha and .run_attempt==2 and
+              .repository.full_name=="pgextwin/catalog"
+            ' <<< "$prior" >/dev/null
+            prior_jobs="$(gh api repos/pgextwin/catalog/actions/runs/43343335451/jobs?per_page=100)"
+            jq -e '
+              any(.jobs[]; .id==131621144270 and
+                .name=="windows-real-original-get" and .conclusion=="failure") and
+              any(.jobs[]; .name=="authenticate-original-main" and .conclusion=="success")
+            ' <<< "$prior_jobs" >/dev/null
+            # Windows still requires a nonexpired owner-signed admission,
+            # current main, independent Sigstore and actual original bytes.
+            provider="qualified_cohort"
+            echo "AUTHENTIC_ANONYMOUS_CATALOG_403_DIAGNOSTIC_RECOVERY=PASS SHA=$CATALOG_SHA"
           else
             echo 'NO_ATOMIC_SIGNED_CATALOG_LATEST_PIN_UPDATE; no provider GET'
             exit 0
