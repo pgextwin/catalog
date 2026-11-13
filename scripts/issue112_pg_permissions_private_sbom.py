@@ -73,7 +73,8 @@ def spdx_inventory(raw, members, pg, created="2026-11-13T00:00:00Z"):
     sha = lambda data: hashlib.sha256(data).hexdigest()
     sha1 = lambda data: hashlib.sha1(data).hexdigest()
     zhash = sha(raw)
-    files, relations, sha1s = [], [{
+    files, sha1s = [], []
+    relations = [{
         "spdxElementId": "SPDXRef-DOCUMENT", "relationshipType": "DESCRIBES",
         "relatedSpdxElement": "SPDXRef-Package",
     }]
