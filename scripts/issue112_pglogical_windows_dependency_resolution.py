@@ -20,7 +20,7 @@ import sys
 from issue112_pglogical_original_windows import (
     PINS, fetch_original, inspect_zip, require, validate_source_registry, verify_metadata,
 )
-from issue112_pglogical_pe_import_inventory import BINARIES, MODULE, pe_imports
+from issue112_pglogical_pe_import_inventory import BINARIES, MAX_PE, MODULE, pe_imports
 
 MAX_MODULES = 160
 MAX_LOCAL_SIZE = 32_000_000
@@ -68,7 +68,10 @@ def inventory(payload: dict[str, bytes], pgroot: Path, system32: Path):
         except (ValueError, UnicodeError) as exc:
             opaque.add(identity)
             records.append({"identity": identity, "peParsed": False,
-                            "reason": type(exc).__name__})
+                            "reason": type(exc).__name__,
+                            "reasonDetail": str(exc),
+                            "actualFileBytes": len(data),
+                            "parserSizeExceeded": len(data) > MAX_PE})
             continue
         discovered = []
         for dep in sorted(set(imports["static"] + imports["delay"])):
