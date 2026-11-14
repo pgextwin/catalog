@@ -71,24 +71,20 @@ def choose(snapshot):
 
 
 
-def choose_major(snapshot, pg_major):
-    """Select exactly one PG14-17 original from complete denied per-PG metadata.
-
-    This is only an inspection selector. A directory listing is not provenance
-    or a trusted digest, and no candidate may enter a public GET path.
-    """
+def _choose_per_pg(snapshot, pg_major, *, mode, expected_majors):
+    """Validate a denied per-PG metadata selection and return one PG14-17 row."""
     require(pg_major in ("14", "15", "16", "17"), "unsupported per-PG pilot")
     require(type(snapshot) is dict and
             type(snapshot.get("latestBundleSelection")) is dict,
             "missing denied per-PG selection")
     selection = snapshot["latestBundleSelection"]
     require(selection.get("scope") == "UNVERIFIED_METADATA_SELECTION_ONLY" and
-            selection.get("mode") == "latest-per-supported-pg" and
+            selection.get("mode") == mode and
             selection.get("downloadAuthorized") is False and
             selection.get("mirrorAuthorized") is False and
             type(selection.get("selected")) is list and
-            len(selection["selected"]) == 5,
-            "incomplete or untrusted latest-per-PG selection")
+            len(selection["selected"]) == len(expected_majors),
+            f"incomplete or untrusted {mode} selection")
     found = {}
     for row in selection["selected"]:
         # Reuse the single-original path/major/version and DENY contract for
@@ -99,9 +95,35 @@ def choose_major(snapshot, pg_major):
         major = checked["pgMajor"]
         require(major not in found, "duplicate PostgreSQL major")
         found[major] = (url, checked)
-    require(set(found) == {"14", "15", "16", "17", "18"},
+    require(set(found) == expected_majors,
             "missing or unexpected supported PostgreSQL major")
     return found[pg_major]
+
+
+def choose_major(snapshot, pg_major):
+    """Select exactly one PG14-17 original from complete denied per-PG metadata.
+
+    This is only an inspection selector. A directory listing is not provenance
+    or a trusted digest, and no candidate may enter a public GET path.
+    """
+    return _choose_per_pg(
+        snapshot, pg_major,
+        mode="latest-per-supported-pg",
+        expected_majors=frozenset({"14", "15", "16", "17", "18"}),
+    )
+
+
+def choose_fixed_major(snapshot, pg_major):
+    """Select one PG14-17 observed original from denied pinned-per-pg metadata.
+
+    Requires mode 'pinned-per-pg-originals' with exactly majors 14-17 and no
+    trust/download escalation. Grants no download, mirror, or publish rights.
+    """
+    return _choose_per_pg(
+        snapshot, pg_major,
+        mode="pinned-per-pg-originals",
+        expected_majors=frozenset({"14", "15", "16", "17"}),
+    )
 
 
 def safe_endpoint(url):

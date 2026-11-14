@@ -5,6 +5,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from issue112_osgeo_pg14_17_windows_selection import make_selection
 from test_issue112_osgeo_pg14_17_static_review import snapshot
 

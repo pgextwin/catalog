@@ -190,6 +190,9 @@ def select_latest_bundles(report, *, single_bundle=False):
     if (type(report) is not dict or
             report.get("schemaVersion") !=
                 "pgextwin-osgeo-postgis-windows-directory-snapshot/v1" or
+            report.get("sourceKind") != "UNTRUSTED_DIRECTORY_METADATA_ONLY" or
+            type(report.get("sourceIndex")) is not str or
+            report.get("sourceIndex") not in BASES.values() or
             report.get("publicationAuthorized") is not False or
             report.get("redistributionAuthorized") is not False or
             type(report.get("candidates")) is not list):
@@ -212,7 +215,10 @@ def select_latest_bundles(report, *, single_bundle=False):
                 entry.get("artifactKind") != "bundle-zip"):
             continue
         filename = entry.get("fileName")
-        parsed = BUNDLE_ZIP.fullmatch(filename) if type(filename) is str else None
+        if (type(filename) is not str or
+                entry.get("sourceRelativePath") != f"pg{entry['pgMajor']}/{filename}"):
+            raise ValueError("Non-canonical OSGeo sourceRelativePath")
+        parsed = BUNDLE_ZIP.fullmatch(filename)
         if parsed is None or normalize_major("pg" + parsed.group(1) + "/") != entry["pgMajor"]:
             continue
         if (entry.get("packagedPostgisVersion") != parsed.group(2) or

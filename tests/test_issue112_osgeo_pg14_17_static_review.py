@@ -9,8 +9,8 @@ import issue112_osgeo_pg14_17_static_review as p
 
 def snapshot():
     rows = []
-    for pg in ("14", "15", "16", "17", "18"):
-        version = p.PINS[pg][0] if pg in p.PINS else "3.7.0"
+    for pg in ("14", "15", "16", "17"):
+        version = p.PINS[pg][0]
         name = f"postgis-bundle-pg{pg}-{version}x64.zip"
         rows.append(dict(pgMajor=pg, version=version, fileName=name,
                          sourceRelativePath=f"pg{pg}/{name}",
@@ -20,7 +20,7 @@ def snapshot():
                 sourceIndex=p.ORIGIN,
                 publicationAuthorized=False, redistributionAuthorized=False,
                 latestBundleSelection=dict(scope="UNVERIFIED_METADATA_SELECTION_ONLY",
-                    mode="latest-per-supported-pg", downloadAuthorized=False,
+                    mode="pinned-per-pg-originals", downloadAuthorized=False,
                     mirrorAuthorized=False, selected=rows))
 
 class DenyTests(unittest.TestCase):
@@ -33,6 +33,7 @@ class DenyTests(unittest.TestCase):
     def test_reject_forged_or_changed_metadata(self):
         for mutate in (
             lambda x: x["latestBundleSelection"].update(downloadAuthorized=True),
+            lambda x: x["latestBundleSelection"].update(mode="latest-per-supported-pg"),
             lambda x: x.update(sourceIndex="https://ftp2.osuosl.org/pub/osgeo/download/postgis/windows/"),
             lambda x: x["latestBundleSelection"]["selected"].pop(),
             lambda x: x["latestBundleSelection"]["selected"][0].update(

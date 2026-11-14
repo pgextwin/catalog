@@ -8,7 +8,7 @@ import re
 import tempfile
 import zipfile
 
-from issue112_osgeo_original_byte_pilot import choose_major, inspect, read_original
+from issue112_osgeo_original_byte_pilot import choose_fixed_major, inspect, read_original
 from issue112_osgeo_dependency_inventory import dependency_inventory, MAX_DLL_BYTES
 from issue112_osgeo_rights_audit import MAX_LICENSE_BYTES
 
@@ -30,7 +30,7 @@ def require(ok, why):
 
 def select(snapshot, pg):
     require(pg in PINS, "major outside observed scope")
-    url, row = choose_major(snapshot, pg)
+    url, row = choose_fixed_major(snapshot, pg)
     version, size, sha = PINS[pg]
     name = f"postgis-bundle-pg{pg}-{version}x64.zip"
     require(url == f"{ORIGIN}pg{pg}/{name}" and row["fileName"] == name,
