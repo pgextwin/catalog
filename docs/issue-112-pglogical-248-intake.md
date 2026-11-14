@@ -157,3 +157,18 @@ inventory are reused by reference and never rerun merely for this receipt.
 Until the new PR CI passes, this proposed audit has **no passing receipt**;
 even afterward `CANDIDATE_ONLY`, `GET_DENY`, `MIRROR_DENY`,
 `REDISTRIBUTION_DENY`, `RELEASE_DENY` and `PUBLISH_DENY` persist.
+
+
+## PE diagnostics v2 for unparsed entries (new PR scope)
+
+The dependency-resolution inventory now measures every entry the PE parser
+rejects instead of recording only the exception type. Each unparsed entry
+carries `actualFileBytes` (the real byte length of the inspected file),
+`reasonDetail` (the parser's failure message) and `parserSizeExceeded`
+(whether the file exceeds the 3,000,000-byte parser cap, `MAX_PE`). This
+covers the nine known unparsed files across the PG14–18 EDB installations
+(`postgres.exe` in all five majors and `libcrypto-3-x64.dll` in four), whose
+real sizes were previously unmeasured. The parser cap itself is unchanged;
+no file is parsed beyond it and no gate is weakened. Diagnostics are
+inventory only: `CANDIDATE_ONLY`, `GET_DENY`, `MIRROR_DENY`,
+`REDISTRIBUTION_DENY`, `RELEASE_DENY` and `PUBLISH_DENY` persist.

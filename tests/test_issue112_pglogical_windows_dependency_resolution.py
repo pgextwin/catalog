@@ -68,6 +68,32 @@ class DependencyResolutionTests(unittest.TestCase):
                      "publisherAuthorized"):
             self.assertIs(result[flag], False)
 
+    def test_unparsed_entries_carry_measured_diagnostics(self):
+        oversized = b"MZ" + b"\x00" * audit.MAX_PE  # beyond the parser cap
+        small_bad = b"tiny"
+        files = {k: fixture() for k in audit.ORIGINAL_PREFIX}
+        files["lib/pglogical.dll"] = oversized
+        files["lib/pglogical_output.dll"] = small_bad
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "bin").mkdir()
+            (root / "lib").mkdir()
+            system = root / "System32"
+            system.mkdir()
+            result = audit.inventory(files, root, system)
+        by_id = {r["identity"]: r for r in result["entries"]}
+        big = by_id["lib/pglogical.dll"]
+        self.assertFalse(big["peParsed"])
+        self.assertEqual(big["actualFileBytes"], len(oversized))
+        self.assertIs(big["parserSizeExceeded"], True)
+        self.assertTrue(big["reasonDetail"])
+        small = by_id["lib/pglogical_output.dll"]
+        self.assertFalse(small["peParsed"])
+        self.assertEqual(small["actualFileBytes"], len(small_bad))
+        self.assertIs(small["parserSizeExceeded"], False)
+        self.assertIn("lib/pglogical.dll", result["unparsedOrUninspected"])
+        self.assertIn("lib/pglogical_output.dll", result["unparsedOrUninspected"])
+
     def test_original_asset_missing_is_denied(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
