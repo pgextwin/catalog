@@ -134,7 +134,7 @@ class RightsAuditTests(unittest.TestCase):
             audit.audit_archive(self.original)
 
     def test_exact_official_origin_and_hash_pinned(self):
-        self.assertEqual(audit.SIZE, 83_320_975)
+        self.assertEqual(audit.SIZE, 83_739_256)
         self.assertEqual(len(audit.SHA256), 64)
         self.assertTrue(audit.ORIGIN.startswith(
             "https://download-cache.osgeo.org/postgis/windows/pg18/"))
