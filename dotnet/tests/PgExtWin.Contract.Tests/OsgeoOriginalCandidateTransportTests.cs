@@ -126,8 +126,8 @@ internal static class OsgeoOriginalCandidateTransportTests
                   == pin.OriginalSha256,
                 "Real OSGeo .NET HTTPS received bytes independently rehashed");
             using var zip = System.IO.Compression.ZipFile.OpenRead(receipt.Path);
-            check(zip.Entries.Count == 1041,
-                "Real OSGeo .NET transport inspected 1041 original ZIP members");
+            check(zip.Entries.Count == 1045,
+                "Real OSGeo .NET transport inspected 1045 original ZIP members");
             check(zip.Entries.Any(e => e.FullName.EndsWith("/postgis.control",
                       StringComparison.OrdinalIgnoreCase)) &&
                   zip.Entries.Any(e => e.FullName.EndsWith("/pgrouting.control",
@@ -135,7 +135,7 @@ internal static class OsgeoOriginalCandidateTransportTests
                 "Real original includes PostGIS and pgRouting controls");
             Console.WriteLine("OSGEO_DOTNET_LIVE_ORIGINAL=INTEGRITY_PASS " +
                 "BYTES=83739256 SHA256=" + pin.OriginalSha256 +
-                " MEMBERS=1041 RIGHTS=UNVERIFIED PROVENANCE=UNVERIFIED " +
+                " MEMBERS=1045 RIGHTS=UNVERIFIED PROVENANCE=UNVERIFIED " +
                 "GET_AUTHORIZED=NO MIRROR=DENY RELEASE=DENY");
         }
         finally
