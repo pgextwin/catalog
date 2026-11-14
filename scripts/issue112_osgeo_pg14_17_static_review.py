@@ -8,7 +8,12 @@ import re
 import tempfile
 import zipfile
 
-from issue112_osgeo_original_byte_pilot import choose_fixed_major, inspect, read_original
+from issue112_osgeo_original_byte_pilot import (
+    choose_fixed_major,
+    inspect,
+    read_original,
+    validate_latest_selection,
+)
 from issue112_osgeo_dependency_inventory import dependency_inventory, MAX_DLL_BYTES
 from issue112_osgeo_rights_audit import MAX_LICENSE_BYTES
 
@@ -30,11 +35,23 @@ def require(ok, why):
 
 def select(snapshot, pg):
     require(pg in PINS, "major outside observed scope")
-    url, row = choose_fixed_major(snapshot, pg)
+    require(type(snapshot) is dict and
+            type(snapshot.get("latestBundleSelection")) is dict,
+            "missing denied per-PG selection")
+    require(snapshot.get("sourceIndex") == ORIGIN,
+            "changed original version or host")
+    mode = snapshot["latestBundleSelection"].get("mode")
     version, size, sha = PINS[pg]
     name = f"postgis-bundle-pg{pg}-{version}x64.zip"
-    require(url == f"{ORIGIN}pg{pg}/{name}" and row["fileName"] == name,
-            "changed original version or host")
+    url = f"{ORIGIN}pg{pg}/{name}"
+    if mode == "pinned-per-pg-originals":
+        pinned_url, row = choose_fixed_major(snapshot, pg)
+        require(pinned_url == url and row["fileName"] == name,
+                "changed original version or host")
+    elif mode == "latest-per-supported-pg":
+        validate_latest_selection(snapshot)
+    else:
+        require(False, "unsupported selection mode")
     return dict(pgMajor=pg, name=name, sourceUrl=url, version=version,
                 expectedBytes=size, expectedSha256=sha)
 
