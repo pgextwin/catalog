@@ -344,8 +344,11 @@ public static class ExternalSignedDirectGetAdmission
         async Task ConfirmFresh(CancellationToken cancellation)
         {
             cancellation.ThrowIfCancellationRequested();
-            Require(DateTimeOffset.UtcNow < expires,
+            var now = DateTimeOffset.UtcNow;
+            Require(now < expires,
                 "admission expired before provider GET or atomic commit");
+            ValidatePreCommitAuthorization(admission, pgSelection, pins, now,
+                expectedRunId, latestPins, requestedExtension, requestedVersion);
             if (confirmCatalogHead is not null)
                 await confirmCatalogHead(cancellation);
         }
@@ -354,6 +357,29 @@ public static class ExternalSignedDirectGetAdmission
             pins, pgSelection, outputParent,
             (pin, directory, cancellation) => transport.DownloadAsync(
                 pin, directory, cancellation), token, ConfirmFresh);
+    }
+
+    /// <summary>
+    /// Re-verify every signed row, expiry, selected pin set, and Catalog latest
+    /// binding immediately before provider GET or atomic directory commit.
+    /// </summary>
+    internal static void ValidatePreCommitAuthorization(
+        byte[] admission, string pgSelection,
+        IReadOnlyList<ExternalOriginalPin> expectedPins, DateTimeOffset now,
+        long? expectedRunId = null, byte[]? latestPins = null,
+        string? requestedExtension = null, string? requestedVersion = null)
+    {
+        var revalidated = ParseUntrusted(admission, pgSelection, now, out _,
+            requestedExtension, requestedVersion);
+        Require(revalidated.Count == expectedPins.Count &&
+            revalidated.SequenceEqual(expectedPins),
+            "signed pre-authorization pin set changed before commit");
+        if (expectedRunId is long runId)
+        {
+            Require(latestPins is not null,
+                "Catalog latest external pin index missing before commit");
+            ValidateLatestBinding(latestPins!, admission, runId);
+        }
     }
 
 }

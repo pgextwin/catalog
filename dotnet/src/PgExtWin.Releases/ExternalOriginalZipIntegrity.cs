@@ -142,8 +142,7 @@ public static class ExternalOriginalZipIntegrity
                 throw new InvalidDataException("Original ZIP member decompression was incomplete");
             uint actualCrc = crc ^ 0xFFFFFFFFu;
             if (actualCrc != entry.Crc32)
-                throw new InvalidDataException($"Original ZIP member CRC32 mismatch for '{canonicalPath}'");
-            expanded += read;
+                throw new InvalidDataException($"Original ZIP member CRC32 mismatch for '{canonicalPath}'");            expanded += read;
         }
         if (actualFiles == 0)
             throw new InvalidDataException("Original ZIP contains no payload files");
@@ -288,4 +287,6 @@ public static class ExternalOriginalZipIntegrity
                 throw new InvalidDataException("Original ZIP contains non-regular or mismatched Unix file type");
         }
     }
+
 }
+

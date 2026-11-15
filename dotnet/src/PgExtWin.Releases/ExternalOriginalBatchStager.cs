@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-
 namespace PgExtWin.Releases;
 
 /// <summary>
@@ -16,13 +14,139 @@ internal static class ExternalOriginalBatchStager
         CancellationToken token = default,
         Func<CancellationToken, Task>? confirmAdmissionFresh = null)
     {
-        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
-            pins is null || pins.Count is < 1 or > 1000 || downloadOne is null)
+        if (pins is null || downloadOne is null)
             throw new InvalidDataException("Invalid external batch selection");
 
         // Preflight every original pin before staging or any network request.
         // One failed/unauthorized future admission MUST fail the entire batch;
         // there is never a silent lower-priority fallback.
+        ValidateBatchPins(pins, pgSelection);
+
+        var outputName = pgSelection == "all" ? "pgextwin-external-all"
+            : "pgextwin-external-pg" + pgSelection;
+        var transaction = new AtomicOriginalBatchDirectory(outputParent, outputName);
+        var staged = new List<(ExternalOriginalPin Pin, string Path, FileStream Stream, AtomicStageGuard.FileIdentity Identity)>(pins.Count);
+        var expectedDirectories = new HashSet<string>(AtomicStageGuard.PathComparer);
+        var expectedFiles = new Dictionary<string, AtomicStageGuard.StagedFileExpectation>(AtomicStageGuard.PathComparer);
+        try
+        {
+            long bytes = 0;
+            foreach (var pin in pins)
+            {
+                token.ThrowIfCancellationRequested();
+                // The signed permission can expire while an earlier asset is fetched.
+                // Recheck immediately before each new original-provider GET.
+                if (confirmAdmissionFresh is not null)
+                    await confirmAdmissionFresh(token);
+
+                var pgDirectory = Path.GetFullPath(
+                    Path.Combine(transaction.StageDirectory, "pg" + pin.PgMajor));
+                var directory = Path.GetFullPath(
+                    Path.Combine(pgDirectory, pin.Extension));
+                AtomicStageGuard.CreateOwnerOnlySubdirectory(transaction.StageDirectory, directory);
+                expectedDirectories.Add(pgDirectory);
+                expectedDirectories.Add(directory);
+
+                var receipt = await downloadOne(pin, directory, token);
+                var expected = Path.GetFullPath(Path.Combine(directory, pin.AssetName));
+                if (receipt.VerificationLevel != "INTEGRITY_ONLY" ||
+                    receipt.RepositoryId != pin.RepositoryId ||
+                    receipt.ReleaseId != pin.ReleaseId ||
+                    receipt.AssetId != pin.AssetId ||
+                    receipt.Sha256 != pin.OriginalSha256 ||
+                    receipt.Size != pin.OriginalBytes ||
+                    !AtomicStageGuard.PathComparer.Equals(
+                        Path.GetFullPath(receipt.FilePath), expected))
+                    throw new InvalidDataException("External original batch receipt substitution");
+
+                var file = new FileInfo(expected);
+                if (!file.Exists ||
+                    (file.Attributes & FileAttributes.ReparsePoint) != 0 ||
+                    file.Length != pin.OriginalBytes)
+                    throw new InvalidDataException("External original batch missing/linked/wrong length");
+
+                // Lock file ACL/mode and retain an exclusive read handle with
+                // volume/file-ID binding before verifying its staged bytes.
+                AtomicStageGuard.LockStagedFile(expected);
+                var (stream, identity) = AtomicStageGuard.OpenAndVerifyIdentity(
+                    expected, transaction.StageDirectory);
+                staged.Add((pin, expected, stream, identity));
+                if (!expectedFiles.TryAdd(expected,
+                        new AtomicStageGuard.StagedFileExpectation(pin.OriginalBytes, stream, identity)))
+                    throw new InvalidDataException("Duplicate staged destination path");
+
+                var actual = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
+                ExternalOriginalZipIntegrity.Verify(actual, pin.OriginalBytes,
+                    pin.OriginalSha256);
+                bytes = checked(bytes + actual.LongLength);
+            }
+
+            // Pre-commit full re-verification:
+            // 1. Re-validate all batch pins and lock stage directories against mutation.
+            // 2. Re-scan the entire stage tree (file IDs, volume IDs, hardlinks,
+            //    reparse points, ACLs/modes, and absence of extra files/directories).
+            // 3. Re-verify SHA256, ZIP structure, and CRC32 across every staged file.
+            // 4. Re-confirm admission pre-authorization, expiry, and Catalog HEAD.
+            // 5. Re-verify stage invariants across handle release until create-only rename.
+            token.ThrowIfCancellationRequested();
+            ValidateBatchPins(pins, pgSelection);
+            AtomicStageGuard.LockStageDirectoriesForCommit(
+                transaction.StageDirectory, expectedDirectories);
+            AtomicStageGuard.VerifyStageTreeAndIdentities(
+                transaction.StageDirectory, outputParent, expectedFiles, expectedDirectories,
+                directoriesLocked: true, verifyOpenHandles: true);
+
+            long reverifiedBytes = 0;
+            foreach (var (pin, _, stream, _) in staged)
+            {
+                token.ThrowIfCancellationRequested();
+                var reverified = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
+                ExternalOriginalZipIntegrity.Verify(reverified, pin.OriginalBytes,
+                    pin.OriginalSha256);
+                reverifiedBytes = checked(reverifiedBytes + reverified.LongLength);
+            }
+            if (reverifiedBytes != bytes || staged.Count != pins.Count)
+                throw new InvalidDataException("Staged batch byte sum or count mismatch before commit");
+
+            // A long final GET may cross the admission deadline or Catalog HEAD.
+            // Never commit partially, tampered, or expired source bytes.
+            token.ThrowIfCancellationRequested();
+            if (confirmAdmissionFresh is not null)
+                await confirmAdmissionFresh(token);
+
+            token.ThrowIfCancellationRequested();
+            AtomicStageGuard.VerifyStageTreeAndIdentities(
+                transaction.StageDirectory, outputParent, expectedFiles, expectedDirectories,
+                directoriesLocked: true, verifyOpenHandles: true);
+
+            // Release held file handles so Windows Directory.Move can rename the
+            // stage root while locked stage ACLs continue protecting its contents.
+            foreach (var entry in staged)
+                entry.Stream.Dispose();
+
+            AtomicStageGuard.VerifyStageTreeAndIdentities(
+                transaction.StageDirectory, outputParent, expectedFiles, expectedDirectories,
+                directoriesLocked: true, verifyOpenHandles: false);
+
+            var completed = transaction.Commit();
+            AtomicStageGuard.RestoreWritablePermissions(completed, writableFiles: true);
+            return new BatchReleaseDownloader.BatchResult(completed, pins.Count, bytes);
+        }
+        finally
+        {
+            foreach (var entry in staged)
+                entry.Stream.Dispose();
+            transaction.Dispose();
+        }
+    }
+
+    private static void ValidateBatchPins(
+        IReadOnlyList<ExternalOriginalPin> pins, string pgSelection)
+    {
+        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
+            pins.Count is < 1 or > 1000)
+            throw new InvalidDataException("Invalid external batch selection");
+
         var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var destinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var pin in pins)
@@ -35,55 +159,28 @@ internal static class ExternalOriginalBatchStager
                     pin.AssetName))
                 throw new InvalidDataException("Duplicate external original asset or destination");
         }
+    }
 
-        var outputName = pgSelection == "all" ? "pgextwin-external-all"
-            : "pgextwin-external-pg" + pgSelection;
-        var transaction = new AtomicOriginalBatchDirectory(outputParent, outputName);
-        try
+    private static async Task<byte[]> ReadHeldStreamExactAsync(
+        FileStream stream, long expectedBytes, CancellationToken token)
+    {
+        if (stream.Length != expectedBytes)
+            throw new InvalidDataException("Staged original ZIP length changed");
+        if (expectedBytes is < 4 or > int.MaxValue)
+            throw new InvalidDataException("Invalid staged original ZIP length");
+        stream.Position = 0;
+        var buffer = new byte[(int)expectedBytes];
+        int offset = 0;
+        while (offset < buffer.Length)
         {
-            long bytes = 0;
-            foreach (var pin in pins)
-            {
-                token.ThrowIfCancellationRequested();
-                // The signed permission can expire while an earlier asset is fetched.
-                // Recheck immediately before each new original-provider GET.
-                if (confirmAdmissionFresh is not null)
-                    await confirmAdmissionFresh(token);
-                var directory = Path.Combine(transaction.StageDirectory,
-                    "pg" + pin.PgMajor, pin.Extension);
-                Directory.CreateDirectory(directory);
-                var receipt = await downloadOne(pin, directory, token);
-                var expected = Path.Combine(directory, pin.AssetName);
-                if (receipt.VerificationLevel != "INTEGRITY_ONLY" ||
-                    receipt.RepositoryId != pin.RepositoryId ||
-                    receipt.ReleaseId != pin.ReleaseId ||
-                    receipt.AssetId != pin.AssetId ||
-                    receipt.Sha256 != pin.OriginalSha256 ||
-                    receipt.Size != pin.OriginalBytes ||
-                    !string.Equals(Path.GetFullPath(receipt.FilePath),
-                        Path.GetFullPath(expected), StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidDataException("External original batch receipt substitution");
-                var file = new FileInfo(expected);
-                if (!file.Exists ||
-                    (file.Attributes & FileAttributes.ReparsePoint) != 0 ||
-                    file.Length != pin.OriginalBytes)
-                    throw new InvalidDataException("External original batch missing/linked/wrong length");
-                // Rehash the actual file at the stage path, even after a
-                // downloader returned a successful receipt.
-                var actual = await File.ReadAllBytesAsync(expected, token);
-                ExternalOriginalZipIntegrity.Verify(actual, pin.OriginalBytes,
-                    pin.OriginalSha256);
-                bytes = checked(bytes + file.Length);
-            }
-
-            // A long final GET may cross the admission deadline. Never commit
-            // partially or wholly expired source bytes to the user-visible path.
-            token.ThrowIfCancellationRequested();
-            if (confirmAdmissionFresh is not null)
-                await confirmAdmissionFresh(token);
-            var completed = transaction.Commit();
-            return new BatchReleaseDownloader.BatchResult(completed, pins.Count, bytes);
+            int read = await stream.ReadAsync(buffer.AsMemory(offset), token);
+            if (read == 0)
+                throw new InvalidDataException("Staged original ZIP truncated during read");
+            offset += read;
         }
-        finally { transaction.Dispose(); }
+        var extra = new byte[1];
+        if (await stream.ReadAsync(extra.AsMemory(), token) != 0)
+            throw new InvalidDataException("Staged original ZIP grew during read");
+        return buffer;
     }
 }

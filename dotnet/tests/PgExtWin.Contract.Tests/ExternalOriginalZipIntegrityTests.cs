@@ -239,7 +239,6 @@ internal static class ExternalOriginalZipIntegrityTests
         denies(() => ExternalOriginalZipIntegrity.VerifyWithProfile(
             twoEntries, twoEntries.Length, Hash(twoEntries), tightCountProfile),
             "OriginalZipResourceProfile enforces MaxEntries limit");
-
         check(normal.Length > 4, "External original ZIP positive fixture truly contains bytes");
     }
 }

@@ -20,19 +20,29 @@ internal sealed class AtomicOriginalBatchDirectory : IDisposable
         var parent = Path.GetFullPath(outputParent);
         if (!Directory.Exists(parent))
             throw new DirectoryNotFoundException("Batch output parent must already exist");
-        for (DirectoryInfo? d = new(parent); d is not null; d = d.Parent)
-            if ((d.Attributes & FileAttributes.ReparsePoint) != 0)
-                throw new InvalidDataException("Batch output parent contains a link");
+        AtomicStageGuard.RequireNoReparsePointsInAncestors(parent);
         FinalDirectory = Path.Combine(parent, outputName);
         RequireAbsent(parent, outputName);
         StageDirectory = Path.Combine(parent,
             ".pgextwin-batch-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(StageDirectory);
+        try
+        {
+            AtomicStageGuard.InitializeStageDirectory(StageDirectory);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
     internal string Commit()
     {
         var parent = Path.GetDirectoryName(FinalDirectory)!;
+        AtomicStageGuard.RequireNoReparsePointsInAncestors(parent);
+        if ((new DirectoryInfo(StageDirectory).Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Atomic batch stage root became a link");
         RequireAbsent(parent, Path.GetFileName(FinalDirectory));
         // Same-volume directory rename is the only public visibility boundary.
         // Never publish a partial collection or overwrite an existing batch.
@@ -50,6 +60,9 @@ internal sealed class AtomicOriginalBatchDirectory : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(StageDirectory))
+        {
+            AtomicStageGuard.RestoreWritablePermissions(StageDirectory, writableFiles: true);
             Directory.Delete(StageDirectory, recursive: true);
+        }
     }
 }
