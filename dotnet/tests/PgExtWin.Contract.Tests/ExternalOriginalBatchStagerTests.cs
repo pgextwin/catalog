@@ -1,5 +1,7 @@
 using System.IO.Compression;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using PgExtWin.Releases;
 
@@ -40,7 +42,8 @@ internal static class ExternalOriginalBatchStagerTests
     private static async Task<bool> Rejects(Func<Task> action)
     {
         try { await action(); return false; }
-        catch (Exception ex) when (ex is InvalidDataException or IOException or ArgumentException)
+        catch (Exception ex) when (ex is InvalidDataException or IOException
+            or ArgumentException or UnauthorizedAccessException)
         { return true; }
     }
 
@@ -195,6 +198,299 @@ internal static class ExternalOriginalBatchStagerTests
                     })) && collisionAttempts == 0 &&
                   File.ReadAllText(Path.Combine(existing, "KEEP.txt")) == "unchanged",
                 "Existing destination denied without network or overwrite");
+            Directory.Delete(existing, recursive: true);
+
+            // Mandatory adversarial test: tampering with the 1st staged ZIP during the 2nd GET
+            // (atomic path replacement of same length) must result in full DENY and 0 published items.
+            {
+                var caseRoot = Path.Combine(root, "adv-tamper-during-second-get-replace");
+                Directory.CreateDirectory(caseRoot);
+                string? firstStagedPath = null;
+                var tamperedSameLength = bytes.ToArray();
+                tamperedSameLength[^8] ^= 0x01;
+                var tempTampered = Path.Combine(root, "tampered-swap.zip");
+                await File.WriteAllBytesAsync(tempTampered, tamperedSameLength);
+                int gets = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 1)
+                                firstStagedPath = receipt.FilePath;
+                            else if (gets == 2 && firstStagedPath is not null)
+                                File.Move(tempTampered, firstStagedPath, overwrite: true);
+                            return receipt;
+                        })) && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    "Adversarial: modifying 1st staged ZIP during 2nd GET denies entire batch with 0 published");
+                if (File.Exists(tempTampered)) File.Delete(tempTampered);
+            }
+
+            // Adversarial: direct overwrite attempt on 1st staged ZIP during 2nd GET is blocked/denied.
+            {
+                var caseRoot = Path.Combine(root, "adv-tamper-during-second-get-write");
+                Directory.CreateDirectory(caseRoot);
+                string? firstStagedPath = null;
+                var tampered = bytes.ToArray();
+                tampered[^8] ^= 0x01;
+                int gets = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 1)
+                                firstStagedPath = receipt.FilePath;
+                            else if (gets == 2 && firstStagedPath is not null)
+                                await File.WriteAllBytesAsync(firstStagedPath, tampered, t);
+                            return receipt;
+                        })) && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    "Adversarial: overwriting 1st staged ZIP during 2nd GET denies entire batch with 0 published");
+            }
+
+            // Adversarial: tampering during pre-commit Catalog HEAD / admission recheck window
+            // (after all GETs completed) must still be caught before directory rename.
+            {
+                var caseRoot = Path.Combine(root, "adv-tamper-during-precommit-recheck");
+                Directory.CreateDirectory(caseRoot);
+                string? firstStagedPath = null;
+                var tamperedSameLength = bytes.ToArray();
+                tamperedSameLength[^8] ^= 0x01;
+                var tempTampered = Path.Combine(root, "tampered-precommit.zip");
+                await File.WriteAllBytesAsync(tempTampered, tamperedSameLength);
+                int gets = 0;
+                int checks = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 1)
+                                firstStagedPath = receipt.FilePath;
+                            return receipt;
+                        },
+                        confirmAdmissionFresh: _ =>
+                        {
+                            if (++checks == pins.Length + 1 && firstStagedPath is not null)
+                                File.Move(tempTampered, firstStagedPath, overwrite: true);
+                            return Task.CompletedTask;
+                        })) && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    "Adversarial: tampering 1st staged ZIP during pre-commit recheck denies with 0 published");
+                if (File.Exists(tempTampered)) File.Delete(tempTampered);
+            }
+
+            // Adversarial: extra file planted in stage directory during 2nd GET -> DENY, 0 published.
+            {
+                var caseRoot = Path.Combine(root, "adv-extra-file");
+                Directory.CreateDirectory(caseRoot);
+                int gets = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 2)
+                                await File.WriteAllTextAsync(Path.Combine(d, "extra.dll"), "malicious", t);
+                            return receipt;
+                        })) && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    "Adversarial: extra file in stage directory denies entire batch with 0 published");
+            }
+
+            // Adversarial: extra directory planted in stage directory during 2nd GET -> DENY, 0 published.
+            {
+                var caseRoot = Path.Combine(root, "adv-extra-dir");
+                Directory.CreateDirectory(caseRoot);
+                int gets = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 2)
+                                Directory.CreateDirectory(Path.Combine(d, "unexpected-subdir"));
+                            return receipt;
+                        })) && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    "Adversarial: extra directory in stage denies entire batch with 0 published");
+            }
+
+            // Adversarial: hardlink to staged ZIP created outside stage -> LinkCount > 1 DENY, 0 published.
+            {
+                var caseRoot = Path.Combine(root, "adv-hardlink");
+                Directory.CreateDirectory(caseRoot);
+                var hardlinkOutside = Path.Combine(root, "hardlink-alias.zip");
+                int gets = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 1)
+                                File.CreateHardLink(hardlinkOutside, receipt.FilePath);
+                            return receipt;
+                        })) && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    "Adversarial: hardlinked staged ZIP denies entire batch with 0 published");
+                if (File.Exists(hardlinkOutside)) File.Delete(hardlinkOutside);
+            }
+
+            // Adversarial: symbolic link planted in stage directory -> DENY, 0 published.
+            {
+                var caseRoot = Path.Combine(root, "adv-symlink");
+                Directory.CreateDirectory(caseRoot);
+                var targetFile = Path.Combine(root, "symlink-target.zip");
+                await File.WriteAllBytesAsync(targetFile, bytes);
+                int gets = 0;
+                bool canCreateSymlink = true;
+                var rejected = await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 2)
+                            {
+                                try
+                                {
+                                    File.CreateSymbolicLink(Path.Combine(d, "link.zip"), targetFile);
+                                }
+                                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+                                {
+                                    canCreateSymlink = false;
+                                    throw;
+                                }
+                            }
+                            return receipt;
+                        }));
+                check(rejected && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    canCreateSymlink
+                        ? "Adversarial: symbolic link in stage denies entire batch with 0 published"
+                        : "Adversarial: symlink creation blocked by OS privilege without leaking stage");
+                if (File.Exists(targetFile)) File.Delete(targetFile);
+            }
+
+            // Adversarial: ACL / permission anomaly on staged ZIP -> DENY, 0 published.
+            {
+                var caseRoot = Path.Combine(root, "adv-acl-anomaly");
+                Directory.CreateDirectory(caseRoot);
+                string? firstStagedPath = null;
+                int gets = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 1)
+                            {
+                                firstStagedPath = receipt.FilePath;
+                            }
+                            else if (gets == 2 && firstStagedPath is not null)
+                            {
+                                if (OperatingSystem.IsWindows())
+                                {
+                                    var security = new FileInfo(firstStagedPath).GetAccessControl();
+                                    security.AddAccessRule(new FileSystemAccessRule(
+                                        new SecurityIdentifier(WellKnownSidType.WorldSid, null),
+                                        FileSystemRights.Read,
+                                        AccessControlType.Allow));
+                                    new FileInfo(firstStagedPath).SetAccessControl(security);
+                                }
+                                else
+                                {
+                                    File.SetUnixFileMode(firstStagedPath,
+                                        UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+                                }
+                            }
+                            return receipt;
+                        })) && Directory.GetFileSystemEntries(caseRoot).Length == 0,
+                    "Adversarial: ACL/permission anomaly on staged ZIP denies entire batch with 0 published");
+            }
+
+            // Adversarial: destination created concurrently during 2nd GET -> create-only commit denies without overwrite.
+            {
+                var caseRoot = Path.Combine(root, "adv-concurrent-destination");
+                Directory.CreateDirectory(caseRoot);
+                var raceDest = Path.Combine(caseRoot, "pgextwin-external-pg18");
+                int gets = 0;
+                check(await Rejects(async () =>
+                    await ExternalOriginalBatchStager.StageAsync(
+                        pins, "18", caseRoot, async (p, d, t) =>
+                        {
+                            gets++;
+                            var receipt = await Save(p, d, bytes, t);
+                            if (gets == 2)
+                            {
+                                Directory.CreateDirectory(raceDest);
+                                await File.WriteAllTextAsync(Path.Combine(raceDest, "KEEP.txt"), "race", t);
+                            }
+                            return receipt;
+                        })) &&
+                      File.ReadAllText(Path.Combine(raceDest, "KEEP.txt")) == "race" &&
+                      Directory.GetDirectories(caseRoot).Count(d =>
+                          Path.GetFileName(d).StartsWith(".pgextwin-batch-", StringComparison.Ordinal)) == 0,
+                    "Adversarial: concurrent destination collision refuses overwrite and cleans stage");
+            }
+
+            // Windows-native adversarial verification: verify held FileShare.None + locked DACLs
+            // block in-place overwrite, delete, and atomic replace during 2nd GET and verify-to-rename.
+            if (OperatingSystem.IsWindows())
+            {
+                var caseRoot = Path.Combine(root, "adv-windows-native-protection");
+                Directory.CreateDirectory(caseRoot);
+                string? firstStagedPath = null;
+                string? stageSubdir = null;
+                bool writeBlocked = false;
+                bool deleteBlocked = false;
+                bool moveBlocked = false;
+                bool lockedDirCreateBlocked = false;
+                var swapSrc = Path.Combine(root, "win-swap.zip");
+                await File.WriteAllBytesAsync(swapSrc, bytes);
+                int gets = 0;
+                int checks = 0;
+                var resultWin = await ExternalOriginalBatchStager.StageAsync(
+                    pins, "18", caseRoot, async (p, d, t) =>
+                    {
+                        gets++;
+                        var receipt = await Save(p, d, bytes, t);
+                        if (gets == 1)
+                        {
+                            firstStagedPath = receipt.FilePath;
+                            stageSubdir = d;
+                        }
+                        else if (gets == 2 && firstStagedPath is not null)
+                        {
+                            try { await File.WriteAllBytesAsync(firstStagedPath, bytes, t); }
+                            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                            { writeBlocked = true; }
+                            try { File.Delete(firstStagedPath); }
+                            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                            { deleteBlocked = true; }
+                            try { File.Move(swapSrc, firstStagedPath, overwrite: true); }
+                            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                            { moveBlocked = true; }
+                        }
+                        return receipt;
+                    },
+                    confirmAdmissionFresh: _ =>
+                    {
+                        if (++checks == pins.Length + 1 && stageSubdir is not null)
+                        {
+                            try { File.WriteAllText(Path.Combine(stageSubdir, "inject.txt"), "x"); }
+                            catch (UnauthorizedAccessException)
+                            { lockedDirCreateBlocked = true; }
+                        }
+                        return Task.CompletedTask;
+                    });
+                check(writeBlocked && deleteBlocked && moveBlocked && lockedDirCreateBlocked,
+                    "Windows native: handle share-mode + stage ACL block overwrite, delete, swap, and locked-dir injection");
+                Directory.Delete(resultWin.Directory, recursive: true);
+                if (File.Exists(swapSrc)) File.Delete(swapSrc);
+            }
         }
         finally { Directory.Delete(root, recursive: true); }
     }

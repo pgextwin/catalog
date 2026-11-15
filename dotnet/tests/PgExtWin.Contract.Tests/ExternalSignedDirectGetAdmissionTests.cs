@@ -456,5 +456,48 @@ internal static class ExternalSignedDirectGetAdmissionTests
         catch (Exception ex) when (ex is InvalidDataException or JsonException or
             FormatException or InvalidOperationException) { rejected = true; }
         check(rejected, "Unsigned local external admission never authorizes GET");
+
+        // Pre-commit re-authorization checks signed rows, expiry, pin set, and latest binding.
+        var preCommitAdmission = Fixture();
+        var preCommitLatest = LatestPins(preCommitAdmission);
+        var preCommitPins = ExternalSignedDirectGetAdmission.ParseUntrusted(
+            preCommitAdmission, "18", DateTimeOffset.UtcNow, out _);
+        ExternalSignedDirectGetAdmission.ValidatePreCommitAuthorization(
+            preCommitAdmission, "18", preCommitPins, DateTimeOffset.UtcNow,
+            123456789L, preCommitLatest);
+        check(true, "Pre-commit signed admission and latest binding re-verification succeeds when fresh");
+
+        bool expiredPreCommitDenied = false;
+        try
+        {
+            ExternalSignedDirectGetAdmission.ValidatePreCommitAuthorization(
+                preCommitAdmission, "18", preCommitPins, DateTimeOffset.UtcNow.AddHours(25),
+                123456789L, preCommitLatest);
+        }
+        catch (InvalidDataException) { expiredPreCommitDenied = true; }
+        check(expiredPreCommitDenied, "Pre-commit re-authorization rejects expired admission");
+
+        bool alteredPinsDenied = false;
+        try
+        {
+            var alteredPin = preCommitPins[0] with { AssetId = preCommitPins[0].AssetId + 1 };
+            ExternalSignedDirectGetAdmission.ValidatePreCommitAuthorization(
+                preCommitAdmission, "18", [alteredPin], DateTimeOffset.UtcNow,
+                123456789L, preCommitLatest);
+        }
+        catch (InvalidDataException) { alteredPinsDenied = true; }
+        check(alteredPinsDenied, "Pre-commit re-authorization rejects pin set mismatch");
+
+        bool tamperedLatestPreCommitDenied = false;
+        try
+        {
+            var badLatest = JsonNode.Parse(Encoding.UTF8.GetString(preCommitLatest))!;
+            badLatest["admissionSha256"] = new string('0', 64);
+            ExternalSignedDirectGetAdmission.ValidatePreCommitAuthorization(
+                preCommitAdmission, "18", preCommitPins, DateTimeOffset.UtcNow,
+                123456789L, Encoding.UTF8.GetBytes(badLatest.ToJsonString()));
+        }
+        catch (InvalidDataException) { tamperedLatestPreCommitDenied = true; }
+        check(tamperedLatestPreCommitDenied, "Pre-commit re-authorization rejects latest binding mismatch");
     }
 }
