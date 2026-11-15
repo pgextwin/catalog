@@ -1,4 +1,4 @@
-name: Issue112 OSGeo PG14-17 separate original-byte receipts (nonpublishing)
+name: Issue112 OSGeo PG15-17 separate original-byte receipts (nonpublishing)
 
 on:
   pull_request:
@@ -17,7 +17,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pg: ['14', '15', '16', '17']
+        # PG14 left the latest-only selection at its 2026-11-12 EOL
+        # (LATEST_SUPPORTED_MAJORS is 15-18), so a latest-mode job for
+        # PG14 could only ever fail closed. PG18 originals are covered
+        # by the separate PG18 receipt workflows.
+        pg: ['15', '16', '17']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

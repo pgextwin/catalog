@@ -48,17 +48,56 @@ if ($pin.status -cne 'CANDIDATE_ONLY' -or $pin.pgMajor -cne [string]$Major -or
     $pin.windowsSqlRuntimeVerified -ne $false) {
   throw 'Selection missing CANDIDATE_ONLY deny fields'
 }
+$allowedPins = @{
+  14 = @{
+    Version = '3.6.1'
+    Name    = 'postgis-bundle-pg14-3.6.1x64.zip'
+    Url     = 'https://download-cache.osgeo.org/postgis/windows/pg14/postgis-bundle-pg14-3.6.1x64.zip'
+    Bytes   = [long]124000548
+    Sha256  = 'd95f1e0ed333c3b0729210fb6573d4d7e07bc7eba61868d51fb1eebd338b1a97'
+  }
+  15 = @{
+    Version = '3.6.2'
+    Name    = 'postgis-bundle-pg15-3.6.2x64.zip'
+    Url     = 'https://download-cache.osgeo.org/postgis/windows/pg15/postgis-bundle-pg15-3.6.2x64.zip'
+    Bytes   = [long]123986945
+    Sha256  = '520c3fd7ebf95050d8d89dc1b626f4f43111a3d726f60b73bbbbbd95784688eb'
+  }
+  16 = @{
+    Version = '3.6.2'
+    Name    = 'postgis-bundle-pg16-3.6.2x64.zip'
+    Url     = 'https://download-cache.osgeo.org/postgis/windows/pg16/archive/postgis-bundle-pg16-3.6.2x64.zip'
+    Bytes   = [long]123957610
+    Sha256  = '9f4e8a30d69ed7cc0088dd3d218ac65bd4e26aa5b7bffcb2ebd7dcb74a4ff2a6'
+  }
+  17 = @{
+    Version = '3.6.2'
+    Name    = 'postgis-bundle-pg17-3.6.2x64.zip'
+    Url     = 'https://download-cache.osgeo.org/postgis/windows/pg17/archive/postgis-bundle-pg17-3.6.2x64.zip'
+    Bytes   = [long]123959035
+    Sha256  = '7ba180ee2a352987b9a2f194673652c59483b55852295ccf401dceccd8765425'
+  }
+}
+if (-not $allowedPins.ContainsKey($Major)) {
+  throw "Unsupported PG major: $Major"
+}
+$expectedPin = $allowedPins[$Major]
+$version = [string]$pin.version
 $name = [string]$pin.name
 $url = [string]$pin.sourceUrl
-if ($name -cne ("postgis-bundle-pg$Major-" + $pin.version + "x64.zip") -or
-    $url -cne ("https://download-cache.osgeo.org/postgis/windows/pg$Major/" + $name) -or
-    [string]$pin.expectedSha256 -cnotmatch '^[a-f0-9]{64}$') {
-  throw 'Unexpected OSGeo original identity or URL'
-}
 $expectedBytes = [long]$pin.expectedBytes
 $expectedSha = [string]$pin.expectedSha256
+if ($version -cne $expectedPin.Version -or
+    $name -cne ("postgis-bundle-pg$Major-" + $version + "x64.zip") -or
+    $name -cne $expectedPin.Name -or
+    $url -cne $expectedPin.Url -or
+    $expectedBytes -ne $expectedPin.Bytes -or
+    $expectedSha -cnotmatch '^[a-f0-9]{64}$' -or
+    $expectedSha -cne $expectedPin.Sha256) {
+  throw 'Unexpected OSGeo original identity or URL'
+}
 $zip = Join-Path $env:RUNNER_TEMP $name
-Invoke-WebRequest -Uri $url -OutFile $zip -MaximumRedirection 3 -TimeoutSec 240
+Invoke-WebRequest -Uri $url -OutFile $zip -MaximumRedirection 0 -TimeoutSec 240
 $size = (Get-Item -LiteralPath $zip).Length
 $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($size -ne $expectedBytes -or $sha -cne $expectedSha) { throw 'Original OSGeo byte identity mismatch' }

@@ -11,6 +11,7 @@ import unittest
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import discover_osgeo_windows_bundles as d
 import issue112_osgeo_original_byte_pilot as p
 
 
@@ -28,16 +29,31 @@ def snapshot():
 
 
 
-def latest_snapshot():
+def latest_snapshot(versions=None):
     report = snapshot()
+    versions = versions or {"15": "3.6.2", "16": "3.7.0", "17": "3.7.0", "18": "3.7.0"}
     selected = []
-    for pg in ("14", "15", "16", "17", "18"):
-        filename = f"postgis-bundle-pg{pg}-3.7.0x64.zip"
+    for pg, version in versions.items():
+        filename = f"postgis-bundle-pg{pg}-{version}x64.zip"
         selected.append({"fileName": filename, "pgMajor": pg,
-                         "version": "3.7.0",
+                         "version": version,
                          "sourceRelativePath": f"pg{pg}/{filename}",
                          "downloadAuthorized": False, "mirrorAuthorized": False})
     report["latestBundleSelection"]["mode"] = "latest-per-supported-pg"
+    report["latestBundleSelection"]["selected"] = selected
+    return report
+
+
+def pinned_snapshot():
+    report = snapshot()
+    selected = []
+    for pg in ("14", "15", "16", "17"):
+        filename = f"postgis-bundle-pg{pg}-3.6.2x64.zip"
+        selected.append({"fileName": filename, "pgMajor": pg,
+                         "version": "3.6.2",
+                         "sourceRelativePath": f"pg{pg}/{filename}",
+                         "downloadAuthorized": False, "mirrorAuthorized": False})
+    report["latestBundleSelection"]["mode"] = "pinned-per-pg-originals"
     report["latestBundleSelection"]["selected"] = selected
     return report
 
@@ -85,38 +101,130 @@ class OriginalBytePilotTests(unittest.TestCase):
 
     def test_pg14_to_17_independent_original_selectors(self):
         report = latest_snapshot()
-        for pg in ("14", "15", "16", "17"):
+        expected = {"15": "3.6.2", "16": "3.7.0", "17": "3.7.0"}
+        for pg, version in expected.items():
             with self.subTest(pg=pg):
                 url, row = p.choose_major(report, pg)
                 self.assertEqual(url, (
                     f"https://download-cache.osgeo.org/postgis/windows/pg{pg}/"
-                    f"postgis-bundle-pg{pg}-3.7.0x64.zip"))
+                    f"postgis-bundle-pg{pg}-{version}x64.zip"))
                 self.assertFalse(row["downloadAuthorized"])
                 self.assertFalse(row["mirrorAuthorized"])
+        with self.assertRaisesRegex(ValueError, "OSGeo original-byte pilot DENY"):
+            p.choose_major(report, "14")
         with self.assertRaises(ValueError):
             p.choose_major(report, "18")
 
+        partial = latest_snapshot({"15": "3.6.2", "18": "3.7.0"})
+        url, row = p.choose_major(partial, "15")
+        self.assertEqual(row["version"], "3.6.2")
+        self.assertIn("/pg15/", url)
+        for absent in ("14", "16", "17"):
+            with self.subTest(absent=absent), self.assertRaisesRegex(
+                    ValueError, "OSGeo original-byte pilot DENY"):
+                p.choose_major(partial, absent)
+
     def test_per_major_selector_denies_incomplete_duplicates_and_escalation(self):
         base = latest_snapshot()
+        pg14_row = {"fileName": "postgis-bundle-pg14-3.6.1x64.zip", "pgMajor": "14",
+                    "version": "3.6.1",
+                    "sourceRelativePath": "pg14/postgis-bundle-pg14-3.6.1x64.zip",
+                    "downloadAuthorized": False, "mirrorAuthorized": False}
         mutations = [
-            lambda r: r["latestBundleSelection"]["selected"].pop(),
-            lambda r: r["latestBundleSelection"]["selected"][1].update(
-                {"pgMajor": "14", "fileName": "postgis-bundle-pg14-3.7.0x64.zip",
-                 "sourceRelativePath": "pg14/postgis-bundle-pg14-3.7.0x64.zip"}),
-            lambda r: r["latestBundleSelection"]["selected"][0].update(
-                {"downloadAuthorized": True}),
-            lambda r: r["latestBundleSelection"]["selected"][2].update(
-                {"sourceRelativePath": "pg16/../forged.zip"}),
-            lambda r: r["latestBundleSelection"].update(
-                {"mode": "single-newest-bundle"}),
-            lambda r: r.update({"publicationAuthorized": True}),
+            ("empty_selected", lambda r: r["latestBundleSelection"]["selected"].clear()),
+            ("eol_pg14_in_latest", lambda r: r["latestBundleSelection"]["selected"].append(pg14_row)),
+            ("duplicate_major", lambda r: r["latestBundleSelection"]["selected"][1].update(
+                {"pgMajor": "15", "fileName": "postgis-bundle-pg15-3.6.2x64.zip",
+                 "version": "3.6.2",
+                 "sourceRelativePath": "pg15/postgis-bundle-pg15-3.6.2x64.zip"})),
+            ("row_download_auth", lambda r: r["latestBundleSelection"]["selected"][0].update(
+                {"downloadAuthorized": True})),
+            ("unselected_pg18_download_auth", lambda r: r["latestBundleSelection"]["selected"][-1].update(
+                {"downloadAuthorized": True})),
+            ("forged_path", lambda r: r["latestBundleSelection"]["selected"][2].update(
+                {"sourceRelativePath": "pg17/../forged.zip"})),
+            ("wrong_mode", lambda r: r["latestBundleSelection"].update(
+                {"mode": "single-newest-bundle"})),
+            ("wrong_source_kind", lambda r: r.update(
+                {"sourceKind": "TRUSTED_DIRECTORY"})),
+            ("wrong_source_index", lambda r: r.update(
+                {"sourceIndex": "https://evil.example/postgis/windows/"})),
+            ("publication_auth", lambda r: r.update({"publicationAuthorized": True})),
         ]
-        for mutation in mutations:
-            with self.subTest(mutation=mutations.index(mutation)):
+        for label, mutation in mutations:
+            with self.subTest(mutation=label):
                 report = copy.deepcopy(base)
                 mutation(report)
                 with self.assertRaises(ValueError):
-                    p.choose_major(report, "14")
+                    p.choose_major(report, "15")
+
+    def test_choose_fixed_major_pg14_to_17_and_denies_pg18_and_mutations(self):
+        report = pinned_snapshot()
+        for pg in ("14", "15", "16", "17"):
+            with self.subTest(pg=pg):
+                url, row = p.choose_fixed_major(report, pg)
+                self.assertEqual(url, (
+                    f"https://download-cache.osgeo.org/postgis/windows/pg{pg}/"
+                    f"postgis-bundle-pg{pg}-3.6.2x64.zip"))
+                self.assertFalse(row["downloadAuthorized"])
+                self.assertFalse(row["mirrorAuthorized"])
+        with self.assertRaises(ValueError):
+            p.choose_fixed_major(report, "18")
+
+        pg18_row = {"fileName": "postgis-bundle-pg18-3.6.2x64.zip", "pgMajor": "18",
+                    "version": "3.6.2",
+                    "sourceRelativePath": "pg18/postgis-bundle-pg18-3.6.2x64.zip",
+                    "downloadAuthorized": False, "mirrorAuthorized": False}
+        mutations = [
+            ("missing_row", lambda r: r["latestBundleSelection"]["selected"].pop()),
+            ("extra_pg18_row", lambda r: r["latestBundleSelection"]["selected"].append(pg18_row)),
+            ("replace_14_with_18", lambda r: r["latestBundleSelection"]["selected"][0].update(pg18_row)),
+            ("duplicate_major", lambda r: r["latestBundleSelection"]["selected"][1].update(
+                {"pgMajor": "14", "fileName": "postgis-bundle-pg14-3.6.2x64.zip",
+                 "sourceRelativePath": "pg14/postgis-bundle-pg14-3.6.2x64.zip"})),
+            ("row_download_auth", lambda r: r["latestBundleSelection"]["selected"][0].update(
+                {"downloadAuthorized": True})),
+            ("selection_download_auth", lambda r: r["latestBundleSelection"].update(
+                {"downloadAuthorized": True})),
+            ("forged_path", lambda r: r["latestBundleSelection"]["selected"][2].update(
+                {"sourceRelativePath": "pg16/../forged.zip"})),
+            ("archive_path", lambda r: r["latestBundleSelection"]["selected"][2].update(
+                {"sourceRelativePath": "pg16/archive/postgis-bundle-pg16-3.6.2x64.zip"})),
+            ("wrong_mode_latest", lambda r: r["latestBundleSelection"].update(
+                {"mode": "latest-per-supported-pg"})),
+            ("wrong_mode_single", lambda r: r["latestBundleSelection"].update(
+                {"mode": "single-newest-bundle"})),
+            ("publication_auth", lambda r: r.update({"publicationAuthorized": True})),
+        ]
+        for label, mutation in mutations:
+            with self.subTest(mutation=label):
+                bad = copy.deepcopy(report)
+                mutation(bad)
+                with self.assertRaises(ValueError):
+                    p.choose_fixed_major(bad, "14")
+
+    def test_discover_latest_selection_and_fixed_contract_are_distinct(self):
+        pages = {
+            "": '<a href="pg14/">pg14/</a><a href="pg15/">pg15/</a><a href="pg18/">pg18/</a>',
+            "pg14/": '<a href="postgis-bundle-pg14-3.6.1x64.zip">z</a>',
+            "pg15/": '<a href="postgis-bundle-pg15-3.6.2x64.zip">z</a>',
+            "pg18/": '<a href="postgis-bundle-pg18-3.6.2x64.zip">z</a>',
+        }
+        report = d.scan("osu-mirror", lambda dir_path: d.parse_listing(pages[dir_path]))
+        selection = d.select_latest_bundles(report)
+        report["latestBundleSelection"] = selection
+        selected_majors = {row["pgMajor"] for row in selection["selected"]}
+        self.assertTrue(selected_majors <= {"15", "16", "17", "18"})
+        self.assertNotIn("14", selected_majors)
+        self.assertEqual(selected_majors, {"15", "18"})
+        url, row = p.choose_major(report, "15")
+        self.assertEqual(row["version"], "3.6.2")
+        self.assertIn("/pg15/", url)
+        with self.assertRaisesRegex(ValueError, "OSGeo original-byte pilot DENY"):
+            p.choose_major(report, "14")
+        for pg in ("14", "15", "16", "17"):
+            with self.subTest(pg=pg), self.assertRaises(ValueError):
+                p.choose_fixed_major(report, pg)
 
     def test_per_major_run_remains_nonpublishing(self):
         with mock.patch.object(p, "read_original",

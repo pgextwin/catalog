@@ -15,6 +15,15 @@ from issue112_osgeo_winnie_version_receipt import (
 )
 
 ORIGIN = "https://download-cache.osgeo.org/postgis/windows/"
+# PG16/PG17 3.6.2 pins moved upstream from pg{major}/ to pg{major}/archive/;
+# verified byte-for-byte against ORIGINALS (size + SHA256) on 2026-11-15.
+PIN_DIRS = {
+    "14": "pg14/",
+    "15": "pg15/",
+    "16": "pg16/archive/",
+    "17": "pg17/archive/",
+    "18": "pg18/",
+}
 DENIALS = (
     "producerSourceRevisionVerified", "sourceToExactDllBytesAttested",
     "componentLicenseNoticeClosureVerified", "runtimeDependencyClosureVerified",
@@ -54,7 +63,7 @@ def review_original(pg, opener=None):
         raise ValueError("Unsupported pinned PostgreSQL major")
     version, expected_size, expected_sha = ORIGINALS[pg]
     filename = f"postgis-bundle-pg{pg}-{version}x64.zip"
-    url = f"{ORIGIN}pg{pg}/{filename}"
+    url = f"{ORIGIN}{PIN_DIRS[pg]}{filename}"
     if opener is None:
         opener = urllib.request.build_opener(NoRedirect())
     with tempfile.TemporaryDirectory(prefix="pgextwin-osgeo-version-") as directory:

@@ -181,6 +181,37 @@ class OsgeoDiscoveryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             s.select_latest_bundles(bad)
 
+    def test_latest_selection_rejects_bad_source_envelope_and_noncanonical_paths(self):
+        original = s.scan("osu-mirror", fake_fetch)
+
+        for field, value in (("sourceKind", "TRUSTED_DIRECTORY"),
+                             ("sourceIndex", "https://evil.example/postgis/windows/")):
+            with self.subTest(mutated=field):
+                bad = copy.deepcopy(original)
+                bad[field] = value
+                with self.assertRaises(ValueError):
+                    s.select_latest_bundles(bad)
+            with self.subTest(missing=field):
+                bad = copy.deepcopy(original)
+                del bad[field]
+                with self.assertRaises(ValueError):
+                    s.select_latest_bundles(bad)
+
+        for bad_path in (
+                "pg18/archive/postgis-bundle-pg18-3.6.2x64.zip",
+                "pg18/../postgis-bundle-pg18-3.6.2x64.zip",
+                "pg17/postgis-bundle-pg18-3.6.2x64.zip",
+                "../evil.zip"):
+            with self.subTest(bad_path=bad_path):
+                bad = copy.deepcopy(original)
+                record = next(x for x in bad["candidates"]
+                              if x["pgMajor"] == "18" and
+                              x["artifactKind"] == "bundle-zip" and
+                              not x["historicalDirectory"])
+                record["sourceRelativePath"] = bad_path
+                with self.assertRaises(ValueError):
+                    s.select_latest_bundles(bad)
+
     def test_no_binary_transport_or_publication_code(self):
         source = (ROOT / "scripts/discover_osgeo_windows_bundles.py").read_text()
         self.assertNotIn("releases/upload", source)

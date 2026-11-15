@@ -71,24 +71,20 @@ def choose(snapshot):
 
 
 
-def choose_major(snapshot, pg_major):
-    """Select exactly one PG14-17 original from complete denied per-PG metadata.
-
-    This is only an inspection selector. A directory listing is not provenance
-    or a trusted digest, and no candidate may enter a public GET path.
-    """
-    require(pg_major in ("14", "15", "16", "17"), "unsupported per-PG pilot")
+def _validate_per_pg(snapshot, *, mode, allowed_majors, exact=False):
+    """Validate a denied per-PG metadata selection and return rows by major."""
     require(type(snapshot) is dict and
             type(snapshot.get("latestBundleSelection")) is dict,
             "missing denied per-PG selection")
     selection = snapshot["latestBundleSelection"]
     require(selection.get("scope") == "UNVERIFIED_METADATA_SELECTION_ONLY" and
-            selection.get("mode") == "latest-per-supported-pg" and
+            selection.get("mode") == mode and
             selection.get("downloadAuthorized") is False and
             selection.get("mirrorAuthorized") is False and
             type(selection.get("selected")) is list and
-            len(selection["selected"]) == 5,
-            "incomplete or untrusted latest-per-PG selection")
+            len(selection["selected"]) > 0 and
+            (not exact or len(selection["selected"]) == len(allowed_majors)),
+            f"incomplete or untrusted {mode} selection")
     found = {}
     for row in selection["selected"]:
         # Reuse the single-original path/major/version and DENY contract for
@@ -97,10 +93,51 @@ def choose_major(snapshot, pg_major):
             **selection, "mode": "single-newest-bundle", "selected": [row]}}
         url, checked = choose(single)
         major = checked["pgMajor"]
+        require(major in allowed_majors, "unexpected PostgreSQL major")
         require(major not in found, "duplicate PostgreSQL major")
         found[major] = (url, checked)
-    require(set(found) == {"14", "15", "16", "17", "18"},
-            "missing or unexpected supported PostgreSQL major")
+    if exact:
+        require(set(found) == allowed_majors,
+                "missing or unexpected supported PostgreSQL major")
+    return found
+
+
+def validate_latest_selection(snapshot):
+    """Validate denied latest-per-supported-pg metadata; returns rows by major."""
+    return _validate_per_pg(
+        snapshot,
+        mode="latest-per-supported-pg",
+        allowed_majors=frozenset({"15", "16", "17", "18"}),
+        exact=False,
+    )
+
+
+def choose_major(snapshot, pg_major):
+    """Select one PG14-17 original from denied latest-per-supported-pg metadata.
+
+    Partial selections within PG15-18 are valid; requesting a major absent
+    from the selection (such as EOL PG14) fails closed. This is only an
+    inspection selector, not provenance or a public GET authorization.
+    """
+    require(pg_major in ("14", "15", "16", "17"), "unsupported per-PG pilot")
+    found = validate_latest_selection(snapshot)
+    require(pg_major in found, "requested PostgreSQL major absent from selection")
+    return found[pg_major]
+
+
+def choose_fixed_major(snapshot, pg_major):
+    """Select one PG14-17 observed original from denied pinned-per-pg metadata.
+
+    Requires mode 'pinned-per-pg-originals' with exactly majors 14-17 and no
+    trust/download escalation. Grants no download, mirror, or publish rights.
+    """
+    require(pg_major in ("14", "15", "16", "17"), "unsupported per-PG pilot")
+    found = _validate_per_pg(
+        snapshot,
+        mode="pinned-per-pg-originals",
+        allowed_majors=frozenset({"14", "15", "16", "17"}),
+        exact=True,
+    )
     return found[pg_major]
 
 

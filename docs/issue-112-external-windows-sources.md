@@ -363,3 +363,26 @@ passing metadata-discovery CI job, and this documentation are not approval.
 All existing and newly discoverable external assets remain
 **DOWNLOAD_DENY / MIRROR_DENY**; no external Release, signed public feed,
 CLI download or Website user-byte acceptance is changed.
+
+## P1-B selection contracts (OSGeo)
+
+OSGeo metadata selection separates two distinct contracts under
+`latestBundleSelection` (both remain `UNVERIFIED_METADATA_SELECTION_ONLY`,
+`downloadAuthorized: false`, `mirrorAuthorized: false`):
+
+- `latest-per-supported-pg` (`scripts/discover_osgeo_windows_bundles.py::select_latest_bundles`,
+  consumed by `scripts/issue112_osgeo_original_byte_pilot.py::choose_major`):
+  selects the latest non-historical bundle ZIP metadata per supported major
+  within PG15–18 only (PG14 is EOL and never auto-selected; partial selections
+  are valid, while requesting an absent major from `choose_major` fails closed).
+  Enforces `sourceKind == "UNTRUSTED_DIRECTORY_METADATA_ONLY"`, a pinned `BASES`
+  `sourceIndex`, and canonical `pg<major>/<fileName>` paths.
+- `pinned-per-pg-originals` (`scripts/issue112_osgeo_original_byte_pilot.py::choose_fixed_major`):
+  pinned PG14–17 contract requiring all four exact majors `{14, 15, 16, 17}`
+  with no duplicates or PG18 row. The PG14–17 nonpublishing static review and
+  selection scripts (`scripts/issue112_osgeo_pg14_17_static_review.py` and
+  `scripts/issue112_osgeo_pg14_17_windows_selection.py`) validate either
+  `pinned-per-pg-originals` (via `choose_fixed_major`) or a real workflow
+  `latest-per-supported-pg` snapshot envelope (via `validate_latest_selection`
+  with `sourceIndex == ORIGIN`) and derive the observed `PINS` identity without
+  granting download, mirror, or publication authority.
