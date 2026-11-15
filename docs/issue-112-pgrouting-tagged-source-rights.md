@@ -30,9 +30,13 @@ the exact binary/source linkage and applicability are not inferred from it.
 
 ## Separate OSGeo original candidate
 
-Previously recorded original (not downloaded or recalculated by this audit):
-`postgis-bundle-pg18-3.7.0x64.zip`, **83,320,975 bytes**, SHA256
-`fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40`.
+Current pinned original (replaced in place upstream on 2026-11-14 and re-verified 2026-11-15):
+`postgis-bundle-pg18-3.7.0x64.zip`, **83,739,256 bytes**, SHA256
+`ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419`.
+*(Content-level rights, dependency, and SQL audits performed on the previous
+`83,320,975`-byte original `fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40`—including
+the prior Run 42871493748 and Run 42892650937 observations below—do not automatically
+carry over and must be re-run on the new bytes.)*
 
 The earlier original PE inventory included a member named
 `libpgrouting-4.0.dll`. A matching major-version string is **not proof**

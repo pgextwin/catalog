@@ -3,8 +3,12 @@
 **CANDIDATE_ONLY / GET_DENY / MIRROR_DENY / RELEASE_DENY.**
 
 This is an isolated internal .NET candidate adapter for exactly one verified original:
-`postgis-bundle-pg18-3.7.0x64.zip` (83,320,975 bytes, SHA256
-`fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40`).
+`postgis-bundle-pg18-3.7.0x64.zip` (83,739,256 bytes, SHA256
+`ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419`).
+The previous `83,320,975`-byte original (`fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40`)
+was replaced in place upstream on 2026-11-14 (re-verified 2026-11-15); content-level
+rights/dependency audits performed on the previous bytes do not automatically
+carry over and must be re-run on the new bytes.
 There is **no CLI, signed-feed, issuer or Publisher caller**. It cannot authorize
 or implement user-facing OSGeo GET.
 
@@ -38,8 +42,9 @@ publisher without those separately reviewed protected gates. Existing
 
 A dedicated, read-only pull-request workflow runs the existing internal .NET
 candidate transport against the **one pinned official HTTPS original**. It
-verifies the returned path, 83,320,975 byte length, independent post-write
-SHA256, 1,041 ZIP entries and both PostGIS/pgRouting controls. No test ZIP is
+verifies the returned path, 83,739,256 byte length, independent post-write
+SHA256, ZIP entries (1,041 entries was observed on the previous bytes; re-run
+required on the replacement) and both PostGIS/pgRouting controls. No test ZIP is
 uploaded or retained; the runner deletes its temporary copy. The existing
 synthetic tests remain offline by default, and no public CLI path calls this
 transport. This closes only the missing *live .NET receive-and-verify*

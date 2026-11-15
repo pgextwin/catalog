@@ -15,13 +15,15 @@ import zipfile
 from issue112_osgeo_original_byte_pilot import inspect
 
 # Independently rehashed originals from Issue #112 comments 6791571591 (PG14-17)
-# and the existing PG18 source-byte audit. Never derive a trusted pin from HTML.
+# and the PG18 source-byte pin (replaced in place upstream on 2026-11-14 and
+# re-verified 2026-11-15; content-level rights/dependency audits on the previous
+# PG18 bytes do not automatically carry over). Never derive a trusted pin from HTML.
 ORIGINALS = {
     "14": ("3.6.1", 124000548, "d95f1e0ed333c3b0729210fb6573d4d7e07bc7eba61868d51fb1eebd338b1a97"),
     "15": ("3.6.2", 123986945, "520c3fd7ebf95050d8d89dc1b626f4f43111a3d726f60b73bbbbbd95784688eb"),
     "16": ("3.6.2", 123957610, "9f4e8a30d69ed7cc0088dd3d218ac65bd4e26aa5b7bffcb2ebd7dcb74a4ff2a6"),
     "17": ("3.6.2", 123959035, "7ba180ee2a352987b9a2f194673652c59483b55852295ccf401dceccd8765425"),
-    "18": ("3.7.0", 83320975, "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40"),
+    "18": ("3.7.0", 83739256, "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419"),
 }
 MAX_MANIFEST_BYTES = 64 * 1024
 MAX_TEXT_LINES = 512

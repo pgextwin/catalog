@@ -42,10 +42,11 @@ version of every copied library.
 
 OSGeo PG18 original:
 `postgis-bundle-pg18-3.7.0x64.zip`
-— **83,320,975 bytes**, SHA256
-`fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40`.
-This pin was **not** recalculated in this review: prior genuine original
-byte, DLL import and SQL tests remain valid as previously recorded.
+— **83,739,256 bytes**, SHA256
+`ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419`.
+*(Replaced in place upstream on 2026-11-14 and re-verified 2026-11-15. Content-level
+rights, DLL import, and SQL audits performed on the previous `83,320,975`-byte
+original do not automatically carry over and must be re-run on the new bytes.)*
 
 The existing OSGeo original rights audit detected **131 distinct DLL
 paths**, three license-named members, unresolved third-party imports,

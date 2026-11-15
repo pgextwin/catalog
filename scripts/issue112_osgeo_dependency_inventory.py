@@ -11,6 +11,8 @@ import struct
 import tempfile
 import zipfile
 
+# PG18 SIZE/SHA256 come from issue112_osgeo_rights_audit (updated for the 2026-11-14
+# upstream replacement, re-verified 2026-11-15); prior dependency audits do not carry over.
 from issue112_osgeo_rights_audit import (NAME, ORIGIN, SHA256, SIZE,
                                          audit_archive, read_original)
 

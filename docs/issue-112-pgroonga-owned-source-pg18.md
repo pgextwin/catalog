@@ -16,7 +16,7 @@ A passing Windows SQL job proves only that **one new source-owned PG18 build fun
 
 ## Independent nonpublishing candidates
 
-- OSGeo PostGIS/pgRouting PG18 single physical bundle: 83,320,975 bytes, SHA256 fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40. Component rights, runtime imports and signed original provenance remain unclosed.
+- OSGeo PostGIS/pgRouting PG18 single physical bundle: 83,739,256 bytes, SHA256 ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419 (replaced in place upstream on 2026-11-14, re-verified 2026-11-15; prior content-level audits on the previous bytes do not carry over). Component rights, runtime imports and signed original provenance remain unclosed.
 - TimescaleDB 2.32.0 PG16–18: original ZIPs are pinned and functional evidence exists; delegated mutable Windows producer and third-party NOTICE remain blocked.
 
 Existing public CLI v0.3.15 11 original-provider ZIPs and their expiry (2026-11-13 16:03:30 JST) are untouched. The already completed --latest-per-pg, --single-bundle and explicit-version selection logic is reused rather than reimplemented.

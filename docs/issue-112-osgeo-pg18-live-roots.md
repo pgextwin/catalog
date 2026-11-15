@@ -1,8 +1,12 @@
 # Issue #112 — OSGeo PostGIS + pgRouting PG18 live Windows DLL root origins (deny-only)
 
 **Scope:** exact official OSGeo `postgis-bundle-pg18-3.7.0x64.zip`,
-83,320,975 bytes, SHA256
-`fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40`.
+83,739,256 bytes, SHA256
+`ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419`.
+*(Replaced in place upstream on 2026-11-14, re-verified 2026-11-15; content-level
+rights, dependency, and SQL/live-root audits performed on the previous
+`83,320,975`-byte original do not automatically carry over and must be re-run on
+the new bytes.)*
 This reuses the previously working, ephemeral EDB PostgreSQL 18 real SQL path;
 it is **not** a second distributor, third-party ZIP mirror or new admission
 policy. All public GET, mirror, release and Publisher permissions remain denied.
@@ -45,7 +49,7 @@ Do not reuse this evidence for another original bundle/version/PG major.
 ## Follow-up: sampled server dependency original-member reconciliation
 
 The Windows SQL test now reopens the **same** independently pinned original
-83,320,975-byte ZIP after successful PostGIS and pgRouting execution. It hashes
+83,739,256-byte ZIP after successful PostGIS and pgRouting execution. It hashes
 each direct original server-directory DLL member under `bin/` and `lib/`
 (the GUI subtree is excluded), and checks all actually sampled DLL paths
 directly under the disposable EDB PostgreSQL 18 `bin` and `lib` directories.
