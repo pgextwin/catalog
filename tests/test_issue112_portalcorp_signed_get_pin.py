@@ -29,7 +29,7 @@ def signed_example():
         ownerActor="ShutenOishi", ownerId=27071164,
         publisherEnvironment="external-direct-provider-publisher",
         publisherAppId=5609317, approvedOperation="ORIGINAL_PROVIDER_GET_ONLY",
-        issuedAt="2026-11-09T00:00:00Z", expiresAt="2026-11-09T06:00:00Z",
+        issuedAt="2026-11-09T00:00:00Z", expiresAt="2026-11-10T00:00:00Z",
         downloadAuthorized=True, mirrorAuthorized=False,
         redistributionAuthorized=False, records=[row])
 
@@ -47,7 +47,7 @@ class PortalcorpSignedSourceTests(unittest.TestCase):
         self.assertEqual(validate_document(doc, "run-54321", now=NOW,
                                            source="portalcorp_pgvector"), "ACTIVE")
         self.assertEqual(validate_document(doc, "run-54321",
-                                           now=NOW+timedelta(hours=7),
+                                           now=NOW+timedelta(hours=25),
                                            source="portalcorp_pgvector"),
                          "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
         for key, val in (

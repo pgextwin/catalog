@@ -2,7 +2,7 @@
 """Validate public Catalog's immutable original-provider GET-only signed pin archives.
 
 This is NOT the legacy deny-only external publisher policy. The sole
-source-specific admission is the genuine Build/main issuer's signed, six-hour
+source-specific admission is the genuine Build/main issuer's signed, 24-hour
 manifest, and every copy must have its exact Sigstore bundle. Expired entries
 remain readable audit records but are NEVER active download permissions.
 No original provider ZIP is stored, rehosted, or released.
@@ -91,7 +91,7 @@ def validate_document(doc, dirname, *, now, source="pg_trickle"):
                 for key in ("issuerCommit", "catalogCommit")), "invalid signed source SHA")
     issued = parse_utc(doc["issuedAt"])
     expiry = parse_utc(doc["expiresAt"])
-    require(expiry - issued == timedelta(hours=6), "forged admission lifetime")
+    require(expiry - issued == timedelta(hours=24), "forged admission lifetime")
     require(issued <= now + timedelta(minutes=5), "manifest signed in the future")
     rows = doc["records"]
     if source == "hypopg":

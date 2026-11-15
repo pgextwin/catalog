@@ -31,7 +31,7 @@ def signed_example():
         "issuerRunAttempt":1,"ownerActor":"ShutenOishi","ownerId":27071164,
         "publisherEnvironment":"external-direct-provider-publisher",
         "publisherAppId":5609317,"approvedOperation":"ORIGINAL_PROVIDER_GET_ONLY",
-        "issuedAt":"2026-11-08T07:00:00Z","expiresAt":"2026-11-08T13:00:00Z",
+        "issuedAt":"2026-11-08T07:00:00Z","expiresAt":"2026-11-09T07:00:00Z",
         "downloadAuthorized":True,"mirrorAuthorized":False,
         "redistributionAuthorized":False,"records":records,
     }
@@ -41,7 +41,7 @@ class HypoPGSigned(unittest.TestCase):
     def test_three_exact_assets_not_generic_catalog_authority(self):
         d=signed_example()
         self.assertEqual(validate_document(d,"run-5432",now=NOW,source="hypopg"),"ACTIVE")
-        self.assertEqual(validate_document(d,"run-5432",now=NOW+timedelta(hours=9),
+        self.assertEqual(validate_document(d,"run-5432",now=NOW+timedelta(hours=25),
                                            source="hypopg"),"EXPIRED_ARCHIVE_DOWNLOAD_DENY")
         with self.assertRaises(Denied):
             validate_document(d,"run-5432",now=NOW,source="pg_trickle")
