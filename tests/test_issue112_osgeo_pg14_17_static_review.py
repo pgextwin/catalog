@@ -41,10 +41,23 @@ def latest_snapshot(versions=None):
                     mode="latest-per-supported-pg", downloadAuthorized=False,
                     mirrorAuthorized=False, selected=rows))
 
+EXPECTED_DIRS = {
+    "14": "pg14/",
+    "15": "pg15/",
+    "16": "pg16/archive/",
+    "17": "pg17/archive/",
+}
+
+
 class DenyTests(unittest.TestCase):
     def test_exact_four_pins_and_no_pg18(self):
         for pg in p.PINS:
-            self.assertEqual(len(p.select(snapshot(), pg)["expectedSha256"]), 64)
+            got = p.select(snapshot(), pg)
+            self.assertEqual(len(got["expectedSha256"]), 64)
+            self.assertEqual(
+                got["sourceUrl"],
+                f"{p.ORIGIN}{EXPECTED_DIRS[pg]}postgis-bundle-pg{pg}-{p.PINS[pg][0]}x64.zip",
+            )
         with self.assertRaises(ValueError):
             p.select(snapshot(), "18")
 
@@ -59,7 +72,7 @@ class DenyTests(unittest.TestCase):
                     self.assertEqual(got["expectedSha256"], sha)
                     self.assertEqual(
                         got["sourceUrl"],
-                        f"{p.ORIGIN}pg{pg}/postgis-bundle-pg{pg}-{version}x64.zip",
+                        f"{p.ORIGIN}{EXPECTED_DIRS[pg]}postgis-bundle-pg{pg}-{version}x64.zip",
                     )
         with self.assertRaises(ValueError):
             p.select(latest_snapshot(), "18")
@@ -75,7 +88,12 @@ class DenyTests(unittest.TestCase):
         discovered = d.scan("osgeo-cache", lambda dir_path: d.parse_listing(pages[dir_path]))
         discovered["latestBundleSelection"] = d.select_latest_bundles(discovered)
         for pg in p.PINS:
-            self.assertEqual(p.select(discovered, pg)["expectedSha256"], p.PINS[pg][2])
+            got = p.select(discovered, pg)
+            self.assertEqual(got["expectedSha256"], p.PINS[pg][2])
+            self.assertEqual(
+                got["sourceUrl"],
+                f"{p.ORIGIN}{EXPECTED_DIRS[pg]}postgis-bundle-pg{pg}-{p.PINS[pg][0]}x64.zip",
+            )
         with self.assertRaises(ValueError):
             p.select(discovered, "18")
 
@@ -126,14 +144,22 @@ class DenyTests(unittest.TestCase):
                     p.select(candidate, "14")
 
     def test_digest_mismatch_stops_before_archive(self):
-        with patch.object(p, "read_original", return_value=(1, "f" * 64)), \
-             patch.object(p, "inspect") as check:
-            with self.assertRaises(ValueError):
-                p.run(snapshot(), "14")
-            check.assert_not_called()
+        for pg in ("14", "16", "17"):
+            _, size, sha = p.PINS[pg]
+            for bad in ((1, "f" * 64), (size, "0" * 64), (size - 1, sha)):
+                with self.subTest(pg=pg, bad=bad), \
+                     patch.object(p, "read_original", return_value=bad), \
+                     patch.object(p, "inspect") as check:
+                    with self.assertRaises(ValueError):
+                        p.run(snapshot(), pg)
+                    check.assert_not_called()
 
     def test_all_public_permissions_remain_denied(self):
         pin = p.select(snapshot(), "16")
+        self.assertEqual(
+            pin["sourceUrl"],
+            f"{p.ORIGIN}pg16/archive/postgis-bundle-pg16-3.6.2x64.zip",
+        )
         graph = {"dllCount": 1, "parsedPeCount": 0, "nonParsed": [],
                  "unbundledImportTriage": [], "coreServerImportPaths": {},
                  "dllImports": []}

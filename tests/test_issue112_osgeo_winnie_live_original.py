@@ -20,6 +20,13 @@ class ExactOriginalReceiptTests(unittest.TestCase):
         return report
 
     def test_all_majors_have_only_canonical_origins_and_no_admission(self):
+        expected_dirs = {
+            "14": "pg14/",
+            "15": "pg15/",
+            "16": "pg16/archive/",
+            "17": "pg17/archive/",
+            "18": "pg18/",
+        }
         for pg in sorted(live.ORIGINALS):
             version, size, sha = live.ORIGINALS[pg]
             with self.subTest(pg=pg), mock.patch.object(live, "read_original", return_value=(size, sha)) as get, \
@@ -27,7 +34,7 @@ class ExactOriginalReceiptTests(unittest.TestCase):
                     mock.patch.object(live, "metadata_lines", return_value=([], None, None)):
                 receipt = live.review_original(pg, opener=object())
                 url = get.call_args.args[0]
-                self.assertEqual(url, f"https://download-cache.osgeo.org/postgis/windows/pg{pg}/postgis-bundle-pg{pg}-{version}x64.zip")
+                self.assertEqual(url, f"https://download-cache.osgeo.org/postgis/windows/{expected_dirs[pg]}postgis-bundle-pg{pg}-{version}x64.zip")
                 self.assertFalse(receipt["originRedirectAllowed"])
                 self.assertEqual(receipt["sourceOriginalUrl"], url)
                 self.assertTrue(all(receipt[key] is False for key in live.DENIALS))
@@ -40,14 +47,15 @@ class ExactOriginalReceiptTests(unittest.TestCase):
             get.assert_not_called()
 
     def test_wrong_source_byte_size_or_hash_fails_before_inspection(self):
-        _, size, sha = live.ORIGINALS["18"]
-        for result in ((size - 1, sha), (size, "0" * 64)):
-            with self.subTest(result=result), mock.patch.object(live, "read_original", return_value=result), \
-                    mock.patch.object(live, "audit") as audit, \
-                    mock.patch.object(live, "metadata_lines", return_value=([], None, None)):
-                with self.assertRaisesRegex(ValueError, "SHA256/size mismatch"):
-                    live.review_original("18", opener=object())
-                audit.assert_not_called()
+        for pg in ("16", "17", "18"):
+            _, size, sha = live.ORIGINALS[pg]
+            for result in ((size - 1, sha), (size, "0" * 64)):
+                with self.subTest(pg=pg, result=result), mock.patch.object(live, "read_original", return_value=result), \
+                        mock.patch.object(live, "audit") as audit, \
+                        mock.patch.object(live, "metadata_lines", return_value=([], None, None)):
+                    with self.assertRaisesRegex(ValueError, "SHA256/size mismatch"):
+                        live.review_original(pg, opener=object())
+                    audit.assert_not_called()
 
     def test_spoofed_positive_gate_is_rejected(self):
         _, size, sha = live.ORIGINALS["18"]

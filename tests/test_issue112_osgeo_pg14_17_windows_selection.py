@@ -11,10 +11,17 @@ from test_issue112_osgeo_pg14_17_static_review import latest_snapshot, snapshot
 
 class OriginalSelectionTests(unittest.TestCase):
     def test_all_exact_major_pins_remain_unpublished(self):
+        expected_urls = {
+            "14": "https://download-cache.osgeo.org/postgis/windows/pg14/postgis-bundle-pg14-3.6.1x64.zip",
+            "15": "https://download-cache.osgeo.org/postgis/windows/pg15/postgis-bundle-pg15-3.6.2x64.zip",
+            "16": "https://download-cache.osgeo.org/postgis/windows/pg16/archive/postgis-bundle-pg16-3.6.2x64.zip",
+            "17": "https://download-cache.osgeo.org/postgis/windows/pg17/archive/postgis-bundle-pg17-3.6.2x64.zip",
+        }
         for snap in (snapshot(), latest_snapshot()):
             for pg in ("14", "15", "16", "17"):
                 row = make_selection(snap, pg)
                 self.assertEqual(row["pgMajor"], pg)
+                self.assertEqual(row["sourceUrl"], expected_urls[pg])
                 self.assertEqual(len(row["expectedSha256"]), 64)
                 for permission in ("windowsSqlRuntimeVerified", "dynamicDependenciesVerified",
                                    "allComponentNoticesVerified", "producerProvenanceVerified",

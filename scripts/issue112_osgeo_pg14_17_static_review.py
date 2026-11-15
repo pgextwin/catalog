@@ -25,6 +25,14 @@ PINS = {
     "16": ("3.6.2", 123957610, "9f4e8a30d69ed7cc0088dd3d218ac65bd4e26aa5b7bffcb2ebd7dcb74a4ff2a6"),
     "17": ("3.6.2", 123959035, "7ba180ee2a352987b9a2f194673652c59483b55852295ccf401dceccd8765425"),
 }
+# PG16/PG17 3.6.2 pins moved upstream from pg{major}/ to pg{major}/archive/;
+# verified byte-for-byte against PINS (size + SHA256) on 2026-11-15.
+PIN_DIRS = {
+    "14": "pg14/",
+    "15": "pg15/",
+    "16": "pg16/archive/",
+    "17": "pg17/archive/",
+}
 LEGAL = re.compile(r"(?:^|[._-])(?:licen[cs]e|notice|copying|copyright)(?:$|[._-])", re.I)
 
 
@@ -43,10 +51,11 @@ def select(snapshot, pg):
     mode = snapshot["latestBundleSelection"].get("mode")
     version, size, sha = PINS[pg]
     name = f"postgis-bundle-pg{pg}-{version}x64.zip"
-    url = f"{ORIGIN}pg{pg}/{name}"
+    canonical_url = f"{ORIGIN}pg{pg}/{name}"
+    url = f"{ORIGIN}{PIN_DIRS[pg]}{name}"
     if mode == "pinned-per-pg-originals":
         pinned_url, row = choose_fixed_major(snapshot, pg)
-        require(pinned_url == url and row["fileName"] == name,
+        require(pinned_url == canonical_url and row["fileName"] == name,
                 "changed original version or host")
     elif mode == "latest-per-supported-pg":
         validate_latest_selection(snapshot)
