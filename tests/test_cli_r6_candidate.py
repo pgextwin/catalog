@@ -24,7 +24,7 @@ class CandidateTests(unittest.TestCase):
         self.size, self.digest = mod.inspect_binary(self.exe)
         self.data = dict(schema="pgextwin-cli-r6-candidate/v1",
                          name="pgextwin.exe", version="0.2.2",
-                         sourceCommit=SOURCE, sdkObserved="10.0.402", runId=RUN,
+                         sourceCommit=SOURCE, sdkObserved="11.0.100", runId=RUN,
                          sha256=self.digest, bytes=self.size,
                          signatureVerified=False, provenanceVerified=False,
                          publishAuthorized=False, distributionAuthorized=False)

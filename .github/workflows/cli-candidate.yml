@@ -32,17 +32,17 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
-          dotnet-version: '10.0.402'
+          dotnet-version: '11.0.100'
       - name: Build versioned trimmed private binary and SHA256
         shell: pwsh
         run: |
           $dir = Join-Path $env:RUNNER_TEMP 'cli-candidate'
-          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=11.0.0 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir
           if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
           $exe = Join-Path $dir 'pgextwin.exe'
           if (!(Test-Path $exe)) { throw 'Binary missing' }
           if ((Get-Item $exe).Length -ge 16000000) { throw 'CLI v0.3.3 full-trim size target not met' }
-          if ((& dotnet --version).Trim() -cne '10.0.402') { throw 'Wrong patched SDK' }
+          if ((& dotnet --version).Trim() -cne '11.0.100') { throw 'Wrong patched SDK' }
           $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Output "R6_CANDIDATE_SHA256=$sha RELEASE=DENY"
       - name: Record bounded exact-byte receipt (not a signature)

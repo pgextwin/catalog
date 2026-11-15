@@ -51,7 +51,7 @@ def check(record, size, digest, source, run_id):
             or record["sourceCommit"] != source
             or record["runId"] != run_id
             or not isinstance(record["sdkObserved"], str)
-            or record["sdkObserved"] != "10.0.402"
+            or record["sdkObserved"] != "11.0.100"
             or not isinstance(record["bytes"], int)
             or isinstance(record["bytes"], bool)
             or record["bytes"] != size

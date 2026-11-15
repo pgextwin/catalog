@@ -211,13 +211,13 @@ jobs:
       - name: Set up pinned .NET SDK
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
-          dotnet-version: '10.0.402'
+          dotnet-version: '11.0.100'
       - name: Compile unpublished Windows x64 CLI E2E candidate
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $folder=Join-Path $env:RUNNER_TEMP 'issue112-private-cli'
-          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=10.0.13 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false --output $folder --nologo
+          dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=11.0.0 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false --output $folder --nologo
           if ($LASTEXITCODE -ne 0 -or !(Test-Path (Join-Path $folder 'pgextwin.exe'))) { throw 'Private Windows CLI build missing' }
       - name: Independently authenticate the published versioned Windows CLI
         shell: pwsh
