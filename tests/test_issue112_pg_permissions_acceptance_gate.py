@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import io
 import json
 import os
 import tempfile
@@ -17,26 +19,54 @@ from scripts import issue112_pg_permissions_acceptance_gate as gate
 def _make_package_info(major: int, **overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
         "schemaVersion": 1,
-        "name": gate.EXTENSION_NAME,
-        "version": gate.EXTENSION_VERSION,
+        "buildMode": "release-attested",
+        "package": {
+            "name": gate.EXTENSION_NAME,
+            "platform": "windows",
+            "architecture": "x64",
+        },
         "upstream": {
             "repository": gate.UPSTREAM_REPOSITORY,
             "ref": gate.UPSTREAM_TAG,
+            "version": gate.EXTENSION_VERSION,
             "commit": gate.UPSTREAM_COMMIT,
         },
+        "source": {
+            "packagingRepository": gate.PACKAGING_REPOSITORY,
+            "packagingCommit": "771571c390133bf98f3d84561cee889fba16f3d7",
+        },
         "postgresql": {"major": major},
-        "buildMode": "release-attested",
         "workflowRun": {
+            "id": 43752228957,
+            "attempt": 1,
             "event": "issue_comment",
             "ref": "refs/heads/main",
-            "run_attempt": 1,
         },
     }
     payload.update(overrides)
     return payload
 
 
-def _build_valid_asset_dir(root: Path) -> Path:
+def _make_spdx(zip_name: str, *, include_files: bool = False) -> dict[str, object]:
+    doc: dict[str, object] = {
+        "spdxVersion": "SPDX-2.3",
+        "dataLicense": "CC0-1.0",
+        "SPDXID": "SPDXRef-DOCUMENT",
+        "name": zip_name.removesuffix(".zip"),
+        "packages": [
+            {
+                "name": zip_name.removesuffix(".zip"),
+                "versionInfo": gate.EXTENSION_VERSION,
+                "filesAnalyzed": include_files,
+            }
+        ],
+    }
+    if include_files:
+        doc["files"] = [{"fileName": "share/extension/pg_permissions.control"}]
+    return doc
+
+
+def _build_valid_asset_dir(root: Path, *, include_sums: bool = True) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     sums_lines: list[str] = []
     for major in gate.SUPPORTED_PG_MAJORS:
@@ -49,25 +79,26 @@ def _build_valid_asset_dir(root: Path) -> Path:
             )
             zf.writestr("share/extension/pg_permissions.control", b"default_version = '1.4'\n")
         spdx_path = root / spdx_name
-        spdx_path.write_text(
-            json.dumps(
-                {
-                    "spdxVersion": "SPDX-2.3",
-                    "dataLicense": "CC0-1.0",
-                    "name": zip_name,
-                    "packages": [{"name": "pg_permissions", "versionInfo": "1.4.1"}],
-                    "files": [{"fileName": "share/extension/pg_permissions.control"}],
-                }
-            ),
-            encoding="utf-8",
-        )
+        spdx_path.write_text(json.dumps(_make_spdx(zip_name)), encoding="utf-8")
         grype_path = root / grype_name
         grype_path.write_text(json.dumps({"matches": []}), encoding="utf-8")
         for path in (zip_path, spdx_path, grype_path):
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             sums_lines.append(f"{digest}  {path.name}")
-    (root / gate.SHA256SUMS_NAME).write_text("\n".join(sums_lines) + "\n", encoding="utf-8")
+    if include_sums:
+        (root / gate.SHA256SUMS_NAME).write_text("\n".join(sums_lines) + "\n", encoding="utf-8")
     return root
+
+
+def _rehash_sums(bundle: Path, target_name: str) -> None:
+    target = bundle / target_name
+    lines = []
+    for line in (bundle / gate.SHA256SUMS_NAME).read_text(encoding="utf-8").splitlines():
+        if line.endswith(target_name):
+            lines.append(f"{hashlib.sha256(target.read_bytes()).hexdigest()}  {target_name}")
+        else:
+            lines.append(line)
+    (bundle / gate.SHA256SUMS_NAME).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 class PgPermissionsAcceptanceGateTests(unittest.TestCase):
@@ -101,6 +132,20 @@ class PgPermissionsAcceptanceGateTests(unittest.TestCase):
             self.assertEqual(status["status"], "CANDIDATE_ONLY")
             self.assertEqual(status["publishDecision"], "DENY")
             self.assertEqual(status["publicGetDecision"], "DENY")
+            self.assertEqual(status["assetReport"]["majors"][15]["spdx"]["fileCount"], 0)
+
+    def test_12_file_bundle_without_sha256sums_generates_in_memory_and_verifies_G3_to_G6(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle = _build_valid_asset_dir(Path(tmp) / "bundle", include_sums=False)
+            self.assertFalse((bundle / gate.SHA256SUMS_NAME).exists())
+            status = gate.evaluate_pilot_status(asset_dir=bundle)
+            self.assertEqual(status["passedGates"], 4)
+            self.assertEqual(status["assetReport"]["assetCount"], 13)
+            self.assertFalse((bundle / gate.SHA256SUMS_NAME).exists())
+
+            (bundle / "pg_permissions-REL_1_4_1-pg18-windows-x64.zip").unlink()
+            with self.assertRaises(gate.AcceptanceGateError):
+                gate.verify_formal_asset_dir(bundle)
 
     def test_extra_pg14_file_or_missing_file_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -112,24 +157,98 @@ class PgPermissionsAcceptanceGateTests(unittest.TestCase):
     def test_checksum_mismatch_or_bad_build_mode_or_pr_run_attempt_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             bundle = _build_valid_asset_dir(Path(tmp) / "bundle")
-            # Rewrite pg16 zip with candidate-only buildMode while keeping SHA256SUMS matching
             zip16 = bundle / "pg_permissions-REL_1_4_1-pg16-windows-x64.zip"
             with zipfile.ZipFile(zip16, "w") as zf:
                 zf.writestr(
                     "PACKAGE-INFO.json",
                     json.dumps(_make_package_info(16, buildMode="candidate")).encode("utf-8"),
                 )
-            # Without updating SHA256SUMS, checksum fails first
             with self.assertRaises(gate.AcceptanceGateError):
                 gate.verify_formal_asset_dir(bundle)
-            # Even with updated SHA256SUMS, buildMode='candidate' fails provenance
-            lines = []
-            for line in (bundle / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
-                if line.endswith(zip16.name):
-                    lines.append(f"{hashlib.sha256(zip16.read_bytes()).hexdigest()}  {zip16.name}")
-                else:
-                    lines.append(line)
-            (bundle / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            _rehash_sums(bundle, zip16.name)
+            with self.assertRaises(gate.AcceptanceGateError):
+                gate.verify_formal_asset_dir(bundle)
+
+    def test_nested_package_info_malformed_fields_fail_closed(self) -> None:
+        bad_payloads = [
+            _make_package_info(15, schemaVersion=2),
+            _make_package_info(15, schemaVersion=True),
+            _make_package_info(15, package={"name": "other_ext"}),
+            _make_package_info(
+                15,
+                upstream={
+                    "repository": gate.UPSTREAM_REPOSITORY,
+                    "ref": gate.UPSTREAM_TAG,
+                    "version": "1.4.0",
+                    "commit": gate.UPSTREAM_COMMIT,
+                },
+            ),
+            _make_package_info(15, source={"packagingCommit": "not-a-sha"}),
+            _make_package_info(
+                15,
+                workflowRun={
+                    "id": 43752228957,
+                    "attempt": 2,
+                    "event": "issue_comment",
+                    "ref": "refs/heads/main",
+                },
+            ),
+            _make_package_info(
+                15,
+                workflowRun={
+                    "id": 0,
+                    "attempt": 1,
+                    "event": "issue_comment",
+                    "ref": "refs/heads/main",
+                },
+            ),
+            {
+                "name": gate.EXTENSION_NAME,
+                "version": gate.EXTENSION_VERSION,
+                "upstream": {
+                    "repository": gate.UPSTREAM_REPOSITORY,
+                    "ref": gate.UPSTREAM_TAG,
+                    "commit": gate.UPSTREAM_COMMIT,
+                },
+                "postgresql": {"major": 15},
+                "buildMode": "release-attested",
+                "workflowRun": {"event": "issue_comment", "ref": "refs/heads/main", "run_attempt": 1},
+            },
+        ]
+        for payload in bad_payloads:
+            with tempfile.TemporaryDirectory() as tmp:
+                bundle = _build_valid_asset_dir(Path(tmp) / "bundle", include_sums=False)
+                zip15 = bundle / "pg_permissions-REL_1_4_1-pg15-windows-x64.zip"
+                with zipfile.ZipFile(zip15, "w") as zf:
+                    zf.writestr("PACKAGE-INFO.json", json.dumps(payload).encode("utf-8"))
+                with self.assertRaises(gate.AcceptanceGateError):
+                    gate.verify_formal_asset_dir(bundle)
+
+    def test_spdx_package_level_and_file_level_and_invalid_cases(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle = _build_valid_asset_dir(Path(tmp) / "bundle", include_sums=False)
+            spdx15 = bundle / "pg_permissions-REL_1_4_1-pg15-windows-x64.spdx.json"
+            zip15_name = "pg_permissions-REL_1_4_1-pg15-windows-x64.zip"
+
+            # File-level SPDX with 1 package and non-empty files passes
+            spdx15.write_text(json.dumps(_make_spdx(zip15_name, include_files=True)), encoding="utf-8")
+            report = gate.verify_formal_asset_dir(bundle)
+            self.assertEqual(report["majors"][15]["spdx"]["fileCount"], 1)
+
+            # Missing files when filesAnalyzed is True fails closed
+            bad_doc = _make_spdx(zip15_name, include_files=True)
+            del bad_doc["files"]
+            spdx15.write_text(json.dumps(bad_doc), encoding="utf-8")
+            with self.assertRaises(gate.AcceptanceGateError):
+                gate.verify_formal_asset_dir(bundle)
+
+            # Two packages fails closed even with filesAnalyzed=false
+            two_pkgs = _make_spdx(zip15_name, include_files=False)
+            two_pkgs["packages"] = [
+                {"name": "pkg1", "filesAnalyzed": False},
+                {"name": "pkg2", "filesAnalyzed": False},
+            ]
+            spdx15.write_text(json.dumps(two_pkgs), encoding="utf-8")
             with self.assertRaises(gate.AcceptanceGateError):
                 gate.verify_formal_asset_dir(bundle)
 
@@ -141,13 +260,7 @@ class PgPermissionsAcceptanceGateTests(unittest.TestCase):
                 json.dumps({"matches": [{"vulnerability": {"id": "CVE-2099-0001", "severity": "High"}}]}),
                 encoding="utf-8",
             )
-            lines = []
-            for line in (bundle / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
-                if line.endswith(grype17.name):
-                    lines.append(f"{hashlib.sha256(grype17.read_bytes()).hexdigest()}  {grype17.name}")
-                else:
-                    lines.append(line)
-            (bundle / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            _rehash_sums(bundle, grype17.name)
             with self.assertRaises(gate.AcceptanceGateError):
                 gate.verify_formal_asset_dir(bundle)
 
@@ -160,6 +273,56 @@ class PgPermissionsAcceptanceGateTests(unittest.TestCase):
             os.symlink(real_target, sums)
             with self.assertRaises(gate.AcceptanceGateError):
                 gate.verify_formal_asset_dir(bundle)
+
+    def test_cli_verify_assets_and_evidence_option(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            bundle = _build_valid_asset_dir(tmp_path / "bundle")
+
+            # Without --evidence: G1/G2/G7 remain false
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                rc = gate.main(["--verify-assets", str(bundle)])
+            self.assertEqual(rc, 0)
+            report = json.loads(stdout.getvalue())
+            self.assertEqual(report["passedGates"], 4)
+            self.assertFalse(report["gates"]["G1_PIN_CHAIN_CENTRAL_REG"])
+            self.assertFalse(report["gates"]["G2_PROTECTED_MAIN_AND_OWNER_SIGN"])
+            self.assertFalse(report["gates"]["G7_SCOPED_PUBLISHER_ADMISSION"])
+            self.assertEqual(report["publishDecision"], "DENY")
+
+            # With --evidence: G1/G2/G7 passed through unchanged
+            evidence_path = tmp_path / "evidence.json"
+            evidence_path.write_text(
+                json.dumps(
+                    {
+                        "G1_PIN_CHAIN_CENTRAL_REG": True,
+                        "G2_PROTECTED_MAIN_AND_OWNER_SIGN": True,
+                        "G7_SCOPED_PUBLISHER_ADMISSION": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                rc = gate.main(["--verify-assets", str(bundle), "--evidence", str(evidence_path)])
+            self.assertEqual(rc, 0)
+            report = json.loads(stdout.getvalue())
+            self.assertEqual(report["passedGates"], 7)
+            self.assertTrue(report["formalAcceptancePassed"])
+            self.assertEqual(report["status"], "FORMALLY_ACCEPTED")
+            self.assertEqual(report["publishDecision"], "ALLOW_SCOPED_PUBLISHER_HANDOFF")
+
+            # Non-boolean evidence value or symlinked evidence file fails closed
+            bad_evidence = tmp_path / "bad_evidence.json"
+            bad_evidence.write_text(json.dumps({"G1_PIN_CHAIN_CENTRAL_REG": "true"}), encoding="utf-8")
+            with self.assertRaises(gate.AcceptanceGateError):
+                gate.main(["--evidence", str(bad_evidence)])
+
+            sym_evidence = tmp_path / "sym_evidence.json"
+            os.symlink(evidence_path, sym_evidence)
+            with self.assertRaises(gate.AcceptanceGateError):
+                gate.main(["--evidence", str(sym_evidence)])
 
 
 if __name__ == "__main__":
