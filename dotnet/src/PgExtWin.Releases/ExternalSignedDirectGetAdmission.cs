@@ -109,9 +109,9 @@ public static class ExternalSignedDirectGetAdmission
             "wrong issuer, event, operation or permission");
         var issued = Timestamp(Str("issuedAt"));
         var expires = Timestamp(Str("expiresAt"));
-        Require(issued <= now.AddMinutes(5) && issued >= now.AddDays(-30) &&
-            expires > now && expires > issued && expires <= issued.AddDays(30),
-            "expired, future-dated or unbounded admission");
+        Require(expires - issued == TimeSpan.FromHours(24) &&
+            issued <= now && now < expires,
+            "invalid 24-hour admission window");
 
         var entries = root.GetProperty("records");
         Require(entries.ValueKind == JsonValueKind.Array &&
