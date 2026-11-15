@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.IO.Compression;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -76,8 +74,19 @@ public static class OsgeoSignedAdmission
         "https://github.com/pgextwin/build/.github/workflows/external-direct-get-issuer.yml@refs/heads/main";
     private const string SourceRepositoryId = "1405931353";
     private const int MaxMetadataBytes = 2 * 1024 * 1024;
-    private const int MaxArchiveMembers = 25_000;
     private const long MaxDerivableOriginalBytes = 1024L * 1024 * 1024;
+
+    // Explicit per-major resource profiles. PG14 (~118.3 MiB) and PG15 (~118.2 MiB)
+    // CANNOT share PG18's 96 MiB profile and remain unprofiled (fail-closed) until
+    // their actual expanded size and max single-entry size are independently evaluated.
+    private static readonly IReadOnlyDictionary<string, OriginalZipResourceProfile> ProfilesByMajor =
+        new ReadOnlyDictionary<string, OriginalZipResourceProfile>(
+            new Dictionary<string, OriginalZipResourceProfile>(StringComparer.Ordinal)
+            {
+                ["16"] = ExternalOriginalZipIntegrity.OsgeoPg18Profile,
+                ["17"] = ExternalOriginalZipIntegrity.OsgeoPg18Profile,
+                ["18"] = ExternalOriginalZipIntegrity.OsgeoPg18Profile
+            });
 
     internal const string ExpectedSchemaVersion = "pgextwin-osgeo-signed-admission/v1";
     internal const string ExpectedSourceKind = "EXTERNAL_OSGEO_POSTGIS_BUNDLE";
@@ -577,76 +586,38 @@ public static class OsgeoSignedAdmission
 
     /// <summary>
     /// Offline, non-authorizing verification of OSGeo bundle ZIP bytes against
-    /// the bundle's own per-original limits (MaxOriginalBytes and MaxExpandedBytes)
-    /// and exact pinned SHA256. Never lifts the global 64 MiB limit on other routes.
+    /// the min of the bundle's signed per-original limits (MaxOriginalBytes and
+    /// MaxExpandedBytes) and the PG-specific resource profile, plus exact pinned
+    /// SHA256. Never lifts the global 64 MiB limit on other routes.
     /// </summary>
     internal static ExternalOriginalZipIntegrity.Receipt VerifyBundleBytes(
         byte[] original, OsgeoBundleOriginal bundle)
     {
         ArgumentNullException.ThrowIfNull(original);
         ValidateBundle(bundle);
+        Require(ProfilesByMajor.TryGetValue(bundle.PgMajor, out var profile),
+            $"no verified ZIP resource profile for PostgreSQL {bundle.PgMajor}");
+        return VerifyBundleBytes(original, bundle, profile!);
+    }
+
+    internal static ExternalOriginalZipIntegrity.Receipt VerifyBundleBytes(
+        byte[] original, OsgeoBundleOriginal bundle, OriginalZipResourceProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        ArgumentNullException.ThrowIfNull(profile);
+        ValidateBundle(bundle);
         var limits = bundle.Limits;
+        var effectiveProfile = new OriginalZipResourceProfile(
+            MaxCompressedOriginalBytes: Math.Min(limits.MaxOriginalBytes, profile.MaxCompressedOriginalBytes),
+            MaxEntryUncompressedBytes: Math.Min(limits.MaxExpandedBytes, profile.MaxEntryUncompressedBytes),
+            MaxTotalUncompressedBytes: Math.Min(limits.MaxExpandedBytes, profile.MaxTotalUncompressedBytes),
+            MaxEntries: profile.MaxEntries);
 
-        Require(original.LongLength <= limits.MaxOriginalBytes &&
-            original.LongLength == bundle.OriginalBytes,
-            "OSGeo bundle byte length differs from pinned per-original limit");
-
-        var actualSha256 = Convert.ToHexStringLower(SHA256.HashData(original));
-        Require(actualSha256 == bundle.OriginalSha256,
-            "OSGeo bundle SHA256 differs from signed pin");
-        Require(original.Length >= 4 &&
-            original[0] == 0x50 && original[1] == 0x4b &&
-            original[2] == 0x03 && original[3] == 0x04,
-            "expected OSGeo original ZIP local file header");
-
-        using var stream = new MemoryStream(original, writable: false);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        Require(archive.Entries.Count is >= 1 and <= MaxArchiveMembers,
-            "OSGeo bundle archive has invalid member count");
-
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var expanded = 0L;
-        var actualFiles = 0;
-        var buffer = new byte[32768];
-        foreach (var entry in archive.Entries)
-        {
-            var name = entry.FullName;
-            var path = name.TrimEnd('/');
-            Require(name.Length is >= 1 and <= 512 &&
-                path.Length > 0 && !name.StartsWith("/", StringComparison.Ordinal) &&
-                !name.Contains('\\') && !name.Contains(':') && !name.Contains('\0') &&
-                !path.Split('/').Any(part => part is "" or "." or "..") &&
-                seen.Add(path),
-                "unsafe or duplicate OSGeo ZIP member path");
-            Require(((entry.ExternalAttributes >> 16) & 0xF000) != 0xA000,
-                "OSGeo ZIP contains a symbolic link");
-            if (name.EndsWith("/", StringComparison.Ordinal))
-            {
-                Require(entry.Length == 0, "directory entry carries unexpected data");
-                continue;
-            }
-            actualFiles++;
-            Require(entry.Length >= 0 &&
-                entry.Length <= limits.MaxExpandedBytes &&
-                entry.Length <= limits.MaxExpandedBytes - expanded,
-                "OSGeo ZIP uncompressed payload exceeds per-original expanded limit");
-
-            using var payload = entry.Open();
-            long read = 0;
-            while (true)
-            {
-                var n = payload.Read(buffer, 0, buffer.Length);
-                if (n == 0) break;
-                read += n;
-                Require(read <= entry.Length && read <= limits.MaxExpandedBytes - expanded,
-                    "OSGeo ZIP decompression exceeded declared or per-original expanded limit");
-            }
-            Require(read == entry.Length, "OSGeo ZIP member decompression was incomplete");
-            expanded += read;
-        }
-        Require(actualFiles > 0, "OSGeo ZIP contains no payload files");
-        return new ExternalOriginalZipIntegrity.Receipt(
-            bundle.OriginalBytes, actualSha256, archive.Entries.Count,
+        return ExternalOriginalZipIntegrity.VerifyWithProfile(
+            original,
+            bundle.OriginalBytes,
+            bundle.OriginalSha256,
+            effectiveProfile,
             "CANDIDATE_INTEGRITY_ONLY_NOT_AUTHORIZED");
     }
 }
