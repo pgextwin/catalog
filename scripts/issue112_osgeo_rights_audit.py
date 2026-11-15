@@ -15,8 +15,11 @@ from issue112_osgeo_original_byte_pilot import inspect, read_original
 
 NAME = "postgis-bundle-pg18-3.7.0x64.zip"
 ORIGIN = "https://download-cache.osgeo.org/postgis/windows/pg18/" + NAME
-SIZE = 83_320_975
-SHA256 = "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40"
+# Upstream replaced postgis-bundle-pg18-3.7.0x64.zip in place on 2026-11-14
+# (re-verified 2026-11-15); content-level rights/dependency audits on the
+# previous bytes do not automatically carry over and must be re-run on the new bytes.
+SIZE = 83_739_256
+SHA256 = "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419"
 ROOT = NAME[:-4] + "/"
 LICENSES = (ROOT + "LICENSE", ROOT + "bin/COPYING", ROOT + "gdal-data/LICENSE.TXT")
 MAX_LICENSE_BYTES = 512 * 1024

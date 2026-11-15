@@ -167,10 +167,12 @@ def audit(get_json=source_get_json, expected_blobs=None, *, release_tag=TAG):
             "boost": "Boost-1.0 full text, project README notes some Boost extensions",
             "iMaptools": "README mentions MIT-X code; exact file-specific notice not yet pinned",
         },
+        # Replaced in place upstream on 2026-11-14 (re-verified 2026-11-15);
+        # prior Windows SQL/rights/dependency audits on the previous bytes do not carry over.
         "candidateOsgeoZip": {
             "name": "postgis-bundle-pg18-3.7.0x64.zip",
-            "bytes": 83320975,
-            "sha256": "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40",
+            "bytes": 83739256,
+            "sha256": "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419",
             "dllBasename": "libpgrouting-4.0.dll",
             "observedInstalledVersionFromPriorWindowsSql": "4.0.1",
         },
