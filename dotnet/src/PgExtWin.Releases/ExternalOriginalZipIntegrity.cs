@@ -25,13 +25,14 @@ public static class ExternalOriginalZipIntegrity
         VerifyCore(original, expectedSize, expectedSha256, MaxOriginalBytes,
             MaxUncompressedBytes, MaxEntries);
 
-    // Exact OSGeo PG18 original ONLY. This does not authorize a GET or a
-    // Publisher; ordinary GitHub Release ZIP limits remain unchanged.
+    // Exact OSGeo PG18 original ONLY (replaced in place upstream on 2026-11-14,
+    // re-verified 2026-11-15; prior audits on the previous bytes do not carry over).
+    // This does not authorize a GET or a Publisher; ordinary GitHub Release ZIP limits remain unchanged.
     internal static Receipt VerifyOsgeoExactCandidate(
         byte[] original, long expectedSize, string expectedSha256)
     {
-        if (expectedSize != 83_320_975L ||
-            expectedSha256 != "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40")
+        if (expectedSize != 83_739_256L ||
+            expectedSha256 != "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419")
             throw new InvalidDataException("Different OSGeo candidate original DENY");
         return VerifyCore(original, expectedSize, expectedSha256,
             96L * 1024 * 1024, 2L * 1024 * 1024 * 1024, 25_000);

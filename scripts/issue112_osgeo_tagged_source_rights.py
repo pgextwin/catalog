@@ -117,10 +117,12 @@ def audit(get_json=public_get_json, expected_blobs=None):
         "taggedSourceLicenseStatements": dict(sorted(LICENSE_MARKERS.items())),
         "winnieScriptsSourcePinned": True,
         "winnieBuildDependencyVersionOverridesPossible": True,
+        # Replaced in place upstream on 2026-11-14 (re-verified 2026-11-15);
+        # content-level audits on the previous bytes do not carry over.
         "originalZip": {
             "name": "postgis-bundle-pg18-3.7.0x64.zip",
-            "bytes": 83320975,
-            "sha256": "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40",
+            "bytes": 83739256,
+            "sha256": "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419",
         },
         "originalZipProducerMatchedToTag": False,
         "originalZipProducerRunAndSignatureVerified": False,

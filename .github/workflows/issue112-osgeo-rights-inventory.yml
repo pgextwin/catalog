@@ -47,7 +47,7 @@ jobs:
           import zipfile
           from pathlib import PurePosixPath
 
-          binary_sha = "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40"
+          binary_sha = "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419"
           lines = Path("osgeo-rights.log").read_text().splitlines()
           ledgers = [json.loads(line) for line in lines if line.startswith("{")]
           if len(ledgers) != 1 or ledgers[0]["expectedOriginalSha256"] != binary_sha:

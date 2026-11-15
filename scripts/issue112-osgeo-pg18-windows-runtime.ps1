@@ -35,8 +35,8 @@ $preinstalledCurlSha = (Get-FileHash -LiteralPath $effectiveCurl -Algorithm SHA2
 # Exact previous independent original-byte pilot evidence; not a signature.
 $name = 'postgis-bundle-pg18-3.7.0x64.zip'
 $url = "https://download-cache.osgeo.org/postgis/windows/pg18/$name"
-$expectedBytes = 83320975
-$expectedSha = 'fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40'
+$expectedBytes = 83739256
+$expectedSha = 'ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419'
 $zip = Join-Path $env:RUNNER_TEMP $name
 Invoke-WebRequest -Uri $url -OutFile $zip -MaximumRedirection 3 -TimeoutSec 240
 $size = (Get-Item -LiteralPath $zip).Length
@@ -51,7 +51,7 @@ $licenseFiles = @()
 $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 [long]$expanded = 0
 try {
-  if ($archive.Entries.Count -ne 1041) { throw 'Known original ZIP member count differs' }
+  if ($archive.Entries.Count -ne 1045) { throw 'Known original ZIP member count differs' }
   $controlName = 'share/extension/postgis.control'
   $roots = @($archive.Entries | Where-Object {
       $_.FullName.EndsWith($controlName, [StringComparison]::Ordinal)
