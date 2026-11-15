@@ -47,6 +47,7 @@ GATE_IDS = (
 )
 
 BLOCKING_SEVERITIES = frozenset({"CRITICAL", "HIGH", "MEDIUM"})
+HEX40_RE = re.compile(r"^[0-9a-f]{40}$")
 HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 SAFE_BASENAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 MAX_JSON_BYTES = 16 * 1024 * 1024
@@ -139,31 +140,43 @@ def _check_safe_zip_member(info: zipfile.ZipInfo) -> None:
 
 def _verify_package_info(raw: bytes, major: int, zip_name: str) -> dict[str, Any]:
     info = load_strict_json(raw, f"{zip_name}:PACKAGE-INFO.json")
-    if info.get("name") != EXTENSION_NAME:
-        raise AcceptanceGateError(f"{zip_name}: invalid package name {info.get('name')!r}")
-    if info.get("version") != EXTENSION_VERSION:
-        raise AcceptanceGateError(f"{zip_name}: invalid package version {info.get('version')!r}")
+    schema_version = info.get("schemaVersion")
+    if type(schema_version) is not int or schema_version != 1:
+        raise AcceptanceGateError(f"{zip_name}: schemaVersion must be 1, got {schema_version!r}")
+    if info.get("buildMode") != "release-attested":
+        raise AcceptanceGateError(f"{zip_name}: buildMode must be 'release-attested'")
+    pkg = info.get("package")
+    if not isinstance(pkg, dict) or pkg.get("name") != EXTENSION_NAME:
+        raise AcceptanceGateError(f"{zip_name}: invalid package metadata {pkg!r}")
     upstream = info.get("upstream")
     if not isinstance(upstream, dict):
         raise AcceptanceGateError(f"{zip_name}: missing upstream metadata")
     if (
         upstream.get("repository") != UPSTREAM_REPOSITORY
         or upstream.get("ref") != UPSTREAM_TAG
+        or upstream.get("version") != EXTENSION_VERSION
         or upstream.get("commit") != UPSTREAM_COMMIT
     ):
         raise AcceptanceGateError(f"{zip_name}: upstream identity mismatch: {upstream!r}")
+    source = info.get("source")
+    packaging_commit = source.get("packagingCommit") if isinstance(source, dict) else None
+    if not isinstance(packaging_commit, str) or not HEX40_RE.fullmatch(packaging_commit):
+        raise AcceptanceGateError(f"{zip_name}: invalid source.packagingCommit: {source!r}")
     pg = info.get("postgresql")
-    if not isinstance(pg, dict) or pg.get("major") != major:
+    if not isinstance(pg, dict) or type(pg.get("major")) is not int or pg.get("major") != major:
         raise AcceptanceGateError(f"{zip_name}: expected postgresql.major={major}, got {pg!r}")
-    if info.get("buildMode") != "release-attested":
-        raise AcceptanceGateError(f"{zip_name}: buildMode must be 'release-attested'")
     run = info.get("workflowRun")
     if not isinstance(run, dict):
         raise AcceptanceGateError(f"{zip_name}: missing workflowRun provenance")
+    run_id = run.get("id")
+    run_attempt = run.get("attempt")
     if (
-        run.get("event") != "issue_comment"
+        type(run_id) is not int
+        or run_id <= 0
+        or type(run_attempt) is not int
+        or run_attempt != 1
+        or run.get("event") != "issue_comment"
         or run.get("ref") != "refs/heads/main"
-        or run.get("run_attempt") != 1
     ):
         raise AcceptanceGateError(f"{zip_name}: workflowRun provenance failed closed: {run!r}")
     return info
@@ -195,12 +208,19 @@ def _verify_spdx_asset(spdx_path: Path) -> dict[str, Any]:
     if doc.get("dataLicense") != "CC0-1.0":
         raise AcceptanceGateError(f"{spdx_path.name}: expected dataLicense 'CC0-1.0'")
     packages = doc.get("packages")
+    if not isinstance(packages, list) or len(packages) != 1 or not isinstance(packages[0], dict):
+        raise AcceptanceGateError(f"{spdx_path.name}: packages must contain exactly one package object")
+    pkg = packages[0]
     files = doc.get("files")
-    if not isinstance(packages, list) or not packages:
-        raise AcceptanceGateError(f"{spdx_path.name}: packages must be non-empty list")
-    if not isinstance(files, list) or not files:
-        raise AcceptanceGateError(f"{spdx_path.name}: files must be non-empty list")
-    return {"spdxVersion": doc["spdxVersion"], "packageCount": len(packages), "fileCount": len(files)}
+    if pkg.get("filesAnalyzed") is False and "files" not in doc:
+        file_count = 0
+    elif isinstance(files, list) and files:
+        file_count = len(files)
+    else:
+        raise AcceptanceGateError(
+            f"{spdx_path.name}: files must be non-empty list unless single package has filesAnalyzed=false"
+        )
+    return {"spdxVersion": doc["spdxVersion"], "packageCount": len(packages), "fileCount": file_count}
 
 
 def _verify_grype_asset(grype_path: Path) -> dict[str, Any]:
@@ -233,21 +253,26 @@ def verify_formal_asset_dir(asset_dir: Path) -> dict[str, Any]:
         names.add(entry.name)
 
     expected = set(expected_formal_assets())
-    missing = sorted(expected - names)
-    extra = sorted(names - expected)
+    expected_hashed = expected - {SHA256SUMS_NAME}
+    has_sums_file = SHA256SUMS_NAME in names
+    expected_present = expected if has_sums_file else expected_hashed
+    missing = sorted(expected_present - names)
+    extra = sorted(names - expected_present)
     if missing or extra:
         raise AcceptanceGateError(f"Formal asset set mismatch: missing={missing}, extra={extra}")
 
-    sums_path = asset_dir / SHA256SUMS_NAME
-    if sums_path.stat().st_size > MAX_SUMS_BYTES:
-        raise AcceptanceGateError(f"{SHA256SUMS_NAME} exceeds {MAX_SUMS_BYTES} bytes")
-    sums = parse_sha256sums(sums_path.read_text(encoding="utf-8"))
-    expected_hashed = expected - {SHA256SUMS_NAME}
-    if set(sums.keys()) != expected_hashed:
-        raise AcceptanceGateError(
-            f"SHA256SUMS.txt asset set mismatch: missing={sorted(expected_hashed - set(sums))}, "
-            f"extra={sorted(set(sums) - expected_hashed)}"
-        )
+    if has_sums_file:
+        sums_path = asset_dir / SHA256SUMS_NAME
+        if sums_path.stat().st_size > MAX_SUMS_BYTES:
+            raise AcceptanceGateError(f"{SHA256SUMS_NAME} exceeds {MAX_SUMS_BYTES} bytes")
+        sums = parse_sha256sums(sums_path.read_text(encoding="utf-8"))
+        if set(sums.keys()) != expected_hashed:
+            raise AcceptanceGateError(
+                f"SHA256SUMS.txt asset set mismatch: missing={sorted(expected_hashed - set(sums))}, "
+                f"extra={sorted(set(sums) - expected_hashed)}"
+            )
+    else:
+        sums = {fname: sha256_file(asset_dir / fname) for fname in sorted(expected_hashed)}
 
     per_major: dict[int, Any] = {}
     for major in SUPPORTED_PG_MAJORS:
@@ -334,16 +359,19 @@ def evaluate_pilot_status(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verify pg_permissions 1.4.1 formal acceptance gates")
     parser.add_argument("--verify-assets", type=Path, help="Directory holding the 13 formal acceptance files")
+    parser.add_argument("--evidence", type=Path, help="JSON file holding boolean gate_evidence flags for G1/G2/G7")
     parser.add_argument("--status", action="store_true", help="Emit current 0/7 pilot status JSON")
     args = parser.parse_args(argv)
 
-    if args.verify_assets is not None:
-        report = evaluate_pilot_status(asset_dir=args.verify_assets)
-        print(json.dumps(report, indent=2))
-        return 0
-    report = evaluate_pilot_status()
+    gate_evidence: dict[str, Any] | None = None
+    if args.evidence is not None:
+        if not args.evidence.exists() or args.evidence.is_symlink() or not args.evidence.is_file():
+            raise AcceptanceGateError(f"Evidence file must be an existing non-symlink regular file: {args.evidence}")
+        gate_evidence = load_strict_json(args.evidence.read_bytes(), str(args.evidence))
+
+    report = evaluate_pilot_status(gate_evidence=gate_evidence, asset_dir=args.verify_assets)
     print(json.dumps(report, indent=2))
-    return 0 if args.status else 0
+    return 0
 
 
 if __name__ == "__main__":
