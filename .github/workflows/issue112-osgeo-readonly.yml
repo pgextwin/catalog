@@ -33,7 +33,7 @@ jobs:
       - name: Read-only full directory + archive scan via public OSGeo mirror
         run: |
           python3 scripts/discover_osgeo_windows_bundles.py \
-            --index osu-mirror \
+            --index osgeo-cache \
             --output "$RUNNER_TEMP/issue112-osgeo-untrusted-index.json"
           test -s "$RUNNER_TEMP/issue112-osgeo-untrusted-index.json"
           # Directory listings only. No download/upload, attestation,
