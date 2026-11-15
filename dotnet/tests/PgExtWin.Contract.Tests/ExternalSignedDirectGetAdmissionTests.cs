@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -8,10 +9,11 @@ internal static class ExternalSignedDirectGetAdmissionTests
 {
     private static byte[] Fixture()
     {
-        string when = DateTimeOffset.UtcNow.AddMinutes(-2)
-            .ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
-        string until = DateTimeOffset.UtcNow.AddHours(24)
-            .ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
+        var issuedAt = DateTimeOffset.UtcNow.AddMinutes(-2);
+        string when = issuedAt
+            .ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+        string until = issuedAt.AddHours(24)
+            .ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
         return JsonSerializer.SerializeToUtf8Bytes(new
         {
             schemaVersion = "pgextwin-external-direct-get-admission/v1",
@@ -121,6 +123,33 @@ internal static class ExternalSignedDirectGetAdmissionTests
             JsonException or InvalidOperationException or FormatException)
         {
             return true;
+        }
+    }
+
+    private static string IsoUtc(DateTimeOffset value) =>
+        value.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+
+    private static byte[] WithWindow(DateTimeOffset issued, DateTimeOffset expires,
+        long? issuerRunId = null) =>
+        Mutate(doc =>
+        {
+            doc["issuedAt"] = IsoUtc(issued);
+            doc["expiresAt"] = IsoUtc(expires);
+            if (issuerRunId is long runId)
+                doc["issuerRunId"] = runId;
+        });
+
+    private static bool WindowDeniedAt(byte[] json, DateTimeOffset now)
+    {
+        try
+        {
+            _ = ExternalSignedDirectGetAdmission.ParseUntrusted(json, "18", now, out _);
+            return false;
+        }
+        catch (InvalidDataException ex)
+        {
+            return ex.Message.Contains("invalid 24-hour admission window",
+                StringComparison.Ordinal);
         }
     }
 
@@ -354,6 +383,70 @@ internal static class ExternalSignedDirectGetAdmissionTests
             Encoding.UTF8.GetString(Fixture()).Replace(
                 "\"mirrorAuthorized\":false", "\"mirrorAuthorized\":false,\"mirrorAuthorized\":true"));
         check(ParseDenied(corrupt), "Duplicate JSON permission key denied");
+
+        // Fixed-time strict 24-hour admission window boundary tests.
+        var fixedIssued = new DateTimeOffset(2026, 11, 15, 0, 0, 0, TimeSpan.Zero);
+        var fixedExpires = fixedIssued.AddHours(24);
+        var exact24h = WithWindow(fixedIssued, fixedExpires);
+        check(WindowDeniedAt(exact24h, fixedIssued.AddSeconds(-1)),
+            "Fixed-time boundary denies 1 second before issuedAt");
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            exact24h, "18", fixedIssued, out _).Count == 1,
+            "Fixed-time boundary allows exact issuedAt");
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            exact24h, "18", fixedExpires.AddSeconds(-1), out _).Count == 1,
+            "Fixed-time boundary allows 1 second before expiresAt");
+        check(WindowDeniedAt(exact24h, fixedExpires),
+            "Fixed-time boundary denies exact expiresAt");
+        check(WindowDeniedAt(WithWindow(fixedIssued, fixedExpires.AddSeconds(-1)),
+            fixedIssued.AddMinutes(1)),
+            "Strict 24h window denies 24h - 1s lifetime");
+        check(WindowDeniedAt(WithWindow(fixedIssued, fixedExpires.AddSeconds(1)),
+            fixedIssued.AddMinutes(1)),
+            "Strict 24h window denies 24h + 1s lifetime");
+        check(WindowDeniedAt(WithWindow(fixedIssued.AddMinutes(5),
+            fixedIssued.AddMinutes(5).AddHours(24)), fixedIssued),
+            "Strict 24h window denies future-issued (+5m) admission");
+        check(WindowDeniedAt(WithWindow(fixedIssued, fixedIssued.AddHours(48)),
+            fixedIssued.AddMinutes(1)),
+            "Strict 24h window denies 48h lifetime");
+        check(WindowDeniedAt(WithWindow(fixedIssued, fixedIssued.AddHours(6)),
+            fixedIssued.AddMinutes(1)),
+            "Strict 24h window denies legacy 6h lifetime");
+
+        // Current active 24h admission (issuer Run 43685971825,
+        // 2026-11-15T06:34:05Z .. 2026-11-16T06:34:05Z) must always pass.
+        var currentIssued = DateTimeOffset.Parse("2026-11-15T06:34:05Z",
+            CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        var currentExpires = DateTimeOffset.Parse("2026-11-16T06:34:05Z",
+            CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        var currentRunAdmission = WithWindow(currentIssued, currentExpires, 43685971825L);
+        var currentRunLatest = LatestPins(currentRunAdmission);
+        ExternalSignedDirectGetAdmission.ValidateLatestBinding(
+            currentRunLatest, currentRunAdmission, 43685971825L);
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            currentRunAdmission, "18", currentIssued, out _).Count == 1,
+            "Current Run 43685971825 24h admission passes at exact issuedAt");
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            currentRunAdmission, "18", currentIssued.AddHours(12), out _).Count == 1,
+            "Current Run 43685971825 24h admission passes mid-window");
+        check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+            currentRunAdmission, "18", currentExpires.AddSeconds(-1), out _).Count == 1,
+            "Current Run 43685971825 24h admission passes 1 second before expiresAt");
+        check(WindowDeniedAt(currentRunAdmission, currentIssued.AddSeconds(-1)),
+            "Current Run 43685971825 24h admission denied 1 second before issuedAt");
+        check(WindowDeniedAt(currentRunAdmission, currentExpires),
+            "Current Run 43685971825 24h admission denied at exact expiresAt");
+        var run43685971825File = Path.Combine(Directory.GetCurrentDirectory(),
+            "external", "signed-direct-get", "qualified_cohort",
+            "run-43685971825", "external-get-admission.json");
+        if (File.Exists(run43685971825File))
+        {
+            check(ExternalSignedDirectGetAdmission.ParseUntrusted(
+                File.ReadAllBytes(run43685971825File), "all",
+                currentIssued.AddHours(6), out _).Count == 11,
+                "Checked-in Run 43685971825 24h admission file passes strict 24h parser");
+        }
 
         // Even a completely valid-looking local JSON is DENIED by an absent
         // trusted independent Build issuer Sigstore signature. No GET happens.
