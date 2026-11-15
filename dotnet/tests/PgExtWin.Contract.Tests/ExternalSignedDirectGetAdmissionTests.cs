@@ -10,7 +10,7 @@ internal static class ExternalSignedDirectGetAdmissionTests
     {
         string when = DateTimeOffset.UtcNow.AddMinutes(-2)
             .ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
-        string until = DateTimeOffset.UtcNow.AddHours(6)
+        string until = DateTimeOffset.UtcNow.AddHours(24)
             .ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
         return JsonSerializer.SerializeToUtf8Bytes(new
         {

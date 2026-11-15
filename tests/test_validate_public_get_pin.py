@@ -27,7 +27,7 @@ def example():
         "ownerId": 27071164, "publisherEnvironment": "external-direct-provider-publisher",
         "publisherAppId": 5609317, "approvedOperation": "ORIGINAL_PROVIDER_GET_ONLY",
         "issuedAt": "2026-11-08T00:00:00Z",
-        "expiresAt": "2026-11-08T06:00:00Z",
+        "expiresAt": "2026-11-09T00:00:00Z",
         "downloadAuthorized": True, "mirrorAuthorized": False,
         "redistributionAuthorized": False,
         "records": [{
@@ -108,10 +108,52 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             self.assertEqual(mod.scan(t, now=NOW, online=False), [])
 
-    def test_fixed_scope_and_six_hour_lifetime(self):
+    def test_archived_six_hour_admission_is_grandfathered(self):
+        # Direct calls stay strict: a 6-hour admission is denied unless the
+        # caller explicitly allows the pre-24-hour issuance rule, and a
+        # 48-hour lifetime is never allowed.
+        six = example()
+        six["expiresAt"] = "2026-11-08T06:00:00Z"
+        with self.assertRaises(mod.Denied):
+            mod.validate_document(six, "run-1234", now=NOW)
+        self.assertEqual(mod.validate_document(
+            six, "run-1234", now=NOW, allowed_lifetimes=(6, 24)), "ACTIVE")
+        forged = example()
+        forged["expiresAt"] = "2026-11-10T00:00:00Z"
+        with self.assertRaises(mod.Denied):
+            mod.validate_document(forged, "run-1234", now=NOW,
+                                  allowed_lifetimes=(6, 24))
+        # Scan level: a 6-hour archived run beside the 24-hour current run
+        # passes; the current run must still be exactly 24 hours.
+        current = qualified_cohort_example()
+        archived = copy.deepcopy(current)
+        archived["issuerRunId"] = 1233
+        archived["expiresAt"] = (mod.parse_utc(archived["issuedAt"]) +
+                                 timedelta(hours=6)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        current_bytes = (json.dumps(current, sort_keys=True,
+                                    separators=(",", ":")) + "\n").encode()
+        archived_bytes = (json.dumps(archived, sort_keys=True,
+                                     separators=(",", ":")) + "\n").encode()
+        pointer = latest_pointer(current, current_bytes)
+        with tempfile.TemporaryDirectory() as t:
+            source = Path(t) / "external/signed-direct-get/qualified_cohort"
+            for runid, payload in (("run-1233", archived_bytes),
+                                   ("run-1234", current_bytes)):
+                run = source / runid
+                run.mkdir(parents=True)
+                (run / "external-get-admission.json").write_bytes(payload)
+                (run / "attestation.json").write_bytes(b"x" * 200)
+            (source / "latest.json").write_text(
+                json.dumps(pointer, sort_keys=True) + "\n", encoding="utf-8")
+            results = mod.scan(t, now=NOW, online=False)
+            self.assertEqual(
+                [(r["runId"], r["status"]) for r in results],
+                [(1233, "ACTIVE"), (1234, "ACTIVE")])
+
+    def test_fixed_scope_and_24_hour_lifetime(self):
         self.assertEqual(mod.validate_document(example(), "run-1234", now=NOW), "ACTIVE")
         self.assertEqual(mod.validate_document(example(), "run-1234",
-            now=NOW + timedelta(hours=10)), "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
+            now=NOW + timedelta(hours=25)), "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
         d = example()
         for key, val in [
             ("issuerRunId", 1235), ("issuerRunAttempt", 2),
@@ -119,7 +161,7 @@ class Tests(unittest.TestCase):
             ("issuerCommit", "g" * 40), ("publisherAppId", 5451798),
             ("approvedOperation", "MIRROR"), ("downloadAuthorized", False),
             ("mirrorAuthorized", True), ("redistributionAuthorized", True),
-            ("expiresAt", "2026-11-09T00:00:00Z"), ("unknown", True),
+            ("expiresAt", "2026-11-08T06:00:00Z"), ("unknown", True),
         ]:
             with self.subTest(field=key):
                 changed = copy.deepcopy(d)
@@ -174,7 +216,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(mod.validate_document(doc, "run-1234", now=NOW,
                          source="qualified_cohort"), "ACTIVE")
         self.assertEqual(mod.validate_document(doc, "run-1234",
-                         now=NOW + timedelta(hours=7),
+                         now=NOW + timedelta(hours=25),
                          source="qualified_cohort"), "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
         mutations = [
             lambda r: r.pop(),
@@ -200,7 +242,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(mod.validate_document(doc, "run-1234", now=NOW,
                          source="qualified_cohort"), "ACTIVE")
         self.assertEqual(mod.validate_document(doc, "run-1234",
-                         now=NOW + timedelta(hours=7), source="qualified_cohort"),
+                         now=NOW + timedelta(hours=25), source="qualified_cohort"),
                          "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
         mutations = [
             lambda rows: rows.pop(),
@@ -228,11 +270,16 @@ class Tests(unittest.TestCase):
         doc = json.loads(path.read_bytes())
         signed_time = mod.parse_utc(doc["issuedAt"]) + timedelta(minutes=1)
         self.assertEqual(len(doc["records"]), 11)
+        with self.assertRaises(mod.Denied):
+            mod.validate_document(doc, "run-42844446860", now=signed_time,
+                                  source="qualified_cohort")
+        doc["expiresAt"] = (mod.parse_utc(doc["issuedAt"]) +
+                            timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
         self.assertEqual(mod.validate_document(
             doc, "run-42844446860", now=signed_time,
             source="qualified_cohort"), "ACTIVE")
         self.assertEqual(mod.validate_document(
-            doc, "run-42844446860", now=signed_time + timedelta(hours=7),
+            doc, "run-42844446860", now=signed_time + timedelta(hours=25),
             source="qualified_cohort"), "EXPIRED_ARCHIVE_DOWNLOAD_DENY")
         mutations = [
             lambda rows: rows.pop(),

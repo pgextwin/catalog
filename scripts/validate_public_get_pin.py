@@ -2,7 +2,7 @@
 """Validate public Catalog's immutable original-provider GET-only signed pin archives.
 
 This is NOT the legacy deny-only external publisher policy. The sole
-source-specific admission is the genuine Build/main issuer's signed, six-hour
+source-specific admission is the genuine Build/main issuer's signed, 24-hour
 manifest, and every copy must have its exact Sigstore bundle. Expired entries
 remain readable audit records but are NEVER active download permissions.
 No original provider ZIP is stored, rehosted, or released.
@@ -70,7 +70,12 @@ def parse_utc(s):
     except ValueError:
         raise Denied("invalid UTC date") from None
 
-def validate_document(doc, dirname, *, now, source="pg_trickle"):
+def validate_document(doc, dirname, *, now, source="pg_trickle",
+                      allowed_lifetimes=(24,)):
+    # The current (latest-pointer) admission must carry exactly 24 hours.
+    # Archived admissions issued under the earlier 6-hour rule are
+    # grandfathered: history is immutable, so only 6h or 24h lifetimes are
+    # ever accepted for them; any other lifetime is still a forgery.
     require(type(doc) is dict and set(doc) == KEYS, "untrusted manifest schema")
     match = RUN_DIR.fullmatch(dirname)
     require(match is not None and type(doc["issuerRunId"]) is int
@@ -91,7 +96,8 @@ def validate_document(doc, dirname, *, now, source="pg_trickle"):
                 for key in ("issuerCommit", "catalogCommit")), "invalid signed source SHA")
     issued = parse_utc(doc["issuedAt"])
     expiry = parse_utc(doc["expiresAt"])
-    require(expiry - issued == timedelta(hours=6), "forged admission lifetime")
+    require(any(expiry - issued == timedelta(hours=h)
+                for h in allowed_lifetimes), "forged admission lifetime")
     require(issued <= now + timedelta(minutes=5), "manifest signed in the future")
     rows = doc["records"]
     if source == "hypopg":
@@ -430,6 +436,7 @@ def scan(root, *, now, online=True):
                 "unsafe signed source directory")
         children = list(source.iterdir())
         latest_bytes = None
+        current_run = None
         if source_name == "qualified_cohort":
             latest_path = source / LATEST_NAME
             require(latest_path in children and latest_path.is_file()
@@ -437,6 +444,10 @@ def scan(root, *, now, online=True):
                     and 100 < latest_path.stat().st_size < 200000,
                     "missing or invalid Catalog latest external pin index")
             latest_bytes = latest_path.read_bytes()
+            pointer_early = json.loads(latest_bytes, object_pairs_hook=unique)
+            if (type(pointer_early) is dict
+                    and type(pointer_early.get("issuerRunId")) is int):
+                current_run = "run-" + str(pointer_early["issuerRunId"])
             children = [item for item in children if item != latest_path]
         entries = sorted(children, key=lambda p: p.name)
         require(len(entries) <= 50, "unbounded signed source archive history")
@@ -454,7 +465,10 @@ def scan(root, *, now, online=True):
             doc = json.loads((entry / "external-get-admission.json").read_bytes(),
                              object_pairs_hook=unique)
             admission_bytes = (entry / "external-get-admission.json").read_bytes()
-            status = validate_document(doc, entry.name, now=now, source=source_name)
+            allowed = ((24,) if entry.name == current_run else (6, 24))
+            status = validate_document(doc, entry.name, now=now,
+                                       source=source_name,
+                                       allowed_lifetimes=allowed)
             if online:
                 verify_online(entry, doc)
             admissions[entry.name] = admission_bytes
