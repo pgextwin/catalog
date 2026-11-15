@@ -98,19 +98,28 @@ jobs:
           "source=$source" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
           "digest=$digest" >> $env:GITHUB_OUTPUT
-      - name: Reuse exact license notices for the unchanged .NET 10.0.13 runtime
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        if: steps.identity.outputs.version != ''
+        with:
+          dotnet-version: '11.0.100'
+      - name: Collect exact .NET 11.0.0 runtime-pack license and third-party notices
         if: steps.identity.outputs.version != ''
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
+          $ErrorActionPreference='Stop'
+          $v=(& dotnet --version).Trim()
+          if ($v -cne '11.0.100') { throw 'Runtime license material obtained with wrong SDK' }
+          dotnet restore dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj --runtime win-x64 -p:RuntimeFrameworkVersion=11.0.0 --nologo
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned runtime pack restore failed' }
+          $source=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.netcore.app.runtime.win-x64/11.0.0'
+          if (!(Test-Path $source -PathType Container)) { throw 'Pinned Windows runtime pack missing' }
+          $license=@(Get-ChildItem $source -Recurse -File | Where-Object { $_.Name -ieq 'LICENSE.TXT' })
+          $third=@(Get-ChildItem $source -Recurse -File | Where-Object { $_.Name -ieq 'THIRD-PARTY-NOTICES.TXT' })
+          if ($license.Count -ne 1 -or $third.Count -ne 1 -or
+              $license[0].Length -lt 400 -or $third[0].Length -lt 1000) { throw 'Microsoft runtime license or notices unavailable' }
           $dir=Join-Path $env:RUNNER_TEMP 'cli-release'
-          gh release download cli-v0.3.2 --repo pgextwin/catalog --pattern 'DOTNET-*.txt' --dir $dir
-          if ($LASTEXITCODE -ne 0) { throw 'Runtime notices unavailable' }
-          $expected=@{'DOTNET-LICENSE.txt'='d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b';'DOTNET-THIRD-PARTY-NOTICES.txt'='6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21'}
-          foreach ($name in $expected.Keys) {
-            if ((Get-FileHash (Join-Path $dir $name) -Algorithm SHA256).Hash.ToLowerInvariant() -cne $expected[$name]) { throw 'Runtime notice bytes changed' }
-          }
+          Copy-Item $license[0].FullName (Join-Path $dir 'DOTNET-LICENSE.txt')
+          Copy-Item $third[0].FullName (Join-Path $dir 'DOTNET-THIRD-PARTY-NOTICES.txt')
       - name: Generate existing pinned Syft SPDX and CLI asset checksums
         if: steps.identity.outputs.version != ''
         shell: pwsh
