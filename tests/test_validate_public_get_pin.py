@@ -108,6 +108,48 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             self.assertEqual(mod.scan(t, now=NOW, online=False), [])
 
+    def test_archived_six_hour_admission_is_grandfathered(self):
+        # Direct calls stay strict: a 6-hour admission is denied unless the
+        # caller explicitly allows the pre-24-hour issuance rule, and a
+        # 48-hour lifetime is never allowed.
+        six = example()
+        six["expiresAt"] = "2026-11-08T06:00:00Z"
+        with self.assertRaises(mod.Denied):
+            mod.validate_document(six, "run-1234", now=NOW)
+        self.assertEqual(mod.validate_document(
+            six, "run-1234", now=NOW, allowed_lifetimes=(6, 24)), "ACTIVE")
+        forged = example()
+        forged["expiresAt"] = "2026-11-10T00:00:00Z"
+        with self.assertRaises(mod.Denied):
+            mod.validate_document(forged, "run-1234", now=NOW,
+                                  allowed_lifetimes=(6, 24))
+        # Scan level: a 6-hour archived run beside the 24-hour current run
+        # passes; the current run must still be exactly 24 hours.
+        current = qualified_cohort_example()
+        archived = copy.deepcopy(current)
+        archived["issuerRunId"] = 1233
+        archived["expiresAt"] = (mod.parse_utc(archived["issuedAt"]) +
+                                 timedelta(hours=6)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        current_bytes = (json.dumps(current, sort_keys=True,
+                                    separators=(",", ":")) + "\n").encode()
+        archived_bytes = (json.dumps(archived, sort_keys=True,
+                                     separators=(",", ":")) + "\n").encode()
+        pointer = latest_pointer(current, current_bytes)
+        with tempfile.TemporaryDirectory() as t:
+            source = Path(t) / "external/signed-direct-get/qualified_cohort"
+            for runid, payload in (("run-1233", archived_bytes),
+                                   ("run-1234", current_bytes)):
+                run = source / runid
+                run.mkdir(parents=True)
+                (run / "external-get-admission.json").write_bytes(payload)
+                (run / "attestation.json").write_bytes(b"x" * 200)
+            (source / "latest.json").write_text(
+                json.dumps(pointer, sort_keys=True) + "\n", encoding="utf-8")
+            results = mod.scan(t, now=NOW, online=False)
+            self.assertEqual(
+                [(r["runId"], r["status"]) for r in results],
+                [(1233, "ACTIVE"), (1234, "ACTIVE")])
+
     def test_fixed_scope_and_24_hour_lifetime(self):
         self.assertEqual(mod.validate_document(example(), "run-1234", now=NOW), "ACTIVE")
         self.assertEqual(mod.validate_document(example(), "run-1234",
