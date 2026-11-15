@@ -131,6 +131,8 @@ class DenyTests(unittest.TestCase):
                 downloadAuthorized=True)),
             ("forged_path", lambda x: x["latestBundleSelection"]["selected"][0].update(
                 sourceRelativePath="pg15/../evil.zip")),
+            ("archive_path_in_latest", lambda x: x["latestBundleSelection"]["selected"][1].update(
+                sourceRelativePath="pg16/archive/postgis-bundle-pg16-3.7.0x64.zip")),
             ("eol_pg14_in_latest", lambda x: x["latestBundleSelection"]["selected"].append(
                 dict(pgMajor="14", version="3.6.1",
                      fileName="postgis-bundle-pg14-3.6.1x64.zip",
@@ -142,6 +144,22 @@ class DenyTests(unittest.TestCase):
                 mutate(candidate)
                 with self.assertRaises(ValueError):
                     p.select(candidate, "14")
+
+        for pg, bad_ver in (("14", "3.6.2"), ("15", "3.7.0"), ("16", "3.7.0"), ("17", "3.7.0")):
+            candidate = copy.deepcopy(snapshot())
+            idx = int(pg) - 14
+            bad_name = f"postgis-bundle-pg{pg}-{bad_ver}x64.zip"
+            candidate["latestBundleSelection"]["selected"][idx].update(
+                version=bad_ver, fileName=bad_name, sourceRelativePath=f"pg{pg}/{bad_name}"
+            )
+            with self.assertRaises(ValueError, msg=f"pinned-wrong-version-{pg}"):
+                p.select(candidate, pg)
+
+        with self.assertRaises(ValueError):
+            p.read_original(
+                "https://evil.example/postgis/windows/pg16/archive/postgis-bundle-pg16-3.6.2x64.zip",
+                Path("/tmp/unused.zip"),
+            )
 
     def test_digest_mismatch_stops_before_archive(self):
         for pg in ("14", "16", "17"):
