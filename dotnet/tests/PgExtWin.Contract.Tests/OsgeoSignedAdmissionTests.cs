@@ -353,6 +353,84 @@ internal static class OsgeoSignedAdmissionTests
         check(Denied(() => OsgeoSignedAdmission.VerifyBundleBytes(traversalZip, traversalBundle)),
             "VerifyBundleBytes rejects ZIP path traversal");
 
+        // Shared verifier path/attribute hardening and min(DeriveLimits, profile) enforcement.
+        foreach (var (label, entries) in new (string, (string Name, byte[] Content)[])[]
+        {
+            ("double slash folder//", [("folder//", []), ("ok.txt", "ok"u8.ToArray())]),
+            ("parent-child collision a and a/b", [("a", "f"u8.ToArray()), ("a/b", "c"u8.ToArray())]),
+            ("reverse parent-child collision a/b and a", [("a/b", "c"u8.ToArray()), ("a", "f"u8.ToArray())]),
+            ("Windows reserved name NUL.txt", [("NUL.txt", "bad"u8.ToArray())]),
+            ("trailing dot", [("bad.", "bad"u8.ToArray())]),
+            ("Unicode normalization difference", [("caf\u00e9.txt", "a"u8.ToArray()), ("cafe\u0301.txt", "b"u8.ToArray())])
+        })
+        {
+            var badZip = MakeZip(entries);
+            var badBundle = validBundle with
+            {
+                OriginalBytes = badZip.LongLength,
+                OriginalSha256 = Convert.ToHexStringLower(SHA256.HashData(badZip)),
+                Limits = OsgeoSignedAdmission.DeriveLimits(badZip.LongLength)
+            };
+            check(Denied(() => OsgeoSignedAdmission.VerifyBundleBytes(badZip, badBundle)),
+                $"VerifyBundleBytes rejects {label}");
+        }
+
+        // Enforce min(DeriveLimits, profile) for single entry and compressed original bounds.
+        var mediumPayload = new byte[256];
+        Array.Fill(mediumPayload, (byte)'X');
+        var mediumZip = MakeZip(("single.bin", mediumPayload));
+        var mediumBundle = validBundle with
+        {
+            OriginalBytes = mediumZip.LongLength,
+            OriginalSha256 = Convert.ToHexStringLower(SHA256.HashData(mediumZip)),
+            Limits = OsgeoSignedAdmission.DeriveLimits(mediumZip.LongLength)
+        };
+        var tighterEntryProfile = new OriginalZipResourceProfile(
+            MaxCompressedOriginalBytes: 96L * 1024 * 1024,
+            MaxEntryUncompressedBytes: 200,
+            MaxTotalUncompressedBytes: 2L * 1024 * 1024 * 1024,
+            MaxEntries: 25_000);
+        check(mediumPayload.LongLength <= mediumBundle.Limits.MaxExpandedBytes &&
+              Denied(() => OsgeoSignedAdmission.VerifyBundleBytes(mediumZip, mediumBundle, tighterEntryProfile)),
+            "VerifyBundleBytes enforces min(DeriveLimits, profile) for MaxEntryUncompressedBytes");
+
+        var tighterCompressedProfile = new OriginalZipResourceProfile(
+            MaxCompressedOriginalBytes: mediumZip.LongLength - 1,
+            MaxEntryUncompressedBytes: 96L * 1024 * 1024,
+            MaxTotalUncompressedBytes: 2L * 1024 * 1024 * 1024,
+            MaxEntries: 25_000);
+        check(Denied(() => OsgeoSignedAdmission.VerifyBundleBytes(mediumZip, mediumBundle, tighterCompressedProfile)),
+            "VerifyBundleBytes enforces min(DeriveLimits, profile) for MaxCompressedOriginalBytes");
+
+        // PG14 and PG15 (~118 MiB originals) must NOT reuse PG18's 96 MiB profile and fail closed.
+        foreach (var unprofiledMajor in new[] { "14", "15" })
+        {
+            var unprofiledBundle = validBundle with
+            {
+                BundleId = $"osgeo-postgis-bundle-pg{unprofiledMajor}-3.7.0",
+                PgMajor = unprofiledMajor,
+                FileName = $"postgis-bundle-pg{unprofiledMajor}-3.7.0x64.zip",
+                OriginalProviderUrl = $"https://download-cache.osgeo.org/postgis/windows/pg{unprofiledMajor}/postgis-bundle-pg{unprofiledMajor}-3.7.0x64.zip"
+            };
+            check(Denied(() => OsgeoSignedAdmission.VerifyBundleBytes(validZip, unprofiledBundle)),
+                $"VerifyBundleBytes fails closed for unprofiled PG{unprofiledMajor}");
+        }
+
+        // PG16 and PG17 3.7.0 bundles verify with CANDIDATE_INTEGRITY_ONLY_NOT_AUTHORIZED scope.
+        foreach (var profiledMajor in new[] { "16", "17" })
+        {
+            var profiledBundle = validBundle with
+            {
+                BundleId = $"osgeo-postgis-bundle-pg{profiledMajor}-3.7.0",
+                PgMajor = profiledMajor,
+                FileName = $"postgis-bundle-pg{profiledMajor}-3.7.0x64.zip",
+                OriginalProviderUrl = $"https://download-cache.osgeo.org/postgis/windows/pg{profiledMajor}/postgis-bundle-pg{profiledMajor}-3.7.0x64.zip"
+            };
+            var r = OsgeoSignedAdmission.VerifyBundleBytes(validZip, profiledBundle);
+            check(r.Scope == "CANDIDATE_INTEGRITY_ONLY_NOT_AUTHORIZED" && r.ArchiveMembers == 2,
+                $"VerifyBundleBytes verifies PG{profiledMajor} bundle with candidate-only scope");
+        }
+
         // 5. Sigstore gate fails closed for unsigned/empty bundle without network calls.
         var sigstoreRejected = false;
         try
