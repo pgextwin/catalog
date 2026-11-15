@@ -10,7 +10,10 @@ import ntpath
 from pathlib import Path
 import re
 
-ZIP_SHA = "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40"
+# Upstream replaced postgis-bundle-pg18-3.7.0x64.zip in place on 2026-11-14
+# (re-verified 2026-11-15); prior live-root and content-level audits on the
+# previous bytes do not automatically carry over and must be re-run on the new bytes.
+ZIP_SHA = "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419"
 ROOT = "postgis-bundle-pg18-3.7.0x64"
 NAMES = ("postgis-3.dll", "libpgrouting-4.0.dll")
 HEX64 = re.compile(r"[a-f0-9]{64}\Z")

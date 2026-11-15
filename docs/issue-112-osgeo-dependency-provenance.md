@@ -4,8 +4,10 @@
 This is an additive read-only audit, not a direct-provider adapter or authorization.
 
 Pinned original: https://download-cache.osgeo.org/postgis/windows/pg18/postgis-bundle-pg18-3.7.0x64.zip
-SHA256: fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40
-Size: 83,320,975 bytes. Previous PG18 SQL and licensing-inventory runs are preserved unchanged.
+SHA256: ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419
+Size: 83,739,256 bytes (MD5 sidecar match `0d926316e6be204ae1f3ddc0ef5a67ec`).
+
+> **Note (2026-11-15):** The previous `83,320,975`-byte original (`fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40`) was replaced in place upstream on 2026-11-14 (re-verified 2026-11-15). Content-level rights, PE dependency, and SQL audits recorded below were performed on those previous bytes, do not automatically carry over, and must be re-run on the new bytes.
 
 Run the new PR-only CI to enumerate, for each bundled DLL, bounded PE32+ AMD64
 static and delay-load imported DLL names; list imports not present inside the bundle,

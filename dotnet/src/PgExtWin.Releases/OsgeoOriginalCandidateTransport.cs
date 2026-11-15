@@ -13,11 +13,13 @@ internal sealed record OsgeoCandidateReceipt(string Path, long OriginalBytes,
 
 internal sealed class OsgeoOriginalCandidateTransport : IDisposable
 {
+    // Replaced in place upstream on 2026-11-14 (re-verified 2026-11-15);
+    // content-level rights/dependency audits on the previous bytes do not carry over.
     internal static readonly OsgeoOriginalCandidatePin Pinned = new(
         "18", "3.7.0", "postgis-bundle-pg18-3.7.0x64.zip",
         "https://download-cache.osgeo.org/postgis/windows/pg18/postgis-bundle-pg18-3.7.0x64.zip",
-        83_320_975L,
-        "fa3db8060d8d376e869d961659bf4eff326c0d99a731396701af61a13dc12a40");
+        83_739_256L,
+        "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419");
 
     private readonly HttpClient http;
 

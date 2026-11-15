@@ -39,7 +39,7 @@ internal static class OsgeoOriginalCandidateTransportTests
     {
         var pin = OsgeoOriginalCandidateTransport.Pinned;
         OsgeoOriginalCandidateTransport.ValidatePin(pin);
-        check(pin.OriginalBytes == 83_320_975L &&
+        check(pin.OriginalBytes == 83_739_256L &&
               pin.OriginalBytes > ExternalOriginalZipIntegrity.MaxOriginalBytes &&
               pin.OriginalSha256.Length == 64,
               "OSGeo pin requires exact single oversized official original");
@@ -50,7 +50,7 @@ internal static class OsgeoOriginalCandidateTransportTests
             pin with { OriginalUrl = pin.OriginalUrl + "?mirror=1" })),
             "OSGeo query string substitution denied");
         check(Denied(() => OsgeoOriginalCandidateTransport.ValidatePin(
-            pin with { OriginalBytes = 83_320_976L })),
+            pin with { OriginalBytes = 83_739_257L })),
             "Unbounded OSGeo size relaxation denied");
         check(Denied(() => OsgeoOriginalCandidateTransport.ValidatePin(
             pin with { OriginalSha256 = new string('0', 64) })),
@@ -126,16 +126,16 @@ internal static class OsgeoOriginalCandidateTransportTests
                   == pin.OriginalSha256,
                 "Real OSGeo .NET HTTPS received bytes independently rehashed");
             using var zip = System.IO.Compression.ZipFile.OpenRead(receipt.Path);
-            check(zip.Entries.Count == 1041,
-                "Real OSGeo .NET transport inspected 1041 original ZIP members");
+            check(zip.Entries.Count == 1045,
+                "Real OSGeo .NET transport inspected 1045 original ZIP members");
             check(zip.Entries.Any(e => e.FullName.EndsWith("/postgis.control",
                       StringComparison.OrdinalIgnoreCase)) &&
                   zip.Entries.Any(e => e.FullName.EndsWith("/pgrouting.control",
                       StringComparison.OrdinalIgnoreCase)),
                 "Real original includes PostGIS and pgRouting controls");
             Console.WriteLine("OSGEO_DOTNET_LIVE_ORIGINAL=INTEGRITY_PASS " +
-                "BYTES=83320975 SHA256=" + pin.OriginalSha256 +
-                " MEMBERS=1041 RIGHTS=UNVERIFIED PROVENANCE=UNVERIFIED " +
+                "BYTES=83739256 SHA256=" + pin.OriginalSha256 +
+                " MEMBERS=1045 RIGHTS=UNVERIFIED PROVENANCE=UNVERIFIED " +
                 "GET_AUTHORIZED=NO MIRROR=DENY RELEASE=DENY");
         }
         finally

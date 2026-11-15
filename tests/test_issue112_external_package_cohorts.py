@@ -18,7 +18,7 @@ def row(extension, ident="osgeo:pg18:3.7.0:digest", pg="18"):
         "extension": extension, "assetName": "postgis-bundle-pg18-3.7.0x64.zip",
         "format": "zip", "version": "3.7.0",
         "versionMeaning": "POSTGIS_BUNDLE_VERSION_NOT_COMPONENT_VERSION",
-        "originalBytes": 83320975, "originalSha256": "a" * 64,
+        "originalBytes": 83739256, "originalSha256": "a" * 64,
         "blockers": ["SOURCE_TO_BINARY_PRODUCER_ATTESTATION_MISSING"],
         **DENY,
     }
