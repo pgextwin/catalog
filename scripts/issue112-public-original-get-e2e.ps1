@@ -119,9 +119,31 @@ foreach ($binary in $binaries) {
             }
             Write-Output "REAL_WINDOWS_ORIGINAL_PROVIDER_BYTE=PASS SOURCE=$Source CLI_KIND=$($binary.kind) FILE=$($pin.name) BYTES=$($original.Length) SHA256=$hash"
         }
-        Write-Output "REAL_WINDOWS_ORIGINAL_GET_ONLY_E2E=PASS SOURCE=$Source CLI_KIND=$($binary.kind) ZIP_COUNT=$($expected.Count) PUBLISH=DENY MIRROR=DENY"
     } finally {
-        Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction SilentlyContinue
-        if (Test-Path -LiteralPath $dest) { throw 'Original-byte staging cleanup failed' }
+        $cleanupBackoffs=@(1, 2, 3, 5)
+        $cleaned=$false
+        for ($attempt=1; $attempt -le 5; $attempt++) {
+            $cleanupError=$null
+            try {
+                if (Test-Path -LiteralPath $dest) {
+                    Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction Stop
+                }
+            } catch {
+                $cleanupError=if ($_.Exception) { ($_.Exception.Message -replace '[\r\n]+', ' ').Trim() } else { ([string]$_ -replace '[\r\n]+', ' ').Trim() }
+            }
+            if (-not (Test-Path -LiteralPath $dest)) {
+                $cleaned=$true
+                break
+            }
+            if ([string]::IsNullOrWhiteSpace($cleanupError)) {
+                $cleanupError='Destination path still exists after Remove-Item'
+            }
+            Write-Output "STAGING_CLEANUP_RETRY ATTEMPT=$attempt/5 ERROR=$cleanupError"
+            if ($attempt -lt 5) {
+                Start-Sleep -Seconds $cleanupBackoffs[$attempt - 1]
+            }
+        }
+        if (-not $cleaned) { throw 'Original-byte staging cleanup failed' }
     }
+    Write-Output "REAL_WINDOWS_ORIGINAL_GET_ONLY_E2E=PASS SOURCE=$Source CLI_KIND=$($binary.kind) ZIP_COUNT=$($expected.Count) PUBLISH=DENY MIRROR=DENY"
 }
