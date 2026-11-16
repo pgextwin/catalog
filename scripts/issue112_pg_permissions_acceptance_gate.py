@@ -305,25 +305,21 @@ def evaluate_pilot_status(
     gate_evidence: dict[str, bool] | None = None,
     asset_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Compute current 7-gate formal acceptance posture without promoting unproven gates."""
+    """Diagnostic-only status until independently verified formal evidence exists."""
     flags = {gate: False for gate in GATE_IDS}
+    # A caller-controlled dict cannot authenticate G1-G7. The eventual
+    # publisher admission is evaluated within its separately authorized job.
     if gate_evidence is not None:
-        for gate in GATE_IDS:
-            val = gate_evidence.get(gate, False)
-            if not isinstance(val, bool):
-                raise AcceptanceGateError(f"Gate evidence for {gate} must be bool, got {type(val).__name__}")
-            flags[gate] = val
+        raise AcceptanceGateError("Unverified gate evidence is not formal acceptance proof")
 
     asset_report: dict[str, Any] | None = None
     if asset_dir is not None:
         asset_report = verify_formal_asset_dir(asset_dir)
-        flags["G3_FORMAL_ASSET_SET_13_FILES"] = True
-        flags["G4_SHA256SUMS_AND_ZIP_INTEGRITY"] = True
-        flags["G5_ATTESTED_PACKAGE_INFO_PROVENANCE"] = True
-        flags["G6_SPDX_2_3_AND_GRYPE_CLEAN"] = True
+        # Internal hashes, PACKAGE-INFO, SPDX and Grype JSON are structural
+        # diagnostics, not independent provenance or publication authorization.
 
     passed = sum(1 for v in flags.values() if v)
-    formal_passed = passed == len(GATE_IDS)
+    formal_passed = False  # No trusted VerifiedEvidence/PublisherAdmission path yet
     return {
         "extension": EXTENSION_NAME,
         "version": EXTENSION_VERSION,
@@ -357,19 +353,16 @@ def evaluate_pilot_status(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Verify pg_permissions 1.4.1 formal acceptance gates")
-    parser.add_argument("--verify-assets", type=Path, help="Directory holding the 13 formal acceptance files")
-    parser.add_argument("--evidence", type=Path, help="JSON file holding boolean gate_evidence flags for G1/G2/G7")
+    parser = argparse.ArgumentParser(description="Diagnose pg_permissions 1.4.1 assets without formal authorization")
+    parser.add_argument("--verify-assets", type=Path, help="Diagnostic-only inspection of 13 asset filenames and structures")
+    parser.add_argument("--evidence", type=Path, help="Rejected: caller-supplied booleans are not authenticated evidence")
     parser.add_argument("--status", action="store_true", help="Emit current 0/7 pilot status JSON")
     args = parser.parse_args(argv)
 
-    gate_evidence: dict[str, Any] | None = None
     if args.evidence is not None:
-        if not args.evidence.exists() or args.evidence.is_symlink() or not args.evidence.is_file():
-            raise AcceptanceGateError(f"Evidence file must be an existing non-symlink regular file: {args.evidence}")
-        gate_evidence = load_strict_json(args.evidence.read_bytes(), str(args.evidence))
+        raise AcceptanceGateError("--evidence cannot grant acceptance from an untrusted JSON file")
 
-    report = evaluate_pilot_status(gate_evidence=gate_evidence, asset_dir=args.verify_assets)
+    report = evaluate_pilot_status(asset_dir=args.verify_assets)
     print(json.dumps(report, indent=2))
     return 0
 

@@ -123,23 +123,39 @@ class PgPermissionsAcceptanceGateTests(unittest.TestCase):
         self.assertEqual(status["upstream"]["commit"], "3360447e0668fed2b9db6a0ae1d086533781f9bd")
         self.assertEqual(status["candidateArtifact"]["id"], "14027920721")
 
-    def test_valid_13_file_bundle_verifies_G3_to_G6_but_never_promotes_without_G1_G2_G7(self) -> None:
+    def test_untrusted_boolean_gate_evidence_is_rejected_even_with_assets(self) -> None:
+        all_true = {gate_id: True for gate_id in gate.GATE_IDS}
+        with self.assertRaises(gate.AcceptanceGateError):
+            gate.evaluate_pilot_status(gate_evidence=all_true)
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle = _build_valid_asset_dir(Path(tmp) / "bundle")
+            with self.assertRaises(gate.AcceptanceGateError):
+                gate.evaluate_pilot_status(gate_evidence=all_true, asset_dir=bundle)
+            diagnostic = gate.evaluate_pilot_status(asset_dir=bundle)
+            self.assertEqual(diagnostic["passedGates"], 0)
+            self.assertEqual(diagnostic["totalGates"], 7)
+            self.assertFalse(diagnostic["formalAcceptancePassed"])
+            self.assertEqual(diagnostic["publishDecision"], "DENY")
+            self.assertEqual(diagnostic["publicGetDecision"], "DENY")
+            self.assertEqual(diagnostic["assetReport"]["assetCount"], 13)
+
+    def test_valid_13_file_bundle_is_diagnostic_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             bundle = _build_valid_asset_dir(Path(tmp) / "bundle")
             status = gate.evaluate_pilot_status(asset_dir=bundle)
-            self.assertEqual(status["passedGates"], 4)
+            self.assertEqual(status["passedGates"], 0)
             self.assertFalse(status["formalAcceptancePassed"])
             self.assertEqual(status["status"], "CANDIDATE_ONLY")
             self.assertEqual(status["publishDecision"], "DENY")
             self.assertEqual(status["publicGetDecision"], "DENY")
             self.assertEqual(status["assetReport"]["majors"][15]["spdx"]["fileCount"], 0)
 
-    def test_12_file_bundle_without_sha256sums_generates_in_memory_and_verifies_G3_to_G6(self) -> None:
+    def test_12_file_bundle_without_sha256sums_keeps_diagnostic_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             bundle = _build_valid_asset_dir(Path(tmp) / "bundle", include_sums=False)
             self.assertFalse((bundle / gate.SHA256SUMS_NAME).exists())
             status = gate.evaluate_pilot_status(asset_dir=bundle)
-            self.assertEqual(status["passedGates"], 4)
+            self.assertEqual(status["passedGates"], 0)
             self.assertEqual(status["assetReport"]["assetCount"], 13)
             self.assertFalse((bundle / gate.SHA256SUMS_NAME).exists())
 
@@ -279,19 +295,19 @@ class PgPermissionsAcceptanceGateTests(unittest.TestCase):
             tmp_path = Path(tmp)
             bundle = _build_valid_asset_dir(tmp_path / "bundle")
 
-            # Without --evidence: G1/G2/G7 remain false
+            # Structure inspection does not authenticate any G1-G7 gate
             stdout = io.StringIO()
             with contextlib.redirect_stdout(stdout):
                 rc = gate.main(["--verify-assets", str(bundle)])
             self.assertEqual(rc, 0)
             report = json.loads(stdout.getvalue())
-            self.assertEqual(report["passedGates"], 4)
+            self.assertEqual(report["passedGates"], 0)
             self.assertFalse(report["gates"]["G1_PIN_CHAIN_CENTRAL_REG"])
             self.assertFalse(report["gates"]["G2_PROTECTED_MAIN_AND_OWNER_SIGN"])
             self.assertFalse(report["gates"]["G7_SCOPED_PUBLISHER_ADMISSION"])
             self.assertEqual(report["publishDecision"], "DENY")
 
-            # With --evidence: G1/G2/G7 passed through unchanged
+            # Caller-supplied boolean evidence is never a grant of authority
             evidence_path = tmp_path / "evidence.json"
             evidence_path.write_text(
                 json.dumps(
@@ -303,15 +319,8 @@ class PgPermissionsAcceptanceGateTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            stdout = io.StringIO()
-            with contextlib.redirect_stdout(stdout):
-                rc = gate.main(["--verify-assets", str(bundle), "--evidence", str(evidence_path)])
-            self.assertEqual(rc, 0)
-            report = json.loads(stdout.getvalue())
-            self.assertEqual(report["passedGates"], 7)
-            self.assertTrue(report["formalAcceptancePassed"])
-            self.assertEqual(report["status"], "FORMALLY_ACCEPTED")
-            self.assertEqual(report["publishDecision"], "ALLOW_SCOPED_PUBLISHER_HANDOFF")
+            with self.assertRaises(gate.AcceptanceGateError):
+                gate.main(["--verify-assets", str(bundle), "--evidence", str(evidence_path)])
 
             # Non-boolean evidence value or symlinked evidence file fails closed
             bad_evidence = tmp_path / "bad_evidence.json"
