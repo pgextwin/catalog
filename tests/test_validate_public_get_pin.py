@@ -349,6 +349,61 @@ class Tests(unittest.TestCase):
                 with self.assertRaises(mod.Denied):
                     mod.scan(t, now=NOW, online=True)
 
+    def test_online_verification_scope_current_active_and_all(self):
+        # R03: per-run online authentication covers the current
+        # latest-referenced pin and every still-valid (ACTIVE) admission.
+        # Expired non-current archives keep all offline checks but are only
+        # re-verified online in all_online mode (the periodic audit).
+        from unittest.mock import patch
+
+        def write_entry(source_dir, runid, doc):
+            run = source_dir / f"run-{runid}"
+            run.mkdir(parents=True)
+            payload = (json.dumps(doc, sort_keys=True,
+                                  separators=(",", ":")) + "\n").encode()
+            (run / "external-get-admission.json").write_bytes(payload)
+            (run / "attestation.json").write_bytes(b"x" * 200)
+            return payload
+
+        active = example()
+        expired = example()
+        expired["issuerRunId"] = 1233
+        expired["issuedAt"] = "2026-11-01T00:00:00Z"
+        expired["expiresAt"] = "2026-11-02T00:00:00Z"
+        cohort_current = qualified_cohort_example()
+        cohort_expired = copy.deepcopy(cohort_current)
+        cohort_expired["issuerRunId"] = 1233
+        cohort_expired["issuedAt"] = "2026-11-01T00:00:00Z"
+        cohort_expired["expiresAt"] = "2026-11-02T00:00:00Z"
+
+        with tempfile.TemporaryDirectory() as t:
+            base = Path(t) / "external/signed-direct-get"
+            trickle = base / "pg_trickle"
+            write_entry(trickle, 1233, expired)
+            write_entry(trickle, 1234, active)
+            cohort = base / "qualified_cohort"
+            write_entry(cohort, 1233, cohort_expired)
+            current_bytes = write_entry(cohort, 1234, cohort_current)
+            (cohort / "latest.json").write_text(
+                json.dumps(latest_pointer(cohort_current, current_bytes),
+                           sort_keys=True) + "\n", encoding="utf-8")
+
+            def verified_entries(**kwargs):
+                with patch.object(mod, "verify_online") as mock:
+                    mod.scan(t, now=NOW, **kwargs)
+                return sorted(
+                    f"{c.args[0].parent.name}/{c.args[0].name}"
+                    for c in mock.call_args_list)
+
+            self.assertEqual(
+                verified_entries(online=True),
+                ["pg_trickle/run-1234", "qualified_cohort/run-1234"])
+            self.assertEqual(
+                verified_entries(online=True, all_online=True),
+                ["pg_trickle/run-1233", "pg_trickle/run-1234",
+                 "qualified_cohort/run-1233", "qualified_cohort/run-1234"])
+            self.assertEqual(verified_entries(online=False), [])
+
     def test_integration_is_required_in_catalog_validate_job(self):
         workflow = (ROOT / ".github/workflows/validate.yml").read_text("utf-8")
         # Existing required validate job has no PyYAML; no new dependency.

@@ -421,7 +421,7 @@ def validate_latest_pointer(pointer, admission_bytes, dirname):
     require(seen == set(signed_by_key),
             "Catalog latest pin set omits a signed external binary")
 
-def scan(root, *, now, online=True):
+def scan(root, *, now, online=True, all_online=False):
     parent = Path(root) / "external/signed-direct-get"
     if not parent.exists():
         return []
@@ -469,7 +469,11 @@ def scan(root, *, now, online=True):
             status = validate_document(doc, entry.name, now=now,
                                        source=source_name,
                                        allowed_lifetimes=allowed)
-            if online:
+            # Expired non-current archives confer no authorization; current and
+            # still-valid admissions keep full online authentication on every
+            # run, while complete history is re-verified by the periodic audit
+            # workflow.
+            if online and (all_online or entry.name == current_run or status == "ACTIVE"):
                 verify_online(entry, doc)
             admissions[entry.name] = admission_bytes
             outputs.append({"runId": doc["issuerRunId"], "source": source_name,
@@ -489,10 +493,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--catalog", type=Path, default=ROOT)
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--all-online", action="store_true")
     args = parser.parse_args()
     try:
         rows = scan(args.catalog, now=datetime.now(timezone.utc),
-                    online=not args.offline)
+                    online=not args.offline, all_online=args.all_online)
         print(f"ORIGINAL_GET_SIGNED_PUBLIC_CATALOG_PIN_VALIDATED={len(rows)} "
               f"ACTIVE={sum(x['status']=='ACTIVE' for x in rows)} "
               "MIRROR_DENY=TRUE REDISTRIBUTION_DENY=TRUE "
