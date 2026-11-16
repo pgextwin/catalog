@@ -1,11 +1,8 @@
 name: Catalog wal2json read-only Release drift audit (Issue 75)
 
-# Protected main only. This scheduled audit deliberately cannot propose,
+# Protected main only. This change-triggered audit deliberately cannot propose,
 # merge, release, dispatch, change tags or promote any signed artifact.
-# 00:30 UTC = 09:30 JST, after the existing 09:00 JST update watch.
 on:
-  schedule:
-    - cron: '30 0 * * *'
   push:
     branches:
       - main

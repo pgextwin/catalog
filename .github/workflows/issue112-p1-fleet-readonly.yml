@@ -1,7 +1,5 @@
 name: Issue 112 genuine P1 fleet batch (read-only)
 on:
-  schedule:
-    - cron: '0 0 * * 0'  # Sunday 09:00 JST
   push:
     branches: [main]
     paths:
