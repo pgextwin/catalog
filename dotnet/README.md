@@ -1,38 +1,32 @@
 # pgextwin CLI — Issue #112
 
-## Current signed external original ZIP batch
+## External original ZIP batch (relaxed policy, 2026-11-17)
 
-Once a genuine owner-approved `qualified_cohort` admission and matching
-`external/signed-direct-get/qualified_cohort/latest.json` are published, the CLI
-supports one-command, GET-only download of the Catalog-selected current originals:
+The implementation uses [exact-version license-reviewed records](../external/direct-get.json)
+with provider URLs, versions, measured SHA-256 pins and license evidence.
+External originals require no Sigstore proof or Build admission. The native
+signed feed path is unchanged. This support change publishes no CLI or feed.
 
 ```powershell
-pgextwin.exe download-all --source external
-pgextwin.exe download-all --source external --pg 16 --output C:\pgextwin-downloads
+pgextwin.exe download-all --source external --pg all
+pgextwin.exe download-all --source external --pg 18 --extension pglogical --version 2.4.8
+pgextwin.exe download-all --source external --pg all --extension pg_crash --version 0.3
 ```
 
-The first command defaults to all Catalog-pinned PostgreSQL majors and the
-current directory. The second selects PG16 originals. The CLI authenticates a
-protected Catalog main snapshot, resolves `latest.json` from that immutable
-commit, checks that the exact release/asset IDs, versions, sizes and SHA256s
-match the same owner-signed Build admission, then verifies its Sigstore proof.
-It rechecks Catalog head and admission expiry before every provider GET and
-atomic commit. **A Catalog version change cannot fall back to an older signed
-authorization.** No current pin, an expired admission or an unsigned candidate
-means no network ZIP download. The current reviewed set covers seven originals
-(pg_trickle PG18, HypoPG PG14–16, portalcorp pgvector PG16, official
-oracle_fdw PG18, and unofficial community pgvector PG18).
-oracle_fdw requires a separately obtained/licensed Oracle Client; the community
-pgvector ZIP has no bundled LICENSE/NOTICE and its upstream license must be
-consulted separately. Other metadata-only discoveries require separate formal
-qualification. It does not mirror or redistribute third-party ZIPs.
+PG15–18 records cover pglogical 2.4.8 and pg_crash 0.3, plus the existing
+oracle_fdw 2.9.0 / pgvector 0.8.7 cohorts and pg_trickle 0.108.3 (PG18).
+Omitting `--version` selects each recorded latest version; exact selection
+never falls back to a different version. Provider bytes are fetched directly,
+verified and committed using the existing atomic batch stager. ZIPs are not
+installed or repackaged. See the [candidate license/binary review](../docs/issue-112-relaxed-external-bulk-fetch-20261117.md)
+for blocked candidates, exact evidence and scope. Historical signed-admission
+records/APIs remain available for their fixed historical paths.
 
 **Experimental external discovery (not a downloadable CLI Release):**
 Run `pgextwin list --catalog-dir . --source external --pg 18` to inspect
 *untrusted metadata only*, or use `--source all` to show both provider groups.
 External discovery records remain untrusted metadata and do not grant download
-permission. Only complete Catalog latest pin sets matched to fresh owner-signed
-admissions can enter the external download path. Omitted `--source`, native
+permission. Only reviewed direct GET records enter the external download path. Omitted `--source`, native
 `download-all` and `--fixed` retain their original behavior.
 See [external Windows source design](../docs/issue-112-external-windows-sources.md).
 

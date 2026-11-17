@@ -1,84 +1,189 @@
-"""Keep genuine Windows original-provider E2E aligned with signed cohort sizes."""
+"""Prevent fake acceptance at the genuine private Windows direct GET entrance."""
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+WF = (ROOT / ".github/workflows/issue112-external-public-get-e2e.yml").read_text()
+PS = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
+COMMAND = "& $private download-all --source external --pg all --output $dest"
+PASS = "PRIVATE_DIRECT_PATH_ORIGINAL_GET_E2E=PASS"
 
 
 class PublicOriginalGetE2EGuard(unittest.TestCase):
-    def test_signed_cohort_bound_and_expiry_denial_remain(self):
-        script = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
-        self.assertIn("@($latest.records).Count -lt 1", script)
-        self.assertIn("@($latest.records).Count -gt 20", script)
-        self.assertIn("if ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))", script)
-        self.assertIn("download-all --source external --pg $pgArg --output $dest", script)
-        self.assertIn("Original cohort completeness mismatch", script)
-        self.assertIn("Get-FileHash -LiteralPath $original.FullName -Algorithm SHA256", script)
-        self.assertIn("REAL_WINDOWS_ORIGINAL_GET_ONLY_E2E=PASS", script)
+    def test_authenticated_original_current_protected_main_only(self):
+        for text in (
+            "github.repository == 'pgextwin/catalog'",
+            "github.event_name == 'workflow_run'",
+            "github.event.workflow_run.event == 'push'",
+            "github.event.workflow_run.head_branch == 'main'",
+            "github.event.workflow_run.run_attempt == 1",
+            "github.event.workflow_run.conclusion == 'success'",
+            'set -euo pipefail', '[[ "$CATALOG_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1',
+            'gh api repos/pgextwin/catalog/branches/main',
+            '''[[ "$(jq -r '.protected' <<< "$branch")" == true ]]''',
+            '''[[ "$(jq -r '.commit.sha' <<< "$branch")" == "$CATALOG_SHA" ]]''',
+            '.status=="completed" and .conclusion=="success"',
+            '.event=="push" and .head_branch=="main" and .head_sha==$sha',
+            '.run_attempt==1 and .path==".github/workflows/validate.yml"',
+            '.repository.full_name=="pgextwin/catalog"',
+            '.name=="validate" and .conclusion=="success"',
+            '.commit.verification.verified==true and .commit.verification.reason=="valid"',
+            '.committer.login=="web-flow"', '.commit.committer.email=="noreply@github.com"',
+        ):
+            self.assertIn(text, WF)
+            self.assertLess(WF.index(text), WF.index('if ! jq -e'))
+
+    def test_relevance_is_bounded_to_direct_runtime_and_entrance(self):
+        predicate = WF.split("if ! jq -e '", 1)[1].split("' <<<", 1)[0]
+        self.assertIn('any(.files[]?;', predicate)
+        self.assertIn('(.status=="added" or .status=="modified") and', predicate)
+        paths = re.findall(r'^\s+"([^"]+)"', predicate, re.M)
+        self.assertEqual(set(paths), {
+            'external/direct-get.json',
+            'dotnet/src/PgExtWin.Cli/Program.cs',
+            'dotnet/src/PgExtWin.Releases/ExternalSignedCatalogCohort.cs',
+            'dotnet/src/PgExtWin.Releases/ExternalProviderAssetTransport.cs',
+            'dotnet/src/PgExtWin.Releases/ExternalOriginalBatchStager.cs',
+            'dotnet/src/PgExtWin.Releases/AtomicOriginalBatchDirectory.cs',
+            'dotnet/src/PgExtWin.Releases/ExternalOriginalZipIntegrity.cs',
+            'dotnet/src/PgExtWin.Releases/AtomicStageGuard.cs',
+            '.github/workflows/issue112-external-public-get-e2e.yml',
+            'scripts/issue112-public-original-get-e2e.ps1',
+        })
+        self.assertNotIn('length', predicate)  # extra license/evidence files are allowed
+        self.assertIn("NO_DIRECT_PATH_CHANGE; DIRECT_E2E=NOT_TESTED; no provider GET'\n            exit 0\n          fi", WF)
+        self.assertLess(WF.index('NO_DIRECT_PATH_CHANGE'), WF.index('echo "source=$CATALOG_SHA"'))
+        self.assertEqual(WF.count('echo "source=$CATALOG_SHA" >> "$GITHUB_OUTPUT"'), 1)
+        self.assertIn("if: needs.authenticate-original-main.outputs.source != ''", WF)
+
+    def test_exact_checkout_private_windows_build_and_read_only_pins(self):
+        self.assertEqual(re.findall(r'^  ([\w-]+):$', WF.split('jobs:\n', 1)[1], re.M),
+                         [ 'authenticate-original-main', 'windows-real-original-get'])
+        self.assertIn('ref: ${{ needs.authenticate-original-main.outputs.source }}', WF)
+        self.assertIn('persist-credentials: false', WF)
+        self.assertEqual(re.findall(r'uses: (\S+)', WF), [
+            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+            'actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9',
+        ])
+        self.assertEqual(re.findall(r'^\s+(?:contents|actions|id-token|attestations): (\w+)$', WF, re.M), ['read', 'read'])
+        self.assertIn('runs-on: windows-latest', WF)
+        self.assertIn('dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj', WF)
+        self.assertIn('--runtime win-x64 --self-contained true', WF)
+        self.assertIn("throw 'Private Windows CLI build missing'", WF)
+        self.assertLess(WF.index('dotnet publish'), WF.index('./scripts/issue112-public-original-get-e2e.ps1'))
+
+    def test_checkout_manifest_shape_and_exact_version_license_bookkeeping(self):
+        for text in (
+            "Join-Path $env:GITHUB_WORKSPACE 'external/direct-get.json'",
+            "throw 'Direct manifest absent'",
+            "schemaVersion -cne 'pgextwin-external-direct-get/v1'",
+            '$manifest.records -isnot [array]', '$manifest.records.Count -lt 1',
+            '$expected=@(foreach ($row in $manifest.records)',
+            "@('extension','pgMajor','upstreamVersion','license','assetName','originalSha256')",
+            '$row.$field -isnot [string]', '[string]::IsNullOrWhiteSpace($row.$field)',
+            '$row.licenseEvidence -isnot [array]', '$row.licenseEvidence.Count -lt 1',
+            '$row.latest -isnot [bool]', "$row.pgMajor -cnotin @('15','16','17','18')",
+            "[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)",
+            "$identity=$row.extension + ':' + $row.pgMajor + ':' + $row.upstreamVersion",
+            'if (-not $identities.Add($identity)) { throw',
+        ):
+            self.assertIn(text, PS)
+        self.assertLess(PS.index('$manifest=Get-Content'), PS.index(COMMAND))
+        self.assertEqual(PS.count('Get-Content'), 1)  # no post-GET expectation refresh
+
+    def test_latest_only_selection_and_dynamic_nonempty_batch_bound(self):
+        selection = PS.split('if ($row.latest -eq $true) {', 1)[1].split('\n    }', 1)[0]
+        self.assertIn("@{name=[string]$row.assetName;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256}", selection)
+        self.assertIn('if (-not $selectedNames.Add($row.assetName)) { throw', selection)
+        self.assertIn('[StringComparer]::OrdinalIgnoreCase', PS)
+        self.assertLess(PS.index('$identities.Add'), PS.index('if ($row.latest -eq $true)'))
+        self.assertIn("if ($expected.Count -lt 1 -or $expected.Count -gt 1000) { throw", PS)
+        self.assertNotRegex(PS, r'(?:Count\s*-(?:eq|ne|gt|ge|lt|le)\s*(?:17|20)\b|ZIP_COUNT=17)')
+        self.assertLess(PS.index('$expected.Count -gt 1000'), PS.index(COMMAND))
+        self.assertNotRegex(PS, r'\$expected\s*=.*(?:originals|Intersect|Compare-Object)')
+
+    def test_mandatory_private_executable_and_real_cli_before_acceptance(self):
+        self.assertIn("$private=Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe'", PS)
+        self.assertIn("if (-not (Test-Path -LiteralPath $private -PathType Leaf)) { throw 'Mandatory private-built CLI EXE missing' }", PS)
+        self.assertEqual(PS.count(COMMAND), 1)
+        self.assertEqual(len(re.findall(r'^\s*& ', PS, re.M)), 1)
+        self.assertLess(PS.index('Mandatory private-built CLI EXE missing'), PS.index(COMMAND))
+        self.assertIn(COMMAND + '\n    $cliExit=$LASTEXITCODE\n    if ($cliExit -ne 0) {', PS)
+        self.assertLess(PS.index('throw "Actual private CLI provider GET failed (exit=$cliExit)"'), PS.index('$originals=@('))
+        self.assertLess(PS.index('$originals=@('), PS.index(PASS))
+        self.assertEqual(PS.count(PASS), 1)
+        self.assertNotRegex(PS, r'(?im)^\s*(?:exit\s+0|return)\b')
+        self.assertNotIn('$public', PS)
+        self.assertNotIn('$binaries', PS)
+
+    def test_full_exact_byte_and_unique_filename_verification(self):
+        for text in (
+            "$row.originalSha256 -cnotmatch '^[0-9a-f]{64}$'",
+            '$row.originalBytes -lt 4 -or $row.originalBytes -gt 67108864',
+            "Get-ChildItem -LiteralPath $dest -Recurse -File -Filter '*.zip'",
+            'if ($originals.Count -ne $expected.Count) {',
+            'throw "Original cohort completeness mismatch:',
+            'foreach ($pin in $expected)',
+            '$matches=@($originals | Where-Object {$_.Name -ceq $pin.name})',
+            'if ($matches.Count -ne 1) { throw',
+            'Get-FileHash -LiteralPath $original.FullName -Algorithm SHA256',
+            'if ($original.Length -ne $pin.bytes -or $hash -cne $pin.sha) {',
+            'throw "Original provider exact byte mismatch',
+            'ZIP_COUNT=$($expected.Count) PUBLISH=DENY MIRROR=DENY',
+        ):
+            self.assertIn(text, PS)
+            self.assertLess(PS.index(text), PS.index(PASS) if not text.startswith('ZIP_COUNT') else len(PS))
+
+    def test_tokens_removed_and_diagnostics_cannot_be_acceptance(self):
+        for token in ('GH_TOKEN', 'GITHUB_TOKEN'):
+            self.assertLess(PS.index('Remove-Item Env:' + token), PS.index(COMMAND))
+        failure = PS.split('if ($cliExit -ne 0) {', 1)[1].split('$originals=@(', 1)[0]
+        self.assertIn('ANON_CATALOG_HTTP_DIAGNOSTIC', failure)
+        self.assertIn('-TimeoutSec 10 -MaximumRedirection 0', failure)
+        self.assertIn('STATUS=UNAVAILABLE (DENY)', failure)
+        self.assertTrue(failure.rstrip().endswith('throw "Actual private CLI provider GET failed (exit=$cliExit)"\n    }'))
+        self.assertNotIn('=PASS', failure)
+        self.assertNotRegex(PS, r'(?i)authorization|bearer|\$env:(?:GH_TOKEN|GITHUB_TOKEN)')
+        for env in ('GITHUB_ACTIONS', 'GITHUB_REPOSITORY', 'GITHUB_EVENT_NAME', 'RUNNER_OS', 'GITHUB_WORKSPACE', 'RUNNER_TEMP'):
+            self.assertIn('$env:' + env, PS)
+        self.assertIn("throw 'Not a genuine disposable Catalog Windows workflow_run'", PS)
+
+    def test_cleanup_finishes_before_private_pass(self):
+        self.assertIn('} finally {', PS)
+        self.assertIn('Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction Stop', PS)
+        self.assertIn("throw 'Destination path still exists after Remove-Item'", PS)
+        self.assertIn('throw "Staging cleanup failed for private direct proof:', PS)
+        self.assertLess(PS.index('} finally {'), PS.index(PASS))
+        self.assertIn('SOURCE=external/direct-get.json CLI_KIND=private', PS)
+
+    def test_public_provenance_is_separate_and_never_public_direct_proof(self):
+        call = './scripts/issue112-public-original-get-e2e.ps1'
+        self.assertEqual(WF.count(call), 1)
+        self.assertLess(WF.index(call), WF.index('gh release download'))
+        self.assertIn('PUBLIC_DIRECT_GET=NOT_TESTED LEGACY_SIGNED_CONTRACT PROOF_SCOPE=PROVENANCE_VERSION_ONLY', WF)
+        self.assertIn('PUBLIC_CLI_BYTES_AND_SIGSTORE=PASS PROOF_SCOPE=PROVENANCE_VERSION_ONLY', WF)
+        self.assertNotIn('download-all', WF)
+        for text in ('PUBLIC_CLI_PROVENANCE=SKIPPED_NO_FORMAL_CLI_RELEASE',
+                     'PUBLIC_CLI_PROVENANCE=SKIPPED_PENDING_FORMAL_OWNER_RELEASE',
+                     "throw 'Public CLI independent Sigstore provenance verification failed'"):
+            self.assertIn(text, WF)
+
+    def test_retired_prerequisites_and_synthetic_or_publication_routes_absent(self):
+        for text in ('signed-direct-get/', 'issuerRunId', 'expiresAt', 'PublicOnly',
+                     'PIN_PROVIDER', 'RECOVERY_PUBLIC_ONLY', 'validate_public_get_pin.py',
+                     'external-get-admission.json', 'recovery=true'):
+            self.assertNotIn(text, WF + PS)
+        for text in ('workflow_dispatch:', 'pull_request_target:', 'schedule:',
+                     'repository_dispatch:', 'actions/download-artifact',
+                     'actions/upload-artifact', 'gh workflow run', 'gh release create',
+                     'gh release upload', 'contents: write', 'id-token: write',
+                     '--external-admission', '--external-bundle'):
+            self.assertNotIn(text, WF + PS)
+        # Historical archival validation is deliberately retained in general Validate.
+        self.assertIn('python scripts/validate_public_get_pin.py --catalog .',
+                      (ROOT / '.github/workflows/validate.yml').read_text())
 
 
-    def test_one_shot_public_recovery_never_broadens_issuer_or_replays_private(self):
-        workflow = (ROOT / ".github/workflows/issue112-external-public-get-e2e.yml").read_text()
-        script = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
-        # One genuine postmerge Validate, one immutable parent and exactly three
-        # reviewed recovery files. An ordinary later main commit cannot replay it.
-        self.assertIn('github.event.workflow_run.event == \'push\'', workflow)
-        self.assertIn('.committer.login=="web-flow"', workflow)
-        self.assertIn('.parents[0].sha=="eefae36c4209f0feced26d7b7759837118dadae6"', workflow)
-        self.assertIn('([.files[]?] | length)==3', workflow)
-        self.assertIn('AUTHENTIC_PUBLIC_ONLY_E2E_RECOVERY=PASS', workflow)
-        self.assertIn('repos/pgextwin/catalog/actions/runs/43192028928', workflow)
-        self.assertIn('ANON_GITHUB_METADATA_DIAGNOSTIC', script)
-        self.assertIn('if ($PublicOnly -and $binary.kind -ceq \'public\')', script)
-        self.assertIn('RECOVERY_PUBLIC_ONLY:', workflow)
-        self.assertIn('-PublicOnly', workflow)
-        self.assertIn('python scripts/validate_public_get_pin.py --catalog .', workflow)
-        self.assertNotIn('workflow_dispatch:', workflow)
-        self.assertNotIn('pull_request_target:', workflow)
-        self.assertIn('[switch]$PublicOnly', script)
-        self.assertIn("if ($PublicOnly) { throw 'Public E2E recovery DENY: original admission expired' }", script)
-        self.assertIn("$binaries=@(@{kind='public';path=$public})", script)
-        self.assertIn('Remove-Item Env:GH_TOKEN', script)
-        self.assertIn('Remove-Item Env:GITHUB_TOKEN', script)
-
-    def test_genuine_403_recovery_is_bounded_and_only_collects_anonymous_evidence(self):
-        workflow = (ROOT / ".github/workflows/issue112-external-public-get-e2e.yml").read_text()
-        script = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
-        source = (ROOT / "dotnet/src/PgExtWin.Releases/AuthenticatedCatalogHead.cs").read_text()
-        self.assertIn('.parents[0].sha=="c57b1a1a357461ea4ba6b0559e6d892af4fc2d23"', workflow)
-        self.assertIn('([.files[]?] | length)==5', workflow)
-        self.assertIn('repos/pgextwin/catalog/actions/runs/43343335451', workflow)
-        self.assertIn('.run_attempt==2', workflow)
-        self.assertIn('.id==131621144270', workflow)
-        self.assertIn('AUTHENTIC_ANONYMOUS_CATALOG_403_DIAGNOSTIC_RECOVERY=PASS', workflow)
-        self.assertIn('ANON_CATALOG_HTTP_DIAGNOSTIC', script)
-        self.assertIn("Remove-Item Env:GH_TOKEN", script)
-        self.assertIn("Remove-Item Env:GITHUB_TOKEN", script)
-        self.assertIn('TARGET=', source)
-        self.assertIn('RATE_REMAINING=', source)
-        self.assertIn('RATE_RESET=', source)
-        self.assertIn('RETRY_AFTER=', source)
-        self.assertNotIn('workflow_dispatch:', workflow)
-        self.assertNotIn('pull_request_target:', workflow)
-
-
-    def test_public_only_rate_limit_recovery_never_replays_private_bytes(self):
-        workflow = (ROOT / ".github/workflows/issue112-external-public-get-e2e.yml").read_text()
-        script = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
-        self.assertIn('.parents[0].sha=="5204f1df605b4aaa8d567e88fd7d7f3d19a4af1e"', workflow)
-        self.assertIn('([.files[]?] | length)==2', workflow)
-        self.assertIn('repos/pgextwin/catalog/actions/runs/43347204354', workflow)
-        self.assertIn('.id==131629451831', workflow)
-        self.assertIn('AUTHENTIC_PUBLIC_ONLY_RATE_LIMIT_RECOVERY=PASS', workflow)
-        self.assertIn('echo "recovery=true" >> "$GITHUB_OUTPUT"', workflow)
-        self.assertIn('RECOVERY_PUBLIC_ONLY: ${{ needs.authenticate-original-main.outputs.recovery }}', workflow)
-        self.assertIn("-PublicOnly", workflow)
-        self.assertIn("$binaries=@(@{kind='public';path=$public})", script)
-        self.assertIn("if ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))", script)
-        self.assertIn("Remove-Item Env:GH_TOKEN", script)
-        self.assertIn("Remove-Item Env:GITHUB_TOKEN", script)
-        self.assertNotIn("workflow_dispatch:", workflow)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

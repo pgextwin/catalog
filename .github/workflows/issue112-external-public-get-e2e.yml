@@ -1,10 +1,8 @@
 name: Issue112 real Windows original-provider GET-only E2E (no publication)
 
-# Only genuine protected-main Validate after an atomic signed admission, or
-# the single exact-parent public-only recovery after genuine original Run
-# 43192028928 reported 11/11 private PASS but anonymous public metadata 403,
-# or a bounded diagnosis of genuine Run 43343335451 attempt 2 anonymous 403.
-# Every GET still requires active owner-reviewed independent Sigstore admission.
+# Only genuine successful protected-main original-push attempt-1 Validate.
+# Relevant direct-path changes exercise an unpublished private Windows CLI.
+# Public EXE authentication is provenance/version evidence only, not direct GET proof.
 # Never runs on PR, synthetic push, dispatch, schedule or arbitrary artifacts.
 on:
   workflow_run:
@@ -27,10 +25,8 @@ jobs:
     timeout-minutes: 8
     outputs:
       source: ${{ steps.gate.outputs.source }}
-      provider: ${{ steps.gate.outputs.provider }}
-      recovery: ${{ steps.gate.outputs.recovery }}
     steps:
-      - name: Authenticate exact-main signed-admission merge or one-shot public E2E recovery
+      - name: Authenticate exact-main direct-path relevance after original Validate
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,135 +53,30 @@ jobs:
             .committer.login=="web-flow" and
             .commit.committer.email=="noreply@github.com"
           ' <<< "$commit" >/dev/null
-          # Original immutable signed cohort merge remains the normal entry.
-          if jq -e '
-            ([.files[]? | select(
+          # Match relevant added/modified paths; unrelated license/evidence files
+          # in the same merge do not disqualify a direct-path exercise.
+          if ! jq -e '
+            any(.files[]?;
               (.status=="added" or .status=="modified") and
-              .filename=="external/signed-direct-get/qualified_cohort/latest.json"
-            )] | length==1)
-            and
-            ([.files[]? | select(
-              .status=="added" and
-              (.filename | test("^external/signed-direct-get/qualified_cohort/run-[0-9]+/(external-get-admission|attestation)\\.json$"))
-            )] | length==2)
-            and
-            ([.files[]? | select(
-              .filename | startswith("external/signed-direct-get/")
-            )] | length==3)
-          ' <<< "$commit" >/dev/null; then
-            cohort="$(jq -r '.files[]? | select(.status=="added") | .filename |
-              select(test("^external/signed-direct-get/qualified_cohort/run-[0-9]+/(external-get-admission|attestation)\\.json$"))' <<< "$commit" |
-              sed -E 's#^external/signed-direct-get/([^/]+)/(run-[0-9]+)/.*#\1/\2#' | sort -u)"
-            if [ -z "$cohort" ] || [ "$(printf '%s\n' "$cohort" | wc -l)" -ne 1 ]; then
-              echo 'Invalid or mixed signed cohort, DENY'
-              exit 1
-            fi
-            provider="${cohort%%/*}"
-            case "$provider" in qualified_cohort) ;; *) exit 1 ;; esac
-            echo "AUTHENTIC_SIGNED_CATALOG_MAIN_POSTMERGE_VALIDATE=PASS SHA=$CATALOG_SHA"
-          elif jq -e '
-            # One new evidence-gathering recovery after genuine failed public E2E
-            # Run 43192028928; exactly three reviewed paths and exact parent.
-            # Never replay successful private 11/11 bytes or alter issuer scope.
-            (.parents | length)==1 and
-            .parents[0].sha=="eefae36c4209f0feced26d7b7759837118dadae6" and
-            ([.files[]?] | length)==3 and
-            ([.files[]? | select(.status=="modified") | .filename] | sort)==
-              ([
+              (.filename | IN(
+                "external/direct-get.json",
+                "dotnet/src/PgExtWin.Cli/Program.cs",
+                "dotnet/src/PgExtWin.Releases/ExternalSignedCatalogCohort.cs",
+                "dotnet/src/PgExtWin.Releases/ExternalProviderAssetTransport.cs",
+                "dotnet/src/PgExtWin.Releases/ExternalOriginalBatchStager.cs",
+                "dotnet/src/PgExtWin.Releases/AtomicOriginalBatchDirectory.cs",
+                "dotnet/src/PgExtWin.Releases/ExternalOriginalZipIntegrity.cs",
+                "dotnet/src/PgExtWin.Releases/AtomicStageGuard.cs",
                 ".github/workflows/issue112-external-public-get-e2e.yml",
-                "scripts/issue112-public-original-get-e2e.ps1",
-                "tests/test_issue112_public_original_get_e2e_guard.py"
-              ] | sort)
+                "scripts/issue112-public-original-get-e2e.ps1"
+              ))
+            )
           ' <<< "$commit" >/dev/null; then
-            # Recheck the real, failed public E2E before granting a one-shot
-            # postmerge diagnostic. Never accept a fabricated failure claim.
-            prior="$(gh api repos/pgextwin/catalog/actions/runs/43192028928)"
-            jq -e --arg sha "eefae36c4209f0feced26d7b7759837118dadae6" '
-              .id==43192028928 and .status=="completed" and
-              .conclusion=="failure" and .event=="workflow_run" and
-              .head_sha==$sha and .run_attempt==1 and
-              .repository.full_name=="pgextwin/catalog"
-            ' <<< "$prior" >/dev/null
-            prior_jobs="$(gh api repos/pgextwin/catalog/actions/runs/43192028928/jobs?per_page=100)"
-            jq -e '
-              any(.jobs[]; .name=="authenticate-original-main" and .conclusion=="success") and
-              any(.jobs[]; .name=="windows-real-original-get" and .conclusion=="failure")
-            ' <<< "$prior_jobs" >/dev/null
-            # Windows independently checks current signer, owner review, exact
-            # pins, Sigstore and expiry. PUBLIC CLI only; no issuance or mirror.
-            provider="qualified_cohort"
-            echo "recovery=true" >> "$GITHUB_OUTPUT"
-            echo "AUTHENTIC_PUBLIC_ONLY_E2E_RECOVERY=PASS SHA=$CATALOG_SHA"
-          elif jq -e '
-            # Single genuine protected-main postmerge diagnostic of the
-            # observed anonymous 403. No fake event, issuer or download grant.
-            # It is reachable only from this exact parent and these five files.
-            (.parents | length)==1 and
-            .parents[0].sha=="c57b1a1a357461ea4ba6b0559e6d892af4fc2d23" and
-            ([.files[]?] | length)==5 and
-            ([.files[]? | select(.status=="modified") | .filename] | sort)==
-              ([
-                ".github/workflows/issue112-external-public-get-e2e.yml",
-                "scripts/issue112-public-original-get-e2e.ps1",
-                "dotnet/src/PgExtWin.Releases/AuthenticatedCatalogHead.cs",
-                "dotnet/tests/PgExtWin.Contract.Tests/AuthenticatedCatalogHeadTests.cs",
-                "tests/test_issue112_public_original_get_e2e_guard.py"
-              ] | sort)
-          ' <<< "$commit" >/dev/null; then
-            prior="$(gh api repos/pgextwin/catalog/actions/runs/43343335451)"
-            jq -e --arg sha "c57b1a1a357461ea4ba6b0559e6d892af4fc2d23" '
-              .id==43343335451 and .status=="completed" and
-              .conclusion=="failure" and .event=="workflow_run" and
-              .head_sha==$sha and .run_attempt==2 and
-              .repository.full_name=="pgextwin/catalog"
-            ' <<< "$prior" >/dev/null
-            prior_jobs="$(gh api repos/pgextwin/catalog/actions/runs/43343335451/jobs?per_page=100)"
-            jq -e '
-              any(.jobs[]; .id==131621144270 and
-                .name=="windows-real-original-get" and .conclusion=="failure") and
-              any(.jobs[]; .name=="authenticate-original-main" and .conclusion=="success")
-            ' <<< "$prior_jobs" >/dev/null
-            # Windows still requires a nonexpired owner-signed admission,
-            # current main, independent Sigstore and actual original bytes.
-            provider="qualified_cohort"
-            echo "AUTHENTIC_ANONYMOUS_CATALOG_403_DIAGNOSTIC_RECOVERY=PASS SHA=$CATALOG_SHA"
-          elif jq -e '
-            # The earlier genuine E2E downloaded 11/11 with the private CLI;
-            # its public CLI then hit the shared anonymous REST quota (0/60).
-            # Test ONLY the public CLI, never repeat successful private GET.
-            # One protected main commit, exact parent and two reviewed files.
-            (.parents | length)==1 and
-            .parents[0].sha=="5204f1df605b4aaa8d567e88fd7d7f3d19a4af1e" and
-            ([.files[]?] | length)==2 and
-            ([.files[]? | select(.status=="modified") | .filename] | sort)==
-              ([
-                ".github/workflows/issue112-external-public-get-e2e.yml",
-                "tests/test_issue112_public_original_get_e2e_guard.py"
-              ] | sort)
-          ' <<< "$commit" >/dev/null; then
-            prior="$(gh api repos/pgextwin/catalog/actions/runs/43347204354)"
-            jq -e --arg sha "5204f1df605b4aaa8d567e88fd7d7f3d19a4af1e" '
-              .id==43347204354 and .status=="completed" and
-              .conclusion=="failure" and .event=="workflow_run" and
-              .head_sha==$sha and .run_attempt==1 and
-              .repository.full_name=="pgextwin/catalog"
-            ' <<< "$prior" >/dev/null
-            prior_jobs="$(gh api repos/pgextwin/catalog/actions/runs/43347204354/jobs?per_page=100)"
-            jq -e '
-              any(.jobs[]; .id==131629451831 and
-                .name=="windows-real-original-get" and .conclusion=="failure") and
-              any(.jobs[]; .name=="authenticate-original-main" and .conclusion=="success")
-            ' <<< "$prior_jobs" >/dev/null
-            provider="qualified_cohort"
-            echo "recovery=true" >> "$GITHUB_OUTPUT"
-            echo "AUTHENTIC_PUBLIC_ONLY_RATE_LIMIT_RECOVERY=PASS SHA=$CATALOG_SHA"
-          else
-            echo 'NO_ATOMIC_SIGNED_CATALOG_LATEST_PIN_UPDATE; no provider GET'
+            echo 'NO_DIRECT_PATH_CHANGE; DIRECT_E2E=NOT_TESTED; no provider GET'
             exit 0
           fi
-          echo "provider=$provider" >> "$GITHUB_OUTPUT"
           echo "source=$CATALOG_SHA" >> "$GITHUB_OUTPUT"
-          echo "AUTHENTIC_LIVE_ORIGINAL_GET_GATE=PASS SHA=$CATALOG_SHA"
+          echo "AUTHENTIC_DIRECT_PATH_GET_GATE=PASS SHA=$CATALOG_SHA"
 
   windows-real-original-get:
     needs: authenticate-original-main
@@ -200,14 +91,6 @@ jobs:
         with:
           ref: ${{ needs.authenticate-original-main.outputs.source }}
           persist-credentials: false
-      - name: Independently verify public signed metadata, issuer and owner review
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $ErrorActionPreference='Stop'
-          python scripts/validate_public_get_pin.py --catalog .
-          if ($LASTEXITCODE -ne 0) { throw 'Public signed original GET-only admission verification failed' }
       - name: Set up pinned .NET SDK
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
@@ -219,7 +102,13 @@ jobs:
           $folder=Join-Path $env:RUNNER_TEMP 'issue112-private-cli'
           dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=11.0.0 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false --output $folder --nologo
           if ($LASTEXITCODE -ne 0 -or !(Test-Path (Join-Path $folder 'pgextwin.exe'))) { throw 'Private Windows CLI build missing' }
-      - name: Independently authenticate the published versioned Windows CLI
+      - name: Prove private direct-path provider bytes with the actual CLI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Write-Output 'PUBLIC_DIRECT_GET=NOT_TESTED LEGACY_SIGNED_CONTRACT PROOF_SCOPE=PROVENANCE_VERSION_ONLY'
+          ./scripts/issue112-public-original-get-e2e.ps1
+      - name: Authenticate public Windows CLI provenance/version evidence only
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -227,7 +116,7 @@ jobs:
           $ErrorActionPreference='Stop'
           $policy=Get-Content config/cli-external-get-formal-publisher-v1.json -Raw | ConvertFrom-Json
           if ($policy.publishAuthorized -ne $true) {
-            Write-Output 'PUBLIC_CLI_ORIGINAL_GET=SKIPPED_NO_FORMAL_CLI_RELEASE'
+            Write-Output 'PUBLIC_CLI_PROVENANCE=SKIPPED_NO_FORMAL_CLI_RELEASE'
             exit 0
           }
           $project=[xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)
@@ -239,7 +128,7 @@ jobs:
           $releaseJson=gh api "repos/pgextwin/catalog/releases/tags/$tag" 2> $releaseError
           if ($LASTEXITCODE -ne 0) {
             if ((Get-Content $releaseError -Raw) -match 'HTTP 404') {
-              Write-Output 'PUBLIC_CLI_ORIGINAL_GET=SKIPPED_PENDING_FORMAL_OWNER_RELEASE'
+              Write-Output 'PUBLIC_CLI_PROVENANCE=SKIPPED_PENDING_FORMAL_OWNER_RELEASE'
               exit 0
             }
             throw 'CLI Release lookup failed'
@@ -276,17 +165,4 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or @(($proof | ConvertFrom-Json)).Count -lt 1) {
             throw 'Public CLI independent Sigstore provenance verification failed'
           }
-          Write-Output "PUBLIC_CLI_BYTES_AND_SIGSTORE=PASS VERSION=$version SHA256=$actual SOURCE=$source"
-      - name: Run exact provider original source bytes GET and atomic CLI E2E
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PIN_PROVIDER: ${{ needs.authenticate-original-main.outputs.provider }}
-          RECOVERY_PUBLIC_ONLY: ${{ needs.authenticate-original-main.outputs.recovery }}
-        run: |
-          $ErrorActionPreference='Stop'
-          if ($env:RECOVERY_PUBLIC_ONLY -ceq 'true') {
-            ./scripts/issue112-public-original-get-e2e.ps1 -Source $env:PIN_PROVIDER -PublicOnly
-          } else {
-            ./scripts/issue112-public-original-get-e2e.ps1 -Source $env:PIN_PROVIDER
-          }
+          Write-Output "PUBLIC_CLI_BYTES_AND_SIGSTORE=PASS PROOF_SCOPE=PROVENANCE_VERSION_ONLY VERSION=$version SHA256=$actual SOURCE=$source"

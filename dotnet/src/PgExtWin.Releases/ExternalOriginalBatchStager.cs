@@ -2,9 +2,8 @@ namespace PgExtWin.Releases;
 
 /// <summary>
 /// Nonpublishing external original ZIP batch engine. The caller must first
-/// establish independent signed Catalog admission; this internal type does
-/// NOT authenticate caller-supplied pins. The CLI reaches it only through the
-/// current Catalog latest-pin resolver and signed-admission verifier.
+/// select license-reviewed Catalog byte pins (or historical signed admission).
+/// This internal type does not authenticate caller-supplied pins.
 /// </summary>
 internal static class ExternalOriginalBatchStager
 {
@@ -154,7 +153,8 @@ internal static class ExternalOriginalBatchStager
             ExternalProviderAssetTransport.ValidatePin(pin);
             if (pgSelection != "all" && pin.PgMajor != pgSelection)
                 throw new InvalidDataException("Unrequested external PostgreSQL major");
-            if (!identities.Add(pin.SourceRepo + ":" + pin.ReleaseId + ":" + pin.AssetId) ||
+            if (!identities.Add(ExternalProviderAssetTransport.IsCybertec(pin) ? pin.OriginalProviderUrl
+                    : pin.SourceRepo + ":" + pin.ReleaseId + ":" + pin.AssetId) ||
                 !destinations.Add("pg" + pin.PgMajor + "/" + pin.Extension + "/" +
                     pin.AssetName))
                 throw new InvalidDataException("Duplicate external original asset or destination");

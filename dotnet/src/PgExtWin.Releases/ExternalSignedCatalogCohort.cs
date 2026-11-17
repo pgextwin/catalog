@@ -7,13 +7,15 @@ using PgExtWin.Core;
 namespace PgExtWin.Releases;
 
 /// <summary>
-/// Resolve the Catalog's explicit latest external-original pin set from an
-/// authenticated protected-main snapshot. The pointer chooses current source
-/// versions; its exact admission digest and identities must match an owner-
-/// signed Build subject before any provider GET can occur.
+/// External Catalog selection and bulk staging. Direct GET uses license-reviewed
+/// version records; the historical signed-admission resolver remains available.
 /// </summary>
 public static class ExternalSignedCatalogCohort
 {
+    private const string DirectPath = "external/direct-get.json";
+    private static readonly Uri DirectUrl = new(
+        "https://raw.githubusercontent.com/pgextwin/catalog/main/" + DirectPath);
+
     private const string LatestPath =
         "external/signed-direct-get/qualified_cohort/latest.json";
     private const string RunRoot = "external/signed-direct-get/qualified_cohort/";
@@ -61,7 +63,7 @@ public static class ExternalSignedCatalogCohort
         if (url.Scheme != Uri.UriSchemeHttps || url.Port != 443 ||
             !string.IsNullOrEmpty(url.UserInfo) || !string.IsNullOrEmpty(url.Fragment) ||
             url.Host != "raw.githubusercontent.com" ||
-            !Regex.IsMatch(url.AbsolutePath,
+            url != DirectUrl && !Regex.IsMatch(url.AbsolutePath,
                 @"\A/pgextwin/catalog/[0-9a-f]{40}/external/signed-direct-get/qualified_cohort/(?:latest\.json|run-[1-9][0-9]{0,14}/(?:external-get-admission|attestation)\.json)\z",
                 RegexOptions.CultureInvariant))
             throw new InvalidDataException("Unapproved Catalog external HTTPS request");
@@ -71,13 +73,13 @@ public static class ExternalSignedCatalogCohort
             request, HttpCompletionOption.ResponseHeadersRead, token);
         if (response.StatusCode != HttpStatusCode.OK)
             throw new HttpRequestException(
-                "Immutable Catalog latest external pin unavailable (HTTP " +
+                "Catalog external records unavailable (HTTP " +
                 (int)response.StatusCode + ")");
         if (response.Content.Headers.ContentLength is long size &&
             size is <= 0 or > MaxMetadataBytes)
             throw new InvalidDataException("Oversized or empty Catalog external proof");
         if (response.Content.Headers.ContentType?.MediaType == "text/html")
-            throw new InvalidDataException("Catalog returned HTML instead of signed metadata");
+            throw new InvalidDataException("Catalog returned HTML instead of external records");
         await using var stream = await response.Content.ReadAsStreamAsync(token);
         using var output = new MemoryStream();
         var block = new byte[16384];
@@ -132,6 +134,76 @@ public static class ExternalSignedCatalogCohort
             output.Write(block, 0, count);
         }
         return output.ToArray();
+    }
+
+    // External policy (2026-11-17): reviewed exact-version license + byte pins,
+    // direct provider GET. No Build admission, Sigstore or native-feed trust path.
+    public static async Task<BatchReleaseDownloader.BatchResult> StageDirectAsync(
+        string pgSelection, string outputParent, CancellationToken token = default,
+        HttpMessageHandler? handler = null,
+        string? requestedExtension = null, string? requestedVersion = null)
+    {
+        if (!Directory.Exists(outputParent))
+            throw new DirectoryNotFoundException("External batch output directory missing");
+        using var owned = handler is null ? new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false,
+            AutomaticDecompression = DecompressionMethods.None
+        } : null;
+        var sharedHandler = handler ?? owned!;
+        using var http = new HttpClient(sharedHandler, disposeHandler: false)
+        { Timeout = TimeSpan.FromMinutes(3) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("pgextwin-external-direct-get/1");
+        var records = await ReadAsync(http, DirectUrl, token);
+        var pins = SelectDirect(records, pgSelection, requestedExtension, requestedVersion);
+        using var transport = new ExternalProviderAssetTransport(sharedHandler);
+        return await ExternalOriginalBatchStager.StageAsync(pins, pgSelection,
+            outputParent, transport.DownloadAsync, token);
+    }
+
+    internal static IReadOnlyList<ExternalOriginalPin> SelectDirect(byte[] records,
+        string pgSelection, string? requestedExtension = null, string? requestedVersion = null)
+    {
+        if (pgSelection is not ("15" or "16" or "17" or "18" or "all") ||
+            requestedVersion is not null && requestedExtension is null)
+            throw new InvalidDataException("Expected PG15–18/all and an extension for --version");
+        using var doc = StrictJson.Parse(records);
+        var root = doc.RootElement;
+        if (root.GetProperty("schemaVersion").GetString() != "pgextwin-external-direct-get/v1")
+            throw new InvalidDataException("Invalid external direct GET records");
+        var selected = new List<ExternalOriginalPin>();
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in root.GetProperty("records").EnumerateArray())
+        {
+            string Text(string key) => row.GetProperty(key).GetString()
+                ?? throw new InvalidDataException("Missing external record " + key);
+            var version = Text("upstreamVersion");
+            // These fields record the exact-version license review; candidate-only
+            // discovery and historical signed-admission files are never inputs here.
+            if (string.IsNullOrWhiteSpace(version) ||
+                string.IsNullOrWhiteSpace(Text("license")) ||
+                row.GetProperty("licenseEvidence").GetArrayLength() == 0)
+                throw new InvalidDataException("Missing exact-version license evidence");
+            var pin = new ExternalOriginalPin(Text("extension"), Text("pgMajor"),
+                Text("sourceRepo"), row.GetProperty("repositoryId").GetInt64(),
+                Text("releaseTag"), row.GetProperty("releaseId").GetInt64(),
+                Text("assetName"), row.GetProperty("assetId").GetInt64(),
+                row.GetProperty("originalBytes").GetInt64(), Text("originalSha256"),
+                Text("originalProviderUrl"));
+            ExternalProviderAssetTransport.ValidatePin(pin);
+            if (pin.PgMajor is not ("15" or "16" or "17" or "18") ||
+                !identities.Add(pin.Extension + ":" + pin.PgMajor + ":" + version))
+                throw new InvalidDataException("Duplicate or out-of-scope external record");
+            if ((pgSelection == "all" || pin.PgMajor == pgSelection) &&
+                (requestedExtension is null || pin.Extension == requestedExtension) &&
+                (requestedVersion is null ? row.GetProperty("latest").GetBoolean()
+                    : version == requestedVersion))
+                selected.Add(pin);
+        }
+        if (selected.Count == 0)
+            throw new InvalidDataException("No external binary for the requested extension/version/PG major");
+        return selected;
     }
 
     public static async Task<BatchReleaseDownloader.BatchResult> StageLatestVerifiedAsync(

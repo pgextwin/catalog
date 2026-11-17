@@ -1,0 +1,436 @@
+{
+  "schemaVersion": "pgextwin-external-direct-get/v1",
+  "records": [
+    {
+      "assetId": 442625869,
+      "assetName": "oracle_fdw-2.9.0-pg15-win64.zip",
+      "extension": "oracle_fdw",
+      "originalBytes": 363671,
+      "originalProviderUrl": "https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg15-win64.zip",
+      "originalSha256": "3894a25a80cf2d3ac672894ba5cbcbc11c9533ad72cd25d31235285b73182f7a",
+      "pgMajor": "15",
+      "releaseId": 335861225,
+      "releaseTag": "ORACLE_FDW_2_9_0",
+      "repositoryId": 14332609,
+      "sourceRepo": "laurenz/oracle_fdw",
+      "upstreamVersion": "2.9.0",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE",
+          "sha256": "2f370883dd4b98d73835a1dcada925d03917a1fa5dfdc8e99d4f166e2e384174",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 442625866,
+      "assetName": "oracle_fdw-2.9.0-pg16-win64.zip",
+      "extension": "oracle_fdw",
+      "originalBytes": 365436,
+      "originalProviderUrl": "https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg16-win64.zip",
+      "originalSha256": "b9e8826d11c794c03bd49874100712f2ee446a01294b4c1d3632053bbaee8290",
+      "pgMajor": "16",
+      "releaseId": 335861225,
+      "releaseTag": "ORACLE_FDW_2_9_0",
+      "repositoryId": 14332609,
+      "sourceRepo": "laurenz/oracle_fdw",
+      "upstreamVersion": "2.9.0",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE",
+          "sha256": "2f370883dd4b98d73835a1dcada925d03917a1fa5dfdc8e99d4f166e2e384174",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 442625846,
+      "assetName": "oracle_fdw-2.9.0-pg17-win64.zip",
+      "extension": "oracle_fdw",
+      "originalBytes": 371386,
+      "originalProviderUrl": "https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg17-win64.zip",
+      "originalSha256": "a67d0582e855ef5a1099039528cfdfd25b7e31938dab29c5bfb0366d0a368fc7",
+      "pgMajor": "17",
+      "releaseId": 335861225,
+      "releaseTag": "ORACLE_FDW_2_9_0",
+      "repositoryId": 14332609,
+      "sourceRepo": "laurenz/oracle_fdw",
+      "upstreamVersion": "2.9.0",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE",
+          "sha256": "2f370883dd4b98d73835a1dcada925d03917a1fa5dfdc8e99d4f166e2e384174",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 442625860,
+      "assetName": "oracle_fdw-2.9.0-pg18-win64.zip",
+      "extension": "oracle_fdw",
+      "originalBytes": 365101,
+      "originalProviderUrl": "https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg18-win64.zip",
+      "originalSha256": "ad1fc057888b89f968de34f14bd7088c2b05d674a8df4b40ba47ed772c317678",
+      "pgMajor": "18",
+      "releaseId": 335861225,
+      "releaseTag": "ORACLE_FDW_2_9_0",
+      "repositoryId": 14332609,
+      "sourceRepo": "laurenz/oracle_fdw",
+      "upstreamVersion": "2.9.0",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE",
+          "sha256": "2f370883dd4b98d73835a1dcada925d03917a1fa5dfdc8e99d4f166e2e384174",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 661612214,
+      "assetName": "vector.v0.8.7-pg15.zip",
+      "extension": "pgvector",
+      "originalBytes": 174667,
+      "originalProviderUrl": "https://github.com/andreiramani/pgvector_pgsql_windows/releases/download/0.8.7/vector.v0.8.7-pg15.zip",
+      "originalSha256": "33562f2d2bab702a7d6f68b7d53c98e52480eb039c6635164d6b4cfcfdf40cc9",
+      "pgMajor": "15",
+      "releaseId": 419235203,
+      "releaseTag": "0.8.7",
+      "repositoryId": 838202416,
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "upstreamVersion": "0.8.7",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/pgvector/pgvector/blob/v0.8.7/LICENSE",
+          "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 661612305,
+      "assetName": "vector.v0.8.7-pg16.zip",
+      "extension": "pgvector",
+      "originalBytes": 174594,
+      "originalProviderUrl": "https://github.com/andreiramani/pgvector_pgsql_windows/releases/download/0.8.7/vector.v0.8.7-pg16.zip",
+      "originalSha256": "69dee8f237966a5b87ec109ec8ed619613432940a8e6150a1d0da627fc0f2f7e",
+      "pgMajor": "16",
+      "releaseId": 419235203,
+      "releaseTag": "0.8.7",
+      "repositoryId": 838202416,
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "upstreamVersion": "0.8.7",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/pgvector/pgvector/blob/v0.8.7/LICENSE",
+          "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 661612406,
+      "assetName": "vector.v0.8.7-pg17.zip",
+      "extension": "pgvector",
+      "originalBytes": 174653,
+      "originalProviderUrl": "https://github.com/andreiramani/pgvector_pgsql_windows/releases/download/0.8.7/vector.v0.8.7-pg17.zip",
+      "originalSha256": "acd9d678200e856623f0b7416f6f5d132ef8606a2273ff37f0fdf8a7f2c5d7d2",
+      "pgMajor": "17",
+      "releaseId": 419235203,
+      "releaseTag": "0.8.7",
+      "repositoryId": 838202416,
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "upstreamVersion": "0.8.7",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/pgvector/pgvector/blob/v0.8.7/LICENSE",
+          "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 661612613,
+      "assetName": "vector.v0.8.7-pg18.zip",
+      "extension": "pgvector",
+      "originalBytes": 174796,
+      "originalProviderUrl": "https://github.com/andreiramani/pgvector_pgsql_windows/releases/download/0.8.7/vector.v0.8.7-pg18.zip",
+      "originalSha256": "7c4ae0e2b2cb1e547779209a34a7d3f05b82fd7912818bf3d7042266eda87e7d",
+      "pgMajor": "18",
+      "releaseId": 419235203,
+      "releaseTag": "0.8.7",
+      "repositoryId": 838202416,
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "upstreamVersion": "0.8.7",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/pgvector/pgvector/blob/v0.8.7/LICENSE",
+          "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 616203967,
+      "assetName": "pg_trickle-0.108.3-pg18-windows-amd64.zip",
+      "extension": "pg_trickle",
+      "originalBytes": 7029107,
+      "originalProviderUrl": "https://github.com/trickle-labs/pg-trickle/releases/download/v0.108.3/pg_trickle-0.108.3-pg18-windows-amd64.zip",
+      "originalSha256": "c2841dacee6fa1a09400c7e9a0f74159f2b7f36847a60ef10291d1beb06bd96b",
+      "pgMajor": "18",
+      "releaseId": 404988260,
+      "releaseTag": "v0.108.3",
+      "repositoryId": 1164857056,
+      "sourceRepo": "trickle-labs/pg-trickle",
+      "upstreamVersion": "0.108.3",
+      "license": "Apache-2.0",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/trickle-labs/pg-trickle/blob/v0.108.3/LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "extension": "pglogical",
+      "pgMajor": "15",
+      "upstreamVersion": "2.4.8",
+      "latest": true,
+      "sourceRepo": "semihkiroglu/pglogical-windows",
+      "repositoryId": 1324318750,
+      "releaseTag": "2.4.8-w1",
+      "releaseId": 381578857,
+      "assetName": "pglogical-2.4.8-pg15-w1-x64.zip",
+      "assetId": 541766450,
+      "originalBytes": 176749,
+      "originalSha256": "ff60107d6adef9a5b61dc2b78214f8ac9831a8df8f230a9cd9c90e7f7d3ebef2",
+      "originalProviderUrl": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg15-w1-x64.zip",
+      "license": "PostgreSQL",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/2ndQuadrant/pglogical/blob/9a0e182745885ad0152ea387988c95a483396a81/COPYRIGHT",
+          "file": "COPYRIGHT",
+          "sha256": "24cfc70cf16b3a23242c49ffce39510683bdd48cbedb8a46fe03976ee5f5c21e"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/LICENSE",
+          "file": "LICENSE",
+          "sha256": "ac0c2237212c6c82ac6fcb25a26e2728dbb27824452df19e504b0b9c36e50fc3"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/THIRD_PARTY_NOTICES.md",
+          "file": "THIRD_PARTY_NOTICES.md",
+          "sha256": "8ef0d4b04ee2241aacbd5dca4a72fc2ad195760ec169b01676cdb7f035ab7efb"
+        }
+      ]
+    },
+    {
+      "extension": "pg_crash",
+      "pgMajor": "15",
+      "upstreamVersion": "0.3",
+      "latest": true,
+      "sourceRepo": "cybertec-postgresql/pg_crash",
+      "repositoryId": 0,
+      "releaseTag": "v0.3",
+      "releaseId": 0,
+      "assetName": "pg_crash-15-public-v0.3-1.zip",
+      "assetId": 0,
+      "originalBytes": 44130,
+      "originalSha256": "161401c96ffe585ca51f80a0c7d88f2af1796ee3e39c02d064fd0dce04d524f0",
+      "originalProviderUrl": "https://repository.cybertec.at/windows/public/15/extension/pg_crash-15-public-v0.3-1.zip",
+      "license": "BSD-3-Clause",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/cybertec-postgresql/pg_crash/blob/1f261763895e94cabe3c5005d7a95093a7c58381/LICENSE",
+          "file": "LICENSE",
+          "sha256": "2f46c1fb5f198a51b9b0e11986ac92a605543d42c41d872823765f59fedfef3e"
+        }
+      ]
+    },
+    {
+      "extension": "pglogical",
+      "pgMajor": "16",
+      "upstreamVersion": "2.4.8",
+      "latest": true,
+      "sourceRepo": "semihkiroglu/pglogical-windows",
+      "repositoryId": 1324318750,
+      "releaseTag": "2.4.8-w1",
+      "releaseId": 381578857,
+      "assetName": "pglogical-2.4.8-pg16-w1-x64.zip",
+      "assetId": 541766449,
+      "originalBytes": 176275,
+      "originalSha256": "be599b6d3171cbb4d12d26bab51f909cb179af3ad7b4b6768c5fb89f4dec1157",
+      "originalProviderUrl": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg16-w1-x64.zip",
+      "license": "PostgreSQL",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/2ndQuadrant/pglogical/blob/9a0e182745885ad0152ea387988c95a483396a81/COPYRIGHT",
+          "file": "COPYRIGHT",
+          "sha256": "24cfc70cf16b3a23242c49ffce39510683bdd48cbedb8a46fe03976ee5f5c21e"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/LICENSE",
+          "file": "LICENSE",
+          "sha256": "ac0c2237212c6c82ac6fcb25a26e2728dbb27824452df19e504b0b9c36e50fc3"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/THIRD_PARTY_NOTICES.md",
+          "file": "THIRD_PARTY_NOTICES.md",
+          "sha256": "8ef0d4b04ee2241aacbd5dca4a72fc2ad195760ec169b01676cdb7f035ab7efb"
+        }
+      ]
+    },
+    {
+      "extension": "pg_crash",
+      "pgMajor": "16",
+      "upstreamVersion": "0.3",
+      "latest": true,
+      "sourceRepo": "cybertec-postgresql/pg_crash",
+      "repositoryId": 0,
+      "releaseTag": "v0.3",
+      "releaseId": 0,
+      "assetName": "pg_crash-16-public-v0.3-1.zip",
+      "assetId": 0,
+      "originalBytes": 44275,
+      "originalSha256": "94da1cd1acbe2f146bdb2233a27f2e5a69a1ea5a604bf97575d8c7994f2547c5",
+      "originalProviderUrl": "https://repository.cybertec.at/windows/public/16/extension/pg_crash-16-public-v0.3-1.zip",
+      "license": "BSD-3-Clause",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/cybertec-postgresql/pg_crash/blob/1f261763895e94cabe3c5005d7a95093a7c58381/LICENSE",
+          "file": "LICENSE",
+          "sha256": "2f46c1fb5f198a51b9b0e11986ac92a605543d42c41d872823765f59fedfef3e"
+        }
+      ]
+    },
+    {
+      "extension": "pglogical",
+      "pgMajor": "17",
+      "upstreamVersion": "2.4.8",
+      "latest": true,
+      "sourceRepo": "semihkiroglu/pglogical-windows",
+      "repositoryId": 1324318750,
+      "releaseTag": "2.4.8-w1",
+      "releaseId": 381578857,
+      "assetName": "pglogical-2.4.8-pg17-w1-x64.zip",
+      "assetId": 541766446,
+      "originalBytes": 176170,
+      "originalSha256": "3cba8b233db52835ca62586d337132c816c42237151716e57dfa28a860633d7b",
+      "originalProviderUrl": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg17-w1-x64.zip",
+      "license": "PostgreSQL",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/2ndQuadrant/pglogical/blob/9a0e182745885ad0152ea387988c95a483396a81/COPYRIGHT",
+          "file": "COPYRIGHT",
+          "sha256": "24cfc70cf16b3a23242c49ffce39510683bdd48cbedb8a46fe03976ee5f5c21e"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/LICENSE",
+          "file": "LICENSE",
+          "sha256": "ac0c2237212c6c82ac6fcb25a26e2728dbb27824452df19e504b0b9c36e50fc3"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/THIRD_PARTY_NOTICES.md",
+          "file": "THIRD_PARTY_NOTICES.md",
+          "sha256": "8ef0d4b04ee2241aacbd5dca4a72fc2ad195760ec169b01676cdb7f035ab7efb"
+        }
+      ]
+    },
+    {
+      "extension": "pg_crash",
+      "pgMajor": "17",
+      "upstreamVersion": "0.3",
+      "latest": true,
+      "sourceRepo": "cybertec-postgresql/pg_crash",
+      "repositoryId": 0,
+      "releaseTag": "v0.3",
+      "releaseId": 0,
+      "assetName": "pg_crash-17-public-v0.3-1.zip",
+      "assetId": 0,
+      "originalBytes": 34325,
+      "originalSha256": "808f56bd6c4bf3bc3e526ad5c971535a01fd7909ba71ff7b4dc2359f22590358",
+      "originalProviderUrl": "https://repository.cybertec.at/windows/public/17/extension/pg_crash-17-public-v0.3-1.zip",
+      "license": "BSD-3-Clause",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/cybertec-postgresql/pg_crash/blob/1f261763895e94cabe3c5005d7a95093a7c58381/LICENSE",
+          "file": "LICENSE",
+          "sha256": "2f46c1fb5f198a51b9b0e11986ac92a605543d42c41d872823765f59fedfef3e"
+        }
+      ]
+    },
+    {
+      "extension": "pglogical",
+      "pgMajor": "18",
+      "upstreamVersion": "2.4.8",
+      "latest": true,
+      "sourceRepo": "semihkiroglu/pglogical-windows",
+      "repositoryId": 1324318750,
+      "releaseTag": "2.4.8-w1",
+      "releaseId": 381578857,
+      "assetName": "pglogical-2.4.8-pg18-w1-x64.zip",
+      "assetId": 541766448,
+      "originalBytes": 176460,
+      "originalSha256": "1f69a4528b506a1bda01b8171f83d44268bbefe08b0adab49e00788c26d52eb3",
+      "originalProviderUrl": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg18-w1-x64.zip",
+      "license": "PostgreSQL",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/2ndQuadrant/pglogical/blob/9a0e182745885ad0152ea387988c95a483396a81/COPYRIGHT",
+          "file": "COPYRIGHT",
+          "sha256": "24cfc70cf16b3a23242c49ffce39510683bdd48cbedb8a46fe03976ee5f5c21e"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/LICENSE",
+          "file": "LICENSE",
+          "sha256": "ac0c2237212c6c82ac6fcb25a26e2728dbb27824452df19e504b0b9c36e50fc3"
+        },
+        {
+          "url": "https://github.com/semihkiroglu/pglogical-windows/blob/98f8f67e5c3b963cbd93ef452ecf456d880bbfc4/THIRD_PARTY_NOTICES.md",
+          "file": "THIRD_PARTY_NOTICES.md",
+          "sha256": "8ef0d4b04ee2241aacbd5dca4a72fc2ad195760ec169b01676cdb7f035ab7efb"
+        }
+      ]
+    },
+    {
+      "extension": "pg_crash",
+      "pgMajor": "18",
+      "upstreamVersion": "0.3",
+      "latest": true,
+      "sourceRepo": "cybertec-postgresql/pg_crash",
+      "repositoryId": 0,
+      "releaseTag": "v0.3",
+      "releaseId": 0,
+      "assetName": "pg_crash-18-public-v0.3-1.zip",
+      "assetId": 0,
+      "originalBytes": 34331,
+      "originalSha256": "37b9dbb8e38500efd9264656decb3a60eaf984c50fc7e67b36b61652e7605cb7",
+      "originalProviderUrl": "https://repository.cybertec.at/windows/public/18/extension/pg_crash-18-public-v0.3-1.zip",
+      "license": "BSD-3-Clause",
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/cybertec-postgresql/pg_crash/blob/1f261763895e94cabe3c5005d7a95093a7c58381/LICENSE",
+          "file": "LICENSE",
+          "sha256": "2f46c1fb5f198a51b9b0e11986ac92a605543d42c41d872823765f59fedfef3e"
+        }
+      ]
+    }
+  ]
+}

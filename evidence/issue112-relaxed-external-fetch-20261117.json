@@ -1,0 +1,948 @@
+{
+  "policy": "RELAXED_EXTERNAL_2026_11_17",
+  "observedAt": "2026-11-17",
+  "sources": [
+    {
+      "repository": "2ndQuadrant/pglogical",
+      "tag": "REL2_4_8",
+      "commit": "9a0e182745885ad0152ea387988c95a483396a81",
+      "files": [
+        {
+          "path": "COPYRIGHT",
+          "gitBlob": "33e6e4842ad64dd89d351c84454059daed61ff56",
+          "sha256": "24cfc70cf16b3a23242c49ffce39510683bdd48cbedb8a46fe03976ee5f5c21e",
+          "bytes": 1192
+        },
+        {
+          "path": "Makefile",
+          "gitBlob": "13b9bf28f73ec0aa940ee401c19b3fdb25b1e3de",
+          "sha256": "ea718c3ca5d6e8e421990135428a3c4c49e6463e0fe05be0cfa4d05e234210b7",
+          "bytes": 10965
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "0e01b4308c1424d861f0af570038bfd5209c0691",
+          "sha256": "0b5ca119d2be595aa307d34512d9679e49186307ef94201e4b3dfa079aa89938",
+          "bytes": 14
+        },
+        {
+          "path": "README.tests94",
+          "gitBlob": "6aedcbc6d5ab342ca46cc380f81846a54b1995b0",
+          "sha256": "6d20104049c75ab09ea74fe2354b143bd6a2f46a1c49805853d4fdc19e7aba84",
+          "bytes": 546
+        },
+        {
+          "path": "pglogical_origin.control",
+          "gitBlob": "75ad27773313c1c623812c7fd12ab9d9ac7fb5c4",
+          "sha256": "398cf3c4d3ce86b6844d84d0753b5fc711f048e93c2baa926a5519b51406518c",
+          "bytes": 218
+        }
+      ]
+    },
+    {
+      "repository": "EnterpriseDB/pg_failover_slots",
+      "tag": "v1.2.0",
+      "commit": "4b26677d39d933ce35f9ba658515eff9c174ae84",
+      "files": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "f7a7028b58797db754459a8af67375d76cdb3a38",
+          "sha256": "29fdf2f40147eee035ba73ac0606849a5da0cd39e8f3a5931f99451319ccddb2",
+          "bytes": 1034
+        },
+        {
+          "path": "Makefile",
+          "gitBlob": "f59a944c445ed69959f645fb81b645a177b0f77e",
+          "sha256": "3603cb83200e2cdd4fded59729b4200e9e0d6da9132049ebe1082f121911f345",
+          "bytes": 234
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "dbc30d46b573448dbee193197f53179f59b8cb7c",
+          "sha256": "3e2d3d68c603ddeda990b2cbebf821a1a551a75dd3621b91e3e9c1c49c23cfb7",
+          "bytes": 9213
+        }
+      ]
+    },
+    {
+      "repository": "EnterpriseDB/pg_failover_slots",
+      "tag": "v1.2.1",
+      "commit": "27b1ef236ddd8488be6707196517fb4f9aa90140",
+      "files": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "f7a7028b58797db754459a8af67375d76cdb3a38",
+          "sha256": "29fdf2f40147eee035ba73ac0606849a5da0cd39e8f3a5931f99451319ccddb2",
+          "bytes": 1034
+        },
+        {
+          "path": "Makefile",
+          "gitBlob": "f59a944c445ed69959f645fb81b645a177b0f77e",
+          "sha256": "3603cb83200e2cdd4fded59729b4200e9e0d6da9132049ebe1082f121911f345",
+          "bytes": 234
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "dbc30d46b573448dbee193197f53179f59b8cb7c",
+          "sha256": "3e2d3d68c603ddeda990b2cbebf821a1a551a75dd3621b91e3e9c1c49c23cfb7",
+          "bytes": 9213
+        }
+      ]
+    },
+    {
+      "repository": "EnterpriseDB/pldebugger",
+      "tag": "v1.10",
+      "commit": "bf57aa61d5eb131ece767cd7a9db0c167787d1e6",
+      "files": [
+        {
+          "path": "Makefile",
+          "gitBlob": "07eff6ddc8ea1206ba985d0852142ea0821af0ce",
+          "sha256": "2166d95f7f66a33337be81cbbf94e82f2536368f4e703d53b98fe4a0de57cbd5",
+          "bytes": 2819
+        },
+        {
+          "path": "README-pldebugger.md",
+          "gitBlob": "c4aefdece696c78a22f437909e8fed038f17a947",
+          "sha256": "7f5b9ad7846c6b0134d1c5cb6160acab68eddd85909c94e15f454005e6d7b34a",
+          "bytes": 3486
+        },
+        {
+          "path": "pldbgapi.control",
+          "gitBlob": "889dab1c4727b878a5ada0cb6cd0e90ccff3c284",
+          "sha256": "18712f54911f4eb92a47c6ebc78c62d8f2ce3e1cbbab78309130f099e4e862d7",
+          "bytes": 181
+        }
+      ]
+    },
+    {
+      "repository": "cybertec-postgresql/pg_crash",
+      "tag": "v0.3",
+      "commit": "1f261763895e94cabe3c5005d7a95093a7c58381",
+      "files": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "5b9089639bf398b733b4727eedaa0d378960e444",
+          "sha256": "2f46c1fb5f198a51b9b0e11986ac92a605543d42c41d872823765f59fedfef3e",
+          "bytes": 1543
+        },
+        {
+          "path": "Makefile",
+          "gitBlob": "19006819125fb96910f708bcef8431504c0041c3",
+          "sha256": "32383a71051f2a1fa302f0af63af97aaf4d02c7cea5b2afffa298d96de2e61a8",
+          "bytes": 152
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "f2d95a5c54e67277a72aefdbe1486c8d4b809540",
+          "sha256": "14d13f97c8ae28411e7b8a00ff8684b66c909aa0826012657dfab1bc602f336b",
+          "bytes": 1080
+        }
+      ]
+    },
+    {
+      "repository": "cybertec-postgresql/pg_show_plans",
+      "tag": "v2.1.8",
+      "commit": "92ecb21f8f2307a4bc7db8f01623599e75930fc2",
+      "files": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "28b161b3482da3f1c3633dc3bb4f5a7866daebcc",
+          "sha256": "a6258ba92e55c3ed3eb7c94b629fb85b4454844fced4956325c7eba577e1ffe0",
+          "bytes": 1087
+        },
+        {
+          "path": "Makefile",
+          "gitBlob": "09485a555c2a8c7aa6abee466bb72f8fd95a2b1c",
+          "sha256": "45171e70b347b489edfd8c5d3881042b367abd3fbd6721041b1100f2efa134c5",
+          "bytes": 689
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "2a5923e1143a5b350f3243c911527a5d4ba1c4ca",
+          "sha256": "78c7563728f7ce8f40375c5e07b9c183773f185b2b2b72cc24d6e023391dc831",
+          "bytes": 4857
+        },
+        {
+          "path": "pg_show_plans.control",
+          "gitBlob": "6bb4989c0ee51189354690d769ac8c1860fa942f",
+          "sha256": "57f48e032423f30b8351a0011e6c14b09a0c5eb0dab0a72b25ec294d330db25f",
+          "bytes": 180
+        }
+      ]
+    },
+    {
+      "repository": "cybertec-postgresql/pg_squeeze",
+      "tag": "REL1_9_4",
+      "commit": "400c5f6ae9bc911073a6824e9a19f4d475fb7331",
+      "files": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "3616a6a840076ed6fbe1b26aa20c427eb79c79d0",
+          "sha256": "ddc6467ff1767366fa7d601d4c3e363ae32ba07ac4d444447996e491d5f7834d",
+          "bytes": 998
+        },
+        {
+          "path": "Makefile",
+          "gitBlob": "6b92478a4f15a9fb7329eae880b32b72125ea56d",
+          "sha256": "f95ca1e4c1605cbe5046d3fec5d9b97770518fcfa2878a0b5bc4fca0b71d6efc",
+          "bytes": 516
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "f96a0a4dfcb75526e51930c9fa7a99decef4f5d4",
+          "sha256": "bf981223d1ebfe7d9ee36031b378fc5a9ab22a40f832db7af63b050cf541c7e3",
+          "bytes": 15298
+        },
+        {
+          "path": "pg_squeeze.control",
+          "gitBlob": "0f29e73f1c1d9c5015fd873965b1ab2b32b89632",
+          "sha256": "f38839be7828d827c3871d97b83c257c78288d427674bcc9bf748f6cb82acbe1",
+          "bytes": 184
+        }
+      ]
+    },
+    {
+      "repository": "postgrespro/pg_wait_sampling",
+      "tag": "v1.1.11",
+      "commit": "7e3a5fc937393596c0a51c5881dd63d7208408d1",
+      "files": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "46c4b8f350524362f8e51298c063f37420bd3aa0",
+          "sha256": "74546f97995943f0eb27d3ab6be639d340bd75e3b5177d79a1394e7c4b8f64c9",
+          "bytes": 1259
+        },
+        {
+          "path": "Makefile",
+          "gitBlob": "32711a3fb2ccdb4484e88e8755c6518ff63ba600",
+          "sha256": "04fe384553525602c4775a552e48ad9ef2cbcc4d9e72c99f4d8acae7286ab0eb",
+          "bytes": 539
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "bbdbd20c372009552136511cb0107607ac16de6a",
+          "sha256": "1df9643a064a965f0c4c7dec10864e5c41f50c4000962f7d7d59415766d90bab",
+          "bytes": 8024
+        },
+        {
+          "path": "pg_wait_sampling.control",
+          "gitBlob": "97d9a34c6c6e6ac19491038ed1363f0f44aed8e6",
+          "sha256": "5c2ffb62a9043c7cb81849cdb865940b3443f86b3672a46cff42649568563265",
+          "bytes": 170
+        }
+      ]
+    },
+    {
+      "repository": "semihkiroglu/pglogical-windows",
+      "tag": "2.4.8-w1",
+      "commit": "98f8f67e5c3b963cbd93ef452ecf456d880bbfc4",
+      "files": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "255a60b8aafccefc331109c99e2f7270d04ed60c",
+          "sha256": "ac0c2237212c6c82ac6fcb25a26e2728dbb27824452df19e504b0b9c36e50fc3",
+          "bytes": 1117
+        },
+        {
+          "path": "README.md",
+          "gitBlob": "51bcfe94f6ddde4651d2613bd721c27c7e18de61",
+          "sha256": "6d929657374a7296085373b14b07558253b95de28982bf4f6a8c7be87d319f0a",
+          "bytes": 10446
+        },
+        {
+          "path": "THIRD_PARTY_NOTICES.md",
+          "gitBlob": "d45005bdc61e1781e695d4d1ac8d54972e5151dd",
+          "sha256": "8ef0d4b04ee2241aacbd5dca4a72fc2ad195760ec169b01676cdb7f035ab7efb",
+          "bytes": 3961
+        }
+      ]
+    }
+  ],
+  "downloaded": [
+    {
+      "url": "https://repository.cybertec.at/windows/public/15/extension/pg_crash-15-public-v0.3-1.zip",
+      "file": "pg_crash-15-public-v0.3-1.zip",
+      "bytes": 44130,
+      "sha256": "161401c96ffe585ca51f80a0c7d88f2af1796ee3e39c02d064fd0dce04d524f0",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/16/extension/pg_crash-16-public-v0.3-1.zip",
+      "file": "pg_crash-16-public-v0.3-1.zip",
+      "bytes": 44275,
+      "sha256": "94da1cd1acbe2f146bdb2233a27f2e5a69a1ea5a604bf97575d8c7994f2547c5",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/17/extension/pg_crash-17-public-v0.3-1.zip",
+      "file": "pg_crash-17-public-v0.3-1.zip",
+      "bytes": 34325,
+      "sha256": "808f56bd6c4bf3bc3e526ad5c971535a01fd7909ba71ff7b4dc2359f22590358",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/18/extension/pg_crash-18-public-v0.3-1.zip",
+      "file": "pg_crash-18-public-v0.3-1.zip",
+      "bytes": 34331,
+      "sha256": "37b9dbb8e38500efd9264656decb3a60eaf984c50fc7e67b36b61652e7605cb7",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/15/extension/pg_lockout-15-public-1.3.0-1.zip",
+      "file": "pg_lockout-15-public-1.3.0-1.zip",
+      "bytes": 122240,
+      "sha256": "1c4a77b2aa7a1f4e3790cd9cce284573d516e08f1fb2e7443d0d918fbd48e6ff",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/16/extension/pg_lockout-16-public-1.3.0-1.zip",
+      "file": "pg_lockout-16-public-1.3.0-1.zip",
+      "bytes": 124017,
+      "sha256": "4b9719e8ae149d4d2e049c9080ca0cf3ce98bfc396e5884b678b72548aaa8150",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/17/extension/pg_lockout-17-public-1.3.0-1.zip",
+      "file": "pg_lockout-17-public-1.3.0-1.zip",
+      "bytes": 45633,
+      "sha256": "dd08ec5a91664c67ade53b3ea280573226f0a03016c15b9e325b95cdb12350a2",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/18/extension/pg_lockout-18-public-1.3.0-1.zip",
+      "file": "pg_lockout-18-public-1.3.0-1.zip",
+      "bytes": 45654,
+      "sha256": "432f8066c701319bf80ae81606fa6b5a60f67ba483bbae45651b6c16c2b9d817",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/15/extension/pg_prohibit_commands-15-public-v1.2.2-1.zip",
+      "file": "pg_prohibit_commands-15-public-v1.2.2-1.zip",
+      "bytes": 179713,
+      "sha256": "8f56128ba935fc327b7853b0fd7896d0fe49d2c38eb6ad491d68c631eb672a0b",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/16/extension/pg_prohibit_commands-16-public-v1.2.2-1.zip",
+      "file": "pg_prohibit_commands-16-public-v1.2.2-1.zip",
+      "bytes": 181640,
+      "sha256": "69c69965528f6594893148ee52c6813719fd8e211aa244a69dfa042744a8d4dd",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/17/extension/pg_prohibit_commands-17-public-v1.2.2-1.zip",
+      "file": "pg_prohibit_commands-17-public-v1.2.2-1.zip",
+      "bytes": 65415,
+      "sha256": "a80f62a67d507ce62eaa0d2aec01504fb2dd29ccfa889b77900f6e4738949a65",
+      "members": []
+    },
+    {
+      "url": "https://repository.cybertec.at/windows/public/18/extension/pg_prohibit_commands-18-public-v1.2.2-1.zip",
+      "file": "pg_prohibit_commands-18-public-v1.2.2-1.zip",
+      "bytes": 65427,
+      "sha256": "452cef5ffe66e4c84a329ac5a5c59b958010e5d2a2d5e156f8f6dbcbc87c5e30",
+      "members": []
+    },
+    {
+      "url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg15-w1-x64.zip",
+      "file": "pglogical-2.4.8-pg15-w1-x64.zip",
+      "bytes": 176749,
+      "sha256": "ff60107d6adef9a5b61dc2b78214f8ac9831a8df8f230a9cd9c90e7f7d3ebef2",
+      "members": [
+        {
+          "path": "share/extension/pglogical_origin.control",
+          "bytes": 224,
+          "sha256": "81138413043cf5f8bf9f41ff7f25cafc26b3e5e9b178f70020fee2446865b4f5"
+        },
+        {
+          "path": "share/extension/pglogical.control",
+          "bytes": 176,
+          "sha256": "b0bd61fc104ad640debaa92a128da47135ba2b1ead947ee77afc11fd666cc46d"
+        },
+        {
+          "path": "share/pglogical/COPYRIGHT",
+          "bytes": 1215,
+          "sha256": "259eac7eaf0784d277cbf9f01c573603482392067c41be3fac609b9f0465be6c"
+        },
+        {
+          "path": "BUILD-INFO.json",
+          "bytes": 668,
+          "sha256": "9b95d949bb505920499734cb82f0a9c31602499a01068e897eae3d71ac8a126b"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg16-w1-x64.zip",
+      "file": "pglogical-2.4.8-pg16-w1-x64.zip",
+      "bytes": 176275,
+      "sha256": "be599b6d3171cbb4d12d26bab51f909cb179af3ad7b4b6768c5fb89f4dec1157",
+      "members": [
+        {
+          "path": "share/extension/pglogical_origin.control",
+          "bytes": 224,
+          "sha256": "81138413043cf5f8bf9f41ff7f25cafc26b3e5e9b178f70020fee2446865b4f5"
+        },
+        {
+          "path": "share/extension/pglogical.control",
+          "bytes": 176,
+          "sha256": "b0bd61fc104ad640debaa92a128da47135ba2b1ead947ee77afc11fd666cc46d"
+        },
+        {
+          "path": "share/pglogical/COPYRIGHT",
+          "bytes": 1215,
+          "sha256": "259eac7eaf0784d277cbf9f01c573603482392067c41be3fac609b9f0465be6c"
+        },
+        {
+          "path": "BUILD-INFO.json",
+          "bytes": 668,
+          "sha256": "1f37e7dc0e2c0dff605786a548f0e2bfc295be6a7ca685ebbf6181f19086cbb9"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg17-w1-x64.zip",
+      "file": "pglogical-2.4.8-pg17-w1-x64.zip",
+      "bytes": 176170,
+      "sha256": "3cba8b233db52835ca62586d337132c816c42237151716e57dfa28a860633d7b",
+      "members": [
+        {
+          "path": "share/extension/pglogical_origin.control",
+          "bytes": 224,
+          "sha256": "81138413043cf5f8bf9f41ff7f25cafc26b3e5e9b178f70020fee2446865b4f5"
+        },
+        {
+          "path": "share/extension/pglogical.control",
+          "bytes": 176,
+          "sha256": "b0bd61fc104ad640debaa92a128da47135ba2b1ead947ee77afc11fd666cc46d"
+        },
+        {
+          "path": "share/pglogical/COPYRIGHT",
+          "bytes": 1215,
+          "sha256": "259eac7eaf0784d277cbf9f01c573603482392067c41be3fac609b9f0465be6c"
+        },
+        {
+          "path": "BUILD-INFO.json",
+          "bytes": 668,
+          "sha256": "a5289be2cd46d92008efc69f6b62257c8908524f0842a49e0976e7bf5cc86085"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg18-w1-x64.zip",
+      "file": "pglogical-2.4.8-pg18-w1-x64.zip",
+      "bytes": 176460,
+      "sha256": "1f69a4528b506a1bda01b8171f83d44268bbefe08b0adab49e00788c26d52eb3",
+      "members": [
+        {
+          "path": "share/extension/pglogical_origin.control",
+          "bytes": 224,
+          "sha256": "81138413043cf5f8bf9f41ff7f25cafc26b3e5e9b178f70020fee2446865b4f5"
+        },
+        {
+          "path": "share/extension/pglogical.control",
+          "bytes": 176,
+          "sha256": "b0bd61fc104ad640debaa92a128da47135ba2b1ead947ee77afc11fd666cc46d"
+        },
+        {
+          "path": "share/pglogical/COPYRIGHT",
+          "bytes": 1215,
+          "sha256": "259eac7eaf0784d277cbf9f01c573603482392067c41be3fac609b9f0465be6c"
+        },
+        {
+          "path": "BUILD-INFO.json",
+          "bytes": 665,
+          "sha256": "524325de3eb1c98262b38ac8435219c5e184eb4bc4fa1e30023cd4b16ab4474e"
+        }
+      ]
+    },
+    {
+      "url": "https://download-cache.osgeo.org/postgis/windows/pg15/postgis-bundle-pg15-3.6.2x64.zip",
+      "file": "postgis-bundle-pg15-3.6.2x64.zip",
+      "bytes": 123986945,
+      "sha256": "520c3fd7ebf95050d8d89dc1b626f4f43111a3d726f60b73bbbbbd95784688eb",
+      "members": [
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/bin/COPYING",
+          "bytes": 18092,
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/COPYRIGHT.pg_sphere",
+          "bytes": 1547,
+          "sha256": "624fe87f220e257e56bd577f34e806e5d2e840a35d019b940ff5ad1c5016ca36"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/gdal-data/LICENSE.TXT",
+          "bytes": 21841,
+          "sha256": "1dae3468e81d00da56e2936f74d33b8b3ad09d726437f19ce209a5dabea41f77"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/LICENSE",
+          "bytes": 10173,
+          "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/ogrfdw_LICENSE.md",
+          "bytes": 1082,
+          "sha256": "97eeff61daab8f581d50c896237dad9ec5749a815109a7fcb7d39c990d4f9103"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/pgpointcloud_COPYRIGHT",
+          "bytes": 1556,
+          "sha256": "c4c71656d1ea3310b4866057e96f8f38972ccaec145ca76f58caeaa362fb95e4"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/address_standardizer.control",
+          "bytes": 206,
+          "sha256": "55f006c57c33f546aa2a05817c2c744ef9d0a3179a633dcf273cf49dcdbc99d4"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/address_standardizer_data_us.control",
+          "bytes": 131,
+          "sha256": "f9691f0e33d2a5a94231d8f34318e6137ec6488aca82581cfd5167c324f48f65"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/h3.control",
+          "bytes": 102,
+          "sha256": "d43ea3a6996fc92da84da9cf71ac80550c504d5b8c62b4231c2acbe05c92a383"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/h3_postgis.control",
+          "bytes": 125,
+          "sha256": "8b836cec18a1a8ad34722eaab2686571710a6bceee06718adb70f30ffa0cbe24"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/mobilitydb.control",
+          "bytes": 199,
+          "sha256": "31762e1c888328505949ff30aff520e9c738a03c6879441c4674aabf83e3e9df"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/mobilitydb_datagen.control",
+          "bytes": 160,
+          "sha256": "9dafc236bf0895923135d698a2697c17ddc5a0e9f76cd6d5cc67ce4fc56ddc24"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/ogr_fdw.control",
+          "bytes": 152,
+          "sha256": "163d3b61cc6dc3415543e755617ddc9579e6e42149687d2aa0a0a0c5a43773a0"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/pgrouting.control",
+          "bytes": 179,
+          "sha256": "59ddb9143310f662c11776ab012d854e4a0d4759ab295e028e83ded1781167db"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/pg_sphere.control",
+          "bytes": 186,
+          "sha256": "acb48aea69976a97143c17e2e6042b151021b1158317cd516357a3e801d9b75f"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/pointcloud.control",
+          "bytes": 196,
+          "sha256": "fff5c383b9eab8d8f8aff78c299628d64812d05e10306036e9eafa4803dd4dcc"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/pointcloud_postgis.control",
+          "bytes": 216,
+          "sha256": "df6c867bcf779b9d1403f7fe242b7b35e4c0bf6fcd9e7a85b3a9deebbc3125e9"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/postgis.control",
+          "bytes": 175,
+          "sha256": "2802c2bb571cf648daafb834a452a7dc884ef359116a1b17ab4c4acd6155e699"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/postgis_raster.control",
+          "bytes": 184,
+          "sha256": "9eceded433f1c00e4ed30f81753341e6c1784daf48eb669dd6206841b86439e6"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/postgis_sfcgal.control",
+          "bytes": 130,
+          "sha256": "506ba84fba556149a703daa82e0d0735fe4b50ff7dad10bcd17a0e50eb644a22"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/postgis_tiger_geocoder.control",
+          "bytes": 205,
+          "sha256": "b59c46ba02b1985833001955a9b04ed6a5a6498746670f657cfa2c53b2f9f5f0"
+        },
+        {
+          "path": "postgis-bundle-pg15-3.6.2x64/share/extension/postgis_topology.control",
+          "bytes": 169,
+          "sha256": "20b2dbe09b5ae8fa3eb5130173c6e4af5873f1de464ab84d5aca4babef6e6c86"
+        }
+      ]
+    },
+    {
+      "url": "https://download-cache.osgeo.org/postgis/windows/pg16/postgis-bundle-pg16-3.7.0x64.zip",
+      "file": "postgis-bundle-pg16-3.7.0x64.zip",
+      "bytes": 84037123,
+      "sha256": "9fd299d661a049833a84584afd2aaea755e189a4d107b9bf579b56ce154d9eb0",
+      "members": [
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/bin/COPYING",
+          "bytes": 18092,
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/COPYRIGHT.pg_sphere",
+          "bytes": 1547,
+          "sha256": "624fe87f220e257e56bd577f34e806e5d2e840a35d019b940ff5ad1c5016ca36"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/gdal-data/LICENSE.TXT",
+          "bytes": 21841,
+          "sha256": "1dae3468e81d00da56e2936f74d33b8b3ad09d726437f19ce209a5dabea41f77"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/LICENSE",
+          "bytes": 10173,
+          "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/ogrfdw_LICENSE.md",
+          "bytes": 1082,
+          "sha256": "97eeff61daab8f581d50c896237dad9ec5749a815109a7fcb7d39c990d4f9103"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/pgpointcloud_COPYRIGHT",
+          "bytes": 1556,
+          "sha256": "c4c71656d1ea3310b4866057e96f8f38972ccaec145ca76f58caeaa362fb95e4"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/address_standardizer.control",
+          "bytes": 206,
+          "sha256": "f3608b53f60730baab73dfd85679b206294c3e777f1fb22212f246e6bbeddaa3"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/address_standardizer_data_us.control",
+          "bytes": 129,
+          "sha256": "b99d75c07c6d53ee1b6a1774edeb624ad14511be76472d970dc24b9d7f35da6c"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/h3.control",
+          "bytes": 102,
+          "sha256": "5cc2e86a1366a6ee9d662af0d9145ea53ec912c43e7da6b9d09fdf8d9d2608f3"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/h3_postgis.control",
+          "bytes": 125,
+          "sha256": "120a8787b13ef2a7918555b80600bdb8e8e2ca131b9eb220850cfff4754af413"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/mobilitydb.control",
+          "bytes": 199,
+          "sha256": "9777569e54242f1b669af5bf84c9a557ef461caec1c0c98df3ed984222c8de44"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/mobilitydb_datagen.control",
+          "bytes": 160,
+          "sha256": "456d20daee1a8b6586d4f3c03739c5180d7c8319e1cee572c45286ca6afe9bfc"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/ogr_fdw.control",
+          "bytes": 152,
+          "sha256": "163d3b61cc6dc3415543e755617ddc9579e6e42149687d2aa0a0a0c5a43773a0"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/pgrouting.control",
+          "bytes": 179,
+          "sha256": "59ddb9143310f662c11776ab012d854e4a0d4759ab295e028e83ded1781167db"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/pg_sphere.control",
+          "bytes": 186,
+          "sha256": "acb48aea69976a97143c17e2e6042b151021b1158317cd516357a3e801d9b75f"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/pointcloud.control",
+          "bytes": 196,
+          "sha256": "fff5c383b9eab8d8f8aff78c299628d64812d05e10306036e9eafa4803dd4dcc"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/pointcloud_postgis.control",
+          "bytes": 216,
+          "sha256": "df6c867bcf779b9d1403f7fe242b7b35e4c0bf6fcd9e7a85b3a9deebbc3125e9"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/postgis.control",
+          "bytes": 175,
+          "sha256": "ce1de6bb655b769643ca5dbf802a209fab32b92b866a62b3d88af18147e00c9a"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/postgis_raster.control",
+          "bytes": 184,
+          "sha256": "966c7fd2cf091981a3e4407e9d0f6875864d3834c2cb74b9af97368481b03c9e"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/postgis_sfcgal.control",
+          "bytes": 130,
+          "sha256": "8214fb8cde3995f25cdd5589a117bbaec6d3afcc8a47b0f6456b452095de617e"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/postgis_tiger_geocoder.control",
+          "bytes": 243,
+          "sha256": "85e5dd5466515a092e3f0ca33dd9b6bc1595dd566c6fad4f269f459fb0686933"
+        },
+        {
+          "path": "postgis-bundle-pg16-3.7.0x64/share/extension/postgis_topology.control",
+          "bytes": 169,
+          "sha256": "9fca25a19178cc6c4392d25ae36901c9481277474f4541864013ff2a73b59f92"
+        }
+      ]
+    },
+    {
+      "url": "https://download-cache.osgeo.org/postgis/windows/pg17/postgis-bundle-pg17-3.7.0x64.zip",
+      "file": "postgis-bundle-pg17-3.7.0x64.zip",
+      "bytes": 84044726,
+      "sha256": "eceb7ed45276db6c9f8757e65ccf8d0ceedaebdcd0c401d442371ce8def61450",
+      "members": [
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/bin/COPYING",
+          "bytes": 18092,
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/COPYRIGHT.pg_sphere",
+          "bytes": 1547,
+          "sha256": "624fe87f220e257e56bd577f34e806e5d2e840a35d019b940ff5ad1c5016ca36"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/gdal-data/LICENSE.TXT",
+          "bytes": 21841,
+          "sha256": "1dae3468e81d00da56e2936f74d33b8b3ad09d726437f19ce209a5dabea41f77"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/LICENSE",
+          "bytes": 10173,
+          "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/ogrfdw_LICENSE.md",
+          "bytes": 1082,
+          "sha256": "97eeff61daab8f581d50c896237dad9ec5749a815109a7fcb7d39c990d4f9103"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/pgpointcloud_COPYRIGHT",
+          "bytes": 1556,
+          "sha256": "c4c71656d1ea3310b4866057e96f8f38972ccaec145ca76f58caeaa362fb95e4"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/address_standardizer.control",
+          "bytes": 206,
+          "sha256": "f3608b53f60730baab73dfd85679b206294c3e777f1fb22212f246e6bbeddaa3"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/address_standardizer_data_us.control",
+          "bytes": 129,
+          "sha256": "b99d75c07c6d53ee1b6a1774edeb624ad14511be76472d970dc24b9d7f35da6c"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/h3.control",
+          "bytes": 102,
+          "sha256": "5cc2e86a1366a6ee9d662af0d9145ea53ec912c43e7da6b9d09fdf8d9d2608f3"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/h3_postgis.control",
+          "bytes": 125,
+          "sha256": "120a8787b13ef2a7918555b80600bdb8e8e2ca131b9eb220850cfff4754af413"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/mobilitydb.control",
+          "bytes": 199,
+          "sha256": "9777569e54242f1b669af5bf84c9a557ef461caec1c0c98df3ed984222c8de44"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/mobilitydb_datagen.control",
+          "bytes": 160,
+          "sha256": "456d20daee1a8b6586d4f3c03739c5180d7c8319e1cee572c45286ca6afe9bfc"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/ogr_fdw.control",
+          "bytes": 152,
+          "sha256": "163d3b61cc6dc3415543e755617ddc9579e6e42149687d2aa0a0a0c5a43773a0"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/pgrouting.control",
+          "bytes": 179,
+          "sha256": "59ddb9143310f662c11776ab012d854e4a0d4759ab295e028e83ded1781167db"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/pg_sphere.control",
+          "bytes": 186,
+          "sha256": "acb48aea69976a97143c17e2e6042b151021b1158317cd516357a3e801d9b75f"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/pointcloud.control",
+          "bytes": 196,
+          "sha256": "fff5c383b9eab8d8f8aff78c299628d64812d05e10306036e9eafa4803dd4dcc"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/pointcloud_postgis.control",
+          "bytes": 216,
+          "sha256": "df6c867bcf779b9d1403f7fe242b7b35e4c0bf6fcd9e7a85b3a9deebbc3125e9"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/postgis.control",
+          "bytes": 175,
+          "sha256": "ce1de6bb655b769643ca5dbf802a209fab32b92b866a62b3d88af18147e00c9a"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/postgis_raster.control",
+          "bytes": 184,
+          "sha256": "966c7fd2cf091981a3e4407e9d0f6875864d3834c2cb74b9af97368481b03c9e"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/postgis_sfcgal.control",
+          "bytes": 130,
+          "sha256": "8214fb8cde3995f25cdd5589a117bbaec6d3afcc8a47b0f6456b452095de617e"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/postgis_tiger_geocoder.control",
+          "bytes": 243,
+          "sha256": "85e5dd5466515a092e3f0ca33dd9b6bc1595dd566c6fad4f269f459fb0686933"
+        },
+        {
+          "path": "postgis-bundle-pg17-3.7.0x64/share/extension/postgis_topology.control",
+          "bytes": 169,
+          "sha256": "9fca25a19178cc6c4392d25ae36901c9481277474f4541864013ff2a73b59f92"
+        }
+      ]
+    },
+    {
+      "url": "https://download-cache.osgeo.org/postgis/windows/pg18/postgis-bundle-pg18-3.7.0x64.zip",
+      "file": "postgis-bundle-pg18-3.7.0x64.zip",
+      "bytes": 83739256,
+      "sha256": "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419",
+      "members": [
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/bin/COPYING",
+          "bytes": 18092,
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/COPYRIGHT.pg_sphere",
+          "bytes": 1547,
+          "sha256": "624fe87f220e257e56bd577f34e806e5d2e840a35d019b940ff5ad1c5016ca36"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/gdal-data/LICENSE.TXT",
+          "bytes": 21841,
+          "sha256": "1dae3468e81d00da56e2936f74d33b8b3ad09d726437f19ce209a5dabea41f77"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/LICENSE",
+          "bytes": 10173,
+          "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/ogrfdw_LICENSE.md",
+          "bytes": 1082,
+          "sha256": "97eeff61daab8f581d50c896237dad9ec5749a815109a7fcb7d39c990d4f9103"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/pgpointcloud_COPYRIGHT",
+          "bytes": 1556,
+          "sha256": "c4c71656d1ea3310b4866057e96f8f38972ccaec145ca76f58caeaa362fb95e4"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/address_standardizer.control",
+          "bytes": 206,
+          "sha256": "f3608b53f60730baab73dfd85679b206294c3e777f1fb22212f246e6bbeddaa3"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/address_standardizer_data_us.control",
+          "bytes": 129,
+          "sha256": "b99d75c07c6d53ee1b6a1774edeb624ad14511be76472d970dc24b9d7f35da6c"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/h3.control",
+          "bytes": 102,
+          "sha256": "5cc2e86a1366a6ee9d662af0d9145ea53ec912c43e7da6b9d09fdf8d9d2608f3"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/h3_postgis.control",
+          "bytes": 125,
+          "sha256": "120a8787b13ef2a7918555b80600bdb8e8e2ca131b9eb220850cfff4754af413"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/mobilitydb.control",
+          "bytes": 199,
+          "sha256": "9777569e54242f1b669af5bf84c9a557ef461caec1c0c98df3ed984222c8de44"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/mobilitydb_datagen.control",
+          "bytes": 160,
+          "sha256": "456d20daee1a8b6586d4f3c03739c5180d7c8319e1cee572c45286ca6afe9bfc"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/ogr_fdw.control",
+          "bytes": 152,
+          "sha256": "163d3b61cc6dc3415543e755617ddc9579e6e42149687d2aa0a0a0c5a43773a0"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/pgrouting.control",
+          "bytes": 179,
+          "sha256": "59ddb9143310f662c11776ab012d854e4a0d4759ab295e028e83ded1781167db"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/pg_sphere.control",
+          "bytes": 186,
+          "sha256": "acb48aea69976a97143c17e2e6042b151021b1158317cd516357a3e801d9b75f"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/pointcloud.control",
+          "bytes": 196,
+          "sha256": "fff5c383b9eab8d8f8aff78c299628d64812d05e10306036e9eafa4803dd4dcc"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/pointcloud_postgis.control",
+          "bytes": 216,
+          "sha256": "df6c867bcf779b9d1403f7fe242b7b35e4c0bf6fcd9e7a85b3a9deebbc3125e9"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/postgis.control",
+          "bytes": 175,
+          "sha256": "ce1de6bb655b769643ca5dbf802a209fab32b92b866a62b3d88af18147e00c9a"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/postgis_raster.control",
+          "bytes": 184,
+          "sha256": "966c7fd2cf091981a3e4407e9d0f6875864d3834c2cb74b9af97368481b03c9e"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/postgis_sfcgal.control",
+          "bytes": 130,
+          "sha256": "8214fb8cde3995f25cdd5589a117bbaec6d3afcc8a47b0f6456b452095de617e"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/postgis_tiger_geocoder.control",
+          "bytes": 243,
+          "sha256": "85e5dd5466515a092e3f0ca33dd9b6bc1595dd566c6fad4f269f459fb0686933"
+        },
+        {
+          "path": "postgis-bundle-pg18-3.7.0x64/share/extension/postgis_topology.control",
+          "bytes": 169,
+          "sha256": "9fca25a19178cc6c4392d25ae36901c9481277474f4541864013ff2a73b59f92"
+        }
+      ]
+    }
+  ],
+  "licenseSearch": {
+    "exactNameGithub": {
+      "pg_lockout": 0,
+      "pg_prohibit_commands": 0
+    }
+  },
+  "osgeoAdditionalLicenseEvidence": [
+    {
+      "component": "GSL",
+      "version": "2.8",
+      "url": "https://ftp.gnu.org/gnu/gsl/gsl-2.8.tar.gz",
+      "archiveSha256": "6a99eeed15632c6354895b1dd542ed5a855c0f15d9ad1326c6fe2b2c9e423190",
+      "licenseMember": "gsl-2.8/COPYING",
+      "licenseSha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "remainingGap": "Native GUI libintl-9.dll exact gettext release/license not obtained; GNU.Gettext.dll is a separate member."
+    }
+  ]
+}

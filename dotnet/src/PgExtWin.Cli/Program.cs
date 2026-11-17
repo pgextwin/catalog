@@ -138,10 +138,8 @@ static async Task<int> RunAsync(string[] args)
         }
         if (command is "download" or "download-all")
         {
-            // Only a source-specific, independently Sigstore-verified original-main
-            // Build Publisher admission may permit a user-local external GET.
-            // An unsigned local candidate, discovery file or the old DENY-only
-            // external policy NEVER enters the network path.
+            // External originals use reviewed exact-version license records and
+            // measured byte pins; the native signed feed path below is unchanged.
             if (sourceGroup == "external")
             {
                 if (command != "download-all" ||
@@ -149,8 +147,8 @@ static async Task<int> RunAsync(string[] args)
                     latest is not null || format is not null)
                     throw new InvalidDataException(
                         "External GET requires download-all --source external with current Catalog latest pins");
-                log?.Invoke("EXTERNAL_ADMISSION_VERIFY_START source=SIGNED_BUILD_ISSUER");
-                var external = await ExternalSignedCatalogCohort.StageLatestVerifiedAsync(
+                log?.Invoke("EXTERNAL_DIRECT_GET_START source=PROVIDER_RELEASE_ASSET");
+                var external = await ExternalSignedCatalogCohort.StageDirectAsync(
                     pg ?? "all", output ?? Directory.GetCurrentDirectory(),
                     requestedExtension: requestedExtension, requestedVersion: requestedVersion);
                 Console.WriteLine($"EXTERNAL_ORIGINAL_GET_ONLY\tZIP_COUNT={external.Count}\tBYTES={external.Bytes}\t{external.Directory}");
@@ -310,9 +308,9 @@ static void Usage()
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--extension NAME [--version EXACT]] [--output EXISTING_DIR]");
-    Console.Error.WriteLine("  Selects only exact signed latest cohort assets; a version must appear in the signed asset name. Missing version/PG/extension fails closed.");
-    Console.Error.WriteLine("  Version pin is a narrow filter, not permission to fetch historical or unsigned releases.");
-    Console.Error.WriteLine("External GET requires the current protected Catalog latest selection and independent Build Publisher Sigstore proof; --source all remains denied.");
+    Console.Error.WriteLine("  Selects recorded latest versions, or matches --version exactly. Supported PostgreSQL majors: 15-18.");
+    Console.Error.WriteLine("  Only versions with reviewed exact-version license evidence and measured byte pins are available.");
+    Console.Error.WriteLine("External GET uses exact-version license-reviewed Catalog byte pins; --source all remains denied.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");
     Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
 }
