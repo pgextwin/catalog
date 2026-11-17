@@ -52,3 +52,12 @@ Windows PostgreSQL builds. Only a separately reviewed original issuer and genuin
 protected Publisher path can ever make CLI public GET available.
 
 **PUBLIC_GET_DENY / MIRROR_DENY / RELEASE_DENY** for all Cybertec candidates.
+
+## 2026-11-17 bulk-fetch decision
+
+The [PG15–18 candidate survey](issue-112-external-bulk-fetch-candidates-20261117.md)
+compares current official source releases/licenses with the current directory
+labels and existing signed-fetch infrastructure. No surveyed candidate satisfies
+the four requirements with existing evidence; no new GET registration, issuer,
+pilot or publication-state change is proposed. Source-only releases and
+provider labels must not be substituted for latest signed Windows binaries.

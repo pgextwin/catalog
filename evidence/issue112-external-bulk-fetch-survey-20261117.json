@@ -1,0 +1,747 @@
+{
+  "purpose": "READ_ONLY_SURVEY_NOT_ADMISSION_OR_REGISTRATION",
+  "observedAtUtc": "2026-11-17T14:35:50.073251+00:00",
+  "catalogCommit": "1b06cff8f4c384dd051bc8c6874c0714da4537db",
+  "buildCommit": "d8bb7252609020e5f689afcbd34dd3b74677aed8",
+  "proposedPostgresqlMajors": [
+    "15",
+    "16",
+    "17",
+    "18"
+  ],
+  "method": [
+    "gh api repos/{owner}/{repo}/releases/latest and /releases?per_page=100 (filtered JSON)",
+    "gh api repos/{owner}/{repo}/tags?per_page=100 and /git/ref/tags/{tag}",
+    "gh api /git/tags/{sha}, /git/trees/{commit}?recursive=1 and /git/blobs/{sha}; exact source file bytes hashed",
+    "gh api search/repositories -X GET -f q=NAME in:name -f per_page=10",
+    "existing issue112_cybertec_windows_index.fetch_index for PG15-18 only",
+    "three PG18 Cybertec ZIPs read in memory once; SHA256 + archive member inventory only",
+    "gh api repos/pgextwin/catalog/actions/runs/43443993355 and /jobs?per_page=100; historical job evidence, no rerun"
+  ],
+  "candidates": [
+    {
+      "extension": "pglogical",
+      "repository": "2ndQuadrant/pglogical",
+      "latestRelease": {
+        "assets": [],
+        "html_url": "https://github.com/2ndQuadrant/pglogical/releases/tag/REL2_4_8",
+        "id": 361227740,
+        "published_at": "2026-07-28T18:10:14Z",
+        "tag_name": "REL2_4_8"
+      },
+      "selectedSourceTag": "REL2_4_8",
+      "sourceCommit": "9a0e182745885ad0152ea387988c95a483396a81",
+      "sourceTagVerificationReportedByGitHub": "lightweight tag; no tag-object signature",
+      "sourceLicenseInterpretation": "PostgreSQL",
+      "licenseFiles": [
+        {
+          "path": "COPYRIGHT",
+          "gitBlob": "33e6e4842ad64dd89d351c84454059daed61ff56",
+          "sha256": "24cfc70cf16b3a23242c49ffce39510683bdd48cbedb8a46fe03976ee5f5c21e",
+          "bytes": 1192
+        }
+      ],
+      "binaryLicenseBinding": "exact Windows patch contributor / packaged notice reconciliation 未取得; existing intake documents gap",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR",
+      "publicationState": "CANDIDATE_ONLY"
+    },
+    {
+      "extension": "pg_failover_slots",
+      "repository": "EnterpriseDB/pg_failover_slots",
+      "latestRelease": {
+        "assets": [],
+        "html_url": "https://github.com/EnterpriseDB/pg_failover_slots/releases/tag/v1.2.0",
+        "id": 248859069,
+        "published_at": "2025-09-21T13:10:31Z",
+        "tag_name": "v1.2.0"
+      },
+      "selectedSourceTag": "v1.2.1",
+      "sourceCommit": "27b1ef236ddd8488be6707196517fb4f9aa90140",
+      "sourceTagVerificationReportedByGitHub": "lightweight tag; no tag-object signature",
+      "sourceLicenseInterpretation": "PostgreSQL-style",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "f7a7028b58797db754459a8af67375d76cdb3a38",
+          "sha256": "29fdf2f40147eee035ba73ac0606849a5da0cd39e8f3a5931f99451319ccddb2",
+          "bytes": 1034
+        }
+      ],
+      "binaryLicenseBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR",
+      "publicationState": "CANDIDATE_ONLY",
+      "latestReleaseSourceCommit": "4b26677d39d933ce35f9ba658515eff9c174ae84",
+      "latestReleaseLicenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "f7a7028b58797db754459a8af67375d76cdb3a38",
+          "sha256": "29fdf2f40147eee035ba73ac0606849a5da0cd39e8f3a5931f99451319ccddb2",
+          "bytes": 1034
+        }
+      ]
+    },
+    {
+      "extension": "pg_show_plans",
+      "repository": "cybertec-postgresql/pg_show_plans",
+      "latestRelease": {
+        "assets": [],
+        "html_url": "https://github.com/cybertec-postgresql/pg_show_plans/releases/tag/v2.1.8",
+        "id": 333720213,
+        "published_at": "2026-06-03T13:08:14Z",
+        "tag_name": "v2.1.8"
+      },
+      "selectedSourceTag": "v2.1.8",
+      "sourceCommit": "92ecb21f8f2307a4bc7db8f01623599e75930fc2",
+      "sourceTagVerificationReportedByGitHub": {
+        "verified": true,
+        "reason": "valid",
+        "verified_at": "2026-06-03T13:08:15Z"
+      },
+      "sourceLicenseInterpretation": "PostgreSQL",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "28b161b3482da3f1c3633dc3bb4f5a7866daebcc",
+          "sha256": "a6258ba92e55c3ed3eb7c94b629fb85b4454844fced4956325c7eba577e1ffe0",
+          "bytes": 1087
+        }
+      ],
+      "binaryLicenseBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR",
+      "publicationState": "CANDIDATE_ONLY"
+    },
+    {
+      "extension": "pg_wait_sampling",
+      "repository": "postgrespro/pg_wait_sampling",
+      "latestRelease": {
+        "assets": [],
+        "html_url": "https://github.com/postgrespro/pg_wait_sampling/releases/tag/v1.1.11",
+        "id": 353057393,
+        "published_at": "2026-07-13T09:45:12Z",
+        "tag_name": "v1.1.11"
+      },
+      "selectedSourceTag": "v1.1.11",
+      "sourceCommit": "7e3a5fc937393596c0a51c5881dd63d7208408d1",
+      "sourceTagVerificationReportedByGitHub": "lightweight tag; no tag-object signature",
+      "sourceLicenseInterpretation": "PostgreSQL",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "46c4b8f350524362f8e51298c063f37420bd3aa0",
+          "sha256": "74546f97995943f0eb27d3ab6be639d340bd75e3b5177d79a1394e7c4b8f64c9",
+          "bytes": 1259
+        }
+      ],
+      "binaryLicenseBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR",
+      "publicationState": "CANDIDATE_ONLY"
+    },
+    {
+      "extension": "pg_squeeze",
+      "repository": "cybertec-postgresql/pg_squeeze",
+      "latestRelease": {
+        "assets": [],
+        "html_url": "https://github.com/cybertec-postgresql/pg_squeeze/releases/tag/REL1_9_4",
+        "id": 361870899,
+        "published_at": "2026-07-29T15:47:35Z",
+        "tag_name": "REL1_9_4"
+      },
+      "selectedSourceTag": "REL1_9_4",
+      "sourceCommit": "400c5f6ae9bc911073a6824e9a19f4d475fb7331",
+      "sourceTagVerificationReportedByGitHub": {
+        "verified": true,
+        "reason": "valid",
+        "verified_at": "2026-07-29T15:39:58Z"
+      },
+      "sourceLicenseInterpretation": "PostgreSQL-style",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "3616a6a840076ed6fbe1b26aa20c427eb79c79d0",
+          "sha256": "ddc6467ff1767366fa7d601d4c3e363ae32ba07ac4d444447996e491d5f7834d",
+          "bytes": 998
+        }
+      ],
+      "binaryLicenseBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR",
+      "publicationState": "CANDIDATE_ONLY"
+    },
+    {
+      "extension": "pldebugger",
+      "repository": "EnterpriseDB/pldebugger",
+      "latestRelease": {
+        "assets": [],
+        "html_url": "https://github.com/EnterpriseDB/pldebugger/releases/tag/v1.10",
+        "id": 320387107,
+        "published_at": "2026-05-11T10:21:34Z",
+        "tag_name": "v1.10"
+      },
+      "selectedSourceTag": "v1.10",
+      "sourceCommit": "bf57aa61d5eb131ece767cd7a9db0c167787d1e6",
+      "sourceTagVerificationReportedByGitHub": "lightweight tag; no tag-object signature",
+      "sourceLicenseInterpretation": "Artistic-2.0",
+      "licenseFiles": [
+        {
+          "path": "Makefile",
+          "gitBlob": "07eff6ddc8ea1206ba985d0852142ea0821af0ce",
+          "sha256": "2166d95f7f66a33337be81cbbf94e82f2536368f4e703d53b98fe4a0de57cbd5",
+          "bytes": 2819
+        },
+        {
+          "path": "README-pldebugger.md",
+          "gitBlob": "c4aefdece696c78a22f437909e8fed038f17a947",
+          "sha256": "7f5b9ad7846c6b0134d1c5cb6160acab68eddd85909c94e15f454005e6d7b34a",
+          "bytes": 3486
+        }
+      ],
+      "binaryLicenseBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR",
+      "publicationState": "CANDIDATE_ONLY"
+    },
+    {
+      "extension": "pg_crash",
+      "repository": "cybertec-postgresql/pg_crash",
+      "latestRelease": {
+        "assets": [],
+        "html_url": "https://github.com/cybertec-postgresql/pg_crash/releases/tag/v0.3",
+        "id": 225854967,
+        "published_at": "2025-06-17T12:57:28Z",
+        "tag_name": "v0.3"
+      },
+      "selectedSourceTag": "v0.3",
+      "sourceCommit": "1f261763895e94cabe3c5005d7a95093a7c58381",
+      "sourceTagVerificationReportedByGitHub": {
+        "verified": true,
+        "reason": "valid",
+        "verified_at": "2025-06-13T14:55:58Z"
+      },
+      "sourceLicenseInterpretation": "BSD-3-Clause",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "5b9089639bf398b733b4727eedaa0d378960e444",
+          "sha256": "2f46c1fb5f198a51b9b0e11986ac92a605543d42c41d872823765f59fedfef3e",
+          "bytes": 1543
+        }
+      ],
+      "binaryLicenseBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR",
+      "publicationState": "CANDIDATE_ONLY",
+      "requestedVersion": "v0.3.0; canonical upstream tag is v0.3; binary equivalence 未取得"
+    },
+    {
+      "extension": "pg_lockout",
+      "upstreamSourceIdentity": "未取得",
+      "exactVersionLicense": "未取得",
+      "githubRepositorySearch": {
+        "query": "pg_lockout in:name",
+        "response": {
+          "items": [],
+          "total_count": 0
+        }
+      },
+      "signedProducerByteBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR_AND_PROVIDER_MACHINERY",
+      "publicationState": "CANDIDATE_ONLY"
+    },
+    {
+      "extension": "pg_prohibit_commands",
+      "upstreamSourceIdentity": "未取得",
+      "exactVersionLicense": "未取得",
+      "githubRepositorySearch": {
+        "query": "pg_prohibit_commands in:name",
+        "response": {
+          "items": [],
+          "total_count": 0
+        }
+      },
+      "signedProducerByteBinding": "未取得",
+      "validAdmission": "未取得",
+      "verdict": "BLOCKED_CORE_FOUR_AND_PROVIDER_MACHINERY",
+      "publicationState": "CANDIDATE_ONLY"
+    }
+  ],
+  "pglogicalProvider": {
+    "repository": "semihkiroglu/pglogical-windows",
+    "repositoryId": 1324318750,
+    "releaseId": 381578857,
+    "releaseTag": "2.4.8-w1",
+    "packagingCommit": "98f8f67e5c3b963cbd93ef452ecf456d880bbfc4",
+    "assetsPg15To18": [
+      {
+        "browser_download_url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg15-w1-x64.zip",
+        "digest": "sha256:ff60107d6adef9a5b61dc2b78214f8ac9831a8df8f230a9cd9c90e7f7d3ebef2",
+        "id": 541766450,
+        "name": "pglogical-2.4.8-pg15-w1-x64.zip",
+        "size": 176749
+      },
+      {
+        "browser_download_url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg16-w1-x64.zip",
+        "digest": "sha256:be599b6d3171cbb4d12d26bab51f909cb179af3ad7b4b6768c5fb89f4dec1157",
+        "id": 541766449,
+        "name": "pglogical-2.4.8-pg16-w1-x64.zip",
+        "size": 176275
+      },
+      {
+        "browser_download_url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg17-w1-x64.zip",
+        "digest": "sha256:3cba8b233db52835ca62586d337132c816c42237151716e57dfa28a860633d7b",
+        "id": 541766446,
+        "name": "pglogical-2.4.8-pg17-w1-x64.zip",
+        "size": 176170
+      },
+      {
+        "browser_download_url": "https://github.com/semihkiroglu/pglogical-windows/releases/download/2.4.8-w1/pglogical-2.4.8-pg18-w1-x64.zip",
+        "digest": "sha256:1f69a4528b506a1bda01b8171f83d44268bbefe08b0adab49e00788c26d52eb3",
+        "id": 541766448,
+        "name": "pglogical-2.4.8-pg18-w1-x64.zip",
+        "size": 176460
+      }
+    ],
+    "sourceLicenseAndNotices": [
+      {
+        "path": "LICENSE",
+        "gitBlob": "255a60b8aafccefc331109c99e2f7270d04ed60c",
+        "sha256": "ac0c2237212c6c82ac6fcb25a26e2728dbb27824452df19e504b0b9c36e50fc3",
+        "bytes": 1117
+      },
+      {
+        "path": "THIRD_PARTY_NOTICES.md",
+        "gitBlob": "d45005bdc61e1781e695d4d1ac8d54972e5151dd",
+        "sha256": "8ef0d4b04ee2241aacbd5dca4a72fc2ad195760ec169b01676cdb7f035ab7efb",
+        "bytes": 3961
+      }
+    ]
+  },
+  "cybertecDirectoryErrors": {},
+  "cybertecCandidatesPg15To18": [
+    {
+      "extension": "pg_crash",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "v0.3-1",
+      "fileName": "pg_crash-15-public-v0.3-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pg_crash-15-public-v0.3-1.zip"
+    },
+    {
+      "extension": "pg_failover_slots",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "v1.2.0-1",
+      "fileName": "pg_failover_slots-15-public-v1.2.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pg_failover_slots-15-public-v1.2.0-1.zip"
+    },
+    {
+      "extension": "pg_lockout",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "1.3.0-1",
+      "fileName": "pg_lockout-15-public-1.3.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pg_lockout-15-public-1.3.0-1.zip"
+    },
+    {
+      "extension": "pg_prohibit_commands",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "v1.2.2-1",
+      "fileName": "pg_prohibit_commands-15-public-v1.2.2-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pg_prohibit_commands-15-public-v1.2.2-1.zip"
+    },
+    {
+      "extension": "pg_show_plans",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "v2.1.7-1",
+      "fileName": "pg_show_plans-15-public-v2.1.7-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pg_show_plans-15-public-v2.1.7-1.zip"
+    },
+    {
+      "extension": "pg_squeeze",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "REL1_9_1-1",
+      "fileName": "pg_squeeze-15-public-REL1_9_1-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pg_squeeze-15-public-REL1_9_1-1.zip"
+    },
+    {
+      "extension": "pg_wait_sampling",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "v1.1.9-1",
+      "fileName": "pg_wait_sampling-15-public-v1.1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pg_wait_sampling-15-public-v1.1.9-1.zip"
+    },
+    {
+      "extension": "pldebugger",
+      "pgMajor": "15",
+      "providerBuildLabelUntrusted": "v1.9-1",
+      "fileName": "pldebugger-15-public-v1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/15/extension/pldebugger-15-public-v1.9-1.zip"
+    },
+    {
+      "extension": "pg_crash",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "v0.3-1",
+      "fileName": "pg_crash-16-public-v0.3-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pg_crash-16-public-v0.3-1.zip"
+    },
+    {
+      "extension": "pg_failover_slots",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "v1.2.0-1",
+      "fileName": "pg_failover_slots-16-public-v1.2.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pg_failover_slots-16-public-v1.2.0-1.zip"
+    },
+    {
+      "extension": "pg_lockout",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "1.3.0-1",
+      "fileName": "pg_lockout-16-public-1.3.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pg_lockout-16-public-1.3.0-1.zip"
+    },
+    {
+      "extension": "pg_prohibit_commands",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "v1.2.2-1",
+      "fileName": "pg_prohibit_commands-16-public-v1.2.2-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pg_prohibit_commands-16-public-v1.2.2-1.zip"
+    },
+    {
+      "extension": "pg_show_plans",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "v2.1.7-1",
+      "fileName": "pg_show_plans-16-public-v2.1.7-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pg_show_plans-16-public-v2.1.7-1.zip"
+    },
+    {
+      "extension": "pg_squeeze",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "REL1_9_1-1",
+      "fileName": "pg_squeeze-16-public-REL1_9_1-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pg_squeeze-16-public-REL1_9_1-1.zip"
+    },
+    {
+      "extension": "pg_wait_sampling",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "v1.1.9-1",
+      "fileName": "pg_wait_sampling-16-public-v1.1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pg_wait_sampling-16-public-v1.1.9-1.zip"
+    },
+    {
+      "extension": "pldebugger",
+      "pgMajor": "16",
+      "providerBuildLabelUntrusted": "v1.9-1",
+      "fileName": "pldebugger-16-public-v1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/16/extension/pldebugger-16-public-v1.9-1.zip"
+    },
+    {
+      "extension": "pg_crash",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "v0.3-1",
+      "fileName": "pg_crash-17-public-v0.3-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pg_crash-17-public-v0.3-1.zip"
+    },
+    {
+      "extension": "pg_failover_slots",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "v1.2.0-1",
+      "fileName": "pg_failover_slots-17-public-v1.2.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pg_failover_slots-17-public-v1.2.0-1.zip"
+    },
+    {
+      "extension": "pg_lockout",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "1.3.0-1",
+      "fileName": "pg_lockout-17-public-1.3.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pg_lockout-17-public-1.3.0-1.zip"
+    },
+    {
+      "extension": "pg_prohibit_commands",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "v1.2.2-1",
+      "fileName": "pg_prohibit_commands-17-public-v1.2.2-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pg_prohibit_commands-17-public-v1.2.2-1.zip"
+    },
+    {
+      "extension": "pg_show_plans",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "v2.1.7-1",
+      "fileName": "pg_show_plans-17-public-v2.1.7-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pg_show_plans-17-public-v2.1.7-1.zip"
+    },
+    {
+      "extension": "pg_squeeze",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "REL1_9_1-1",
+      "fileName": "pg_squeeze-17-public-REL1_9_1-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pg_squeeze-17-public-REL1_9_1-1.zip"
+    },
+    {
+      "extension": "pg_wait_sampling",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "v1.1.9-1",
+      "fileName": "pg_wait_sampling-17-public-v1.1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pg_wait_sampling-17-public-v1.1.9-1.zip"
+    },
+    {
+      "extension": "pldebugger",
+      "pgMajor": "17",
+      "providerBuildLabelUntrusted": "v1.9-1",
+      "fileName": "pldebugger-17-public-v1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/17/extension/pldebugger-17-public-v1.9-1.zip"
+    },
+    {
+      "extension": "pg_crash",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "v0.3-1",
+      "fileName": "pg_crash-18-public-v0.3-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pg_crash-18-public-v0.3-1.zip"
+    },
+    {
+      "extension": "pg_failover_slots",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "v1.2.0-1",
+      "fileName": "pg_failover_slots-18-public-v1.2.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pg_failover_slots-18-public-v1.2.0-1.zip"
+    },
+    {
+      "extension": "pg_lockout",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "1.3.0-1",
+      "fileName": "pg_lockout-18-public-1.3.0-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pg_lockout-18-public-1.3.0-1.zip"
+    },
+    {
+      "extension": "pg_prohibit_commands",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "v1.2.2-1",
+      "fileName": "pg_prohibit_commands-18-public-v1.2.2-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pg_prohibit_commands-18-public-v1.2.2-1.zip"
+    },
+    {
+      "extension": "pg_show_plans",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "v2.1.7-1",
+      "fileName": "pg_show_plans-18-public-v2.1.7-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pg_show_plans-18-public-v2.1.7-1.zip"
+    },
+    {
+      "extension": "pg_squeeze",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "REL1_9_1-1",
+      "fileName": "pg_squeeze-18-public-REL1_9_1-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pg_squeeze-18-public-REL1_9_1-1.zip"
+    },
+    {
+      "extension": "pg_wait_sampling",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "v1.1.9-1",
+      "fileName": "pg_wait_sampling-18-public-v1.1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pg_wait_sampling-18-public-v1.1.9-1.zip"
+    },
+    {
+      "extension": "pldebugger",
+      "pgMajor": "18",
+      "providerBuildLabelUntrusted": "v1.9-1",
+      "fileName": "pldebugger-18-public-v1.9-1.zip",
+      "originalUrlUntrusted": "https://repository.cybertec.at/windows/public/18/extension/pldebugger-18-public-v1.9-1.zip"
+    }
+  ],
+  "cybertecThreePg18OriginalByteObservations": [
+    {
+      "extension": "pg_crash",
+      "providerLabel": "v0.3-1",
+      "url": "https://repository.cybertec.at/windows/public/18/extension/pg_crash-18-public-v0.3-1.zip",
+      "pgMajor": "18",
+      "finalUrl": "https://repository.cybertec.at/windows/public/18/extension/pg_crash-18-public-v0.3-1.zip",
+      "sha256": "37b9dbb8e38500efd9264656decb3a60eaf984c50fc7e67b36b61652e7605cb7",
+      "bytes": 34331,
+      "members": [
+        {
+          "path": "lib/",
+          "bytes": 0
+        },
+        {
+          "path": "lib/pg_crash.dll",
+          "bytes": 103267
+        }
+      ]
+    },
+    {
+      "extension": "pg_lockout",
+      "providerLabel": "1.3.0-1",
+      "url": "https://repository.cybertec.at/windows/public/18/extension/pg_lockout-18-public-1.3.0-1.zip",
+      "pgMajor": "18",
+      "finalUrl": "https://repository.cybertec.at/windows/public/18/extension/pg_lockout-18-public-1.3.0-1.zip",
+      "sha256": "432f8066c701319bf80ae81606fa6b5a60f67ba483bbae45651b6c16c2b9d817",
+      "bytes": 45654,
+      "members": [
+        {
+          "path": "lib/",
+          "bytes": 0
+        },
+        {
+          "path": "lib/pg_lockout.dll",
+          "bytes": 135621
+        },
+        {
+          "path": "share/",
+          "bytes": 0
+        },
+        {
+          "path": "share/doc/",
+          "bytes": 0
+        },
+        {
+          "path": "share/doc/contrib/",
+          "bytes": 0
+        },
+        {
+          "path": "share/doc/contrib/pg_lockout.md",
+          "bytes": 9
+        }
+      ]
+    },
+    {
+      "extension": "pg_prohibit_commands",
+      "providerLabel": "v1.2.2-1",
+      "url": "https://repository.cybertec.at/windows/public/18/extension/pg_prohibit_commands-18-public-v1.2.2-1.zip",
+      "pgMajor": "18",
+      "finalUrl": "https://repository.cybertec.at/windows/public/18/extension/pg_prohibit_commands-18-public-v1.2.2-1.zip",
+      "sha256": "452cef5ffe66e4c84a329ac5a5c59b958010e5d2a2d5e156f8f6dbcbc87c5e30",
+      "bytes": 65427,
+      "members": [
+        {
+          "path": "lib/",
+          "bytes": 0
+        },
+        {
+          "path": "lib/pg_prohibit_commands.dll",
+          "bytes": 179433
+        },
+        {
+          "path": "share/",
+          "bytes": 0
+        },
+        {
+          "path": "share/doc/",
+          "bytes": 0
+        },
+        {
+          "path": "share/doc/contrib/",
+          "bytes": 0
+        },
+        {
+          "path": "share/doc/contrib/pg_prohibit_commands.md",
+          "bytes": 9
+        }
+      ]
+    }
+  ],
+  "historicalPglogicalProof": {
+    "run": {
+      "conclusion": "success",
+      "event": "pull_request",
+      "head_sha": "be04287af8da83c990446e1f8950d836a197ddb9",
+      "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355",
+      "id": 43443993355,
+      "path": ".github/workflows/issue112-pglogical-two-node-e2e.yml",
+      "run_attempt": 1,
+      "status": "completed"
+    },
+    "jobs": [
+      {
+        "id": 131948558854,
+        "name": "hostile-offline-sigstore",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948558854"
+      },
+      {
+        "id": 131948559100,
+        "name": "two-node-replication (17, 17.11.4)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948559100"
+      },
+      {
+        "id": 131948559228,
+        "name": "two-node-replication (14, 14.24.0)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948559228"
+      },
+      {
+        "id": 131948559302,
+        "name": "two-node-replication (16, 16.15.5)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948559302"
+      },
+      {
+        "id": 131948559321,
+        "name": "two-node-replication (15, 15.19.0)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948559321"
+      },
+      {
+        "id": 131948559373,
+        "name": "two-node-replication (18, 18.6.5)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948559373"
+      },
+      {
+        "id": 131948642224,
+        "name": "independent-provider-sigstore (18)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948642224"
+      },
+      {
+        "id": 131948642242,
+        "name": "independent-provider-sigstore (17)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948642242"
+      },
+      {
+        "id": 131948642258,
+        "name": "independent-provider-sigstore (14)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948642258"
+      },
+      {
+        "id": 131948642314,
+        "name": "independent-provider-sigstore (15)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948642314"
+      },
+      {
+        "id": 131948642399,
+        "name": "independent-provider-sigstore (16)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/pgextwin/catalog/actions/runs/43443993355/job/131948642399"
+      }
+    ],
+    "rerunPerformed": false,
+    "signatureVerificationPerformedThisSurvey": false
+  },
+  "publicGetAuthorized": false,
+  "mirrorAuthorized": false,
+  "releaseAuthorized": false,
+  "newSupportImplemented": false,
+  "limits": [
+    "GitHub verified source-tag report is not independent cryptographic verification of a binary",
+    "Directory labels are untrusted packaging metadata, not proven latest upstream versions",
+    "Local archive hashes are not a signed producer binding",
+    "A missing packaged license does not prove legal prohibition; exact binary license basis is 未取得",
+    "No ZIPs, signatures or notices are rehosted by this receipt",
+    "No public GET/admission/issuer dispatch or publication performed"
+  ],
+  "cybertecCandidateSelection": "Explicit packaging labels from the four observed indexes, not an upstream-version resolver. Full raw observations retained in the local survey workspace."
+}
