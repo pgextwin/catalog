@@ -5,9 +5,6 @@ on:
     workflows:
       - Validate catalog
     types: [completed]
-  schedule:
-    # 12:00 JST fallback; GitHub cron execution is best effort.
-    - cron: "0 3 * * *"
   workflow_dispatch:
 
 permissions:

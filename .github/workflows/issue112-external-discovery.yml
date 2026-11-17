@@ -1,9 +1,6 @@
 name: Issue112 read-only external Windows provider discovery
 
 on:
-  schedule:
-    # Daily read-only provider version watch (11:17 JST).
-    - cron: '17 2 * * *'
   pull_request:
     paths:
       - external/discovery-providers-v1.json

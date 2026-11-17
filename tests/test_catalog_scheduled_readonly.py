@@ -197,8 +197,6 @@ class RunnerTests(TestCase):
         path = ROOT / ".github/workflows/catalog-drift-readonly.yml"
         text = path.read_text(encoding="utf-8")
         required = (
-            "on:\n  schedule:",
-            "cron: '30 0 * * *'",
             "  push:\n    branches:\n      - main",
             ".github/workflows/catalog-drift-readonly.yml",
             "permissions:\n  contents: read",
@@ -213,7 +211,7 @@ class RunnerTests(TestCase):
         for key in required:
             self.assertIn(key, text)
         for forbidden in (
-            "\n  workflow_dispatch:", "\n  pull_request:", "\n  workflow_call:",
+            "\n  schedule:", "\n  workflow_dispatch:", "\n  pull_request:", "\n  workflow_call:",
             "\n  release:", "\n  repository_dispatch:",
             "contents: write", "pull-requests: write", "actions: write",
             "gh release ", "gh workflow run ", "git push", "gh pr create",
