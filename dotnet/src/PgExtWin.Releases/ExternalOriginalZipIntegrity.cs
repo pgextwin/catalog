@@ -17,9 +17,8 @@ public sealed record OriginalZipResourceProfile(
 
 /// <summary>
 /// Offline, non-authorizing check of original provider ZIP bytes.
-/// Caller-supplied size/hash are NOT a trust anchor. A separately authenticated
-/// signed external feed AND formal source-specific Publisher admission must
-/// precede any network download or user-facing distribution.
+/// Caller-supplied size/hash do not establish a license or publication rights.
+/// External direct GET selects exact-version license-reviewed Catalog byte pins.
 /// </summary>
 public static class ExternalOriginalZipIntegrity
 {

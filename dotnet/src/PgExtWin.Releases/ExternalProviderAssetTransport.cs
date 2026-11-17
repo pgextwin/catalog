@@ -8,9 +8,8 @@ using PgExtWin.Core;
 
 namespace PgExtWin.Releases;
 
-// NONAUTHORIZING transport primitive. Only a future independently signed
-// source-specific admission path may invoke it. No CLI command calls this type.
-// Never construct these pins from local discovery/review JSON.
+// Original provider byte pins selected by the external Catalog fetch path.
+// Historical signed-admission callers reuse the same transport and staging.
 internal sealed record ExternalOriginalPin(
     string Extension, string PgMajor, string SourceRepo, long RepositoryId,
     string Tag, long ReleaseId, string AssetName, long AssetId,
@@ -18,10 +17,17 @@ internal sealed record ExternalOriginalPin(
 
 internal sealed class ExternalProviderAssetTransport : IDisposable
 {
+    // Direct HTTPS provider assets use no synthetic GitHub identities.
+    internal static bool IsCybertec(ExternalOriginalPin pin) =>
+        pin.SourceRepo == "cybertec-postgresql/" + pin.Extension &&
+        pin.RepositoryId == 0 && pin.ReleaseId == 0 && pin.AssetId == 0 &&
+        pin.PgMajor is "15" or "16" or "17" or "18" &&
+        pin.OriginalProviderUrl == "https://repository.cybertec.at/windows/public/" +
+            pin.PgMajor + "/extension/" + pin.AssetName;
+
     private readonly HttpClient http;
-    // One transport instance per signed, atomic CLI batch. Cache GitHub JSON only
-    // in memory; revalidate every pin against the snapshot before each asset GET.
-    // No disk cache, cross-batch reuse, or substitution for signed admission.
+    // One transport per atomic CLI batch. Cache GitHub metadata in memory;
+    // verify the Catalog byte pin against every downloaded original.
     private readonly Dictionary<string, JsonElement> metadataSnapshots = new(StringComparer.Ordinal);
     private static readonly Regex Repo = new(
         @"\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z", RegexOptions.CultureInvariant);
@@ -41,8 +47,7 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         http.DefaultRequestHeaders.UserAgent.ParseAdd("pgextwin-external-original-nonpublishing/1");
     }
 
-    // Reused by the all-or-nothing external batch preflight. This is pin
-    // shape validation only, NEVER independent signed admission.
+    // Shared pin shape validation for the all-or-nothing external batch.
     internal static void ValidatePin(ExternalOriginalPin pin)
     {
         if (!Extension.IsMatch(pin.Extension) ||
@@ -53,10 +58,10 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
             !PinnedReleaseSelector.SafeAssetName(pin.AssetName) ||
             !pin.AssetName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
             !Hash.IsMatch(pin.OriginalSha256) ||
-            pin.RepositoryId <= 0 || pin.ReleaseId <= 0 || pin.AssetId <= 0 ||
+            (!IsCybertec(pin) && (pin.RepositoryId <= 0 || pin.ReleaseId <= 0 || pin.AssetId <= 0)) ||
             pin.OriginalBytes is < 4 or > ExternalOriginalZipIntegrity.MaxOriginalBytes ||
-            pin.OriginalProviderUrl != "https://github.com/" + pin.SourceRepo +
-                "/releases/download/" + pin.Tag + "/" + pin.AssetName)
+            (!IsCybertec(pin) && pin.OriginalProviderUrl != "https://github.com/" + pin.SourceRepo +
+                "/releases/download/" + pin.Tag + "/" + pin.AssetName))
             throw new InvalidDataException("Invalid or unpinned external original asset");
     }
 
@@ -74,71 +79,76 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         var final = Path.Combine(folder, pin.AssetName);
         RequireAbsent(folder, pin.AssetName);
 
-        var baseUrl = "https://api.github.com/repos/" + pin.SourceRepo;
+        if (!IsCybertec(pin))
         {
-            var root = await CachedMetadataAsync(baseUrl, token);
-            if (root.GetProperty("full_name").GetString() != pin.SourceRepo ||
-                root.GetProperty("id").GetInt64() != pin.RepositoryId)
-                throw new InvalidDataException("External repository identity mismatch");
-        }
-        {
-            var root = await CachedMetadataAsync(baseUrl + "/releases/tags/" + pin.Tag, token);
-            if (root.GetProperty("id").GetInt64() != pin.ReleaseId ||
-                root.GetProperty("tag_name").GetString() != pin.Tag ||
-                root.GetProperty("draft").ValueKind != JsonValueKind.False ||
-                root.GetProperty("published_at").ValueKind != JsonValueKind.String)
-                throw new InvalidDataException("External Release identity/state mismatch");
-
-            var items = root.GetProperty("assets");
-            if (items.ValueKind != JsonValueKind.Array ||
-                items.GetArrayLength() is < 1 or > 200)
-                throw new InvalidDataException("Invalid external Release asset inventory");
-            var ids = new HashSet<long>();
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            bool matched = false;
-            foreach (var item in items.EnumerateArray())
+            var baseUrl = "https://api.github.com/repos/" + pin.SourceRepo;
             {
-                var id = item.GetProperty("id").GetInt64();
-                var name = item.GetProperty("name").GetString() ?? "";
-                if (id <= 0 || !PinnedReleaseSelector.SafeAssetName(name) ||
-                    !ids.Add(id) || !names.Add(name))
-                    throw new InvalidDataException("Duplicate/unsafe external Release asset");
-                if (id == pin.AssetId || name == pin.AssetName)
-                {
-                    // GitHub's older Release assets often expose digest: null.
-                    // Never invent a provider digest or treat absence as a
-                    // successful hash: the *separately signed* admission pins
-                    // SHA256 and we verify the full actual ZIP bytes below.
-                    // A present, conflicting API digest always DENIES.
-                    var digest = item.GetProperty("digest");
-                    var digestMatches = digest.ValueKind switch
-                    {
-                        JsonValueKind.Null => true, // Independent signed byte pin required.
-                        JsonValueKind.String =>
-                            digest.GetString() == "sha256:" + pin.OriginalSha256,
-                        _ => false
-                    };
-                    if (id != pin.AssetId || name != pin.AssetName ||
-                        item.GetProperty("size").GetInt64() != pin.OriginalBytes ||
-                        !digestMatches ||
-                        item.GetProperty("state").GetString() != "uploaded" ||
-                        item.GetProperty("browser_download_url").GetString() != pin.OriginalProviderUrl)
-                        throw new InvalidDataException("External Release asset pin mismatch");
-                    matched = true;
-                }
+                var root = await CachedMetadataAsync(baseUrl, token);
+                if (root.GetProperty("full_name").GetString() != pin.SourceRepo ||
+                    root.GetProperty("id").GetInt64() != pin.RepositoryId)
+                    throw new InvalidDataException("External repository identity mismatch");
             }
-            if (!matched)
-                throw new InvalidDataException("External Release asset ID absent");
+            {
+                var root = await CachedMetadataAsync(baseUrl + "/releases/tags/" + pin.Tag, token);
+                if (root.GetProperty("id").GetInt64() != pin.ReleaseId ||
+                    root.GetProperty("tag_name").GetString() != pin.Tag ||
+                    root.GetProperty("draft").ValueKind != JsonValueKind.False ||
+                    root.GetProperty("published_at").ValueKind != JsonValueKind.String)
+                    throw new InvalidDataException("External Release identity/state mismatch");
+
+                var items = root.GetProperty("assets");
+                if (items.ValueKind != JsonValueKind.Array ||
+                    items.GetArrayLength() is < 1 or > 200)
+                    throw new InvalidDataException("Invalid external Release asset inventory");
+                var ids = new HashSet<long>();
+                var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                bool matched = false;
+                foreach (var item in items.EnumerateArray())
+                {
+                    var id = item.GetProperty("id").GetInt64();
+                    var name = item.GetProperty("name").GetString() ?? "";
+                    if (id <= 0 || !PinnedReleaseSelector.SafeAssetName(name) ||
+                        !ids.Add(id) || !names.Add(name))
+                        throw new InvalidDataException("Duplicate/unsafe external Release asset");
+                    if (id == pin.AssetId || name == pin.AssetName)
+                    {
+                        // GitHub's older Release assets often expose digest: null.
+                        // Never invent a provider digest or treat absence as a
+                        // successful hash: the Catalog record (or historical admission) pins
+                        // SHA256 and we verify the full actual ZIP bytes below.
+                        // A present, conflicting API digest always DENIES.
+                        var digest = item.GetProperty("digest");
+                        var digestMatches = digest.ValueKind switch
+                        {
+                            JsonValueKind.Null => true, // Full byte pin verified below.
+                            JsonValueKind.String =>
+                                digest.GetString() == "sha256:" + pin.OriginalSha256,
+                            _ => false
+                        };
+                        if (id != pin.AssetId || name != pin.AssetName ||
+                            item.GetProperty("size").GetInt64() != pin.OriginalBytes ||
+                            !digestMatches ||
+                            item.GetProperty("state").GetString() != "uploaded" ||
+                            item.GetProperty("browser_download_url").GetString() != pin.OriginalProviderUrl)
+                            throw new InvalidDataException("External Release asset pin mismatch");
+                        matched = true;
+                    }
+                }
+                if (!matched)
+                    throw new InvalidDataException("External Release asset ID absent");
+            }
+
         }
 
-        // The provider's EXACT browser_download_url is independently owner-signed
-        // and already matched against the GitHub Release asset ID, name and size.
-        // Download through github.com (not anonymous REST /releases/assets/ID)
-        // to conserve GitHub's shared anonymous REST budget. Strict redirect
-        // allowlist and independent full-byte SHA256/ZIP checks remain mandatory.
-        // On 403/404/mismatch do NOT fall back to an unreviewed transport.
+        // Direct provider originals retain the Catalog SHA256/ZIP checks.
+        // GitHub keeps its existing redirect handling; Cybertec uses its exact
+        // HTTPS URL without redirects. No fallback or provider credentials.
         var url = new Uri(pin.OriginalProviderUrl);
-        using var response = await OriginalAsync(url, token);
+        using var response = IsCybertec(pin)
+            ? await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token)
+            : await OriginalAsync(url, token);
+        if (response.StatusCode != HttpStatusCode.OK)
+            throw new HttpRequestException("External original HTTP " + (int)response.StatusCode);
         if (response.Content.Headers.ContentLength is long size && size != pin.OriginalBytes)
             throw new InvalidDataException("External original HTTP length mismatch");
         if (response.Content.Headers.ContentType?.MediaType is

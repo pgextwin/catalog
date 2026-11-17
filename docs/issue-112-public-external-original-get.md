@@ -1,5 +1,12 @@
 # Issue #112 — verified public CLI external original GET (GET-only)
 
+**Policy update (2026-11-17):** the implementation in
+[the relaxed external fetch review](issue-112-relaxed-external-bulk-fetch-20261117.md)
+supersedes the admission/signature requirements below for external binaries.
+It adds exact-version license-reviewed PG15–18 direct GET support without
+publishing a CLI/feed release. The following describes the historical released
+CLI and its original signed-admission behavior.
+
 [日本語](#日本語) | [English](#english)
 
 ## 日本語
