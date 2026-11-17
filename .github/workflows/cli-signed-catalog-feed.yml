@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
           python scripts/cli_signed_feed.py --catalog . --commit "$GITHUB_SHA" --output "$RUNNER_TEMP/catalog-latest.json"
-          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 128 and 1<=len(d['postgresqlMajors'])<=12 and d['zipCount']==len(d['postgresqlMajors'])*d['extensionCount'] and not d['extensionSignatureVerified']"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 1 <= d['extensionCount'] <= 128 and 1<=len(d['postgresqlMajors'])<=12 and d['zipCount']==len(d['postgresqlMajors'])*d['extensionCount'] and not d['extensionSignatureVerified']"
           echo 'CATALOG_FEED_PR_READONLY_DRYRUN=PASS NO_SIGN NO_TAG NO_RELEASE'
   gate:
     if: ${{ github.repository == 'pgextwin/catalog' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.run_attempt == 1 }}
@@ -104,7 +104,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
           python scripts/cli_signed_feed.py --catalog . --commit "$SOURCE" --output "$RUNNER_TEMP/catalog-latest.json"
-          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 14 <= d['extensionCount'] <= 128 and 1<=len(d['postgresqlMajors'])<=12 and d['zipCount']==len(d['postgresqlMajors'])*d['extensionCount'] and d['catalogCommit']==os.environ['SOURCE'] and not d['extensionSignatureVerified']"
+          python -c "import json,os; d=json.load(open(os.environ['RUNNER_TEMP']+'/catalog-latest.json')); assert 1 <= d['extensionCount'] <= 128 and 1<=len(d['postgresqlMajors'])<=12 and d['zipCount']==len(d['postgresqlMajors'])*d['extensionCount'] and d['catalogCommit']==os.environ['SOURCE'] and not d['extensionSignatureVerified']"
       - name: Mint genuine Sigstore keyless signed Catalog-feed attestation on main
         id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2

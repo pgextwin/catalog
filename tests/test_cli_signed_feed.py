@@ -91,7 +91,7 @@ class SignedFeedTests(unittest.TestCase):
         self.assertEqual(len(feed["releases"]), 18)
         self.assertFalse(feed["publicationAuthorized"])
         self.assertFalse(feed["extensionSignatureVerified"])
-        # The historic 14 cannot be dropped even if a new name is present.
+        # Removing an index entry alone still leaves an inconsistent record inventory.
         idx = self.root / "index.json"
         idx.write_text(json.dumps({"schemaVersion": 2,
                                    "extensions": sorted((set(NAMES + ["new_future"]) |
@@ -166,7 +166,42 @@ class SignedFeedTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.generate()
 
-    def test_stage_reject_wrong_roster_and_partial_historical_fleet(self):
+    def test_retired_extension_removed_from_authorized_roster(self):
+        index = self.root / "index.json"
+        for keep in (NAMES[1:], ["pg_cron"]):
+            with self.subTest(count=len(keep)):
+                for record in (self.root / "extensions").glob("*.json"):
+                    if record.stem not in keep:
+                        record.unlink()
+                index.write_text(json.dumps({"schemaVersion": 2, "extensions": keep}))
+                feed = self.generate()
+                self.assertEqual(feed["extensionCount"], len(keep))
+                self.assertEqual(feed["zipCount"], len(keep) * 5)
+                self.assertEqual([r["extension"] for r in feed["releases"]], keep)
+                self.assertEqual(set(feed["catalogSha256"]),
+                                 {"index.json"} | {"extensions/" + n + ".json" for n in keep})
+                self.assertFalse(feed["extensionSignatureVerified"])
+                self.assertFalse(feed["publicationAuthorized"])
+                self.assertFalse(feed["installAuthorized"])
+
+    def test_roster_maximum_count_and_identifier_length(self):
+        additions = ["future_%03d" % i for i in range(113)] + ["x" * 64]
+        self.include_wave3(*additions)
+        feed = self.generate()
+        self.assertEqual(feed["extensionCount"], 128)
+        self.assertEqual(feed["zipCount"], 128 * 5)
+        self.assertEqual(len(feed["catalogSha256"]), 129)
+
+    def test_roster_resource_identifier_and_order_bounds(self):
+        index = self.root / "index.json"
+        for names in ([], ["x%03d" % i for i in range(129)], NAMES[::-1],
+                      NAMES + [NAMES[-1]], ["../bad"], ["Upper"], ["x" * 65], [1]):
+            with self.subTest(names=names):
+                index.write_text(json.dumps({"schemaVersion": 2, "extensions": names}))
+                with self.assertRaises(ValueError):
+                    self.generate()
+
+    def test_stage_reject_index_record_inventory_mismatch(self):
         self.include_wave3("pgtap")
         index = self.root / "index.json"
         original = json.loads(index.read_text())
@@ -255,7 +290,7 @@ class SignedFeedTests(unittest.TestCase):
     def test_windows_cli_smoke_tracks_signed_feed_fleet_capacity(self):
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
-        self.assertIn("$expectedCount -lt 14 -or $expectedCount -gt 128", workflow)
+        self.assertIn("$expectedCount -lt 1 -or $expectedCount -gt 128", workflow)
         self.assertNotIn("$expectedCount -gt 17", workflow)
 
     def test_actual_release_note_formatter_tracks_signed_cohort_and_denies_false_claims(self):

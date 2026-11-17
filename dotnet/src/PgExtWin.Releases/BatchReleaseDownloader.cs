@@ -13,6 +13,7 @@ public static class BatchReleaseDownloader
 {
     // Historical --fixed / external local policy remains usable for PG14.
     // Latest mode passes the independently verified signed feed's majors.
+    private const int LegacyFixedExtensionCount = 14;
     private static readonly string[] LegacyFixedMajors = ["14", "15", "16", "17", "18"];
     public sealed record BatchResult(string Directory, int Count, long Bytes,
         string VerificationLevel = "INTEGRITY_ONLY");
@@ -26,11 +27,11 @@ public static class BatchReleaseDownloader
         if (pgSelection != "all" && !LegacyFixedMajors.Contains(pgSelection, StringComparer.Ordinal))
             throw new InvalidDataException("Unsupported historical fixed batch PG selection");
         var records = CatalogReader.LoadLocal(catalogDirectory);
-        // v0.2 operates on the exact 14-extension production fleet. Never silently
-        // make a partial 'all' selection from a broken or incomplete Catalog.
-        if (records.Count != VerifiedFleetRoster.MinimumCount ||
+        // --fixed preserves its embedded historical policy snapshot. Its count
+        // is independent of the current authenticated index/feed roster limits.
+        if (records.Count != LegacyFixedExtensionCount ||
             records.Select(r => r.Name).Distinct(StringComparer.Ordinal).Count() !=
-                VerifiedFleetRoster.MinimumCount)
+                LegacyFixedExtensionCount)
             throw new InvalidDataException("Batch requires an intact 14-extension Catalog");
         var majors = pgSelection == "all" ? LegacyFixedMajors : new[] { pgSelection };
         var pins = new List<ReleasePins>();

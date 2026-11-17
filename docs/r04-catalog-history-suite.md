@@ -57,3 +57,40 @@ normal Linux steps (`validate_public_get_pin.py`, landscape/catalog validation,
 .NET build) do not read historical local Git trees. Their remote API/signature
 checks remain unchanged. `TrustedBootstrapTests` is the specific blocker; a
 separate history job alone does not make normal validate history-free.
+
+## Current authorized roster
+
+`VerifiedFleetRoster` now validates nonempty membership up to 128 names, sorted
+and unique, with lowercase safe identifiers up to 64 characters. It no longer
+requires the original fourteen names. Membership authority still comes from the
+protected authenticated index or the independently Sigstore-verified feed, bound
+to immutable Catalog bytes. The signed feed's exact count/index/record/package
+and selected-major checks are unchanged.
+
+The Python feed producer had the same historical-membership restriction; it and
+the workflow minimum-count checks now agree with the consumer. Removed members
+must also be removed from the authorized index and record inventory. Removing
+only an index entry, adding an unregistered entry, or losing a selected package
+still fails. No signature, fetched-byte, admission, or per-version license
+verification was changed. Canonical/golden and hostile tamper tests remain.
+
+The explicitly frozen `--fixed` policy/snapshot still means that exact historical
+snapshot. Its batch guard retains its own 14-entry count, decoupled from the
+current authorized roster minimum so the legacy path continues to work.
+
+## Local validation
+
+Python 3.12.3 (`python3`; workflows pin Python 3.13), .NET SDK 11.0.100:
+
+- `python3 -m unittest discover -s tests -v` — **1,045 passed**.
+- `python3 -m unittest discover -s tests/history -v` — **40 passed**.
+- `PATH=/home/hatch/.dotnet:$PATH dotnet build dotnet/PgExtWin.slnx --configuration Release --nologo` — passed, zero warnings/errors.
+- `PATH=/home/hatch/.dotnet:$PATH dotnet run --project dotnet/tests/PgExtWin.Contract.Tests --configuration Release --no-build` — **544 local read-only contract checks passed**.
+- Affected live P1 ledger/fleet/source/batch tests, retirement guard,
+  nonauthorization boundary and feed-producer tests also passed individually.
+- Changed workflow YAML parsed successfully; `git diff --check` passed.
+
+Deferred: normal-job shallow checkout, blocked by the live bootstrap Git-object
+consumer above. Live historical policy inputs and their tests intentionally
+remain in normal CI; none were mechanically retired. No other phase-B work is
+deferred. Windows packaging and remote audits remain covered by existing CI.

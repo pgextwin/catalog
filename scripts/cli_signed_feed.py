@@ -22,14 +22,9 @@ ASSET = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,159}\Z")
 MAJORS = ("14", "15", "16", "17", "18")
 LIMIT = 2_000_000
 SCHEMA = "pgextwin-signed-catalog-zip-feed/v1"
-HISTORICAL = frozenset((
-    "hypopg", "orafce", "pg_bigm", "pg_cron", "pg_hint_plan",
-    "pg_ivm", "pg_partman", "pg_qualstats", "pg_repack",
-    "pg_stat_monitor", "pgaudit", "plpgsql_check", "set_user", "wal2json"
-))
-# Registered membership is the exact protected Catalog index used by its
-# authenticated, successful main CI and pinned signer; never a copied constant.
-# Preserve all historic names and bound future cohort size as a resource limit.
+# Membership is the exact protected Catalog index used by authenticated,
+# successful main CI and the pinned signer. Retirement may shrink that index;
+# nonempty/resource/identifier checks do not prescribe historical membership.
 MAX_FLEET = 128
 MAX_MAJOR = 32
 
@@ -101,10 +96,9 @@ def build_feed(root, commit, load):
     index_bytes = source_bytes(root, "index.json")
     index = strict_object(index_bytes.decode("utf-8"))
     names = index["extensions"]
-    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not len(HISTORICAL) <= len(names) <= MAX_FLEET or (
+    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not 1 <= len(names) <= MAX_FLEET or (
+        any(not isinstance(n, str) or len(n) > 64 or not EXTENSION.fullmatch(n) for n in names) or
         names != sorted(names) or len(names) != len(set(names)) or
-        any(not isinstance(n, str) or not EXTENSION.fullmatch(n) for n in names) or
-        not HISTORICAL.issubset(names) or
         sorted(p.stem for p in (root / "extensions").glob("*.json")) != names
     ):
         raise ValueError("Catalog extension inventory incomplete")
