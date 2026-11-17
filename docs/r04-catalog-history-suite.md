@@ -12,3 +12,48 @@ No AGENTS.md exists in this clone. Normal command is `python -m unittest discove
 - **Keep normal:** `test_retired_one_shot_cli_workflows.py` guards absence of retired publishers, plus existing nonauthorization tests throughout live P1 readers. Expand/clarify the normal nonauthorization boundary as needed; frozen fixture content assertions can move to history.
 - No catalog PRE-G4 tests were found. Fixed IDs in live identity/admission/byte tests are not treated as obsolete merely because they are fixed.
 
+
+## Suite separation
+
+Normal CI continues `python -m unittest discover -s tests -v`. The
+`tests/history/` directory deliberately has no `__init__.py`, so unittest does
+not discover it recursively. Run it explicitly with:
+
+```
+python -m unittest discover -s tests/history -v
+```
+
+Moved intact: seven archived CLI publisher/smoke contract files, the completed
+source-v2 ledger/artifact test file, and the completed fleet14 canary fixture
+reader's tests. Three sealed Git-tree checks and their test-only helpers were
+extracted from `test_distribution_p1_batch.py`; all remaining live batch tests
+stay normal. Frozen canary/bilingual fixture assertions were extracted from the
+normal retired-workflow guard. No evidence, fixture, reader or policy was deleted.
+Normal `test_historical_evidence_authority.py` exercises the actual old ledger
+readers and confirms they return no publication/distribution permission.
+
+`catalog-history.yml` supplies a **separate, read-only history job**, on PR/main
+changes to history tests, fixtures, evidence, readers (`scripts/**`, including
+shared validators), policies/config/schema, docs, workflow wiring and Git byte
+attributes; manual dispatch also runs it. Archived workflow files retain their
+original bytes, including obsolete source-path references, as inert fixtures.
+The existing live P1 read-only audit continues its own live-reader tests.
+
+## Checkout-depth decision
+
+**Keep `fetch-depth: 0` in normal validate.** After separating the Python Git-tree
+checks, the normal `.NET synthetic contract tests (offline)` step still executes
+`TrustedBootstrapTests.RunAsync`. That test calls `GitOriginal` -> `git show
+<TrustedCatalogBootstrap.CatalogSnapshotCommit>:<path>` for every entry in the
+pinned policy's `catalogDigests`. The live `--fixed` bootstrap's exact-byte,
+embedded-policy SHA256, numeric-pin and tamper-rejection contracts rely on these
+original bytes. Moving the complete test would move live byte-integrity coverage;
+this phase leaves it normal. A future change could supply authenticated immutable
+fixture bytes to these same tests without historical Git lookup, preserving all
+those checks, before reducing checkout depth.
+
+The remaining Python suite has no historical local Git-object reads. The other
+normal Linux steps (`validate_public_get_pin.py`, landscape/catalog validation,
+.NET build) do not read historical local Git trees. Their remote API/signature
+checks remain unchanged. `TrustedBootstrapTests` is the specific blocker; a
+separate history job alone does not make normal validate history-free.
