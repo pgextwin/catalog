@@ -113,10 +113,14 @@ SFCGAL paths identify v2.3.0 and CGAL 6.0.1; GEOS C API identifies 3.15.0.
 Obtained exact GDAL 3.13.1 LICENSE.TXT, PROJ 9.8.1 COPYING, SFCGAL v2.3.0
 LICENSE, CGAL 6.0.1 Installation/LICENSE.GPL, and GEOS 3.15.0 COPYING.
 These narrow the original G03 gap but do not cover the entire bundle.
-In particular the bundle also contains `bin/libgsl-28.dll` and GUI
-`libintl-9.dll`; the read notices do not assign an exact GSL/gettext release
-and applicable terms to those members, and the inspected strings did not settle
-those versions. There are other GUI/runtime components as well. The source
+A further scan including short and UTF-16 strings identified `bin/libgsl-28.dll`
+as GSL 2.8. Downloaded the GNU gsl-2.8 source archive and read its README/COPYING
+(GPLv3 terms); GSL is no longer listed as an unresolved version. The GUI also
+contains `libintl-9.dll`: its strings identify gettext but did not settle an exact
+release, and the read notices do not assign exact-version terms to that member.
+`GNU.Gettext.dll` separately contains a gettext 0.18.1.1 source path; it cannot
+supply the version of the different native `libintl-9.dll`. Other GUI/runtime
+components still lack a complete exact-version license inventory. The source
 PostGIS dependency overview is not an exact-version license inventory of all
 of them. Exact component terms/versions for the complete bundle remain
 **not obtained**, so G03 is still a license-evidence blocker. This does not

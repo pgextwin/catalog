@@ -933,5 +933,16 @@
       "pg_lockout": 0,
       "pg_prohibit_commands": 0
     }
-  }
+  },
+  "osgeoAdditionalLicenseEvidence": [
+    {
+      "component": "GSL",
+      "version": "2.8",
+      "url": "https://ftp.gnu.org/gnu/gsl/gsl-2.8.tar.gz",
+      "archiveSha256": "6a99eeed15632c6354895b1dd542ed5a855c0f15d9ad1326c6fe2b2c9e423190",
+      "licenseMember": "gsl-2.8/COPYING",
+      "licenseSha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "remainingGap": "Native GUI libintl-9.dll exact gettext release/license not obtained; GNU.Gettext.dll is a separate member."
+    }
+  ]
 }
