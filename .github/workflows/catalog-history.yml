@@ -1,0 +1,51 @@
+name: Catalog historical verification
+
+on:
+  pull_request:
+    paths:
+      - 'tests/history/**'
+      - 'tests/fixtures/**'
+      # Readers and their shared validators/policies remain live in scripts/.
+      - 'scripts/**'
+      - 'config/**'
+      - 'schema/**'
+      - 'evidence/**'
+      - 'docs/**'
+      - '.gitattributes'
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - 'tests/history/**'
+      - 'tests/fixtures/**'
+      - 'scripts/**'
+      - 'config/**'
+      - 'schema/**'
+      - 'evidence/**'
+      - 'docs/**'
+      - '.gitattributes'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out catalog with sealed P1 Git tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Only this suite re-proves bytes in the immutable 2026-10-17 tree.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Install validator
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4,<5"
+      - name: Re-prove historical records and retired workflow fixtures (offline)
+        run: python -m unittest discover -s tests/history -v

@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from distribution_manifest_v1 import Denied
 from distribution_p1_historical_fleet import blob_sha

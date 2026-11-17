@@ -21,9 +21,10 @@ internal static class AuthenticatedCatalogHeadTests
         public bool DropHistorical = false;
         public bool AddUnknown = false;
         public bool InvalidName = false;
+        public string[]? RosterOverride;
         public string[] Majors = ["14", "15", "16", "17", "18"];
         private static readonly string[] Wave3 = ["pgtap", "pg_variables", "pg_store_plans"];
-        private string[] Inventory => Names
+        private string[] Inventory => RosterOverride ?? Names
             .Concat(Wave3.Take(WaveThreeCount))
             .Where(n => !DropHistorical || n != "hypopg")
             .Concat(AddUnknown ? ["future_registered"] : Array.Empty<string>())
@@ -237,23 +238,44 @@ internal static class AuthenticatedCatalogHeadTests
                 using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, registered);
                 var rows = await AuthenticatedLatestReleasePins.ResolveAsync(staged, "all", registered);
                 check(rows.Count == 90 && rows.Count(x => x.Extension == "future_registered") == 5,
-                    "18th protected-Catalog entry preserves all required historical identities");
+                    "protected Catalog index authorizes an 18th entry");
             }
-            foreach (var scenario in new[] { "missing-base", "invalid-name" })
+            // A protected roster may retire old members. Resolve every selected
+            // name against that same authenticated snapshot and its Release bytes.
+            using (var retired = new FixtureHandler { DropHistorical = true })
             {
-                using var invalid = new FixtureHandler
-                {
-                    WaveThreeCount = 1,
-                    DropHistorical = scenario == "missing-base",
-                    InvalidName = scenario == "invalid-name"
-                };
+                using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, retired);
+                var rows = await AuthenticatedLatestReleasePins.ResolveAsync(staged, "all", retired);
+                check(rows.Count == 13 * 5 && rows.All(x => x.Extension != "hypopg"),
+                    "retired historical member does not block exact authenticated roster");
+            }
+            foreach (var roster in new[]
+            {
+                new[] { "pg_cron" },
+                Enumerable.Range(0, 128).Select(i => "extension_" + i.ToString("D3")).ToArray(),
+                new[] { new string('x', 64) }
+            })
+            {
+                using var authorized = new FixtureHandler { RosterOverride = roster };
+                using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, authorized);
+                var rows = await AuthenticatedLatestReleasePins.ResolveAsync(staged, "18", authorized);
+                check(rows.Select(x => x.Extension).SequenceEqual(roster) &&
+                      rows.All(x => x.CatalogCommit == Head && x.PgMajor == "18"),
+                    "exact authenticated roster accepted at count/name boundary " + roster.Length);
+            }
+            foreach (var roster in new[]
+            {
+                Array.Empty<string>(),
+                Enumerable.Range(0, 129).Select(i => "extension_" + i.ToString("D3")).ToArray(),
+                new[] { "../bad" }, new[] { "Upper" }, new[] { new string('x', 65) },
+                new[] { "pg_cron", "pg_cron" }, new[] { "wal2json", "pg_cron" }
+            })
+            {
+                using var invalid = new FixtureHandler { RosterOverride = roster };
                 var denied = false;
-                try
-                {
-                    using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, invalid);
-                }
+                try { using var staged = await AuthenticatedCatalogHead.AcquireAsync(parent, invalid); }
                 catch (InvalidDataException) { denied = true; }
-                check(denied, "staged Catalog rejects " + scenario + " extension roster");
+                check(denied, "unsafe, empty, oversized, duplicate or unsorted roster rejected");
             }
             check(Directory.GetFileSystemEntries(parent).Length == 0,
                 "latest verified snapshot disposed without leftovers");

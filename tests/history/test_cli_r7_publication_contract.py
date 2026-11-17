@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 import unittest
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 WORKFLOW=ROOT/"tests"/"fixtures"/"historical-workflows"/"cli-preview-release.yml"
 INTENT=ROOT/"config"/"cli-preview-release-intent.json"
 

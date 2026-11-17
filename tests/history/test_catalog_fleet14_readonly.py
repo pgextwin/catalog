@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 from unittest import TestCase, mock
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import importlib.util
 source = ROOT / "tests/fixtures/historical-scripts/catalog_fleet14_readonly.py"

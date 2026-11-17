@@ -69,7 +69,7 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
         for path in ("tests/fixtures/historical-scripts/catalog_fleet14_readonly.py",
                      "tests/fixtures/historical-scripts/bilingual_release_migration.py",
                      "config/historical-release-bilingual.json",
-                     "tests/test_catalog_fleet14_readonly.py"):
+                     "tests/history/test_catalog_fleet14_readonly.py"):
             self.assertTrue((ROOT / path).is_file())
         # Keep the currently required Release verifier, managed Catalog
         # ingestion, website notification and read-only drift monitoring.
@@ -80,12 +80,6 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
             self.assertTrue((WORKFLOWS / name).is_file())
         validate = (WORKFLOWS / "validate.yml").read_text(encoding="utf-8")
         self.assertIn("unittest discover -s tests -v", validate)
-        original = (ROOT / "tests/fixtures/historical-workflows/catalog-fleet14-readonly-canary.yml").read_text(encoding="utf-8")
-        self.assertIn("DRY_RUN_FLEET14_METADATA_ONLY", original)
-        self.assertNotIn("contents: write", original)
-        original_notes = (ROOT / "tests/fixtures/historical-workflows/historical-release-bilingual.yml").read_text(encoding="utf-8")
-        self.assertIn("Update ONLY existing public Release bodies", original_notes)
-        self.assertNotIn("pull_request_target:", original_notes)
 
     def test_completed_catalog_scripts_are_not_live(self):
         # Previous audit and body-migration Actions have already been retired.

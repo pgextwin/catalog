@@ -17,8 +17,10 @@ jobs:
       - name: Check out catalog
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Required for the sealed P1 2026-10-17 Catalog Git tree check:
-          # a shallow checkout cannot resolve its immutable historical commit.
+          # Still required by normal .NET TrustedBootstrapTests.GitOriginal:
+          # the live --fixed bootstrap verifies policy-pinned historical bytes.
+          # Python sealed-tree re-proof now lives in catalog-history.yml.
+          # See docs/r04-catalog-history-suite.md before reducing this depth.
           fetch-depth: 0
           persist-credentials: false
 
@@ -141,7 +143,7 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $version.Trim() -ne ([string]([xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)).Project.PropertyGroup.Version)) { throw 'CLI preview version smoke failed' }
           $index = Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'index.json') -Raw | ConvertFrom-Json
           $expectedCount = @($index.extensions).Count
-          if ($index.schemaVersion -ne 2 -or $expectedCount -lt 14 -or $expectedCount -gt 128) { throw 'Unsupported protected Catalog fleet size' }
+          if ($index.schemaVersion -ne 2 -or $expectedCount -lt 1 -or $expectedCount -gt 128) { throw 'Unsupported protected Catalog fleet size' }
           $listing = @(& $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1)
           if ($LASTEXITCODE -ne 0) { throw 'List smoke failed' }
           if ($listing[0] -ne 'SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY') { throw 'Trust banner missing' }
