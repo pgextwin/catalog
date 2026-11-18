@@ -41,7 +41,7 @@ class PublicGetGuard(unittest.TestCase):
                      'Get-FileHash -LiteralPath $exe -Algorithm SHA256',
                      '$actual -cne $expected', '(& $exe --version).Trim() -cne $version',
                      'PUBLIC_CLI_BYTES_AND_SIGSTORE=PASS PROOF_SCOPE=PROVENANCE_VERSION_ONLY',
-                     'PUBLIC_DIRECT_GET=NOT_TESTED LEGACY_SIGNED_CONTRACT'):
+                     'PUBLIC_DIRECT_GET=NOT_TESTED'):
             self.assertIn(text, WF)
         self.assertNotIn('validate_public_get_pin.py', WF)
         self.assertNotIn('download-all', WF)
@@ -50,16 +50,16 @@ class PublicGetGuard(unittest.TestCase):
         for text in ("GITHUB_EVENT_NAME -cne 'workflow_run'",
                      "Join-Path $env:GITHUB_WORKSPACE 'external/direct-get.json'",
                      'pgextwin-external-direct-get/v1', '$manifest.records -isnot [array]',
-                     "@('15','16','17','18')", '$row.licenseEvidence.Count -lt 1',
+                     "@('14','15','16','17','18')", '$row.licenseEvidence.Count -lt 1',
                      '$row.upstreamVersion', 'if (-not $identities.Add($identity)) { throw',
                      'if ($row.latest -eq $true)', '$expected.Count -lt 1 -or $expected.Count -gt 1000',
-                     'Mandatory private-built CLI EXE missing',
-                     '& $private download-all --source external --pg all --output $dest',
-                     'if ($cliExit -ne 0)', 'throw "Actual private CLI provider GET failed',
-                     '$originals.Count -ne $expected.Count', '$matches.Count -ne 1',
+                     'Expected CLI EXE missing',
+                     '& $CliPath download-all --source external --pg all --output $dest',
+                     'if ($cliExit -ne 0)', 'throw "Actual $CliKind CLI provider GET failed',
+                     '$originals.Count -ne $expected.Count', 'Missing exact ZIP',
                      'Get-FileHash', '$original.Length -ne $pin.bytes -or $hash -cne $pin.sha',
-                     'PRIVATE_DIRECT_PATH_ORIGINAL_GET_E2E=PASS SOURCE=external/direct-get.json CLI_KIND=private',
-                     'ZIP_COUNT=$($expected.Count)', 'PUBLISH=DENY MIRROR=DENY',
+                     'DIRECT_PATH_ORIGINAL_GET_E2E=PASS SOURCE=external/direct-get.json CLI_KIND=$CliKind',
+                     'ZIP_COUNT=$($expected.Count)', 'MIRROR=DENY',
                      'Remove-Item -LiteralPath $dest -Recurse -Force'):
             self.assertIn(text, PS)
         for text in ('--external-admission', '--external-bundle', 'gh release create',

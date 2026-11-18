@@ -46,8 +46,8 @@ class SignedFeedTransitionSmokeContract(unittest.TestCase):
 
     def test_published_exe_acceptance_is_still_genuine_main_only(self):
         s = self.sources[FILES[2]]
-        self.assertIn("branches: [main]", s)
-        self.assertIn("paths:\n      - '.github/workflows/cli-published-e2e.yml'", s)
+        self.assertIn("workflow_dispatch:", s)
+        self.assertNotIn("  push:", s)
         self.assertIn("github.ref == 'refs/heads/main'", s)
         self.assertIn("PUBLIC_EXE_SIGSTORE=PASS", s)
         self.assertIn("PUBLIC_CLI_REAL_ZIPS=PASS", s)

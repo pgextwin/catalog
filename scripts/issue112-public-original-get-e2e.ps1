@@ -1,15 +1,18 @@
-# Issue #112: private-built CLI direct original GET byte proof; no public GET proof.
-# Only invoked by workflow_run after authenticated original Catalog/main push Validate.
+# Issue #112: rehash external ZIPs fetched by an already verified or freshly built CLI.
 [CmdletBinding()]
-param()
+param(
+    [Parameter(Mandatory)] [string]$CliPath,
+    [Parameter(Mandatory)] [ValidateSet('private','public')] [string]$CliKind
+)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
 if ($env:GITHUB_ACTIONS -cne 'true' -or
     $env:GITHUB_REPOSITORY -cne 'pgextwin/catalog' -or
-    $env:GITHUB_EVENT_NAME -cne 'workflow_run' -or
+    ($env:GITHUB_EVENT_NAME -cne 'workflow_run' -and
+        ($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $CliKind -cne 'public')) -or
     $env:RUNNER_OS -cne 'Windows' -or -not $env:GITHUB_WORKSPACE -or
-    -not $env:RUNNER_TEMP) { throw 'Not a genuine disposable Catalog Windows workflow_run' }
+    -not $env:RUNNER_TEMP) { throw 'Expected a disposable Catalog Windows acceptance job' }
 # Expectations are fixed from this authenticated checkout BEFORE the CLI reads main.
 # Never refresh them from mutable main to accommodate a changed or incomplete result.
 $manifestPath=Join-Path $env:GITHUB_WORKSPACE 'external/direct-get.json'
@@ -20,7 +23,7 @@ if ($manifest.schemaVersion -cne 'pgextwin-external-direct-get/v1' -or
     throw 'Direct manifest schema/records invalid'
 }
 $identities=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-$selectedNames=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$selectedPaths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $expected=@(foreach ($row in $manifest.records) {
     # SelectDirect validates every row, including non-latest historical versions.
     foreach ($field in @('extension','pgMajor','upstreamVersion','license','assetName','originalSha256')) {
@@ -29,8 +32,8 @@ $expected=@(foreach ($row in $manifest.records) {
         }
     }
     if ($row.licenseEvidence -isnot [array] -or $row.licenseEvidence.Count -lt 1 -or
-        $row.latest -isnot [bool] -or $row.pgMajor -cnotin @('15','16','17','18')) {
-        throw 'Direct record license evidence/latest/PG15-18 scope invalid'
+        $row.latest -isnot [bool] -or $row.pgMajor -cnotin @('14','15','16','17','18')) {
+        throw 'Direct record license evidence/latest/PG14-18 scope invalid'
     }
     $identity=$row.extension + ':' + $row.pgMajor + ':' + $row.upstreamVersion
     if (-not $identities.Add($identity)) { throw "Duplicate direct identity: $identity" }
@@ -49,26 +52,26 @@ $expected=@(foreach ($row in $manifest.records) {
     }
     # --pg all, no extension/version: only latest:true across all supported majors.
     if ($row.latest -eq $true) {
-        if (-not $selectedNames.Add($row.assetName)) { throw 'Duplicate selected ZIP filename' }
-        @{name=[string]$row.assetName;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256}
+        $path=Join-Path 'pgextwin-external-all' "pg$($row.pgMajor)" $row.extension $row.assetName
+        if (-not $selectedPaths.Add($path)) { throw 'Duplicate selected ZIP path' }
+        @{path=$path;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256}
     }
 })
 if ($expected.Count -lt 1 -or $expected.Count -gt 1000) { throw 'Direct selected batch bound is 1-1000' }
-$private=Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe'
-if (-not (Test-Path -LiteralPath $private -PathType Leaf)) { throw 'Mandatory private-built CLI EXE missing' }
+if (-not (Test-Path -LiteralPath $CliPath -PathType Leaf)) { throw 'Expected CLI EXE missing' }
 Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
 Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-$dest=Join-Path $env:RUNNER_TEMP 'issue112-user-local-private'
+$dest=Join-Path $env:RUNNER_TEMP "issue112-user-local-$CliKind"
 New-Item -ItemType Directory -Path $dest -ErrorAction Stop | Out-Null
 try {
-    & $private download-all --source external --pg all --output $dest
+    & $CliPath download-all --source external --pg all --output $dest
     $cliExit=$LASTEXITCODE
     if ($cliExit -ne 0) {
         # Anonymous diagnostics only, AFTER a genuine rejected local GET.
         # No job token, response body, redirect fallback or auth elevation.
         foreach ($endpoint in @(
             @{name='RATE_LIMIT';url='https://api.github.com/rate_limit'},
-            @{name='CATALOG_HEAD';url='https://api.github.com/repos/pgextwin/catalog/branches/main'}
+            @{name='DIRECT_MANIFEST';url='https://raw.githubusercontent.com/pgextwin/catalog/main/external/direct-get.json'}
         )) {
             try {
                 $probe=Invoke-WebRequest -Uri $endpoint.url -Method Get -SkipHttpErrorCheck `
@@ -85,21 +88,21 @@ try {
                 Write-Output "ANON_CATALOG_HTTP_DIAGNOSTIC ENDPOINT=$($endpoint.name) STATUS=UNAVAILABLE (DENY)"
             }
         }
-        throw "Actual private CLI provider GET failed (exit=$cliExit)"
+        throw "Actual $CliKind CLI provider GET failed (exit=$cliExit)"
     }
     $originals=@(Get-ChildItem -LiteralPath $dest -Recurse -File -Filter '*.zip')
     if ($originals.Count -ne $expected.Count) {
         throw "Original cohort completeness mismatch: expected=$($expected.Count) got=$($originals.Count)"
     }
     foreach ($pin in $expected) {
-        $matches=@($originals | Where-Object {$_.Name -ceq $pin.name})
-        if ($matches.Count -ne 1) { throw "Missing/duplicate exact ZIP $($pin.name)" }
-        $original=$matches[0]
+        $path=Join-Path $dest $pin.path
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing exact ZIP $($pin.path)" }
+        $original=Get-Item -LiteralPath $path
         $hash=(Get-FileHash -LiteralPath $original.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($original.Length -ne $pin.bytes -or $hash -cne $pin.sha) {
-            throw "Original provider exact byte mismatch for $($pin.name)"
+            throw "Original provider exact byte mismatch for $($pin.path)"
         }
-        Write-Output "REAL_WINDOWS_ORIGINAL_PROVIDER_BYTE=PASS SOURCE=external/direct-get.json CLI_KIND=private FILE=$($pin.name) BYTES=$($original.Length) SHA256=$hash"
+        Write-Output "REAL_WINDOWS_ORIGINAL_PROVIDER_BYTE=PASS SOURCE=external/direct-get.json CLI_KIND=$CliKind FILE=$($pin.path) BYTES=$($original.Length) SHA256=$hash"
     }
 } finally {
     try {
@@ -111,7 +114,7 @@ try {
         }
     } catch {
         $cleanupError=if ($_.Exception) { ($_.Exception.Message -replace '[\r\n]+', ' ').Trim() } else { ([string]$_ -replace '[\r\n]+', ' ').Trim() }
-        Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=private ERROR=$cleanupError" -WarningAction Continue
+        Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=$CliKind ERROR=$cleanupError" -WarningAction Continue
     }
 }
-Write-Output "PRIVATE_DIRECT_PATH_ORIGINAL_GET_E2E=PASS SOURCE=external/direct-get.json CLI_KIND=private ZIP_COUNT=$($expected.Count) PUBLISH=DENY MIRROR=DENY"
+Write-Output "DIRECT_PATH_ORIGINAL_GET_E2E=PASS SOURCE=external/direct-get.json CLI_KIND=$CliKind ZIP_COUNT=$($expected.Count) MIRROR=DENY"

@@ -1,4 +1,4 @@
-"""Prevent fake acceptance at the genuine private Windows direct GET entrance."""
+"""Prevent fake acceptance at the Windows direct GET acceptance paths."""
 from pathlib import Path
 import re
 import unittest
@@ -6,8 +6,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 WF = (ROOT / ".github/workflows/issue112-external-public-get-e2e.yml").read_text()
 PS = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
-COMMAND = "& $private download-all --source external --pg all --output $dest"
-PASS = "PRIVATE_DIRECT_PATH_ORIGINAL_GET_E2E=PASS"
+COMMAND = "& $CliPath download-all --source external --pg all --output $dest"
+PASS = "DIRECT_PATH_ORIGINAL_GET_E2E=PASS"
 
 
 class PublicOriginalGetE2EGuard(unittest.TestCase):
@@ -83,7 +83,7 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
             "@('extension','pgMajor','upstreamVersion','license','assetName','originalSha256')",
             '$row.$field -isnot [string]', '[string]::IsNullOrWhiteSpace($row.$field)',
             '$row.licenseEvidence -isnot [array]', '$row.licenseEvidence.Count -lt 1',
-            '$row.latest -isnot [bool]', "$row.pgMajor -cnotin @('15','16','17','18')",
+            '$row.latest -isnot [bool]', "$row.pgMajor -cnotin @('14','15','16','17','18')",
             "[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)",
             "$identity=$row.extension + ':' + $row.pgMajor + ':' + $row.upstreamVersion",
             'if (-not $identities.Add($identity)) { throw',
@@ -94,8 +94,8 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
 
     def test_latest_only_selection_and_dynamic_nonempty_batch_bound(self):
         selection = PS.split('if ($row.latest -eq $true) {', 1)[1].split('\n    }', 1)[0]
-        self.assertIn("@{name=[string]$row.assetName;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256}", selection)
-        self.assertIn('if (-not $selectedNames.Add($row.assetName)) { throw', selection)
+        self.assertIn("@{path=$path;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256}", selection)
+        self.assertIn('if (-not $selectedPaths.Add($path)) { throw', selection)
         self.assertIn('[StringComparer]::OrdinalIgnoreCase', PS)
         self.assertLess(PS.index('$identities.Add'), PS.index('if ($row.latest -eq $true)'))
         self.assertIn("if ($expected.Count -lt 1 -or $expected.Count -gt 1000) { throw", PS)
@@ -103,21 +103,21 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         self.assertLess(PS.index('$expected.Count -gt 1000'), PS.index(COMMAND))
         self.assertNotRegex(PS, r'\$expected\s*=.*(?:originals|Intersect|Compare-Object)')
 
-    def test_mandatory_private_executable_and_real_cli_before_acceptance(self):
-        self.assertIn("$private=Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe'", PS)
-        self.assertIn("if (-not (Test-Path -LiteralPath $private -PathType Leaf)) { throw 'Mandatory private-built CLI EXE missing' }", PS)
+    def test_mandatory_executable_and_real_cli_before_acceptance(self):
+        self.assertIn("[Parameter(Mandatory)] [string]$CliPath", PS)
+        self.assertIn("if (-not (Test-Path -LiteralPath $CliPath -PathType Leaf)) { throw 'Expected CLI EXE missing' }", PS)
         self.assertEqual(PS.count(COMMAND), 1)
         self.assertEqual(len(re.findall(r'^\s*& ', PS, re.M)), 1)
-        self.assertLess(PS.index('Mandatory private-built CLI EXE missing'), PS.index(COMMAND))
+        self.assertLess(PS.index('Expected CLI EXE missing'), PS.index(COMMAND))
         self.assertIn(COMMAND + '\n    $cliExit=$LASTEXITCODE\n    if ($cliExit -ne 0) {', PS)
-        self.assertLess(PS.index('throw "Actual private CLI provider GET failed (exit=$cliExit)"'), PS.index('$originals=@('))
+        self.assertLess(PS.index('throw "Actual $CliKind CLI provider GET failed (exit=$cliExit)"'), PS.index('$originals=@('))
         self.assertLess(PS.index('$originals=@('), PS.index(PASS))
         self.assertEqual(PS.count(PASS), 1)
         self.assertNotRegex(PS, r'(?im)^\s*(?:exit\s+0|return)\b')
         self.assertNotIn('$public', PS)
         self.assertNotIn('$binaries', PS)
 
-    def test_full_exact_byte_and_unique_filename_verification(self):
+    def test_full_exact_byte_and_unique_path_verification(self):
         for text in (
             "$row.originalSha256 -cnotmatch '^[0-9a-f]{64}$'",
             '$row.originalBytes -lt 4 -or $row.originalBytes -gt 67108864',
@@ -125,12 +125,13 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
             'if ($originals.Count -ne $expected.Count) {',
             'throw "Original cohort completeness mismatch:',
             'foreach ($pin in $expected)',
-            '$matches=@($originals | Where-Object {$_.Name -ceq $pin.name})',
-            'if ($matches.Count -ne 1) { throw',
+            '''$path=Join-Path 'pgextwin-external-all' "pg$($row.pgMajor)" $row.extension $row.assetName''',
+            '$path=Join-Path $dest $pin.path',
+            'if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw',
             'Get-FileHash -LiteralPath $original.FullName -Algorithm SHA256',
             'if ($original.Length -ne $pin.bytes -or $hash -cne $pin.sha) {',
             'throw "Original provider exact byte mismatch',
-            'ZIP_COUNT=$($expected.Count) PUBLISH=DENY MIRROR=DENY',
+            'ZIP_COUNT=$($expected.Count) MIRROR=DENY',
         ):
             self.assertIn(text, PS)
             self.assertLess(PS.index(text), PS.index(PASS) if not text.startswith('ZIP_COUNT') else len(PS))
@@ -142,26 +143,27 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         self.assertIn('ANON_CATALOG_HTTP_DIAGNOSTIC', failure)
         self.assertIn('-TimeoutSec 10 -MaximumRedirection 0', failure)
         self.assertIn('STATUS=UNAVAILABLE (DENY)', failure)
-        self.assertTrue(failure.rstrip().endswith('throw "Actual private CLI provider GET failed (exit=$cliExit)"\n    }'))
+        self.assertTrue(failure.rstrip().endswith('throw "Actual $CliKind CLI provider GET failed (exit=$cliExit)"\n    }'))
         self.assertNotIn('=PASS', failure)
         self.assertNotRegex(PS, r'(?i)authorization|bearer|\$env:(?:GH_TOKEN|GITHUB_TOKEN)')
         for env in ('GITHUB_ACTIONS', 'GITHUB_REPOSITORY', 'GITHUB_EVENT_NAME', 'RUNNER_OS', 'GITHUB_WORKSPACE', 'RUNNER_TEMP'):
             self.assertIn('$env:' + env, PS)
-        self.assertIn("throw 'Not a genuine disposable Catalog Windows workflow_run'", PS)
+        self.assertIn("throw 'Expected a disposable Catalog Windows acceptance job'", PS)
 
     def test_cleanup_warning_precedes_private_pass(self):
         self.assertIn('} finally {', PS)
         self.assertIn('Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction Stop', PS)
         self.assertIn("throw 'Destination path still exists after Remove-Item'", PS)
-        self.assertIn('Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=private ERROR=$cleanupError" -WarningAction Continue', PS)
+        self.assertIn('Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=$CliKind ERROR=$cleanupError" -WarningAction Continue', PS)
         self.assertLess(PS.index('} finally {'), PS.index(PASS))
-        self.assertIn('SOURCE=external/direct-get.json CLI_KIND=private', PS)
+        self.assertIn('SOURCE=external/direct-get.json CLI_KIND=$CliKind', PS)
 
     def test_public_provenance_is_separate_and_never_public_direct_proof(self):
         call = './scripts/issue112-public-original-get-e2e.ps1'
         self.assertEqual(WF.count(call), 1)
+        self.assertIn(call + " -CliKind private -CliPath (Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe')", WF)
         self.assertLess(WF.index(call), WF.index('gh release download'))
-        self.assertIn('PUBLIC_DIRECT_GET=NOT_TESTED LEGACY_SIGNED_CONTRACT PROOF_SCOPE=PROVENANCE_VERSION_ONLY', WF)
+        self.assertIn('PUBLIC_DIRECT_GET=NOT_TESTED PROOF_SCOPE=PROVENANCE_VERSION_ONLY', WF)
         self.assertIn('PUBLIC_CLI_BYTES_AND_SIGSTORE=PASS PROOF_SCOPE=PROVENANCE_VERSION_ONLY', WF)
         self.assertNotIn('download-all', WF)
         for text in ('PUBLIC_CLI_PROVENANCE=SKIPPED_NO_FORMAL_CLI_RELEASE',
