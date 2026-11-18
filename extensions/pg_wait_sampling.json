@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "name": "pg_wait_sampling",
+  "displayName": "pg_wait_sampling",
+  "description": "Collect sampling statistics for PostgreSQL wait events",
+  "upstream": {
+    "repository": "postgrespro/pg_wait_sampling",
+    "version": "1.1.11"
+  },
+  "repository": "pgextwin/pg_wait_sampling",
+  "license": "PostgreSQL",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v1.1.11-windows.1",
+    "publishedAt": "2026-11-18T09:44:09Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/tag/v1.1.11-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
+  },
+  "postgresql": {
+    "15": {
+      "available": true,
+      "asset": "pg_wait_sampling-v1.1.11-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg15-windows-x64.zip",
+      "sha256": "447f3e3eed2679c1012c5b96eb7b942af20eb9a8f73e04c6d71ce658fb5d94c7",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg15-windows-x64.spdx.json",
+          "sha256": "712f41077b3fc5c86aaa8e17b4dea71ef603ab5efcb54aff2426084e8f38924b"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "36eaebbc786954fc9fff92df8063d942efcd646e232e4ee59c3ec1f023c36314"
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_wait_sampling-v1.1.11-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg16-windows-x64.zip",
+      "sha256": "262cb147eeb281df5acc2efdd335685e6bb626e93c57746646bae3c01b8c9f3a",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg16-windows-x64.spdx.json",
+          "sha256": "da9d1af03c9f71908827761dc13f941108b14ba8844c38545dcafd6781992733"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "05ca3a5e030d7c55f82fabda9c5196ddb4064222a98ed819c392034e200eef09"
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_wait_sampling-v1.1.11-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg17-windows-x64.zip",
+      "sha256": "1d69c648fcbe02a2339891d3d753e84a0d97fe17d574008195ca64b7bf1aed68",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg17-windows-x64.spdx.json",
+          "sha256": "404ffe2e07744b7f8c440f41000c7342fe67779196cf5edee42fb4d670c82871"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "db2eb3de92af62979b792120f31a2d2f5816bff5289b21d7a528225cf17b0772"
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_wait_sampling-v1.1.11-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg18-windows-x64.zip",
+      "sha256": "0683f51e2e6f04cefe1a18aeb23c6cf92e28144579378bfcfce82271c5ec4ced",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg18-windows-x64.spdx.json",
+          "sha256": "63cc329d38cafa23cee49f3f7892cb11f7cdad07712e1c1b518b48b84cb2626f"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "2ac843c5fec7b46acd43e0efa5b564179f080e2d057ee8690c6616c7b8611ee3"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "pg_wait_sampling"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "shared",
+      "backgroundWorker": true,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "covered",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-applicable",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "create-extension-and-query-collector",
+        "description": "Starts PostgreSQL with shared preload, creates SQL version 1.1, and queries current waits, collector history, and collector profile.",
+        "evidence": [
+          "sql-result",
+          "background-worker-side-effect"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_wait_sampling",
+    "path": "config/test-contract.json",
+    "commit": "b2b67452dd15610f7046a115cdea37b009509026"
+  }
+}
