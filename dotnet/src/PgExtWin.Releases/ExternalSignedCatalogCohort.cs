@@ -302,12 +302,11 @@ public static class ExternalSignedCatalogCohort
 
             Add(name, version);
             // Each extension name selects the same original bundle and destination.
-            if (osgeo)
-            {
-                if (pin.Tag != version)
-                    throw new InvalidDataException("Invalid OSGeo extension version");
+            if (osgeo && pin.Tag != version)
+                throw new InvalidDataException("Invalid OSGeo extension version");
+            if (osgeo || standalone && category == "spatial" && name == "postgis" &&
+                row.TryGetProperty("pgroutingVersion", out _))
                 Add("pgrouting", Text("pgroutingVersion"));
-            }
         }
         return records;
     }

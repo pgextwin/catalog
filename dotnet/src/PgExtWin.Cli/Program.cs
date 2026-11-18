@@ -87,7 +87,7 @@ static async Task<int> RunAsync(string[] args)
                     if (directory is not null) throw new ArgumentException("Duplicate --catalog-dir");
                     directory = value; break;
                 case "--pg":
-                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, command is "list" or "search" ? @"\A[1-9][0-9]*(?:\.[0-9]+)?\z" : @"\A[1-9][0-9]*\z")) || (value == "all" && command is not ("download-all" or "verify-external-all")))
+                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, command is "list" or "search" ? @"\A[1-9][0-9]*(?:\.[0-9]+)?\z" : @"\A[1-9][0-9]*\z")))
                         throw new ArgumentException("Invalid/duplicate --pg");
                     pg = value; break;
                 case "--policy":
@@ -177,8 +177,8 @@ static async Task<int> RunAsync(string[] args)
                 throw new InvalidDataException("Mixed/unsigned external download denied; no fallback");
             if (category is not null || requestedVersion is not null)
                 throw new ArgumentException("--category and --version apply to external downloads");
-            if (pg is null)
-                throw new ArgumentException(command + " requires --pg for pgextwin downloads");
+            if (pg is null || query is not null && pg == "all")
+                throw new ArgumentException(command + " requires a PostgreSQL major for pgextwin downloads");
             var auto = !localPolicy;
             if (!auto && (latest is not null || directory is null || policy is null || policySha is null || output is null))
                 throw new ArgumentException("Explicit policy requires --catalog-dir, --policy, --policy-sha256 and --output");
@@ -276,7 +276,7 @@ static async Task<int> RunAsync(string[] args)
                 !entry.Description.Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             foreach (var version in entry.Versions)
             {
-                if (pg is not null && version.Major != pg) continue;
+                if (pg is not (null or "all") && version.Major != pg) continue;
                 if (outputJson)
                     rows.Add(new CliCatalogRow(
                         entry.Name, version.Major, version.Version,
@@ -294,7 +294,7 @@ static async Task<int> RunAsync(string[] args)
                 if (query is not null && !entry.Extension.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                     !entry.Provider.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                     !entry.UpstreamVersion.Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
-                if (pg is not null && entry.PgMajor != pg) continue;
+                if (pg is not (null or "all") && entry.PgMajor != pg) continue;
                 if (outputJson)
                     externalRows.Add(new CliExternalSourceRow(entry.Extension, entry.PgMajor,
                         entry.UpstreamVersion, entry.Provider, entry.ProviderType,
@@ -341,7 +341,8 @@ static void Usage()
 
           list [--category CATEGORY] [--pg MAJOR] [--format text|json]
           search TERM [--category CATEGORY] [--pg MAJOR] [--format text|json]
-          download ITEM [--source external|pgextwin] [--pg MAJOR] [--version EXACT] [--output DIR]
+          download ITEM [--source external] [--pg MAJOR|all] [--category CATEGORY] [--version EXACT] [--output DIR]
+          download ITEM --source pgextwin --pg MAJOR [--output DIR]
           download-all --source external [--category CATEGORY] [--pg MAJOR|all] [--output DIR]
           download-all [--source pgextwin] --pg MAJOR|all [--output DIR] [--latest|--fixed]
           verify external --ledger FILE --input-dir DIR --pg MAJOR|all
