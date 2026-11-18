@@ -2,6 +2,13 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "name": "pg_failover_slots",
+      "upstreamRepository": "EnterpriseDB/pg_failover_slots",
+      "displayName": "pg_failover_slots",
+      "description": "Maintain logical replication slots across PostgreSQL failover",
+      "license": "PostgreSQL"
+    },
+    {
       "name": "pg_permissions",
       "upstreamRepository": "cybertec-postgresql/pg_permissions",
       "displayName": "pg_permissions",
