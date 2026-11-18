@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_track_settings",
+  "displayName": "pg_track_settings",
+  "description": "Track PostgreSQL configuration and role setting changes",
+  "upstreamRepository": "rjuju/pg_track_settings",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_track_settings",
+  "lastReviewed": "2026-11-18",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_track_settings/releases/tag/v2.1.2-windows.1",
+    "https://github.com/rjuju/pg_track_settings"
+  ],
+  "windowsBinarySources": []
+}

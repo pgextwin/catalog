@@ -83,8 +83,7 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
         self.assertIn(predicate, (verifier.PROVENANCE, verifier.SPDX))
         return json.dumps(self.attested(predicate))
 
-    def test_all_seventeen_use_exact_two_signed_predicates(self):
-        self.assertEqual(len(verifier.INTAKE_ALLOWED), 17)
+    def test_all_registered_sources_use_exact_two_signed_predicates(self):
         self.assertEqual(set(verifier.INTAKE_ALLOWED),
                          set(verified_release_record.ALLOWED)
                          | set(verified_release_record.FIRST_RELEASE_SOURCES))
@@ -92,7 +91,8 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
             with self.subTest(extension=extension):
                 # Historical Signer commits are not rewritten to the Wave3 pin.
                 historic = extension not in verifier.FIRST_RELEASE_SOURCES
-                sha = ("b" * 40) if historic else verifier.FIRST_RELEASE_SIGNER_SHA
+                sha = ("b" * 40) if historic else verifier.FIRST_RELEASE_SIGNER_PINS.get(
+                    extension, verifier.FIRST_RELEASE_SIGNER_SHA)
                 self.prepare(extension, signer=sha)
                 with patch.object(verifier, "gh",
                                   side_effect=self.signed_output) as gh:
@@ -115,13 +115,15 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
                     self.zip, self.spdx, repo=self.repo,
                     source_commit=self.commit), "c" * 40)
             self.assertEqual(gh.call_count, 2)
-        self.prepare("pgtap", signer="c" * 40)
-        with patch.object(verifier, "gh") as gh:
-            with self.assertRaises(verifier.Denied):
-                verifier.verify_release_attestations(
-                    self.zip, self.spdx, repo=self.repo,
-                    source_commit=self.commit)
-            gh.assert_not_called()
+        for extension in verifier.FIRST_RELEASE_SOURCES:
+            with self.subTest(extension=extension):
+                self.prepare(extension, signer="c" * 40)
+                with patch.object(verifier, "gh") as gh:
+                    with self.assertRaises(verifier.Denied):
+                        verifier.verify_release_attestations(
+                            self.zip, self.spdx, repo=self.repo,
+                            source_commit=self.commit)
+                    gh.assert_not_called()
 
     def test_signed_spdx_must_equal_public_file_even_if_all_hashes_match(self):
         wrong = copy.deepcopy(self.document)

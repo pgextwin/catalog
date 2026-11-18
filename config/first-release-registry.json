@@ -2,11 +2,39 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "name": "pg_permissions",
+      "upstreamRepository": "cybertec-postgresql/pg_permissions",
+      "displayName": "pg_permissions",
+      "description": "Audit PostgreSQL object permissions",
+      "license": "PostgreSQL"
+    },
+    {
+      "name": "pg_profile",
+      "upstreamRepository": "zubkov-andrei/pg_profile",
+      "displayName": "pg_profile",
+      "description": "Historical PostgreSQL workload reports",
+      "license": "PostgreSQL"
+    },
+    {
+      "name": "pg_show_plans",
+      "upstreamRepository": "cybertec-postgresql/pg_show_plans",
+      "displayName": "pg_show_plans",
+      "description": "View execution plans for running PostgreSQL queries",
+      "license": "PostgreSQL"
+    },
+    {
       "name": "pg_store_plans",
       "upstreamRepository": "ossc-db/pg_store_plans",
       "displayName": "pg_store_plans",
       "description": "SQL execution plan statistics",
       "license": "BSD-3-Clause"
+    },
+    {
+      "name": "pg_track_settings",
+      "upstreamRepository": "rjuju/pg_track_settings",
+      "displayName": "pg_track_settings",
+      "description": "Track PostgreSQL configuration and role setting changes",
+      "license": "PostgreSQL"
     },
     {
       "name": "pg_variables",

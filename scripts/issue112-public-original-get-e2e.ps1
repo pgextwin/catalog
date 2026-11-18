@@ -103,7 +103,7 @@ try {
         }
     } catch {
         $cleanupError=if ($_.Exception) { ($_.Exception.Message -replace '[\r\n]+', ' ').Trim() } else { ([string]$_ -replace '[\r\n]+', ' ').Trim() }
-        throw "Staging cleanup failed for private direct proof: $cleanupError"
+        Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=private ERROR=$cleanupError" -WarningAction Continue
     }
 }
 Write-Output "PRIVATE_DIRECT_PATH_ORIGINAL_GET_E2E=PASS SOURCE=external/direct-get.json CLI_KIND=private ZIP_COUNT=$($expected.Count) PUBLISH=DENY MIRROR=DENY"

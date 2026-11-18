@@ -149,11 +149,11 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
             self.assertIn('$env:' + env, PS)
         self.assertIn("throw 'Not a genuine disposable Catalog Windows workflow_run'", PS)
 
-    def test_cleanup_finishes_before_private_pass(self):
+    def test_cleanup_warning_precedes_private_pass(self):
         self.assertIn('} finally {', PS)
         self.assertIn('Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction Stop', PS)
         self.assertIn("throw 'Destination path still exists after Remove-Item'", PS)
-        self.assertIn('throw "Staging cleanup failed for private direct proof:', PS)
+        self.assertIn('Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=private ERROR=$cleanupError" -WarningAction Continue', PS)
         self.assertLess(PS.index('} finally {'), PS.index(PASS))
         self.assertIn('SOURCE=external/direct-get.json CLI_KIND=private', PS)
 

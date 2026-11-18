@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 2,
+  "name": "pg_track_settings",
+  "displayName": "pg_track_settings",
+  "description": "Track PostgreSQL configuration and role setting changes",
+  "upstream": {
+    "repository": "rjuju/pg_track_settings",
+    "version": "2.1.2"
+  },
+  "repository": "pgextwin/pg_track_settings",
+  "license": "PostgreSQL",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v2.1.2-windows.1",
+    "publishedAt": "2026-11-17T16:48:24Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_track_settings/releases/tag/v2.1.2-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
+  },
+  "postgresql": {
+    "15": {
+      "available": true,
+      "asset": "pg_track_settings-2.1.2-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg15-windows-x64.zip",
+      "sha256": "a31214c2cf98e28744316619cb10f6f2bfd0e5d3551dbad6080fe47f432f3ff9",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg15-windows-x64.spdx.json",
+          "sha256": "b7084cf8f871159dac2f54db575c5a1f0ed4bd4405321d3562f2bbfede4743a8"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "afe0616f027ad0dedc5bc758ef8eb708e2a0bd730f6ce165804a8bdf10995ed2"
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_track_settings-2.1.2-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg16-windows-x64.zip",
+      "sha256": "c5eb6015b0047c74f94157b6fb7ccdca7e4873019d6d6d34ad5810ff59a16dee",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg16-windows-x64.spdx.json",
+          "sha256": "6f3fabf3eb16b23a9a874e24fee091f6c4e64b9becf172589d9b02d8c681afa1"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "523a17730bcb2a5dff8c82ddb222d9c4be388cf4fdefaeac038eb6c759d4081e"
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_track_settings-2.1.2-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg17-windows-x64.zip",
+      "sha256": "6396e29ab78e33afb5339493056b28b523fa2a93b5797e84e648fcee66db5b54",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg17-windows-x64.spdx.json",
+          "sha256": "cd7aa5a04a54e1bac1401d9369052b80a691178c9b1a3e9c1261788788afa6ff"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "dc6072d24b517148e8a740a52b16da365d15f6e92cb78f45266f258cc3d2da40"
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_track_settings-2.1.2-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg18-windows-x64.zip",
+      "sha256": "35079020c6954d1931a0f3c9953dbdb689cc0e5417af489bbac0d65ddf7a206a",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg18-windows-x64.spdx.json",
+          "sha256": "6dcd88c52e0af0656155a34aaec56f84e6cdf121bcf554e798cd8984c02fc94b"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_track_settings-2.1.2-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "222fc9f8b85bc47512eb37996273ea49ef6db1d6953f2dfa422a86d045d6ea03"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "none",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-applicable",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "snapshot-and-settings-query",
+        "description": "Creates pg_track_settings, takes a settings snapshot via pg_track_settings_snapshot(), and verifies pg_track_settings() and pg_track_reboot_log() return expected records.",
+        "evidence": [
+          "sql-result"
+        ]
+      },
+      {
+        "id": "track-setting-change-diff-and-log",
+        "description": "Changes work_mem between two snapshots and verifies pg_track_settings_log() and pg_track_settings_diff() report the recorded change accurately.",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_track_settings",
+    "path": "config/test-contract.json",
+    "commit": "bc2f24fa59f44bb1a2f906b1e5ad36d42c1fbc50"
+  }
+}
