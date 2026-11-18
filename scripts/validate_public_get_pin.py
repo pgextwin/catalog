@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Validate public Catalog's immutable original-provider GET-only signed pin archives.
+"""Validate immutable original-provider GET-only signed admission records.
 
-This is NOT the legacy deny-only external publisher policy. The sole
-source-specific admission is the genuine Build/main issuer's signed, 24-hour
-manifest, and every copy must have its exact Sigstore bundle. Expired entries
-remain readable audit records but are NEVER active download permissions.
-No original provider ZIP is stored, rehosted, or released.
+This validates the historical issuer and its Catalog pin archives. External
+downloads in CLI 0.3.17+ use external/direct-get.json. The 24-hour lifetime,
+Sigstore checks and expired-archive status still apply to signed admissions.
 """
 from __future__ import annotations
 
