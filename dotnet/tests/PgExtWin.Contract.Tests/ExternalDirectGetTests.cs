@@ -114,6 +114,75 @@ internal static class ExternalDirectGetTests
         }
         finally { Directory.Delete(parent, recursive: true); }
 
+        rows.Clear();
+        foreach (var pg in new[] { "15", "18" })
+        {
+            var version = pg == "15" ? "3.6.2" : "3.7.0";
+            var row = Row(pg, version, true);
+            var name = $"postgis-bundle-pg{pg}-{version}x64.zip";
+            row["provider"] = "osgeo";
+            row["extension"] = "postgis";
+            row["pgroutingVersion"] = "4.0.1";
+            row["sourceRepo"] = "postgis/postgis";
+            row["releaseTag"] = version;
+            row["assetName"] = name;
+            row["originalProviderUrl"] = $"https://download-cache.osgeo.org/postgis/windows/pg{pg}/{name}";
+            rows.Add(row);
+        }
+        var bundles = ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all");
+        check(bundles.Count == 2 &&
+            bundles.SequenceEqual(ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all", "postgis")) &&
+            bundles.SequenceEqual(ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all", "pgrouting", "4.0.1")) &&
+            ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all", "postgis", "3.6.2")
+                .Single() == bundles[0],
+            "PostGIS, pgRouting and bulk select the same bundles using their own versions");
+        foreach (var extension in new[] { "postgis", "pgrouting" })
+        {
+            var denied = false;
+            try { ExternalSignedCatalogCohort.SelectDirect(Bytes(), "18", extension, "4.0.2"); }
+            catch (InvalidDataException) { denied = true; }
+            check(denied, "OSGeo selection rejects an unregistered extension version");
+        }
+
+        Directory.CreateDirectory(parent);
+        try
+        {
+            foreach (var redirect in new[] { false, true })
+            {
+                using var network = new Network(request =>
+                {
+                    var url = request.RequestUri!.AbsoluteUri;
+                    if (url == "https://raw.githubusercontent.com/pgextwin/catalog/main/external/direct-get.json")
+                        return new(HttpStatusCode.OK) { Content = new ByteArrayContent(Bytes()) };
+                    if (!bundles.Any(pin => pin.OriginalProviderUrl == url))
+                        throw new Exception("Unexpected OSGeo provider request: " + url);
+                    if (redirect && url == bundles[1].OriginalProviderUrl)
+                    {
+                        var response = new HttpResponseMessage(HttpStatusCode.Redirect);
+                        response.Headers.Location = new Uri("https://download.osgeo.org/other.zip");
+                        return response;
+                    }
+                    return new(HttpStatusCode.OK) { Content = new ByteArrayContent(original) };
+                });
+                var denied = false;
+                try
+                {
+                    var result = await ExternalSignedCatalogCohort.StageDirectAsync("all", parent,
+                        handler: network);
+                    check(result.Count == 2 && result.Bytes == 2 * original.Length &&
+                        Directory.EnumerateFiles(result.Directory, "*.zip", SearchOption.AllDirectories).Count() == 2,
+                        "Bulk stages one OSGeo ZIP per registered major");
+                    Directory.Delete(result.Directory, recursive: true);
+                }
+                catch (HttpRequestException) { denied = true; }
+                check(denied == redirect && !Directory.EnumerateFileSystemEntries(parent).Any(),
+                    "OSGeo redirect rejects the whole batch and leaves no output");
+                check(network.Requests.Skip(1).SequenceEqual(bundles.Select(pin => pin.OriginalProviderUrl)),
+                    "OSGeo sends one GET per original, without a redirect or metadata request");
+            }
+        }
+        finally { Directory.Delete(parent, recursive: true); }
+
         if (File.Exists("external/direct-get.json"))
         {
             var actual = File.ReadAllBytes("external/direct-get.json");
@@ -122,6 +191,12 @@ internal static class ExternalDirectGetTests
                 check(pins.Count(pin => pin.Extension == extension) == 4,
                     "Catalog latest external support covers PG15–18: " + extension);
             check(pins.All(pin => pin.PgMajor != "14"), "New direct records exclude EOL PG14");
+            var postgis = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "postgis");
+            var pgrouting = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "pgrouting", "4.0.1");
+            check(postgis.Count == 4 && postgis.SequenceEqual(pgrouting) &&
+                postgis.SequenceEqual(pins.Where(pin => pin.Provider == ExternalProviderAssetTransport.OsgeoProvider)) &&
+                postgis.Single(pin => pin.PgMajor == "15").OriginalBytes == 123_986_945,
+                "Catalog contains four shared, size-validated OSGeo pins including 118.2 MiB PG15");
         }
     }
 }
