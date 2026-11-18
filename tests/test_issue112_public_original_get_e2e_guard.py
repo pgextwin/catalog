@@ -41,7 +41,9 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         paths = re.findall(r'^\s+"([^"]+)"', predicate, re.M)
         self.assertEqual(set(paths), {
             'external/direct-get.json',
+            'external/standalone-get.json',
             'dotnet/src/PgExtWin.Cli/Program.cs',
+            'dotnet/src/PgExtWin.Releases/ExternalDownloadItem.cs',
             'dotnet/src/PgExtWin.Releases/ExternalSignedCatalogCohort.cs',
             'dotnet/src/PgExtWin.Releases/ExternalProviderAssetTransport.cs',
             'dotnet/src/PgExtWin.Releases/ExternalOriginalBatchStager.cs',
@@ -90,16 +92,21 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         ):
             self.assertIn(text, PS)
         self.assertLess(PS.index('$manifest=Get-Content'), PS.index(COMMAND))
-        self.assertEqual(PS.count('Get-Content'), 1)  # no post-GET expectation refresh
+        self.assertLess(PS.index('$standalone=Get-Content'), PS.index(COMMAND))
+        self.assertEqual(PS.count('Get-Content'), 2)  # no post-GET expectation refresh
+        self.assertIn("external/standalone-get.json", PS)
+        self.assertIn("pgextwin-standalone-get/v1", PS)
 
     def test_latest_only_selection_and_dynamic_nonempty_batch_bound(self):
         selection = PS.split('if ($row.latest -eq $true) {', 1)[1].split('\n    }', 1)[0]
-        self.assertIn("@{path=$path;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256}", selection)
+        self.assertIn("@{path=$path;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256;source='external/direct-get.json'}", selection)
+        self.assertIn("""$major=if ($null -eq $row.pgMajor) { 'any' } else { "pg$($row.pgMajor)" }""", PS)
+        self.assertIn("$path=Join-Path 'pgextwin-external-all' $major $row.item $row.assetName", PS)
         self.assertIn('if (-not $selectedPaths.Add($path)) { throw', selection)
         self.assertIn('[StringComparer]::OrdinalIgnoreCase', PS)
         self.assertLess(PS.index('$identities.Add'), PS.index('if ($row.latest -eq $true)'))
         self.assertIn("if ($expected.Count -lt 1 -or $expected.Count -gt 1000) { throw", PS)
-        self.assertNotRegex(PS, r'(?:Count\s*-(?:eq|ne|gt|ge|lt|le)\s*(?:17|20)\b|ZIP_COUNT=17)')
+        self.assertNotRegex(PS, r'(?:Count\s*-(?:eq|ne|gt|ge|lt|le)\s*(?:17|20)\b|FILE_COUNT=17)')
         self.assertLess(PS.index('$expected.Count -gt 1000'), PS.index(COMMAND))
         self.assertNotRegex(PS, r'\$expected\s*=.*(?:originals|Intersect|Compare-Object)')
 
@@ -121,7 +128,7 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         for text in (
             "$row.originalSha256 -cnotmatch '^[0-9a-f]{64}$'",
             '$row.originalBytes -lt 4 -or $row.originalBytes -gt 67108864',
-            "Get-ChildItem -LiteralPath $dest -Recurse -File -Filter '*.zip'",
+            "Get-ChildItem -LiteralPath $dest -Recurse -File)",
             'if ($originals.Count -ne $expected.Count) {',
             'throw "Original cohort completeness mismatch:',
             'foreach ($pin in $expected)',
@@ -131,10 +138,10 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
             'Get-FileHash -LiteralPath $original.FullName -Algorithm SHA256',
             'if ($original.Length -ne $pin.bytes -or $hash -cne $pin.sha) {',
             'throw "Original provider exact byte mismatch',
-            'ZIP_COUNT=$($expected.Count) MIRROR=DENY',
+            'FILE_COUNT=$($expected.Count) MIRROR=DENY',
         ):
             self.assertIn(text, PS)
-            self.assertLess(PS.index(text), PS.index(PASS) if not text.startswith('ZIP_COUNT') else len(PS))
+            self.assertLess(PS.index(text), PS.index(PASS) if not text.startswith('FILE_COUNT') else len(PS))
 
     def test_tokens_removed_and_diagnostics_cannot_be_acceptance(self):
         for token in ('GH_TOKEN', 'GITHUB_TOKEN'):
@@ -156,7 +163,7 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
         self.assertIn("throw 'Destination path still exists after Remove-Item'", PS)
         self.assertIn('Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=$CliKind ERROR=$cleanupError" -WarningAction Continue', PS)
         self.assertLess(PS.index('} finally {'), PS.index(PASS))
-        self.assertIn('SOURCE=external/direct-get.json CLI_KIND=$CliKind', PS)
+        self.assertIn('SOURCE=$($pin.source) CLI_KIND=$CliKind', PS)
 
     def test_public_provenance_is_separate_and_never_public_direct_proof(self):
         call = './scripts/issue112-public-original-get-e2e.ps1'

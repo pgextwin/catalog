@@ -1,61 +1,72 @@
-# Download original external Windows ZIPs with the CLI
+# Download original external Windows packages with the CLI
 
 [日本語](#日本語) | [English](#english)
 
 ## 日本語
 
-Windows CLI v0.3.17以降は、[原本取得用カタログ](../external/direct-get.json)に
-バージョンごとのライセンス確認記録があるZIPを、提供元から直接取得します。
-各ZIPのSHA-256とバイト数を照合し、すべての照合が済んだ時点で新しいサブフォルダーに保存します。
-
-[CLIのリリース一覧](https://github.com/pgextwin/catalog/releases)から
-v0.3.17以降の `pgextwin.exe` と `SHA256SUMS.txt` を取得し、
-実行ファイルのSHA-256を確認してください。PowerShellで出力先を作成してから実行します。
+Windows x64版CLI v0.3.18では、PostgreSQLが入っていないPCでも、外部提供元の拡張機能、
+空間拡張バンドル、ツール、ドライバーを取得できます。[CLIのリリース一覧](https://github.com/pgextwin/catalog/releases)から
+`pgextwin.exe` と `SHA256SUMS.txt` を取得し、実行ファイルのSHA-256を確認してください。
 
 ```powershell
 New-Item -ItemType Directory -Force C:\pgextwin-originals
-.\pgextwin.exe download-all --source external --pg all --output C:\pgextwin-originals
-.\pgextwin.exe download-all --source external --pg 18 --output C:\pgextwin-originals
-.\pgextwin.exe download-all --source external --pg 14 --extension oracle_fdw --version 2.9.0 --output C:\pgextwin-originals
+.\pgextwin.exe list --category spatial --pg 14
+.\pgextwin.exe search odbc --category drivers
+.\pgextwin.exe download psqlodbc --output C:\pgextwin-originals
+.\pgextwin.exe download postgis --pg 14 --version 3.6.2 --output C:\pgextwin-originals
+.\pgextwin.exe download-all --source external --category tools --output C:\pgextwin-originals
 ```
 
-`--pg all` はカタログに記録のある全PGメジャーから最新として指定された版を取得します。
-バージョンを指定する場合は `--extension` と `--version` を併用してください。
-PostGISとpgRoutingは、どちらを選んでも該当する同じバンドルを取得します。
-ZIPの利用前に、提供元のライセンス、インストール手順、依存関係を確認してください。
-oracle_fdwに必要なOracle Clientは別途入手します。
+カテゴリは `extensions`（拡張機能）、`spatial`（空間拡張）、`tools`（ツール）、`drivers`（ドライバー）です。
+`--pg` では取得対象のPostgreSQLメジャーバージョンを指定します。バージョンに依存しないファイルも取得対象になります。
+`--pg` を省くと、すべての対象バージョンから選びます。`--version` でカタログに記録された版を指定できます。
+省略時は、最新として記録された版を取得します。PostGISとpgRoutingは同じバンドルを取得します。
 
-v0.3.16以前の署名付き取得認可には有効期限があります。
-期限付きの認可なしで取得するにはv0.3.17以降が必要です。
+すべてのファイルのSHA-256とバイト数を確認してから、出力先に新しいサブフォルダーを作って原本をまとめて保存します。
+CLIはファイルの展開や実行を行いません。ライセンスの根拠と照合値は[拡張機能カタログ](../external/direct-get.json)と
+[追加パッケージのカタログ](../external/standalone-get.json)で確認できます。oracle_fdwに必要なOracle Clientは別途入手します。
+
+署名付きpgextwinフィードから取得する場合は `download-all --pg 18`、個別取得には
+`download pg_cron --source pgextwin --pg 18` を使います。
 
 ## English
 
-Windows CLI v0.3.17 and later retrieve original ZIPs directly from providers
-using the [direct GET catalog](../external/direct-get.json). Each record carries
-license evidence for its version, the provider URL, and the original SHA-256
-and size. The CLI commits the ZIPs to a new local subdirectory after the
-whole batch passes verification.
-
-Get `pgextwin.exe` and `SHA256SUMS.txt` for v0.3.17 or later from
-[CLI releases](https://github.com/pgextwin/catalog/releases) and check the
-executable's SHA-256. Create the output parent before running the CLI.
+Windows x64 CLI v0.3.18 downloads original external extensions, spatial
+bundles, tools, and drivers on a PC without PostgreSQL. Get `pgextwin.exe` and
+`SHA256SUMS.txt` from the [CLI releases](https://github.com/pgextwin/catalog/releases)
+and verify the executable's SHA-256. Use an existing output directory or omit
+`--output` to use the current directory.
 
 ```powershell
 New-Item -ItemType Directory -Force C:\pgextwin-originals
-.\pgextwin.exe download-all --source external --pg all --output C:\pgextwin-originals
-.\pgextwin.exe download-all --source external --pg 18 --output C:\pgextwin-originals
-.\pgextwin.exe download-all --source external --pg all --extension pgvector --version 0.8.7 --output C:\pgextwin-originals
+.\pgextwin.exe list --category spatial --pg 14
+.\pgextwin.exe search odbc --category drivers
+.\pgextwin.exe download psqlodbc --output C:\pgextwin-originals
+.\pgextwin.exe download postgis --pg 14 --version 3.6.2 --output C:\pgextwin-originals
+.\pgextwin.exe download-all --source external --category tools --output C:\pgextwin-originals
 ```
 
-`--pg all` selects the records marked latest across the listed PostgreSQL majors.
-Use `--version` with `--extension` to select an exact recorded older or current
-version. Selecting either PostGIS or pgRouting fetches its shared provider ZIP.
-Check the provider's licenses, installation instructions, and dependencies
-before using a ZIP. For oracle_fdw, obtain Oracle Client separately.
+Categories are `extensions`, `spatial`, `tools`, and `drivers`. Browse with
+`list` or `search TERM`. Add `--format json` for structured results.
+`--pg` filters by the target PostgreSQL major, with major-independent packages
+available for any selection. The external default is all recorded majors.
+Omit `--version` for the version that the Catalog marks as latest. Use
+`--version EXACT` with `download ITEM` for an exact recorded version.
 
-The v0.3.17 catalog includes 23 ZIPs. That covers oracle_fdw 2.9.0 and community
-pgvector 0.8.7 for PG14–18, pg_trickle 0.108.3 for PG18, and pglogical 2.4.8,
-pg_crash 0.3, and shared PostGIS/pgRouting bundles for PG15–18.
-The [2026-11-13 Windows E2E run](https://github.com/pgextwin/catalog/actions/runs/43348662236)
-records the 11 ZIPs verified under the old signed-admission flow. Upgrade
-from v0.3.16 to remove the external admission expiry from the CLI.
+PostGIS and pgRouting select the same bundle. PG14 uses the upstream installer
+and PG15–18 use the existing OSGeo ZIPs. PgBouncer and psqlODBC use the projects’
+Windows ZIPs. Check licenses, exact versions, provider URLs, and file pins in
+the [external extension manifest](../external/direct-get.json) and the
+[standalone package manifest](../external/standalone-get.json).
+Oracle Client is a separate dependency of oracle_fdw.
+
+Each download checks the original file’s SHA-256 and exact size. The CLI saves
+a completed selection in a new subdirectory. For example, `download psqlodbc`
+writes under `pgextwin-external-psqlodbc-all/any/psqlodbc/`. Files are left
+intact. The CLI requires no EDB registration and performs no installation.
+
+Use `download-all --pg 18` for the signed pgextwin feed, or
+`download pg_cron --source pgextwin --pg 18` to select a single signed-feed
+record. The v0.3.17 form `download-all --source external --extension ITEM`
+continues to select only the earlier ZIP catalog. Local `list` and `search`
+continue to accept `--catalog-dir` with the existing local metadata formats.

@@ -227,17 +227,15 @@ jobs:
           @"
           ## English
 
-          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs.
+          Windows x64 CLI $env:VERSION downloads original extensions, spatial bundles, tools, and database drivers without requiring a PostgreSQL installation. Use ``list --category spatial`` to browse or ``download psqlodbc`` to download one item. Use ``download-all --source external`` for a batch and ``--category`` or ``--pg`` to filter it. Each original is checked against its Catalog SHA-256 and exact size. The CLI leaves the files intact.
 
-          The external command ``download-all --source external --pg all`` fetches original ZIPs from their providers using the Catalog's version-specific license reviews. ``--pg`` filters PostgreSQL majors, ``--extension`` filters extensions, and ``--version`` selects an exact recorded version. Each ZIP is checked against its Catalog SHA256 and exact size. External GET has no admission renewal or expiry. oracle_fdw still requires a separately licensed Oracle Client. The Catalog links to the upstream community pgvector license. The CLI leaves all ZIPs intact in a local directory.
+          ``download-all --pg 18`` uses the signed pgextwin feed. ``verify external`` checks separately obtained ZIPs against a local review ledger.
 
           ## 日本語
 
-          Windows x64 CLI $env:VERSION は、登録拡張機能が増えた最新の署名付きCatalogに追従します。``download-all`` は、署名付きCatalogへの登録が完了したpgTAP・pg_variables・pg_store_plansを含め、各PostgreSQLバージョン向けの登録済みZIPを既定でまとめて取得します。``--fixed`` は過去の固定版を選択し、``--verbose`` は進行状況を表示します。Catalogフィードの署名と元ZIPのSHA256を検証しますが、個別の拡張ZIPの検証状態は ``INTEGRITY_ONLY`` です。
+          Windows x64 CLI $env:VERSION は、PostgreSQLが入っていないPCでも、拡張機能、空間拡張バンドル、ツール、ドライバーの原本を取得できます。``list --category spatial`` で一覧を表示し、``download psqlodbc`` で個別に取得できます。一括取得には ``download-all --source external`` を使い、``--category`` や ``--pg`` で対象を絞り込みます。各ファイルのSHA-256と正確なバイト数を照合し、原本のまま保存します。
 
-          ``verify-external-all`` は、利用者が別途取得した外部提供元の原本ZIPを、ローカルの確認用台帳とオフラインで照合します。このコマンドは外部ZIPの取得・インストール・再配布を行いません。
-
-          ``download-all --source external --pg all`` は、Catalogにバージョンごとのライセンス確認記録がある原本ZIPを提供元から直接取得します。``--pg`` でPostgreSQLのメジャーバージョン、``--extension`` で拡張機能、``--version`` で記録済みのバージョンを指定できます。各ZIPのSHA256とバイト数をCatalogの記録と照合します。取得認可の更新や有効期限はありません。oracle_fdwに必要なOracle Clientは別途入手し、ライセンスをご確認ください。コミュニティ版pgvectorの上流ライセンスはCatalogから確認できます。原本ZIPは展開せず、ローカルに保存します。
+          ``download-all --pg 18`` は署名付きpgextwinフィードを使います。``verify external`` は、別途取得したZIPをローカルの確認用台帳と照合します。
           "@ | Set-Content $notes -Encoding utf8
           $request=@{tag_name=$tag;target_commitish=$env:SOURCE;name="pgextwin CLI v$env:VERSION";draft=$true;prerelease=$true;make_latest='false';body=(Get-Content $notes -Raw)}
           $requestFile=Join-Path $env:RUNNER_TEMP 'cli-draft-request.json'

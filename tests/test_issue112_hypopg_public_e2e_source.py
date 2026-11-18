@@ -56,10 +56,10 @@ class PublicGetGuard(unittest.TestCase):
                      'Expected CLI EXE missing',
                      '& $CliPath download-all --source external --pg all --output $dest',
                      'if ($cliExit -ne 0)', 'throw "Actual $CliKind CLI provider GET failed',
-                     '$originals.Count -ne $expected.Count', 'Missing exact ZIP',
+                     '$originals.Count -ne $expected.Count', 'Missing exact original',
                      'Get-FileHash', '$original.Length -ne $pin.bytes -or $hash -cne $pin.sha',
-                     'DIRECT_PATH_ORIGINAL_GET_E2E=PASS SOURCE=external/direct-get.json CLI_KIND=$CliKind',
-                     'ZIP_COUNT=$($expected.Count)', 'MIRROR=DENY',
+                     'DIRECT_PATH_ORIGINAL_GET_E2E=PASS CLI_KIND=$CliKind',
+                     'FILE_COUNT=$($expected.Count)', 'MIRROR=DENY',
                      'Remove-Item -LiteralPath $dest -Recurse -Force'):
             self.assertIn(text, PS)
         for text in ('--external-admission', '--external-bundle', 'gh release create',

@@ -180,7 +180,7 @@ static async Task<int> RunAsync(string[] args)
             if (pg is null || query is not null && pg == "all")
                 throw new ArgumentException(command + " requires a PostgreSQL major for pgextwin downloads");
             var auto = !localPolicy;
-            if (!auto && (latest is not null || directory is null || policy is null || policySha is null || output is null))
+            if (!auto && (latest == true || directory is null || policy is null || policySha is null || output is null))
                 throw new ArgumentException("Explicit policy requires --catalog-dir, --policy, --policy-sha256 and --output");
             var outputParent = output ?? Directory.GetCurrentDirectory();
             Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; Catalog provenance is not original extension Sigstore verification");

@@ -222,7 +222,7 @@ jobs:
             })
           }
           $ledgerDoc | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ledgerFile -Encoding utf8
-          $bulkResult = & $exe verify-external-all --ledger $ledgerFile --input-dir (Join-Path $bulkRoot 'originals') --pg 18 | Out-String
+          $bulkResult = & $exe verify external --ledger $ledgerFile --input-dir (Join-Path $bulkRoot 'originals') --pg 18 | Out-String
           if ($LASTEXITCODE -ne 0 -or $bulkResult -notmatch 'ZIP_COUNT=1' -or $bulkResult -notmatch 'DOWNLOAD_AUTHORIZED=FALSE PUBLISH=DENY') { throw 'External local batch verification EXE smoke failed' }
           $bulkDenied = & $exe verify-external-all --ledger $ledgerFile --input-dir (Join-Path $bulkRoot 'originals') --pg 17 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $bulkDenied -notmatch 'DENY:') { throw 'Unreviewed external PG major was not denied' }

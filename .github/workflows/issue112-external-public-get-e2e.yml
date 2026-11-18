@@ -60,7 +60,9 @@ jobs:
               (.status=="added" or .status=="modified") and
               (.filename | IN(
                 "external/direct-get.json",
+                "external/standalone-get.json",
                 "dotnet/src/PgExtWin.Cli/Program.cs",
+                "dotnet/src/PgExtWin.Releases/ExternalDownloadItem.cs",
                 "dotnet/src/PgExtWin.Releases/ExternalSignedCatalogCohort.cs",
                 "dotnet/src/PgExtWin.Releases/ExternalProviderAssetTransport.cs",
                 "dotnet/src/PgExtWin.Releases/ExternalOriginalBatchStager.cs",

@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 
 FIXED = {
-    "schemaVersion": "pgextwin-cli-external-get-formal-publisher/v3",
+    "schemaVersion": "pgextwin-cli-external-get-formal-publisher/v4",
     "environmentName": "cli-external-get-publisher",
     "ownerLogin": "ShutenOishi", "ownerId": 27071164,
     "repository": "pgextwin/catalog", "operation": "ORIGINAL_PROVIDER_GET_ONLY",
-    "externalCatalogPath": "external/direct-get.json",
+    "externalCatalogPaths": ["external/direct-get.json", "external/standalone-get.json"],
     "mirrorAuthorized": False, "redistributionAuthorized": False,
 }
 EXPECTED = set(FIXED) | {"publishAuthorized", "approvedVersion", "environmentId"}
