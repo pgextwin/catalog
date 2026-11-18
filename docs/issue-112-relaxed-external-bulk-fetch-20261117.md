@@ -144,13 +144,12 @@ rows use zero). Historical signed-admission APIs/records remain available;
 the public external command no longer calls their verification path. Native
 signed-feed code is unchanged. No Build implementation change is needed.
 
-Examples after the support PR is merged and a CLI containing it is separately
-made available (this PR publishes neither CLI nor feed):
+Current command examples (CLI v0.3.18 and later):
 
 ```text
 pgextwin download-all --source external --pg all
-pgextwin download-all --source external --pg all --extension pglogical --version 2.4.8
-pgextwin download-all --source external --pg 18 --extension pg_crash --version 0.3
+pgextwin download pglogical --version 2.4.8 --pg all
+pgextwin download pg_crash --version 0.3 --pg 18
 ```
 
 Exact version lookup uses the record's upstreamVersion, not filename patterns;

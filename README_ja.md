@@ -17,9 +17,10 @@ PostgreSQL拡張機能の**非公式Windows x64バイナリ**を探す場合は�
 
 ## Windows CLIでパッケージを取得する
 
-Windows CLI v0.3.18では、PostgreSQLが入っていないPCでも、外部の拡張機能、空間拡張バンドル、
-ツール、ドライバーを検索して取得できます。たとえば、`pgextwin list --category spatial` で
-空間拡張を一覧表示し、`pgextwin download psqlodbc` でドライバーを取得できます。
+Windows CLI v0.3.18では、PostgreSQLが入っていないPCでも、拡張機能、空間拡張バンドル、
+ツール、ドライバーを検索して取得できます。`pgextwin download pgvector --version 0.8.7 --pg 18`
+でPostgreSQL 18用のpgvector 0.8.7の外部ZIPを取得できます。`pgextwin download-all --pg 18`
+を使うと、PostgreSQL 18用のpgextwin配布ZIPをまとめて取得できます。
 ファイルを保存する前に、SHA-256と正確なバイト数を照合します。
 
 [ダウンロード手順](docs/issue-112-public-external-original-get.md) ·

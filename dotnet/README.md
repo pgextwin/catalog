@@ -2,9 +2,15 @@
 
 The Windows x64 CLI can browse and download external originals without an
 installed PostgreSQL instance. It checks SHA-256 and exact size before saving
-each file. In-house downloads use the signed Catalog feed. See the
+each file. pgextwin downloads use the signed Catalog feed. See the
 [download guide](../docs/issue-112-public-external-original-get.md) for examples,
 categories, and release links.
+
+`list` and `search TERM` discover available packages. Use `download ITEM`
+for one named package and add `--version EXACT` to select a specific external
+version. Use `download-all` for bulk selections and pass `--source external`
+to select external packages. Run `pgextwin --help` for the command overview or
+`pgextwin COMMAND --help` for detailed usage in builds with command help.
 
 ```bash
 dotnet build dotnet/PgExtWin.slnx --configuration Release
@@ -88,7 +94,6 @@ implied. Existing `PUBLISH=DENY` and P1 65/70 + five DENY remain unchanged.
 
 ## Machine-readable local Catalog output
 
-The CLI preview version is `0.1.0-preview.1` (`pgextwin --version`).
 `list` and `search` accept `--format json` in addition to their default
 text format:
 
@@ -107,7 +112,7 @@ formats fail closed with exit 2. This output is not a trust upgrade.
 
 ## R2a: CLI authentication of an externally signed P1 *report claim*
 
-`pgextwin verify-report` authenticates a detached, canonical ECDSA-P256/SHA256
+`pgextwin verify report` authenticates a detached, canonical ECDSA-P256/SHA256
 P1 report using an **independently approved** SHA256 digest of the public key,
 an independently pinned P1 policy, Trusted Root digest, and P1 verifier digest.
 It checks the Catalog's raw digests and the **exact** PG-major, repository ID,
@@ -115,12 +120,12 @@ release ID, asset ID and original ZIP digest against the signed report. It runs
 offline, reads bounded local files, and never changes any filesystem content.
 
 ```powershell
-pgextwin.exe verify-report pg_cron --pg 18 --catalog-dir C:\\approved\\catalog `
-  --policy C:\\approved\\policy.json --policy-sha256 OUT_OF_BAND_POLICY_SHA256 `
+pgextwin.exe verify report pg_cron --pg 18 --catalog-dir C:\approved\catalog `
+  --policy C:\approved\policy.json --policy-sha256 OUT_OF_BAND_POLICY_SHA256 `
   --trusted-root-sha256 OUT_OF_BAND_ROOT_SHA256 `
   --p1-verifier-sha256 OUT_OF_BAND_VERIFIER_SHA256 `
-  --report C:\\approved\\p1-report.json --signature C:\\approved\\p1-report.sig `
-  --authority-key C:\\approved\\authority.pem --authority-key-sha256 OUT_OF_BAND_KEY_SHA256
+  --report C:\approved\p1-report.json --signature C:\approved\p1-report.sig `
+  --authority-key C:\approved\authority.pem --authority-key-sha256 OUT_OF_BAND_KEY_SHA256
 ```
 
 The output is `P1_REPORT_AUTHENTICATED_ONLY` and explicitly

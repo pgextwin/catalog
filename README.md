@@ -17,9 +17,11 @@ and verification evidence, see [external sources and selection policy](docs/issu
 
 ## Download packages with the Windows CLI
 
-Windows CLI v0.3.18 lists and downloads external extensions, spatial bundles,
-tools, and drivers without requiring a PostgreSQL installation. Try
-`pgextwin list --category spatial` or `pgextwin download psqlodbc`.
+Windows CLI v0.3.18 lists and downloads extensions, spatial bundles, tools,
+and drivers without requiring a PostgreSQL installation. Use
+`pgextwin download pgvector --version 0.8.7 --pg 18` to fetch the named
+external ZIP, or `pgextwin download-all --pg 18` to fetch the pgextwin ZIPs
+for PostgreSQL 18 in bulk.
 The CLI checks the SHA-256 and exact size of each original file before saving it.
 
 [Download guide](docs/issue-112-public-external-original-get.md) ·

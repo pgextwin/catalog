@@ -6,10 +6,10 @@ download, source authorization, immutable signed feed, or a new release**.
 
 ## Why this unit
 
-Production `pgextwin download-all --source external [--pg MAJOR|all]
-[--extension NAME [--version EXACT]]` already parses the requested selectors
-and requires independently Sigstore-verified, source-specific signed admission.
-Do not reimplement that production path or add an unsigned shortcut.
+At the time of this review, the external bulk CLI accepted extension and version
+filters and required independently Sigstore-verified, source-specific signed
+admission. For current download syntax, see the
+[external download guide](issue-112-public-external-original-get.md).
 
 The reusable nonpublishing review selector chooses the **highest numeric stable
 version observed** in already checked-in discovery data for each extension ×

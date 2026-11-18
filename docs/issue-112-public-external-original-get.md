@@ -10,6 +10,7 @@ Windows x64版CLI v0.3.18では、PostgreSQLが入っていないPCでも、外�
 
 ```powershell
 New-Item -ItemType Directory -Force C:\pgextwin-originals
+.\pgextwin.exe download pgvector --version 0.8.7 --pg 18 --output C:\pgextwin-originals
 .\pgextwin.exe list --category spatial --pg 14
 .\pgextwin.exe search odbc --category drivers
 .\pgextwin.exe download psqlodbc --output C:\pgextwin-originals
@@ -19,8 +20,10 @@ New-Item -ItemType Directory -Force C:\pgextwin-originals
 
 カテゴリは `extensions`（拡張機能）、`spatial`（空間拡張）、`tools`（ツール）、`drivers`（ドライバー）です。
 `--pg` では取得対象のPostgreSQLメジャーバージョンを指定します。バージョンに依存しないファイルも取得対象になります。
-`--pg` を省くと、すべての対象バージョンから選びます。`--version` でカタログに記録された版を指定できます。
-省略時は、最新として記録された版を取得します。PostGISとpgRoutingは同じバンドルを取得します。
+`--pg` を省くと、カタログに記録されたすべてのPostgreSQLメジャーバージョンが対象になります。
+名前を指定して取得するには `download ITEM` を使います。`--version EXACT` を付けるとカタログに記録された版を指定でき、
+省略すると最新として記録された版を取得します。複数のパッケージをまとめて取得するには `download-all` を使います。
+PostGISとpgRoutingは同じバンドルを取得します。
 
 すべてのファイルのSHA-256とバイト数を確認してから、出力先に新しいサブフォルダーを作って原本をまとめて保存します。
 CLIはファイルの展開や実行を行いません。ライセンスの根拠と照合値は[拡張機能カタログ](../external/direct-get.json)と
@@ -39,6 +42,7 @@ and verify the executable's SHA-256. Use an existing output directory or omit
 
 ```powershell
 New-Item -ItemType Directory -Force C:\pgextwin-originals
+.\pgextwin.exe download pgvector --version 0.8.7 --pg 18 --output C:\pgextwin-originals
 .\pgextwin.exe list --category spatial --pg 14
 .\pgextwin.exe search odbc --category drivers
 .\pgextwin.exe download psqlodbc --output C:\pgextwin-originals
@@ -50,8 +54,9 @@ Categories are `extensions`, `spatial`, `tools`, and `drivers`. Browse with
 `list` or `search TERM`. Add `--format json` for structured results.
 `--pg` filters by the target PostgreSQL major, with major-independent packages
 available for any selection. The external default is all recorded majors.
-Omit `--version` for the version that the Catalog marks as latest. Use
-`--version EXACT` with `download ITEM` for an exact recorded version.
+Use `download ITEM` for a named package. Add `--version EXACT` for an exact
+recorded version, or omit it for the version marked latest in the Catalog.
+Use `download-all` for bulk selections.
 
 PostGIS and pgRouting select the same bundle. PG14 uses the upstream installer
 and PG15–18 use the existing OSGeo ZIPs. PgBouncer and psqlODBC use the projects’
@@ -67,6 +72,7 @@ intact. The CLI requires no EDB registration and performs no installation.
 
 Use `download-all --pg 18` for the signed pgextwin feed, or
 `download pg_cron --source pgextwin --pg 18` to select a single signed-feed
-record. The v0.3.17 form `download-all --source external --extension ITEM`
-continues to select only the earlier ZIP catalog. Local `list` and `search`
+record. The v0.3.17 `--extension` option on external bulk downloads remains
+available to existing scripts. Without a category filter, it still selects from
+the earlier ZIP catalog and preserves the legacy receipt. Local `list` and `search`
 continue to accept `--catalog-dir` with the existing local metadata formats.
