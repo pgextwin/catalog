@@ -30,6 +30,13 @@
       "license": "PostgreSQL"
     },
     {
+      "name": "pg_squeeze",
+      "upstreamRepository": "Cybertec-PostgreSQL/pg_squeeze",
+      "displayName": "pg_squeeze",
+      "description": "Removes unused space from a table and optionally sorts tuples according to a particular index",
+      "license": "PostgreSQL"
+    },
+    {
       "name": "pg_store_plans",
       "upstreamRepository": "ossc-db/pg_store_plans",
       "displayName": "pg_store_plans",

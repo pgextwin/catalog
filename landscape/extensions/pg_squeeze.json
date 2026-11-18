@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_squeeze",
+  "displayName": "pg_squeeze",
+  "description": "Removes unused space from a table and optionally sorts tuples according to a particular index",
+  "upstreamRepository": "Cybertec-PostgreSQL/pg_squeeze",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_squeeze",
+  "lastReviewed": "2026-11-18",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_squeeze/releases/tag/v1.9.4-windows.1",
+    "https://github.com/Cybertec-PostgreSQL/pg_squeeze"
+  ],
+  "windowsBinarySources": []
+}

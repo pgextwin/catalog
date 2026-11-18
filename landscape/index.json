@@ -17,6 +17,7 @@
     "pg_repack",
     "pg_show_plans",
     "pg_sphere",
+    "pg_squeeze",
     "pg_stat_monitor",
     "pg_store_plans",
     "pg_track_settings",
