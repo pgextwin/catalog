@@ -146,7 +146,7 @@ static async Task<int> RunAsync(string[] args)
                     directory is not null || policy is not null || policySha is not null ||
                     latest is not null || format is not null)
                     throw new InvalidDataException(
-                        "External GET requires download-all --source external with current Catalog latest pins");
+                        "External GET requires download-all --source external with license-reviewed Catalog records");
                 log?.Invoke("EXTERNAL_DIRECT_GET_START source=PROVIDER_RELEASE_ASSET");
                 var external = await ExternalSignedCatalogCohort.StageDirectAsync(
                     pg ?? "all", output ?? Directory.GetCurrentDirectory(),

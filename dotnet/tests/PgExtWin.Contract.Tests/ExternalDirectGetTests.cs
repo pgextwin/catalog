@@ -190,7 +190,15 @@ internal static class ExternalDirectGetTests
             foreach (var extension in new[] { "pglogical", "pg_crash" })
                 check(pins.Count(pin => pin.Extension == extension) == 4,
                     "Catalog latest external support covers PG15–18: " + extension);
-            check(pins.All(pin => pin.PgMajor != "14"), "New direct records exclude EOL PG14");
+            var pg14 = ExternalSignedCatalogCohort.SelectDirect(actual, "14");
+            check(pg14.Select(pin => pin.Extension).Order(StringComparer.Ordinal)
+                .SequenceEqual(new[] { "oracle_fdw", "pgvector" }) && pg14.All(pins.Contains),
+                "Previously available PG14 originals are included in both PG14 and all");
+            check(ExternalSignedCatalogCohort.SelectDirect(actual, "14", "oracle_fdw", "2.9.0")
+                .Single().AssetId == 442625883 &&
+                ExternalSignedCatalogCohort.SelectDirect(actual, "14", "pgvector", "0.8.7")
+                .Single().AssetId == 661612126,
+                "PG14 exact-version selection preserves both previously published asset pins");
             var postgis = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "postgis");
             var pgrouting = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "pgrouting", "4.0.1");
             check(postgis.Count == 4 && postgis.SequenceEqual(pgrouting) &&
