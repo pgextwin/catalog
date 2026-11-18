@@ -40,12 +40,13 @@ class FormalPublisher(unittest.TestCase):
 
     def test_real_policy_requires_same_run_owner_approval(self):
         policy = json.loads(FILE.read_text())
-        version = "0.3.17"
+        version = "0.3.18"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
         with self.assertRaises(MOD.Denied):
-            MOD.eligible(policy, "0.3.16")  # Previously published version cannot be reauthorized.
-        self.assertEqual(policy["externalCatalogPath"], "external/direct-get.json")
+            MOD.eligible(policy, "0.3.17")  # Previously published version cannot be reauthorized.
+        self.assertEqual(policy["externalCatalogPaths"],
+                         ["external/direct-get.json", "external/standalone-get.json"])
         with self.assertRaises(MOD.Denied):
             MOD.eligible(policy, "0.3.6")
         with self.assertRaises(MOD.Denied):
@@ -58,8 +59,8 @@ class FormalPublisher(unittest.TestCase):
             {"environmentId": None}, {"environmentId": 0},
             {"publishAuthorized": "true"}, {"mirrorAuthorized": True},
             {"redistributionAuthorized": True}, {"operation": "MIRROR"},
-            {"externalCatalogPath": None}, {"externalCatalogPath": "external/windows-candidates-v1.json"},
-            {"externalCatalogPath": "external/signed-direct-get/qualified_cohort/latest.json"},
+            {"externalCatalogPaths": None}, {"externalCatalogPaths": ["external/direct-get.json"]},
+            {"externalCatalogPaths": ["external/signed-direct-get/qualified_cohort/latest.json"]},
             {"ownerId": 111},
             {"repository": "wrong/repo"}, {"unexpected": True},
         ):

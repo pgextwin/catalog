@@ -15,15 +15,15 @@ records with version-specific license evidence and byte pins.
 For provenance, reference build choices, reasons to exclude a source, dependencies
 and verification evidence, see [external sources and selection policy](docs/issue-112-external-windows-sources.md).
 
-## Verified direct external ZIP acquisition (GET-only)
+## Download packages with the Windows CLI
 
-Windows CLI v0.3.17 and later use the [direct GET catalog](external/direct-get.json)
-to fetch original ZIPs from external providers. The CLI verifies each ZIP
-against its recorded SHA-256 and size before committing the batch locally.
-External downloads no longer require a time-limited admission.
-See the [external GET guide](docs/issue-112-public-external-original-get.md)
-for [CLI releases](https://github.com/pgextwin/catalog/releases), supported
-versions, selection examples, and dependencies.
+Windows CLI v0.3.18 lists and downloads external extensions, spatial bundles,
+tools, and drivers without requiring a PostgreSQL installation. Try
+`pgextwin list --category spatial` or `pgextwin download psqlodbc`.
+The CLI checks the SHA-256 and exact size of each original file before saving it.
+
+[Download guide](docs/issue-112-public-external-original-get.md) ·
+[CLI releases](https://github.com/pgextwin/catalog/releases)
 
 ## What you can check
 

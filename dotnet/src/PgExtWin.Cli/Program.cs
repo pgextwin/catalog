@@ -19,6 +19,13 @@ static async Task<int> RunAsync(string[] args)
         Action<string>? log = verbose
             ? message => Console.Error.WriteLine($"[{DateTimeOffset.UtcNow:O}] VERBOSE {message}")
             : null;
+        if (args.Length > 0 && args[0] == "verify")
+        {
+            if (args.Length < 2 || args[1] is not ("report" or "external"))
+                throw new ArgumentException("Use verify report or verify external");
+            var verb = args[1] == "report" ? "verify-report" : "verify-external-all";
+            args = [verb, .. args[2..]];
+        }
         if (args.Length > 0 && args[0] == "verify-report")
         {
             log?.Invoke("VERIFY_REPORT_START trust=UNVERIFIED");
@@ -38,7 +45,7 @@ static async Task<int> RunAsync(string[] args)
             Usage(); return 0;
         }
         if (args.Length < 1 || args[0] is not ("list" or "search" or "download" or "download-all" or "verify-external-all"))
-            throw new ArgumentException("Only list/search and explicit GET-only download/download-all are available");
+            throw new ArgumentException("Unknown command. Run pgextwin --help");
         var command = args[0];
         log?.Invoke($"COMMAND_START command={command} publish=DENY");
         var i = 1;
@@ -46,7 +53,7 @@ static async Task<int> RunAsync(string[] args)
         if (command is "search" or "download")
         {
             if (i >= args.Length || args[i].StartsWith('-'))
-                throw new ArgumentException(command + " requires an extension name/search term");
+                throw new ArgumentException(command + " requires an item name or search term");
             query = args[i++];
         }
         string? directory = null;
@@ -56,6 +63,7 @@ static async Task<int> RunAsync(string[] args)
         string? output = null;
         string? format = null;
         string? sourceGroup = null;
+        string? category = null;
         string? requestedExtension = null;
         string? requestedVersion = null;
         string? reviewLedger = null;
@@ -79,7 +87,7 @@ static async Task<int> RunAsync(string[] args)
                     if (directory is not null) throw new ArgumentException("Duplicate --catalog-dir");
                     directory = value; break;
                 case "--pg":
-                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, command is "list" or "search" ? @"\A[1-9][0-9]*(?:\.[0-9]+)?\z" : @"\A[1-9][0-9]*\z")) || (value == "all" && command is not ("download-all" or "verify-external-all")))
+                    if (pg is not null || (value != "all" && !System.Text.RegularExpressions.Regex.IsMatch(value, command is "list" or "search" ? @"\A[1-9][0-9]*(?:\.[0-9]+)?\z" : @"\A[1-9][0-9]*\z")))
                         throw new ArgumentException("Invalid/duplicate --pg");
                     pg = value; break;
                 case "--policy":
@@ -103,13 +111,18 @@ static async Task<int> RunAsync(string[] args)
                         throw new ArgumentException("--extension only supports external download-all once");
                     requestedExtension = value; break;
                 case "--version":
-                    if (command != "download-all" || requestedVersion is not null)
-                        throw new ArgumentException("--version pin only supports external download-all once");
+                    if (command is not ("download" or "download-all") || requestedVersion is not null)
+                        throw new ArgumentException("--version requires a named external download");
                     requestedVersion = value; break;
                 case "--source":
                     if (sourceGroup is not null || value is not ("external" or "pgextwin" or "all"))
                         throw new ArgumentException("Invalid/duplicate --source");
                     sourceGroup = value; break;
+                case "--category":
+                    if (category is not null || value is not ("extensions" or "spatial" or "tools" or "drivers") ||
+                        command == "verify-external-all")
+                        throw new ArgumentException("Invalid/duplicate --category");
+                    category = value; break;
                 case "--format":
                     if (format is not null || command is "download" or "download-all" || value is not ("text" or "json"))
                         throw new ArgumentException("Invalid/duplicate --format");
@@ -121,9 +134,8 @@ static async Task<int> RunAsync(string[] args)
                 default: throw new ArgumentException("Unknown option: " + option);
             }
         }
-        if (sourceGroup != "external" &&
-            (requestedExtension is not null || requestedVersion is not null))
-            throw new ArgumentException("--extension/--version require --source external");
+        if (requestedExtension is not null && sourceGroup != "external")
+            throw new ArgumentException("--extension requires --source external");
         if (command == "verify-external-all")
         {
             if (reviewLedger is null || inputDir is null || pg is null ||
@@ -138,32 +150,39 @@ static async Task<int> RunAsync(string[] args)
         }
         if (command is "download" or "download-all")
         {
-            // External originals use reviewed exact-version license records and
-            // measured byte pins; the native signed feed path below is unchanged.
-            if (sourceGroup == "external")
+            var localPolicy = directory is not null || policy is not null || policySha is not null;
+            var external = sourceGroup == "external" || sourceGroup is null &&
+                !localPolicy && (command == "download" || category is not null);
+            if (external)
             {
-                if (command != "download-all" ||
-                    directory is not null || policy is not null || policySha is not null ||
-                    latest is not null || format is not null)
-                    throw new InvalidDataException(
-                        "External GET requires download-all --source external with license-reviewed Catalog records");
+                if (localPolicy || latest is not null)
+                    throw new ArgumentException("External downloads use Catalog records. Use --pg, --category or --output to select them.");
                 log?.Invoke("EXTERNAL_DIRECT_GET_START source=PROVIDER_RELEASE_ASSET");
-                var external = await ExternalSignedCatalogCohort.StageDirectAsync(
-                    pg ?? "all", output ?? Directory.GetCurrentDirectory(),
-                    requestedExtension: requestedExtension, requestedVersion: requestedVersion);
-                Console.WriteLine($"EXTERNAL_ORIGINAL_GET_ONLY\tZIP_COUNT={external.Count}\tBYTES={external.Bytes}\t{external.Directory}");
+                var parent = output ?? Directory.GetCurrentDirectory();
+                if (requestedExtension is not null && category is null)
+                {
+                    // Keep the legacy filtered ZIP batch's path and receipt.
+                    var legacy = await ExternalSignedCatalogCohort.StageDirectAsync(
+                        pg ?? "all", parent, requestedExtension: requestedExtension,
+                        requestedVersion: requestedVersion);
+                    Console.WriteLine($"EXTERNAL_ORIGINAL_GET_ONLY\tZIP_COUNT={legacy.Count}\tBYTES={legacy.Bytes}\t{legacy.Directory}");
+                    return 0;
+                }
+                var result = await ExternalSignedCatalogCohort.DownloadAsync(
+                    pg ?? "all", parent, category, query ?? requestedExtension, requestedVersion);
+                Console.WriteLine($"EXTERNAL_ORIGINAL_GET_ONLY\tFILE_COUNT={result.Count}\tBYTES={result.Bytes}\t{result.Directory}");
                 return 0;
             }
             if (sourceGroup == "all")
                 throw new InvalidDataException("Mixed/unsigned external download denied; no fallback");
-            if (pg is null || (command == "download" && query is null))
-                throw new ArgumentException(command + " requires --pg (and an extension for single download)");
-            var auto = command == "download-all" &&
-                directory is null && policy is null && policySha is null && output is null;
-            if (latest == true && !auto)
-                throw new ArgumentException("--latest only supports verified automatic Catalog mode");
-            if (!auto && (directory is null || policy is null || policySha is null || output is null))
-                throw new ArgumentException(command + " needs --catalog-dir, --policy, --policy-sha256 and --output unless using simple download-all");
+            if (category is not null || requestedVersion is not null)
+                throw new ArgumentException("--category and --version apply to external downloads");
+            if (pg is null || query is not null && pg == "all")
+                throw new ArgumentException(command + " requires a PostgreSQL major for pgextwin downloads");
+            var auto = !localPolicy;
+            if (!auto && (latest == true || directory is null || policy is null || policySha is null || output is null))
+                throw new ArgumentException("Explicit policy requires --catalog-dir, --policy, --policy-sha256 and --output");
+            var outputParent = output ?? Directory.GetCurrentDirectory();
             Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; Catalog provenance is not original extension Sigstore verification");
             using var downloader = new ReadOnlyReleaseDownloader(new SocketsHttpHandler
             {
@@ -171,38 +190,46 @@ static async Task<int> RunAsync(string[] args)
                 UseCookies = false,
                 AutomaticDecompression = DecompressionMethods.None
             });
-            if (command == "download-all")
+            if (auto && latest != false)
             {
-                if (auto && latest != false)
+                log?.Invoke($"CATALOG_MODE mode=latest pg={pg} authentication=Sigstore");
+                using var selected = await SignedPublicCatalogFeed.AcquireAsync(
+                    outputParent, pg, progress: log);
+                using var browser = new PinnedBrowserDownloader();
+                if (query is not null)
                 {
-                    // Default latest from independently Sigstore-verified public Catalog feed.
-                    // No anonymous GitHub REST calls; --fixed retains v0.2.2 immutable snapshot.
-                    log?.Invoke($"CATALOG_MODE mode=latest pg={pg} authentication=Sigstore");
-                    using var selected = await SignedPublicCatalogFeed.AcquireAsync(
-                        Directory.GetCurrentDirectory(), pg, progress: log);
-                    using var browser = new PinnedBrowserDownloader();
-                    var latestBatch = await BatchReleaseDownloader.StageAsync(
-                        selected.Pins, pg, Directory.GetCurrentDirectory(),
-                        (pin, folder, token) => browser.DownloadAsync(pin, folder, token, log),
-                        metadataVerified: false,
-                        sourceOverride: "SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS",
-                        progress: log, approvedMajors: selected.ApprovedMajors);
+                    var single = selected.Pins.SingleOrDefault(
+                        x => x.Extension.Equals(query, StringComparison.OrdinalIgnoreCase))
+                        ?? throw new InvalidDataException("No signed Catalog download matches the item and PostgreSQL major");
+                    var original = await browser.DownloadAsync(single, outputParent, progress: log);
                     Console.WriteLine($"CATALOG_COMMIT={selected.Commit} CATALOG_AUTH=SIGSTORE_VERIFIED_FEED RELEASE={selected.SourceReleaseTag}");
-                    Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={latestBatch.Count}\tBYTES={latestBatch.Bytes}\t{latestBatch.Directory}");
+                    Console.WriteLine($"INTEGRITY_ONLY\t{original.Sha256}\t{original.Size}\t{original.FilePath}");
                     return 0;
                 }
+                var latestBatch = await BatchReleaseDownloader.StageAsync(
+                    selected.Pins, pg, outputParent,
+                    (pin, folder, token) => browser.DownloadAsync(pin, folder, token, log),
+                    metadataVerified: false,
+                    sourceOverride: "SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS",
+                    progress: log, approvedMajors: selected.ApprovedMajors);
+                Console.WriteLine($"CATALOG_COMMIT={selected.Commit} CATALOG_AUTH=SIGSTORE_VERIFIED_FEED RELEASE={selected.SourceReleaseTag}");
+                Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={latestBatch.Count}\tBYTES={latestBatch.Bytes}\t{latestBatch.Directory}");
+                return 0;
+            }
+            if (command == "download-all")
+            {
                 // All four optional paths absent: trust anchors live in the
                 // current CLI build, never in a live, unpinned HEAD response.
                 log?.Invoke($"CATALOG_MODE mode={(auto ? "fixed" : "external")} pg={pg}");
                 using var bootstrap = auto
                     ? await TrustedCatalogBootstrap.AcquireAsync(
-                        Directory.GetCurrentDirectory(), progress: log)
+                        outputParent, progress: log)
                     : null;
                 var batch = await BatchReleaseDownloader.RunAsync(
                     bootstrap?.CatalogPath ?? directory!,
                     bootstrap?.PolicyFile ?? policy!,
                     bootstrap is null ? policySha! : TrustedCatalogBootstrap.PolicySha256,
-                    pg, auto ? Directory.GetCurrentDirectory() : output!, downloader,
+                    pg, outputParent, downloader,
                     usePinnedBrowserTransport: auto, progress: log);
                 Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={batch.Count}\tBYTES={batch.Bytes}\t{batch.Directory}");
                 return 0;
@@ -215,7 +242,24 @@ static async Task<int> RunAsync(string[] args)
             Console.WriteLine($"INTEGRITY_ONLY\t{receipt.Sha256}\t{receipt.Size}\t{receipt.FilePath}");
             return 0;
         }
-        if (directory is null) throw new ArgumentException("--catalog-dir is mandatory");
+        if (directory is null)
+        {
+            if (sourceGroup is not (null or "external"))
+                throw new ArgumentException("Use --catalog-dir to browse local pgextwin or candidate metadata");
+            var downloads = await ExternalSignedCatalogCohort.ListDownloadsAsync(pg ?? "all", category, query);
+            if (format == "json")
+                Console.WriteLine(JsonSerializer.Serialize(downloads.ToArray(),
+                    CliJsonContext.Default.ExternalDownloadItemArray));
+            else
+                foreach (var item in downloads)
+                {
+                    var target = item.PgMajor is null ? "any PG" : "PG" + item.PgMajor;
+                    Console.WriteLine($"{item.Name}\t{item.Category}\t{target}\t{item.Version}\t{item.License}\t{item.AssetName}");
+                }
+            return downloads.Count == 0 ? 3 : 0;
+        }
+        if (category is not null)
+            throw new ArgumentException("--category filters downloadable entries. Omit --catalog-dir to use it.");
 
         var records = CatalogReader.LoadLocal(directory);
         var externalRows = new List<CliExternalSourceRow>();
@@ -232,7 +276,7 @@ static async Task<int> RunAsync(string[] args)
                 !entry.Description.Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             foreach (var version in entry.Versions)
             {
-                if (pg is not null && version.Major != pg) continue;
+                if (pg is not (null or "all") && version.Major != pg) continue;
                 if (outputJson)
                     rows.Add(new CliCatalogRow(
                         entry.Name, version.Major, version.Version,
@@ -250,7 +294,7 @@ static async Task<int> RunAsync(string[] args)
                 if (query is not null && !entry.Extension.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                     !entry.Provider.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                     !entry.UpstreamVersion.Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
-                if (pg is not null && entry.PgMajor != pg) continue;
+                if (pg is not (null or "all") && entry.PgMajor != pg) continue;
                 if (outputJson)
                     externalRows.Add(new CliExternalSourceRow(entry.Extension, entry.PgMajor,
                         entry.UpstreamVersion, entry.Provider, entry.ProviderType,
@@ -292,25 +336,30 @@ static async Task<int> RunAsync(string[] args)
 
 static void Usage()
 {
-    Console.Error.WriteLine("pgextwin --version");
-    Console.Error.WriteLine("Add --verbose to any command for timestamped progress on stderr (stdout unchanged).");
-    Console.Error.WriteLine("pgextwin verify-report EXTENSION --pg MAJOR --catalog-dir PATH --policy FILE");
-    Console.Error.WriteLine("  --policy-sha256 HEX --trusted-root-sha256 HEX --p1-verifier-sha256 HEX");
-    Console.Error.WriteLine("  --report FILE --signature FILE --authority-key PEM --authority-key-sha256 HEX");
-    Console.Error.WriteLine("pgextwin verify-external-all --ledger REVIEW_FILE --input-dir ORIGINAL_ZIP_ROOT --pg MAJOR|all");
-    Console.Error.WriteLine("  Offline-only integrity check: original ZIPs in INPUT/pgMAJOR/EXTENSION/ASSET; never authorizes network download.");
-    Console.Error.WriteLine("pgextwin list --catalog-dir PATH [--pg MAJOR] [--format text|json] [--source external|pgextwin|all]");
-    Console.Error.WriteLine("pgextwin search TERM --catalog-dir PATH [--pg MAJOR] [--format text|json] [--source external|pgextwin|all]");
-    Console.Error.WriteLine("pgextwin download EXTENSION --pg MAJOR --catalog-dir PATH");
-    Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
-    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all [--fixed|--latest]");
-    Console.Error.WriteLine("  Default/--latest: signed public Catalog feed (no GitHub REST); --fixed: immutable historical snapshot");
-    Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
-    Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
-    Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--extension NAME [--version EXACT]] [--output EXISTING_DIR]");
-    Console.Error.WriteLine("  Selects recorded latest versions, or matches --version exactly. Supported PostgreSQL majors: 14-18.");
-    Console.Error.WriteLine("  Only versions with reviewed exact-version license evidence and measured byte pins are available.");
-    Console.Error.WriteLine("External GET uses exact-version license-reviewed Catalog byte pins; --source all remains denied.");
-    Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");
-    Console.Error.WriteLine("Downloaded ZIPs = INTEGRITY_ONLY; no Sigstore, installation, signed bundle or Publisher.");
+    Console.Error.WriteLine("""
+        pgextwin — download Windows x64 packages without a PostgreSQL installation
+
+          pgextwin list [--category CATEGORY] [--pg MAJOR] [--format text|json]
+          pgextwin search TERM [--category CATEGORY] [--pg MAJOR] [--format text|json]
+          pgextwin download ITEM [--source external] [--pg MAJOR|all] [--category CATEGORY] [--version EXACT] [--output DIR]
+          pgextwin download ITEM --source pgextwin --pg MAJOR [--output DIR]
+          pgextwin download-all --source external [--category CATEGORY] [--pg MAJOR|all] [--output DIR]
+          pgextwin download-all [--source pgextwin] --pg MAJOR|all [--output DIR] [--latest|--fixed]
+          pgextwin verify external --ledger FILE --input-dir DIR --pg MAJOR|all
+          pgextwin verify report ITEM --pg MAJOR --catalog-dir DIR --policy FILE --policy-sha256 HEX
+            --trusted-root-sha256 HEX --p1-verifier-sha256 HEX --report FILE --signature FILE
+            --authority-key PEM --authority-key-sha256 HEX
+          pgextwin --version | --help
+
+        Categories: extensions, spatial, tools, drivers.
+        List, search and named downloads default to external. External --pg is optional.
+        A PostgreSQL major filters compatible files. Major-independent files match any major.
+        --version selects an exact recorded version for a named external item.
+        Bulk downloads default to the signed pgextwin feed and require --pg in that mode.
+        Use an existing output directory (default: current directory). Files are never run.
+
+        Local views: list/search --catalog-dir DIR [--source pgextwin|external|all] [--pg MAJOR] [--format text|json]
+        Local policy: download/download-all --catalog-dir DIR --policy FILE --policy-sha256 HEX --pg MAJOR --output DIR
+        Add --verbose for timestamped progress on stderr.
+        """);
 }

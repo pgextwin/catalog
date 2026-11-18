@@ -1,4 +1,4 @@
-# Issue #112: rehash external ZIPs fetched by an already verified or freshly built CLI.
+# Issue #112: rehash external files fetched by an already verified or freshly built CLI.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$CliPath,
@@ -21,6 +21,11 @@ $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 if ($manifest.schemaVersion -cne 'pgextwin-external-direct-get/v1' -or
     $manifest.records -isnot [array] -or $manifest.records.Count -lt 1) {
     throw 'Direct manifest schema/records invalid'
+}
+$standalone=Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'external/standalone-get.json') -Raw | ConvertFrom-Json
+if ($standalone.schemaVersion -cne 'pgextwin-standalone-get/v1' -or
+    $standalone.records -isnot [array] -or $standalone.records.Count -lt 1) {
+    throw 'Standalone manifest schema/records invalid'
 }
 $identities=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $selectedPaths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -54,8 +59,15 @@ $expected=@(foreach ($row in $manifest.records) {
     if ($row.latest -eq $true) {
         $path=Join-Path 'pgextwin-external-all' "pg$($row.pgMajor)" $row.extension $row.assetName
         if (-not $selectedPaths.Add($path)) { throw 'Duplicate selected ZIP path' }
-        @{path=$path;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256}
+        @{path=$path;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256;source='external/direct-get.json'}
     }
+})
+$expected+=@(foreach ($row in $standalone.records) {
+    if ($row.latest -ne $true) { continue }
+    $major=if ($null -eq $row.pgMajor) { 'any' } else { "pg$($row.pgMajor)" }
+    $path=Join-Path 'pgextwin-external-all' $major $row.item $row.assetName
+    if (-not $selectedPaths.Add($path)) { throw 'Duplicate selected original path' }
+    @{path=$path;bytes=[long]$row.originalBytes;sha=[string]$row.originalSha256;source='external/standalone-get.json'}
 })
 if ($expected.Count -lt 1 -or $expected.Count -gt 1000) { throw 'Direct selected batch bound is 1-1000' }
 if (-not (Test-Path -LiteralPath $CliPath -PathType Leaf)) { throw 'Expected CLI EXE missing' }
@@ -90,19 +102,19 @@ try {
         }
         throw "Actual $CliKind CLI provider GET failed (exit=$cliExit)"
     }
-    $originals=@(Get-ChildItem -LiteralPath $dest -Recurse -File -Filter '*.zip')
+    $originals=@(Get-ChildItem -LiteralPath $dest -Recurse -File)
     if ($originals.Count -ne $expected.Count) {
         throw "Original cohort completeness mismatch: expected=$($expected.Count) got=$($originals.Count)"
     }
     foreach ($pin in $expected) {
         $path=Join-Path $dest $pin.path
-        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing exact ZIP $($pin.path)" }
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing exact original $($pin.path)" }
         $original=Get-Item -LiteralPath $path
         $hash=(Get-FileHash -LiteralPath $original.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($original.Length -ne $pin.bytes -or $hash -cne $pin.sha) {
             throw "Original provider exact byte mismatch for $($pin.path)"
         }
-        Write-Output "REAL_WINDOWS_ORIGINAL_PROVIDER_BYTE=PASS SOURCE=external/direct-get.json CLI_KIND=$CliKind FILE=$($pin.path) BYTES=$($original.Length) SHA256=$hash"
+        Write-Output "REAL_WINDOWS_ORIGINAL_PROVIDER_BYTE=PASS SOURCE=$($pin.source) CLI_KIND=$CliKind FILE=$($pin.path) BYTES=$($original.Length) SHA256=$hash"
     }
 } finally {
     try {
@@ -117,4 +129,4 @@ try {
         Write-Warning "STAGING_CLEANUP_WARNING CLI_KIND=$CliKind ERROR=$cleanupError" -WarningAction Continue
     }
 }
-Write-Output "DIRECT_PATH_ORIGINAL_GET_E2E=PASS SOURCE=external/direct-get.json CLI_KIND=$CliKind ZIP_COUNT=$($expected.Count) MIRROR=DENY"
+Write-Output "DIRECT_PATH_ORIGINAL_GET_E2E=PASS CLI_KIND=$CliKind FILE_COUNT=$($expected.Count) MIRROR=DENY"

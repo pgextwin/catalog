@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "pgextwin-standalone-get/v1",
+  "records": [
+    {
+      "item": "postgis",
+      "category": "spatial",
+      "pgMajor": "14",
+      "upstreamVersion": "3.6.2",
+      "pgroutingVersion": "4.0.1",
+      "assetName": "postgis-bundle-pg14x64-setup-3.6.2-1.exe",
+      "originalBytes": 104787481,
+      "originalSha256": "f245ddfb104abc14cc2b3533f9023d005e71a493e210b2694caef14637cb5594",
+      "originalProviderUrl": "https://ftp.postgresql.org/pub/postgis/pg14/v3.6.2/win64/postgis-bundle-pg14x64-setup-3.6.2-1.exe",
+      "license": "Multiple (PostGIS and pgRouting primarily GPL-2.0-or-later)",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://raw.githubusercontent.com/postgis/postgis/08d9b9f749fa3531591055db2a736bfb6df47006/LICENSE.TXT",
+          "file": "LICENSE.TXT",
+          "sha256": "81749eea887e78402c9b85896cd629b155bc29256927f818f01001f038146391"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/pgRouting/pgrouting/8988eebdff0e01327c9d48fe7c80b437dc9bc992/LICENSE",
+          "file": "LICENSE",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/pgRouting/pgrouting/8988eebdff0e01327c9d48fe7c80b437dc9bc992/README.md",
+          "file": "README.md",
+          "sha256": "267633489eded7cdb9992b61169b5d025830c5b28d9eb53bea83c0180fc9b765"
+        }
+      ]
+    },
+    {
+      "item": "pgbouncer",
+      "category": "tools",
+      "pgMajor": null,
+      "upstreamVersion": "1.26.1",
+      "assetName": "pgbouncer-1.26.1-windows-x86_64.zip",
+      "originalBytes": 2540874,
+      "originalSha256": "5d3fa0bc9bd40f8845655f50a9bafd315db9e9ac51ee1a511393e9f60828b57b",
+      "originalProviderUrl": "https://github.com/pgbouncer/pgbouncer/releases/download/pgbouncer_1_26_1/pgbouncer-1.26.1-windows-x86_64.zip",
+      "license": "ISC",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://raw.githubusercontent.com/pgbouncer/pgbouncer/f03e9bf263d7ccd5d1d152a61811bf3258dd6b87/COPYRIGHT",
+          "file": "COPYRIGHT",
+          "sha256": "af68760b7e2115d97b35680d5f84c0096857d581e8c19c5f7642cfe98eda9f4c"
+        },
+        {
+          "url": "https://github.com/pgbouncer/pgbouncer/releases/download/pgbouncer_1_26_1/pgbouncer-1.26.1-windows-x86_64.zip",
+          "file": "pgbouncer-1.26.1-windows-x86_64/COPYRIGHT",
+          "sha256": "d7388fd779866b8eef57ce88801169027a4ca1e936c7d1ab4e6537eee95c6477"
+        }
+      ]
+    },
+    {
+      "item": "psqlodbc",
+      "category": "drivers",
+      "pgMajor": null,
+      "upstreamVersion": "13.02.0000",
+      "assetName": "psqlodbc_13_02_0000-x64.zip",
+      "originalBytes": 3868961,
+      "originalSha256": "0d2f93c43752019c5e35f4369b1c32b40671f90a833dff3c7273569b6cbf1808",
+      "originalProviderUrl": "https://ftp.postgresql.org/pub/odbc/versions.old/msi/psqlodbc_13_02_0000-x64.zip",
+      "license": "LGPL-2.0-or-later",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/ccd36c486ab2eb1c2a7cb0692666a96e34f81427/license.txt",
+          "file": "license.txt",
+          "sha256": "3892f5f0585c553b72d0d4942d5a75935d0e8b0dcd0f5caa000a6853d648c67b"
+        },
+        {
+          "url": "https://ftp.postgresql.org/pub/odbc/versions.old/msi/psqlodbc_13_02_0000-x64.zip",
+          "file": "README.txt",
+          "sha256": "6c0f9eeb65345061c45a12916f58037b434fe687eb91fccb360f32f35ca44991"
+        }
+      ]
+    }
+  ]
+}

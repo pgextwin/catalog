@@ -15,13 +15,15 @@ PostgreSQL拡張機能の**非公式Windows x64バイナリ**を探す場合は�
 採用・不採用の理由、依存関係、検証の証跡は
 [外部成果物の調査・選択方針](docs/issue-112-external-windows-sources.md)にまとめています。
 
-## 外部ZIP原本の直接一括取得（GET-only）
+## Windows CLIでパッケージを取得する
 
-Windows CLI v0.3.17以降は、[原本取得用カタログ](external/direct-get.json)を参照して、
-外部提供元から原本ZIPを直接取得します。各ZIPのSHA-256とサイズを照合してから、
-一括でローカルに保存します。期限付きの取得認可は不要です。
-[CLIのリリース一覧](https://github.com/pgextwin/catalog/releases)と
-[外部ZIP原本の取得手順](docs/issue-112-public-external-original-get.md)をご覧ください。
+Windows CLI v0.3.18では、PostgreSQLが入っていないPCでも、外部の拡張機能、空間拡張バンドル、
+ツール、ドライバーを検索して取得できます。たとえば、`pgextwin list --category spatial` で
+空間拡張を一覧表示し、`pgextwin download psqlodbc` でドライバーを取得できます。
+ファイルを保存する前に、SHA-256と正確なバイト数を照合します。
+
+[ダウンロード手順](docs/issue-112-public-external-original-get.md) ·
+[CLIのリリース一覧](https://github.com/pgextwin/catalog/releases)
 
 ## 確認できる情報
 
