@@ -339,17 +339,17 @@ static void Usage()
     Console.Error.WriteLine("""
         pgextwin — download Windows x64 packages without a PostgreSQL installation
 
-          list [--category CATEGORY] [--pg MAJOR] [--format text|json]
-          search TERM [--category CATEGORY] [--pg MAJOR] [--format text|json]
-          download ITEM [--source external] [--pg MAJOR|all] [--category CATEGORY] [--version EXACT] [--output DIR]
-          download ITEM --source pgextwin --pg MAJOR [--output DIR]
-          download-all --source external [--category CATEGORY] [--pg MAJOR|all] [--output DIR]
-          download-all [--source pgextwin] --pg MAJOR|all [--output DIR] [--latest|--fixed]
-          verify external --ledger FILE --input-dir DIR --pg MAJOR|all
-          verify report ITEM --pg MAJOR --catalog-dir DIR --policy FILE --policy-sha256 HEX
+          pgextwin list [--category CATEGORY] [--pg MAJOR] [--format text|json]
+          pgextwin search TERM [--category CATEGORY] [--pg MAJOR] [--format text|json]
+          pgextwin download ITEM [--source external] [--pg MAJOR|all] [--category CATEGORY] [--version EXACT] [--output DIR]
+          pgextwin download ITEM --source pgextwin --pg MAJOR [--output DIR]
+          pgextwin download-all --source external [--category CATEGORY] [--pg MAJOR|all] [--output DIR]
+          pgextwin download-all [--source pgextwin] --pg MAJOR|all [--output DIR] [--latest|--fixed]
+          pgextwin verify external --ledger FILE --input-dir DIR --pg MAJOR|all
+          pgextwin verify report ITEM --pg MAJOR --catalog-dir DIR --policy FILE --policy-sha256 HEX
             --trusted-root-sha256 HEX --p1-verifier-sha256 HEX --report FILE --signature FILE
             --authority-key PEM --authority-key-sha256 HEX
-          --version | --help
+          pgextwin --version | --help
 
         Categories: extensions, spatial, tools, drivers.
         List, search and named downloads default to external. External --pg is optional.
