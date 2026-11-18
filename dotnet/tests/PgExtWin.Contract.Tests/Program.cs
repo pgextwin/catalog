@@ -81,7 +81,12 @@ if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
     using var localIndex = StrictJson.Parse(File.ReadAllBytes("index.json"));
     Check(records.Count == localIndex.RootElement.GetProperty("extensions").GetArrayLength(),
         "actual local Catalog contains exactly its indexed records (untrusted)");
-    Check(records.All(r => r.Versions.Count == 5), "local Catalog has 5 available majors each");
+    using var feedCohort = StrictJson.Parse(File.ReadAllBytes("config/cli-feed-majors.json"));
+    var feedMajors = feedCohort.RootElement.GetProperty("postgresqlMajors").EnumerateArray()
+        .Select(major => major.GetString()).ToArray();
+    Check(feedMajors.Length > 0 && records.All(record =>
+        feedMajors.All(major => record.Versions.Any(version => version.Major == major))),
+        "actual local Catalog covers all configured feed majors");
 }
 await ReleaseHttpTests.RunAsync(Check);
 await BatchDownloadTests.RunAsync(Check);
