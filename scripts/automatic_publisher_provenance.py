@@ -46,6 +46,7 @@ OWNER_SIGNING_ISSUES={
     "pgextwin/pg_profile":2,
     "pgextwin/pg_show_plans":2,
     "pgextwin/pg_track_settings":1,
+    "pgextwin/pldebugger":2,
 }
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),

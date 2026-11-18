@@ -53,7 +53,10 @@ class ProtectedInitialRegistryTests(unittest.TestCase):
         for bad in (
             {**self.original, "entries": list(reversed(rows))},
             {**self.original, "entries": rows + [rows[0]]},
-            {**self.original, "entries": [*rows[:-1], {**rows[-1], "upstreamRepository": "evil/source"}]},
+            {**self.original, "entries": [
+                {**row, "upstreamRepository": "evil/source"} if row["name"] == "pgtap" else row
+                for row in rows
+            ]},
             {**self.original, "entries": sorted([*rows, {**future, "name": "../bad"}],
                                                    key=lambda row: row["name"])},
             {**self.original, "entries": sorted([*rows, {**future, "name": "pg_cron"}],

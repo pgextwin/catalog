@@ -171,6 +171,7 @@ class OwnerSignedCatalogTests(TestCase):
             ("pgextwin/pg_profile", 2, "v4.16-windows.1"),
             ("pgextwin/pg_show_plans", 2, "v2.1.8-windows.1"),
             ("pgextwin/pg_track_settings", 1, "v2.1.2-windows.1"),
+            ("pgextwin/pldebugger", 2, "v1.10-windows.1"),
         )
         for repo,issue,tag in fixtures:
             with self.subTest(repo=repo):

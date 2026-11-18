@@ -19,6 +19,7 @@
     "pg_variables",
     "pgaudit",
     "pgtap",
+    "pldebugger",
     "plpgsql_check",
     "set_user",
     "wal2json"
