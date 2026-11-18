@@ -40,11 +40,11 @@ class FormalPublisher(unittest.TestCase):
 
     def test_real_policy_requires_same_run_owner_approval(self):
         policy = json.loads(FILE.read_text())
-        version = "0.3.18"
+        version = "0.3.19"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
         with self.assertRaises(MOD.Denied):
-            MOD.eligible(policy, "0.3.17")  # Previously published version cannot be reauthorized.
+            MOD.eligible(policy, "0.3.18")  # Previously published version cannot be reauthorized.
         self.assertEqual(policy["externalCatalogPaths"],
                          ["external/direct-get.json", "external/standalone-get.json"])
         with self.assertRaises(MOD.Denied):
