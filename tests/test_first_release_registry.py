@@ -26,8 +26,12 @@ class ProtectedInitialRegistryTests(unittest.TestCase):
         self.assertEqual(len(ALLOWED), 14)
         self.assertEqual(set(FIRST_RELEASE), set(FIRST_RELEASE_SOURCES))
         self.assertEqual(set(INTAKE_ALLOWED), set(ALLOWED) | set(FIRST_RELEASE_SOURCES))
-        self.assertEqual(set(FIRST_RELEASE_SOURCES),
-                         {"pgtap", "pg_variables", "pg_store_plans"})
+        for name, upstream in {
+            "pg_store_plans": "ossc-db/pg_store_plans",
+            "pg_variables": "postgrespro/pg_variables",
+            "pgtap": "theory/pgtap",
+        }.items():
+            self.assertEqual(FIRST_RELEASE_SOURCES[name], upstream)
 
     def test_future_name_is_data_driven_but_not_implicitly_admitted(self):
         future = {"name": "future_registered", "upstreamRepository": "safeorg/future_registered",

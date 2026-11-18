@@ -288,10 +288,12 @@ class SignedFeedTests(unittest.TestCase):
 
 
     def test_windows_cli_smoke_tracks_signed_feed_fleet_capacity(self):
-        workflow = (Path(__file__).resolve().parents[1] /
-                    ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
-        self.assertIn("$expectedCount -lt 1 -or $expectedCount -gt 128", workflow)
-        self.assertNotIn("$expectedCount -gt 17", workflow)
+        workflows = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+        for name in ("validate.yml", "cli-candidate.yml"):
+            with self.subTest(workflow=name):
+                workflow = (workflows / name).read_text(encoding="utf-8")
+                self.assertIn("$expectedCount -lt 1 -or $expectedCount -gt 128", workflow)
+                self.assertNotIn("$expectedCount -gt 17", workflow)
 
     def test_actual_release_note_formatter_tracks_signed_cohort_and_denies_false_claims(self):
         workflow = (Path(__file__).resolve().parents[1] /

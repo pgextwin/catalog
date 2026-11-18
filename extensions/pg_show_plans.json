@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 2,
+  "name": "pg_show_plans",
+  "displayName": "pg_show_plans",
+  "description": "View execution plans for running PostgreSQL queries",
+  "upstream": {
+    "repository": "cybertec-postgresql/pg_show_plans",
+    "version": "2.1.8"
+  },
+  "repository": "pgextwin/pg_show_plans",
+  "license": "PostgreSQL",
+  "architecture": "x64",
+  "latest": {
+    "releaseTag": "v2.1.8-windows.1",
+    "publishedAt": "2026-11-18T00:33:56Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_show_plans/releases/tag/v2.1.8-windows.1",
+    "checksumsAsset": "SHA256SUMS.txt"
+  },
+  "postgresql": {
+    "15": {
+      "available": true,
+      "asset": "pg_show_plans-v2.1.8-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg15-windows-x64.zip",
+      "sha256": "70815619ac80e1d081e4f9a7f31a807445122b33598f3655711e37cdee125048",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg15-windows-x64.spdx.json",
+          "sha256": "e2c52c4f3554dd55b670a97fae6e5b4005a2f34535a7d41935c3e16ac0a60a84"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "730ef3385d767b39c035b6d92594f85d70d5ba6ae6e4eb4054592d4452be48ae"
+        }
+      }
+    },
+    "16": {
+      "available": true,
+      "asset": "pg_show_plans-v2.1.8-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg16-windows-x64.zip",
+      "sha256": "e144a27f995af542619fbea2a565628d71d304422651a40941d4bcff060eab48",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg16-windows-x64.spdx.json",
+          "sha256": "7b9fbfbd47f68145050dcf3f362ecfec43bceabd45c30b0d0bab641ee4a4591c"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "45e50d8e77c68fc908893fad737ad31e453e5a7732bdbd7e0db4c08e63bbc7c0"
+        }
+      }
+    },
+    "17": {
+      "available": true,
+      "asset": "pg_show_plans-v2.1.8-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg17-windows-x64.zip",
+      "sha256": "925ba5a51c0824c84537282f27ce38323f4faa511080cd2239c3dc5f3a10b098",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg17-windows-x64.spdx.json",
+          "sha256": "fa1d1ffed75ba74e19478da6f3056cafb4058755ca34248b7e55d4ce1d054f24"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "2bff46c1f43fdf5b2d81d2ff4fc8745d3be3b7c7ad65b378b1a1a4f099555ac9"
+        }
+      }
+    },
+    "18": {
+      "available": true,
+      "asset": "pg_show_plans-v2.1.8-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg18-windows-x64.zip",
+      "sha256": "14e726552b89e604e4766ab4d9b8f72366358f67dccbea2e054f1c881ca4f708",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg18-windows-x64.spdx.json",
+          "sha256": "a55e95cfb51a9c5adb9368383360c4b5ec8b005c7ca4605fe5698241e38fe6d2"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_show_plans-v2.1.8-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_show_plans/releases/download/v2.1.8-windows.1/pg_show_plans-v2.1.8-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "05d8570db4daf4ee5b52bb1a2fc58fe147cf80835cd8af72252dbd7a3fb6e6d3"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "pg_show_plans"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "shared",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-applicable",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "plans-function-and-view",
+        "description": "Creates SQL version 2.1 under shared preload and invokes pg_show_plans() and pg_show_plans_q.",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_show_plans",
+    "path": "config/test-contract.json",
+    "commit": "41abd17e935b1fecc30646df3e029214e87bada3"
+  }
+}

@@ -29,8 +29,7 @@ class PrivatePreview(unittest.TestCase):
         self.assertEqual(s["r09ArtifactActualZipSha256"],"a6a9e5a02d45eb4dd71419726c8e1a55c701b9e4befa6935e7e3d7e8db698cb6")
     def test_historical_shadow_stays_inert_as_verified_catalog_advances(self):
         self.assertEqual(self.index["schemaVersion"],2)
-        self.assertEqual(self.index["extensions"],sorted(self.index["extensions"]))
-        self.assertEqual(len(self.index["extensions"]),17)
+        self.assertEqual(self.index["extensions"],sorted(set(self.index["extensions"])))
         self.assertIn("orafce",self.index["extensions"])
         # The R09 receipt is an immutable historical nonpublishing snapshot.
         # It cannot pin today's independently verified signed public Release.

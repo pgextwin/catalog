@@ -38,11 +38,15 @@ else:
     )
 
 SIGNER = "pgextwin/build/.github/workflows/build-extension-attested.yml"
-# The identical cryptographic checks apply to all seventeen identities.
-# The three first-Release candidates additionally require their currently
-# pre-registered immutable Signer SHA. Historic Releases may legitimately
-# name an earlier builder commit; bind it to the signed ZIP metadata instead.
+# Registry entries also require their pre-registered immutable signer commit.
+# The original Wave 3 pin stays the default for registry entries.
 FIRST_RELEASE_SIGNER_SHA = "5756b3c5136a8bf4db710016cfe97555f0a71c6d"
+FIRST_RELEASE_SIGNER_PINS = {
+    "pg_permissions": "cdb253b5167031264e1baea634b55934c5f91d59",
+    "pg_profile": "ac17f771eef4113a85133b280bc79659eee04874",
+    "pg_show_plans": "3b8f4b7cfb0b5245f5134a7c57be1c1dd1dc5558",
+    "pg_track_settings": "cdb253b5167031264e1baea634b55934c5f91d59",
+}
 PROVENANCE = "https://slsa.dev/provenance/v1"
 SPDX = "https://spdx.dev/Document/v2.3"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -316,14 +320,15 @@ def signer_sha_from_package(zip_path, repo):
             and type(build.get("commit")) is str
             and HEX40.fullmatch(build["commit"]),
             "Release signer SHA or workflow identity not pinned in ZIP")
-    if repo.split("/")[-1] in FIRST_RELEASE_SOURCES:
-        require(build["commit"] == FIRST_RELEASE_SIGNER_SHA,
+    extension = repo.split("/")[-1]
+    if extension in FIRST_RELEASE_SOURCES:
+        require(build["commit"] == FIRST_RELEASE_SIGNER_PINS.get(extension, FIRST_RELEASE_SIGNER_SHA),
                 "first Release signer not at pre-registered immutable SHA")
     return build["commit"]
 
 
 def verify_release_attestations(zip_path, spdx_path, *, repo, source_commit):
-    """All 17: two signer-pinned claims match the downloaded public bytes.
+    """Verify that two signer-pinned claims match the downloaded public bytes.
 
     Catalog-only read and verification; no PUBLISH or Release write. Historical
     builder commit SHAs are derived per verified ZIP, never globally repinned.
@@ -440,9 +445,8 @@ def generate(extension, tag, record):
                 signer_sha = actual_sha
             require(signer_sha == actual_sha,
                     "mixed immutable Signer workflow SHAs across PG-major assets")
-    # Existing records are updated. Only the three explicitly pre-registered
-    # third-wave identities may be seeded on their FIRST genuinely signed,
-    # public, independently verified Release. No placeholder is written.
+    # Seed only registered identities with an independently verified first
+    # public signed Release.
     original = (json.loads(record.read_text(encoding="utf-8"))
                 if record.is_file() else seed_verified_first_release(manifest, contract))
     deny_catalog_rollback(original, release)
