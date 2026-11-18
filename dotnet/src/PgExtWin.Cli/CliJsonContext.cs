@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgExtWin.Releases;
 
 namespace PgExtWin.Cli;
 
@@ -27,6 +28,7 @@ internal sealed record CliSourceListEnvelope(
     List<CliExternalSourceRow> ExternalCandidates);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(ExternalDownloadItem[]))]
 [JsonSerializable(typeof(CliListEnvelope))]
 [JsonSerializable(typeof(CliSourceListEnvelope))]
 internal partial class CliJsonContext : JsonSerializerContext

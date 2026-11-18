@@ -1,7 +1,9 @@
+using System.Security.Cryptography;
+
 namespace PgExtWin.Releases;
 
 /// <summary>
-/// Nonpublishing external original ZIP batch engine. The caller must first
+/// Nonpublishing external original file batch engine. The caller must first
 /// select license-reviewed Catalog byte pins (or historical signed admission).
 /// This internal type does not authenticate caller-supplied pins.
 /// </summary>
@@ -11,7 +13,8 @@ internal static class ExternalOriginalBatchStager
         IReadOnlyList<ExternalOriginalPin> pins, string pgSelection, string outputParent,
         Func<ExternalOriginalPin, string, CancellationToken, Task<DownloadReceipt>> downloadOne,
         CancellationToken token = default,
-        Func<CancellationToken, Task>? confirmAdmissionFresh = null)
+        Func<CancellationToken, Task>? confirmAdmissionFresh = null,
+        string? outputLabel = null, bool standaloneSelection = false)
     {
         if (pins is null || downloadOne is null)
             throw new InvalidDataException("Invalid external batch selection");
@@ -19,10 +22,11 @@ internal static class ExternalOriginalBatchStager
         // Preflight every original pin before staging or any network request.
         // One failed/unauthorized future admission MUST fail the entire batch;
         // there is never a silent lower-priority fallback.
-        ValidateBatchPins(pins, pgSelection);
+        ValidateBatchPins(pins, pgSelection, standaloneSelection);
 
-        var outputName = pgSelection == "all" ? "pgextwin-external-all"
-            : "pgextwin-external-pg" + pgSelection;
+        var outputName = "pgextwin-external-" +
+            (outputLabel is null ? "" : outputLabel + "-") +
+            (pgSelection == "all" ? "all" : "pg" + pgSelection);
         var transaction = new AtomicOriginalBatchDirectory(outputParent, outputName);
         var staged = new List<(ExternalOriginalPin Pin, string Path, FileStream Stream, AtomicStageGuard.FileIdentity Identity)>(pins.Count);
         var expectedDirectories = new HashSet<string>(AtomicStageGuard.PathComparer);
@@ -39,7 +43,7 @@ internal static class ExternalOriginalBatchStager
                     await confirmAdmissionFresh(token);
 
                 var pgDirectory = Path.GetFullPath(
-                    Path.Combine(transaction.StageDirectory, "pg" + pin.PgMajor));
+                    Path.Combine(transaction.StageDirectory, MajorDirectory(pin)));
                 var directory = Path.GetFullPath(
                     Path.Combine(pgDirectory, pin.Extension));
                 AtomicStageGuard.CreateOwnerOnlySubdirectory(transaction.StageDirectory, directory);
@@ -74,9 +78,12 @@ internal static class ExternalOriginalBatchStager
                         new AtomicStageGuard.StagedFileExpectation(pin.OriginalBytes, stream, identity)))
                     throw new InvalidDataException("Duplicate staged destination path");
 
-                var actual = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
-                ExternalOriginalZipIntegrity.Verify(actual, pin);
-                bytes = checked(bytes + actual.LongLength);
+                if (pin.Provider != ExternalProviderAssetTransport.StandaloneProvider)
+                {
+                    var actual = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
+                    ExternalOriginalZipIntegrity.Verify(actual, pin);
+                }
+                bytes = checked(bytes + pin.OriginalBytes);
             }
 
             // Pre-commit full re-verification:
@@ -87,7 +94,7 @@ internal static class ExternalOriginalBatchStager
             // 4. Re-confirm admission pre-authorization, expiry, and Catalog HEAD.
             // 5. Re-verify stage invariants across handle release until create-only rename.
             token.ThrowIfCancellationRequested();
-            ValidateBatchPins(pins, pgSelection);
+            ValidateBatchPins(pins, pgSelection, standaloneSelection);
             AtomicStageGuard.LockStageDirectoriesForCommit(
                 transaction.StageDirectory, expectedDirectories);
             AtomicStageGuard.VerifyStageTreeAndIdentities(
@@ -98,9 +105,18 @@ internal static class ExternalOriginalBatchStager
             foreach (var (pin, _, stream, _) in staged)
             {
                 token.ThrowIfCancellationRequested();
-                var reverified = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
-                ExternalOriginalZipIntegrity.Verify(reverified, pin);
-                reverifiedBytes = checked(reverifiedBytes + reverified.LongLength);
+                if (pin.Provider == ExternalProviderAssetTransport.StandaloneProvider)
+                {
+                    if (stream.Length != pin.OriginalBytes ||
+                        Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, token)) != pin.OriginalSha256)
+                        throw new InvalidDataException("Staged original differs from pinned SHA256 or size");
+                }
+                else
+                {
+                    var reverified = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
+                    ExternalOriginalZipIntegrity.Verify(reverified, pin);
+                }
+                reverifiedBytes = checked(reverifiedBytes + pin.OriginalBytes);
             }
             if (reverifiedBytes != bytes || staged.Count != pins.Count)
                 throw new InvalidDataException("Staged batch byte sum or count mismatch before commit");
@@ -137,10 +153,13 @@ internal static class ExternalOriginalBatchStager
         }
     }
 
-    private static void ValidateBatchPins(
-        IReadOnlyList<ExternalOriginalPin> pins, string pgSelection)
+    private static string MajorDirectory(ExternalOriginalPin pin) =>
+        pin.PgMajor == "any" ? "any" : "pg" + pin.PgMajor;
+
+    private static void ValidateBatchPins(IReadOnlyList<ExternalOriginalPin> pins, string pgSelection,
+        bool standaloneSelection)
     {
-        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
+        if ((!standaloneSelection && pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all")) ||
             pins.Count is < 1 or > 1000)
             throw new InvalidDataException("Invalid external batch selection");
 
@@ -149,11 +168,11 @@ internal static class ExternalOriginalBatchStager
         foreach (var pin in pins)
         {
             ExternalProviderAssetTransport.ValidatePin(pin);
-            if (pgSelection != "all" && pin.PgMajor != pgSelection)
+            if (pgSelection != "all" && pin.PgMajor != pgSelection && pin.PgMajor != "any")
                 throw new InvalidDataException("Unrequested external PostgreSQL major");
             if (!identities.Add(ExternalProviderAssetTransport.IsDirectHttps(pin) ? pin.OriginalProviderUrl
                     : pin.SourceRepo + ":" + pin.ReleaseId + ":" + pin.AssetId) ||
-                !destinations.Add("pg" + pin.PgMajor + "/" + pin.Extension + "/" +
+                !destinations.Add(MajorDirectory(pin) + "/" + pin.Extension + "/" +
                     pin.AssetName))
                 throw new InvalidDataException("Duplicate external original asset or destination");
         }

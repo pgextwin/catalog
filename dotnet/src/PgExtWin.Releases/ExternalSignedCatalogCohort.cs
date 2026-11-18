@@ -16,6 +16,9 @@ public static class ExternalSignedCatalogCohort
     private static readonly Uri DirectUrl = new(
         "https://raw.githubusercontent.com/pgextwin/catalog/main/" + DirectPath);
 
+    private static readonly Uri StandaloneUrl = new(
+        "https://raw.githubusercontent.com/pgextwin/catalog/main/external/standalone-get.json");
+
     private const string LatestPath =
         "external/signed-direct-get/qualified_cohort/latest.json";
     private const string RunRoot = "external/signed-direct-get/qualified_cohort/";
@@ -63,7 +66,7 @@ public static class ExternalSignedCatalogCohort
         if (url.Scheme != Uri.UriSchemeHttps || url.Port != 443 ||
             !string.IsNullOrEmpty(url.UserInfo) || !string.IsNullOrEmpty(url.Fragment) ||
             url.Host != "raw.githubusercontent.com" ||
-            url != DirectUrl && !Regex.IsMatch(url.AbsolutePath,
+            url != DirectUrl && url != StandaloneUrl && !Regex.IsMatch(url.AbsolutePath,
                 @"\A/pgextwin/catalog/[0-9a-f]{40}/external/signed-direct-get/qualified_cohort/(?:latest\.json|run-[1-9][0-9]{0,14}/(?:external-get-admission|attestation)\.json)\z",
                 RegexOptions.CultureInvariant))
             throw new InvalidDataException("Unapproved Catalog external HTTPS request");
@@ -162,62 +165,154 @@ public static class ExternalSignedCatalogCohort
             outputParent, transport.DownloadAsync, token);
     }
 
+    public static async Task<IReadOnlyList<ExternalDownloadItem>> ListDownloadsAsync(
+        string pgSelection, string? category, string? query, CancellationToken token = default,
+        HttpMessageHandler? handler = null)
+    {
+        using var http = CreateDirectClient(handler);
+        var records = await LoadDownloadsAsync(http, category, token);
+        return records.Where(x => x.Item.Latest && x.Item.MatchesMajor(pgSelection))
+            .Select(x => x.Item)
+            .Where(x => query is null ||
+                x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                x.Version.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                x.AssetName.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.Category, StringComparer.Ordinal)
+            .ThenBy(x => x.Name, StringComparer.Ordinal)
+            .ThenBy(x => x.PgMajor, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public static async Task<BatchReleaseDownloader.BatchResult> DownloadAsync(
+        string pgSelection, string outputParent, string? category = null, string? item = null,
+        string? version = null, CancellationToken token = default, HttpMessageHandler? handler = null)
+    {
+        if (!Directory.Exists(outputParent))
+            throw new DirectoryNotFoundException("External batch output directory missing");
+        using var http = CreateDirectClient(handler);
+        var records = await LoadDownloadsAsync(http, category, token);
+        var pins = SelectDownloads(records, pgSelection, item, version);
+        var label = item is not null ? pins[0].Extension.Replace('_', '-') : category;
+        using var transport = new ExternalProviderAssetTransport(handler);
+        return await ExternalOriginalBatchStager.StageAsync(pins, pgSelection, outputParent,
+            transport.DownloadAsync, token, outputLabel: label, standaloneSelection: true);
+    }
+
+    private static HttpClient CreateDirectClient(HttpMessageHandler? handler)
+    {
+        var http = new HttpClient(handler ?? new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false,
+            AutomaticDecompression = DecompressionMethods.None
+        }, disposeHandler: handler is null) { Timeout = TimeSpan.FromMinutes(3) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("pgextwin-external-direct-get/1");
+        return http;
+    }
+
+    private static async Task<IReadOnlyList<DownloadRecord>> LoadDownloadsAsync(
+        HttpClient http, string? category, CancellationToken token)
+    {
+        var records = new List<DownloadRecord>();
+        if (category is null or "extensions" or "spatial")
+            records.AddRange(ParseDownloads(await ReadAsync(http, DirectUrl, token), standalone: false));
+        if (category is not "extensions")
+            records.AddRange(ParseDownloads(await ReadAsync(http, StandaloneUrl, token), standalone: true));
+        return records.Where(x => category is null || x.Item.Category == category).ToArray();
+    }
+
     internal static IReadOnlyList<ExternalOriginalPin> SelectDirect(byte[] records,
         string pgSelection, string? requestedExtension = null, string? requestedVersion = null)
     {
-        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
-            requestedVersion is not null && requestedExtension is null)
-            throw new InvalidDataException("Expected PG14–18/all and an extension for --version");
-        using var doc = StrictJson.Parse(records);
+        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all"))
+            throw new InvalidDataException("Expected PG14–18/all");
+        return SelectDownloads(ParseDownloads(records, standalone: false),
+            pgSelection, requestedExtension, requestedVersion);
+    }
+
+    private static IReadOnlyList<ExternalOriginalPin> SelectDownloads(
+        IReadOnlyList<DownloadRecord> records, string pgSelection, string? item, string? version)
+    {
+        if (version is not null && item is null)
+            throw new InvalidDataException("--version requires an item name");
+        var pins = records
+            .Where(x => x.Item.MatchesMajor(pgSelection) &&
+                (item is null || x.Item.Name.Equals(item, StringComparison.OrdinalIgnoreCase)) &&
+                (version is null ? x.Item.Latest : x.Item.Version == version))
+            .Select(x => x.Pin).Distinct().ToArray();
+        if (pins.Length == 0)
+            throw new InvalidDataException("No external download matches the item, category, version or PostgreSQL major");
+        return pins;
+    }
+
+    private static IReadOnlyList<DownloadRecord> ParseDownloads(byte[] bytes, bool standalone)
+    {
+        using var doc = StrictJson.Parse(bytes);
         var root = doc.RootElement;
-        if (root.GetProperty("schemaVersion").GetString() != "pgextwin-external-direct-get/v1")
+        var schema = standalone ? "pgextwin-standalone-get/v1" : "pgextwin-external-direct-get/v1";
+        if (root.GetProperty("schemaVersion").GetString() != schema)
             throw new InvalidDataException("Invalid external direct GET records");
-        var selected = new List<ExternalOriginalPin>();
-        var identities = new HashSet<string>(StringComparer.Ordinal);
+        var records = new List<DownloadRecord>();
+        var identities = new HashSet<(string, string?, string)>();
         foreach (var row in root.GetProperty("records").EnumerateArray())
         {
             string Text(string key) => row.GetProperty(key).GetString()
                 ?? throw new InvalidDataException("Missing external record " + key);
+            var name = Text(standalone ? "item" : "extension");
             var version = Text("upstreamVersion");
-            // These fields record the exact-version license review; candidate-only
-            // discovery and historical signed-admission files are never inputs here.
-            if (string.IsNullOrWhiteSpace(version) ||
-                string.IsNullOrWhiteSpace(Text("license")) ||
-                row.GetProperty("licenseEvidence").GetArrayLength() == 0)
+            var license = Text("license");
+            var evidence = row.GetProperty("licenseEvidence");
+            if (string.IsNullOrWhiteSpace(version) || string.IsNullOrWhiteSpace(license) ||
+                evidence.GetArrayLength() == 0)
                 throw new InvalidDataException("Missing exact-version license evidence");
-            var pin = new ExternalOriginalPin(Text("extension"), Text("pgMajor"),
-                Text("sourceRepo"), row.GetProperty("repositoryId").GetInt64(),
-                Text("releaseTag"), row.GetProperty("releaseId").GetInt64(),
-                Text("assetName"), row.GetProperty("assetId").GetInt64(),
-                row.GetProperty("originalBytes").GetInt64(), Text("originalSha256"),
-                Text("originalProviderUrl"),
-                row.TryGetProperty("provider", out _) ? Text("provider") : null);
+            if (standalone)
+                foreach (var proof in evidence.EnumerateArray())
+                    if (!Uri.TryCreate(proof.GetProperty("url").GetString(), UriKind.Absolute, out var url) ||
+                        url.Scheme != Uri.UriSchemeHttps ||
+                        string.IsNullOrWhiteSpace(proof.GetProperty("file").GetString()) ||
+                        !Regex.IsMatch(proof.GetProperty("sha256").GetString() ?? "", @"\A[0-9a-f]{64}\z"))
+                        throw new InvalidDataException("Invalid exact-version license evidence");
+
+            var major = row.GetProperty("pgMajor").GetString();
+            var asset = Text("assetName");
+            var size = row.GetProperty("originalBytes").GetInt64();
+            var sha = Text("originalSha256");
+            var providerUrl = Text("originalProviderUrl");
+            var pin = standalone
+                ? new ExternalOriginalPin(name, major ?? "any", "", 0, version, 0, asset, 0,
+                    size, sha, providerUrl, ExternalProviderAssetTransport.StandaloneProvider)
+                : new ExternalOriginalPin(name, major!, Text("sourceRepo"),
+                    row.GetProperty("repositoryId").GetInt64(), Text("releaseTag"),
+                    row.GetProperty("releaseId").GetInt64(), asset, row.GetProperty("assetId").GetInt64(),
+                    size, sha, providerUrl, row.TryGetProperty("provider", out _) ? Text("provider") : null);
             ExternalProviderAssetTransport.ValidatePin(pin);
-            if (!identities.Add(pin.Extension + ":" + pin.PgMajor + ":" + version))
-                throw new InvalidDataException("Duplicate external record");
-            string? pgroutingVersion = null;
-            if (pin.Provider == ExternalProviderAssetTransport.OsgeoProvider)
+            var osgeo = pin.Provider == ExternalProviderAssetTransport.OsgeoProvider;
+            var category = standalone ? Text("category") : osgeo ? "spatial" : "extensions";
+            if (standalone && category is not ("spatial" or "tools" or "drivers"))
+                throw new InvalidDataException("Invalid standalone download category");
+            var latest = row.GetProperty("latest").GetBoolean();
+
+            void Add(string item, string itemVersion)
             {
-                pgroutingVersion = Text("pgroutingVersion");
-                if (pin.Tag != version || string.IsNullOrWhiteSpace(pgroutingVersion) ||
-                    !identities.Add("pgrouting:" + pin.PgMajor + ":" + pgroutingVersion))
-                    throw new InvalidDataException("Invalid or duplicate OSGeo extension version");
+                if (string.IsNullOrWhiteSpace(itemVersion) || !identities.Add((item, major, itemVersion)))
+                    throw new InvalidDataException("Invalid or duplicate external download record");
+                records.Add(new DownloadRecord(new ExternalDownloadItem(item, category, major, itemVersion,
+                    asset, license, size, sha, latest), pin));
             }
 
-            // An OSGeo row describes one ZIP. Either extension resolves to that
-            // same pin, including its staging destination in an unfiltered batch.
-            var selectedVersion = requestedExtension is null || pin.Extension == requestedExtension
-                ? version : requestedExtension == "pgrouting" ? pgroutingVersion : null;
-            if ((pgSelection == "all" || pin.PgMajor == pgSelection) &&
-                selectedVersion is not null &&
-                (requestedVersion is null ? row.GetProperty("latest").GetBoolean()
-                    : selectedVersion == requestedVersion))
-                selected.Add(pin);
+            Add(name, version);
+            // Each extension name selects the same original bundle and destination.
+            if (osgeo)
+            {
+                if (pin.Tag != version)
+                    throw new InvalidDataException("Invalid OSGeo extension version");
+                Add("pgrouting", Text("pgroutingVersion"));
+            }
         }
-        if (selected.Count == 0)
-            throw new InvalidDataException("No external binary for the requested extension/version/PG major");
-        return selected;
+        return records;
     }
+
+    private sealed record DownloadRecord(ExternalDownloadItem Item, ExternalOriginalPin Pin);
 
     public static async Task<BatchReleaseDownloader.BatchResult> StageLatestVerifiedAsync(
         string pgSelection, string outputParent, CancellationToken token = default,

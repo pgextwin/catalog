@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using PgExtWin.Core;
@@ -18,6 +19,7 @@ internal sealed record ExternalOriginalPin(
 
 internal sealed class ExternalProviderAssetTransport : IDisposable
 {
+    internal const string StandaloneProvider = "standalone";
     internal const string OsgeoProvider = "osgeo";
 
     // Direct HTTPS provider assets use no synthetic GitHub identities.
@@ -29,7 +31,7 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
             pin.PgMajor + "/extension/" + pin.AssetName;
 
     internal static bool IsDirectHttps(ExternalOriginalPin pin) =>
-        pin.Provider == OsgeoProvider || IsCybertec(pin);
+        pin.Provider is OsgeoProvider or StandaloneProvider || IsCybertec(pin);
 
     private static bool IsOsgeoBundle(ExternalOriginalPin pin) =>
         pin.Extension == "postgis" && pin.SourceRepo == "postgis/postgis" &&
@@ -67,6 +69,19 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
     // Shared pin shape validation for the all-or-nothing external batch.
     internal static void ValidatePin(ExternalOriginalPin pin)
     {
+        if (pin.Provider == StandaloneProvider)
+        {
+            if (!Extension.IsMatch(pin.Extension) || !PinnedReleaseSelector.SafeAssetName(pin.Extension) ||
+                (pin.PgMajor != "any" && !Regex.IsMatch(pin.PgMajor, @"\A[1-9][0-9]*\z")) ||
+                !PinnedReleaseSelector.SafeAssetName(pin.AssetName) ||
+                !Hash.IsMatch(pin.OriginalSha256) || pin.OriginalBytes <= 0 ||
+                !Uri.TryCreate(pin.OriginalProviderUrl, UriKind.Absolute, out var url) ||
+                url.Scheme != Uri.UriSchemeHttps || !url.IsDefaultPort ||
+                url.UserInfo.Length != 0 || url.Fragment.Length != 0)
+                throw new InvalidDataException("Invalid standalone original asset pin");
+            return;
+        }
+
         var validProvider = pin.Provider switch
         {
             OsgeoProvider => IsOsgeoBundle(pin),
@@ -169,13 +184,15 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         // Direct provider originals retain the Catalog SHA256/ZIP checks.
         // OSGeo and Cybertec use their exact HTTPS URLs without redirects.
         var url = new Uri(pin.OriginalProviderUrl);
-        using var response = directHttps
-            ? await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token)
-            : await OriginalAsync(url, token);
+        using var response = !directHttps || pin.Provider == StandaloneProvider && url.Host == "github.com"
+            ? await OriginalAsync(url, token)
+            : await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
         if (response.StatusCode != HttpStatusCode.OK)
             throw new HttpRequestException("External original HTTP " + (int)response.StatusCode);
         if (response.Content.Headers.ContentLength is long size && size != pin.OriginalBytes)
             throw new InvalidDataException("External original HTTP length mismatch");
+        if (pin.Provider == StandaloneProvider)
+            return await SaveStandaloneAsync(response.Content, pin, folder, final, token);
         if (response.Content.Headers.ContentType?.MediaType is
             "application/json" or "text/html" or "text/plain")
             throw new InvalidDataException("External provider returned metadata instead of ZIP");
@@ -200,6 +217,44 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
             RequireAbsent(folder, pin.AssetName);
             File.Move(temporary, final, overwrite: false);
             return new DownloadReceipt(final, pin.OriginalSha256, bytes.LongLength,
+                pin.RepositoryId, pin.ReleaseId, pin.AssetId);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
+    }
+
+    private static async Task<DownloadReceipt> SaveStandaloneAsync(
+        HttpContent content, ExternalOriginalPin pin, string folder, string final, CancellationToken token)
+    {
+        var temporary = final + "." + Guid.NewGuid().ToString("N") + ".part";
+        try
+        {
+            await using var input = await content.ReadAsStreamAsync(token);
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            var buffer = new byte[81920];
+            long bytes = 0;
+            await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write,
+                FileShare.None, buffer.Length, FileOptions.Asynchronous))
+            {
+                int read;
+                while ((read = await input.ReadAsync(buffer, token)) != 0)
+                {
+                    if (read > pin.OriginalBytes - bytes)
+                        throw new InvalidDataException("External original exceeds pinned byte size");
+                    bytes += read;
+                    hash.AppendData(buffer.AsSpan(0, read));
+                    await output.WriteAsync(buffer.AsMemory(0, read), token);
+                }
+            }
+            if (bytes != pin.OriginalBytes ||
+                Convert.ToHexStringLower(hash.GetHashAndReset()) != pin.OriginalSha256)
+                throw new InvalidDataException("External original differs from pinned SHA256 or size");
+
+            RequireAbsent(folder, pin.AssetName);
+            File.Move(temporary, final, overwrite: false);
+            return new DownloadReceipt(final, pin.OriginalSha256, bytes,
                 pin.RepositoryId, pin.ReleaseId, pin.AssetId);
         }
         finally
