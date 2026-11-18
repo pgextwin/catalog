@@ -49,11 +49,26 @@ public static class ExternalOriginalZipIntegrity
         MaxTotalUncompressedBytes: 2L * 1024 * 1024 * 1024,
         MaxEntries: 25_000);
 
+    // PG15 is 118.2 MiB. Across PG15–18 the largest member is under 59 MiB,
+    // the largest expanded total is under 290 MiB, and the most entries is 1,659.
+    private static readonly OriginalZipResourceProfile OsgeoDirectProfile = new(
+        MaxCompressedOriginalBytes: 128L * 1024 * 1024,
+        MaxEntryUncompressedBytes: 64L * 1024 * 1024,
+        MaxTotalUncompressedBytes: 320L * 1024 * 1024,
+        MaxEntries: 2_000);
+
+    internal static OriginalZipResourceProfile ProfileFor(ExternalOriginalPin pin) =>
+        pin.Provider == ExternalProviderAssetTransport.OsgeoProvider
+            ? OsgeoDirectProfile : DefaultOriginalProfile;
+
     public sealed record Receipt(long OriginalBytes, string OriginalSha256,
         int ArchiveMembers, string Scope = "INTEGRITY_ONLY_NOT_AUTHORIZED");
 
     public static Receipt Verify(byte[] original, long expectedSize, string expectedSha256) =>
         VerifyWithProfile(original, expectedSize, expectedSha256, DefaultOriginalProfile);
+
+    internal static Receipt Verify(byte[] original, ExternalOriginalPin pin) =>
+        VerifyWithProfile(original, pin.OriginalBytes, pin.OriginalSha256, ProfileFor(pin));
 
     // Exact OSGeo PG18 original ONLY (replaced in place upstream on 2026-11-14,
     // re-verified 2026-11-15; prior audits on the previous bytes do not carry over).

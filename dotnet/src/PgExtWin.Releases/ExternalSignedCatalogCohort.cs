@@ -190,15 +190,29 @@ public static class ExternalSignedCatalogCohort
                 Text("releaseTag"), row.GetProperty("releaseId").GetInt64(),
                 Text("assetName"), row.GetProperty("assetId").GetInt64(),
                 row.GetProperty("originalBytes").GetInt64(), Text("originalSha256"),
-                Text("originalProviderUrl"));
+                Text("originalProviderUrl"),
+                row.TryGetProperty("provider", out _) ? Text("provider") : null);
             ExternalProviderAssetTransport.ValidatePin(pin);
             if (pin.PgMajor is not ("15" or "16" or "17" or "18") ||
                 !identities.Add(pin.Extension + ":" + pin.PgMajor + ":" + version))
                 throw new InvalidDataException("Duplicate or out-of-scope external record");
+            string? pgroutingVersion = null;
+            if (pin.Provider == ExternalProviderAssetTransport.OsgeoProvider)
+            {
+                pgroutingVersion = Text("pgroutingVersion");
+                if (pin.Tag != version || string.IsNullOrWhiteSpace(pgroutingVersion) ||
+                    !identities.Add("pgrouting:" + pin.PgMajor + ":" + pgroutingVersion))
+                    throw new InvalidDataException("Invalid or duplicate OSGeo extension version");
+            }
+
+            // An OSGeo row describes one ZIP. Either extension resolves to that
+            // same pin, including its staging destination in an unfiltered batch.
+            var selectedVersion = requestedExtension is null || pin.Extension == requestedExtension
+                ? version : requestedExtension == "pgrouting" ? pgroutingVersion : null;
             if ((pgSelection == "all" || pin.PgMajor == pgSelection) &&
-                (requestedExtension is null || pin.Extension == requestedExtension) &&
+                selectedVersion is not null &&
                 (requestedVersion is null ? row.GetProperty("latest").GetBoolean()
-                    : version == requestedVersion))
+                    : selectedVersion == requestedVersion))
                 selected.Add(pin);
         }
         if (selected.Count == 0)

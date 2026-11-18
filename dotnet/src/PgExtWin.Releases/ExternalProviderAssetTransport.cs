@@ -13,10 +13,13 @@ namespace PgExtWin.Releases;
 internal sealed record ExternalOriginalPin(
     string Extension, string PgMajor, string SourceRepo, long RepositoryId,
     string Tag, long ReleaseId, string AssetName, long AssetId,
-    long OriginalBytes, string OriginalSha256, string OriginalProviderUrl);
+    long OriginalBytes, string OriginalSha256, string OriginalProviderUrl,
+    string? Provider = null);
 
 internal sealed class ExternalProviderAssetTransport : IDisposable
 {
+    internal const string OsgeoProvider = "osgeo";
+
     // Direct HTTPS provider assets use no synthetic GitHub identities.
     internal static bool IsCybertec(ExternalOriginalPin pin) =>
         pin.SourceRepo == "cybertec-postgresql/" + pin.Extension &&
@@ -24,6 +27,18 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         pin.PgMajor is "15" or "16" or "17" or "18" &&
         pin.OriginalProviderUrl == "https://repository.cybertec.at/windows/public/" +
             pin.PgMajor + "/extension/" + pin.AssetName;
+
+    internal static bool IsDirectHttps(ExternalOriginalPin pin) =>
+        pin.Provider == OsgeoProvider || IsCybertec(pin);
+
+    private static bool IsOsgeoBundle(ExternalOriginalPin pin) =>
+        pin.Extension == "postgis" && pin.SourceRepo == "postgis/postgis" &&
+        pin.PgMajor is "15" or "16" or "17" or "18" &&
+        pin.RepositoryId == 0 && pin.ReleaseId == 0 && pin.AssetId == 0 &&
+        OsgeoVersion.IsMatch(pin.Tag) &&
+        pin.AssetName == $"postgis-bundle-pg{pin.PgMajor}-{pin.Tag}x64.zip" &&
+        pin.OriginalProviderUrl ==
+            $"https://download-cache.osgeo.org/postgis/windows/pg{pin.PgMajor}/{pin.AssetName}";
 
     private readonly HttpClient http;
     // One transport per atomic CLI batch. Cache GitHub metadata in memory;
@@ -35,6 +50,8 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         @"\A[a-z][a-z0-9_]*\z", RegexOptions.CultureInvariant);
     private static readonly Regex Hash = new(
         @"\A[0-9a-f]{64}\z", RegexOptions.CultureInvariant);
+    private static readonly Regex OsgeoVersion = new(
+        @"\A[0-9]+\.[0-9]+\.[0-9]+\z", RegexOptions.CultureInvariant);
 
     internal ExternalProviderAssetTransport(HttpMessageHandler? handler = null)
     {
@@ -50,6 +67,15 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
     // Shared pin shape validation for the all-or-nothing external batch.
     internal static void ValidatePin(ExternalOriginalPin pin)
     {
+        var validProvider = pin.Provider switch
+        {
+            OsgeoProvider => IsOsgeoBundle(pin),
+            null => IsCybertec(pin) ||
+                (pin.RepositoryId > 0 && pin.ReleaseId > 0 && pin.AssetId > 0 &&
+                 pin.OriginalProviderUrl == "https://github.com/" + pin.SourceRepo +
+                    "/releases/download/" + pin.Tag + "/" + pin.AssetName),
+            _ => false
+        };
         if (!Extension.IsMatch(pin.Extension) ||
             !Regex.IsMatch(pin.PgMajor, @"\A1[4-8]\z") ||
             !Repo.IsMatch(pin.SourceRepo) ||
@@ -58,10 +84,9 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
             !PinnedReleaseSelector.SafeAssetName(pin.AssetName) ||
             !pin.AssetName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
             !Hash.IsMatch(pin.OriginalSha256) ||
-            (!IsCybertec(pin) && (pin.RepositoryId <= 0 || pin.ReleaseId <= 0 || pin.AssetId <= 0)) ||
-            pin.OriginalBytes is < 4 or > ExternalOriginalZipIntegrity.MaxOriginalBytes ||
-            (!IsCybertec(pin) && pin.OriginalProviderUrl != "https://github.com/" + pin.SourceRepo +
-                "/releases/download/" + pin.Tag + "/" + pin.AssetName))
+            pin.OriginalBytes < 4 ||
+            pin.OriginalBytes > ExternalOriginalZipIntegrity.ProfileFor(pin).MaxCompressedOriginalBytes ||
+            !validProvider)
             throw new InvalidDataException("Invalid or unpinned external original asset");
     }
 
@@ -79,7 +104,8 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         var final = Path.Combine(folder, pin.AssetName);
         RequireAbsent(folder, pin.AssetName);
 
-        if (!IsCybertec(pin))
+        var directHttps = IsDirectHttps(pin);
+        if (!directHttps)
         {
             var baseUrl = "https://api.github.com/repos/" + pin.SourceRepo;
             {
@@ -141,10 +167,9 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
         }
 
         // Direct provider originals retain the Catalog SHA256/ZIP checks.
-        // GitHub keeps its existing redirect handling; Cybertec uses its exact
-        // HTTPS URL without redirects. No fallback or provider credentials.
+        // OSGeo and Cybertec use their exact HTTPS URLs without redirects.
         var url = new Uri(pin.OriginalProviderUrl);
-        using var response = IsCybertec(pin)
+        using var response = directHttps
             ? await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token)
             : await OriginalAsync(url, token);
         if (response.StatusCode != HttpStatusCode.OK)
@@ -155,20 +180,15 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
             "application/json" or "text/html" or "text/plain")
             throw new InvalidDataException("External provider returned metadata instead of ZIP");
         await using var stream = await response.Content.ReadAsStreamAsync(token);
-        using var buffer = new MemoryStream();
-        var block = new byte[81920];
-        while (true)
-        {
-            int n = await stream.ReadAsync(block, token);
-            if (n == 0) break;
-            if (buffer.Length + n > pin.OriginalBytes)
-                throw new InvalidDataException("External original exceeds pinned byte size");
-            await buffer.WriteAsync(block.AsMemory(0, n), token);
-        }
+        var bytes = new byte[(int)pin.OriginalBytes];
+        try { await stream.ReadExactlyAsync(bytes, token); }
+        catch (EndOfStreamException e)
+        { throw new InvalidDataException("External original shorter than pinned byte size", e); }
+        if (await stream.ReadAsync(new byte[1], token) != 0)
+            throw new InvalidDataException("External original exceeds pinned byte size");
         // Reuse the strict original ZIP digest, size, traversal, links,
         // decompression bounds and CRC verification already used offline.
-        var bytes = buffer.ToArray();
-        ExternalOriginalZipIntegrity.Verify(bytes, pin.OriginalBytes, pin.OriginalSha256);
+        ExternalOriginalZipIntegrity.Verify(bytes, pin);
         RequireAbsent(folder, pin.AssetName);
         var temporary = Path.Combine(folder, "." + pin.AssetName + "." +
             Guid.NewGuid().ToString("N") + ".part");

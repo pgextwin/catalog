@@ -34,8 +34,16 @@ $expected=@(foreach ($row in $manifest.records) {
     }
     $identity=$row.extension + ':' + $row.pgMajor + ':' + $row.upstreamVersion
     if (-not $identities.Add($identity)) { throw "Duplicate direct identity: $identity" }
-    if (($row.originalBytes -isnot [long] -and $row.originalBytes -isnot [int]) -or
-        $row.originalBytes -lt 4 -or $row.originalBytes -gt 67108864 -or $row.originalSha256 -cnotmatch '^[0-9a-f]{64}$' -or
+    if ($row.originalBytes -isnot [long] -and $row.originalBytes -isnot [int]) {
+        throw 'Invalid direct original byte count'
+    }
+    $provider=$row.PSObject.Properties['provider']
+    $outOfBounds=if ($null -ne $provider -and $provider.Value -ceq 'osgeo') {
+        $row.originalBytes -lt 4 -or $row.originalBytes -gt 134217728
+    } else {
+        $row.originalBytes -lt 4 -or $row.originalBytes -gt 67108864
+    }
+    if ($outOfBounds -or $row.originalSha256 -cnotmatch '^[0-9a-f]{64}$' -or
         $row.assetName -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._+-]*\.(?i:zip)$') {
         throw 'Invalid direct original filename/byte pins'
     }

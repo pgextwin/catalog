@@ -75,8 +75,7 @@ internal static class ExternalOriginalBatchStager
                     throw new InvalidDataException("Duplicate staged destination path");
 
                 var actual = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
-                ExternalOriginalZipIntegrity.Verify(actual, pin.OriginalBytes,
-                    pin.OriginalSha256);
+                ExternalOriginalZipIntegrity.Verify(actual, pin);
                 bytes = checked(bytes + actual.LongLength);
             }
 
@@ -100,8 +99,7 @@ internal static class ExternalOriginalBatchStager
             {
                 token.ThrowIfCancellationRequested();
                 var reverified = await ReadHeldStreamExactAsync(stream, pin.OriginalBytes, token);
-                ExternalOriginalZipIntegrity.Verify(reverified, pin.OriginalBytes,
-                    pin.OriginalSha256);
+                ExternalOriginalZipIntegrity.Verify(reverified, pin);
                 reverifiedBytes = checked(reverifiedBytes + reverified.LongLength);
             }
             if (reverifiedBytes != bytes || staged.Count != pins.Count)
@@ -153,7 +151,7 @@ internal static class ExternalOriginalBatchStager
             ExternalProviderAssetTransport.ValidatePin(pin);
             if (pgSelection != "all" && pin.PgMajor != pgSelection)
                 throw new InvalidDataException("Unrequested external PostgreSQL major");
-            if (!identities.Add(ExternalProviderAssetTransport.IsCybertec(pin) ? pin.OriginalProviderUrl
+            if (!identities.Add(ExternalProviderAssetTransport.IsDirectHttps(pin) ? pin.OriginalProviderUrl
                     : pin.SourceRepo + ":" + pin.ReleaseId + ":" + pin.AssetId) ||
                 !destinations.Add("pg" + pin.PgMajor + "/" + pin.Extension + "/" +
                     pin.AssetName))

@@ -431,6 +431,146 @@
           "sha256": "2f46c1fb5f198a51b9b0e11986ac92a605543d42c41d872823765f59fedfef3e"
         }
       ]
+    },
+    {
+      "provider": "osgeo",
+      "extension": "postgis",
+      "pgMajor": "15",
+      "sourceRepo": "postgis/postgis",
+      "repositoryId": 0,
+      "releaseTag": "3.6.2",
+      "releaseId": 0,
+      "assetName": "postgis-bundle-pg15-3.6.2x64.zip",
+      "assetId": 0,
+      "originalBytes": 123986945,
+      "originalSha256": "520c3fd7ebf95050d8d89dc1b626f4f43111a3d726f60b73bbbbbd95784688eb",
+      "originalProviderUrl": "https://download-cache.osgeo.org/postgis/windows/pg15/postgis-bundle-pg15-3.6.2x64.zip",
+      "upstreamVersion": "3.6.2",
+      "pgroutingVersion": "4.0.1",
+      "license": "Multiple (PostGIS, pgRouting and bundled components)",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/postgis/postgis/blob/3.6.2/LICENSE.TXT",
+          "file": "LICENSE.TXT",
+          "sha256": "81749eea887e78402c9b85896cd629b155bc29256927f818f01001f038146391"
+        },
+        {
+          "url": "https://github.com/pgRouting/pgrouting/blob/v4.0.1/LICENSE",
+          "file": "LICENSE",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "url": "https://github.com/autotools-mirror/gettext/blob/v0.19.8/gettext-runtime/intl/dcigettext.c",
+          "file": "gettext-runtime/intl/dcigettext.c",
+          "sha256": "b7e56b40512b8e22c6f79eee5d5674270dfe6cf2d02d81fd0024a630ba06c991"
+        }
+      ]
+    },
+    {
+      "provider": "osgeo",
+      "extension": "postgis",
+      "pgMajor": "16",
+      "sourceRepo": "postgis/postgis",
+      "repositoryId": 0,
+      "releaseTag": "3.7.0",
+      "releaseId": 0,
+      "assetName": "postgis-bundle-pg16-3.7.0x64.zip",
+      "assetId": 0,
+      "originalBytes": 84037123,
+      "originalSha256": "9fd299d661a049833a84584afd2aaea755e189a4d107b9bf579b56ce154d9eb0",
+      "originalProviderUrl": "https://download-cache.osgeo.org/postgis/windows/pg16/postgis-bundle-pg16-3.7.0x64.zip",
+      "upstreamVersion": "3.7.0",
+      "pgroutingVersion": "4.0.1",
+      "license": "Multiple (PostGIS, pgRouting and bundled components)",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/postgis/postgis/blob/3.7.0/LICENSE.TXT",
+          "file": "LICENSE.TXT",
+          "sha256": "c6932c2f90517d5254f49c02f957d54b88b41ec662c2ca62a9488b0ab080b11d"
+        },
+        {
+          "url": "https://github.com/pgRouting/pgrouting/blob/v4.0.1/LICENSE",
+          "file": "LICENSE",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "url": "https://github.com/autotools-mirror/gettext/blob/v0.19.8/gettext-runtime/intl/dcigettext.c",
+          "file": "gettext-runtime/intl/dcigettext.c",
+          "sha256": "b7e56b40512b8e22c6f79eee5d5674270dfe6cf2d02d81fd0024a630ba06c991"
+        }
+      ]
+    },
+    {
+      "provider": "osgeo",
+      "extension": "postgis",
+      "pgMajor": "17",
+      "sourceRepo": "postgis/postgis",
+      "repositoryId": 0,
+      "releaseTag": "3.7.0",
+      "releaseId": 0,
+      "assetName": "postgis-bundle-pg17-3.7.0x64.zip",
+      "assetId": 0,
+      "originalBytes": 84044726,
+      "originalSha256": "eceb7ed45276db6c9f8757e65ccf8d0ceedaebdcd0c401d442371ce8def61450",
+      "originalProviderUrl": "https://download-cache.osgeo.org/postgis/windows/pg17/postgis-bundle-pg17-3.7.0x64.zip",
+      "upstreamVersion": "3.7.0",
+      "pgroutingVersion": "4.0.1",
+      "license": "Multiple (PostGIS, pgRouting and bundled components)",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/postgis/postgis/blob/3.7.0/LICENSE.TXT",
+          "file": "LICENSE.TXT",
+          "sha256": "c6932c2f90517d5254f49c02f957d54b88b41ec662c2ca62a9488b0ab080b11d"
+        },
+        {
+          "url": "https://github.com/pgRouting/pgrouting/blob/v4.0.1/LICENSE",
+          "file": "LICENSE",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "url": "https://github.com/autotools-mirror/gettext/blob/v0.19.8/gettext-runtime/intl/dcigettext.c",
+          "file": "gettext-runtime/intl/dcigettext.c",
+          "sha256": "b7e56b40512b8e22c6f79eee5d5674270dfe6cf2d02d81fd0024a630ba06c991"
+        }
+      ]
+    },
+    {
+      "provider": "osgeo",
+      "extension": "postgis",
+      "pgMajor": "18",
+      "sourceRepo": "postgis/postgis",
+      "repositoryId": 0,
+      "releaseTag": "3.7.0",
+      "releaseId": 0,
+      "assetName": "postgis-bundle-pg18-3.7.0x64.zip",
+      "assetId": 0,
+      "originalBytes": 83739256,
+      "originalSha256": "ac9e9486b3f9161ad86aea948c99b34ca67438f59263f91d2bcb961b51c7a419",
+      "originalProviderUrl": "https://download-cache.osgeo.org/postgis/windows/pg18/postgis-bundle-pg18-3.7.0x64.zip",
+      "upstreamVersion": "3.7.0",
+      "pgroutingVersion": "4.0.1",
+      "license": "Multiple (PostGIS, pgRouting and bundled components)",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/postgis/postgis/blob/3.7.0/LICENSE.TXT",
+          "file": "LICENSE.TXT",
+          "sha256": "c6932c2f90517d5254f49c02f957d54b88b41ec662c2ca62a9488b0ab080b11d"
+        },
+        {
+          "url": "https://github.com/pgRouting/pgrouting/blob/v4.0.1/LICENSE",
+          "file": "LICENSE",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "url": "https://github.com/autotools-mirror/gettext/blob/v0.19.8/gettext-runtime/intl/dcigettext.c",
+          "file": "gettext-runtime/intl/dcigettext.c",
+          "sha256": "b7e56b40512b8e22c6f79eee5d5674270dfe6cf2d02d81fd0024a630ba06c991"
+        }
+      ]
     }
   ]
 }
