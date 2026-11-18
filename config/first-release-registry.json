@@ -49,6 +49,13 @@
       "displayName": "pgTAP",
       "description": "TAP-compatible PostgreSQL unit testing",
       "license": "PostgreSQL"
+    },
+    {
+      "name": "pldebugger",
+      "upstreamRepository": "EnterpriseDB/pldebugger",
+      "displayName": "pldebugger",
+      "description": "Debug PL/pgSQL functions in PostgreSQL",
+      "license": "Artistic-2.0"
     }
   ]
 }

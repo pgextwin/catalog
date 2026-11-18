@@ -25,6 +25,7 @@
     "pgrouting",
     "pgtap",
     "pgvector",
+    "pldebugger",
     "plpgsql_check",
     "postgis",
     "set_user",

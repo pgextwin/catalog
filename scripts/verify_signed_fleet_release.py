@@ -46,6 +46,7 @@ FIRST_RELEASE_SIGNER_PINS = {
     "pg_profile": "ac17f771eef4113a85133b280bc79659eee04874",
     "pg_show_plans": "3b8f4b7cfb0b5245f5134a7c57be1c1dd1dc5558",
     "pg_track_settings": "cdb253b5167031264e1baea634b55934c5f91d59",
+    "pldebugger": "b4e2be8b6d8fe26b91bc44d29631ca85fafa68c8",
 }
 PROVENANCE = "https://slsa.dev/provenance/v1"
 SPDX = "https://spdx.dev/Document/v2.3"
