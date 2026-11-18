@@ -2,7 +2,7 @@
 """Compare UNTRUSTED stable provider Release metadata with tracked source pins.
 
 Reporting only: this script does NOT authenticate original asset bytes, approve
-downloads, change signed cohorts, create releases, or post GitHub comments.
+downloads, change catalog records, create releases, or post GitHub comments.
 Provider tag versions are RELEASE versions, not necessarily extension versions.
 """
 import argparse
@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROVIDERS = ROOT / "external/discovery-providers-v1.json"
-COHORT = ROOT / "external/signed-direct-get/qualified_cohort/latest.json"
+DIRECT_GET = ROOT / "external/direct-get.json"
 LEDGERS = (
     ROOT / "external/windows-candidates-v1.json",
     ROOT / "external/windows-candidates-portalcorp-v1.json",
@@ -43,13 +43,15 @@ def tag_key(tag):
     return numbers + (0,) * (4 - len(numbers))
 
 
-def tracked_assets(cohort, ledgers, historical_admissions=()):
-    if cohort.get("schemaVersion") != "pgextwin-external-latest-original-pins/v1":
-        raise ValueError("Unknown cohort reference schema")
+def tracked_assets(direct_get, ledgers, historical_admissions=()):
+    if direct_get.get("schemaVersion") != "pgextwin-external-direct-get/v1":
+        raise ValueError("Unknown direct GET reference schema")
     results = {}
-    for record in cohort["records"]:
-        results.setdefault(record["sourceRepo"].lower(), set()).add(
-            (record["releaseTag"], record["assetId"]))
+    for record in direct_get["records"]:
+        # Non-GitHub original URLs have no GitHub release asset ID.
+        if record["assetId"] > 0:
+            results.setdefault(record["sourceRepo"].lower(), set()).add(
+                (record["releaseTag"], record["assetId"]))
     for ledger in ledgers:
         if (ledger.get("schemaVersion") != "pgextwin-windows-source-candidates/v1" or
             ledger.get("publicationAuthorized") is not False or
@@ -283,11 +285,11 @@ def main():
     from discover_external_windows_releases import config_providers
     config_providers(providers)
     inventory = json.loads(args.inventory.read_text(encoding="utf-8"))
-    cohort = json.loads(COHORT.read_text(encoding="utf-8"))
+    direct_get = json.loads(DIRECT_GET.read_text(encoding="utf-8"))
     ledgers = [json.loads(f.read_text(encoding="utf-8")) for f in LEDGERS]
     receipts = [json.loads(p.read_text(encoding="utf-8"))
                 for p in sorted(HISTORICAL_ADMISSIONS.glob("*/run-*/external-get-admission.json"))]
-    known = tracked_assets(cohort, ledgers, receipts)
+    known = tracked_assets(direct_get, ledgers, receipts)
     baseline = json.loads(PGROONGA_WATCH_BASELINE.read_text(encoding="utf-8"),
                           object_pairs_hook=unique_json_pairs)
     known.setdefault("pgroonga/pgroonga", set()).update(

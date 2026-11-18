@@ -146,7 +146,7 @@ static async Task<int> RunAsync(string[] args)
                     directory is not null || policy is not null || policySha is not null ||
                     latest is not null || format is not null)
                     throw new InvalidDataException(
-                        "External GET requires download-all --source external with current Catalog latest pins");
+                        "External GET requires download-all --source external with license-reviewed Catalog records");
                 log?.Invoke("EXTERNAL_DIRECT_GET_START source=PROVIDER_RELEASE_ASSET");
                 var external = await ExternalSignedCatalogCohort.StageDirectAsync(
                     pg ?? "all", output ?? Directory.GetCurrentDirectory(),
@@ -308,7 +308,7 @@ static void Usage()
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--extension NAME [--version EXACT]] [--output EXISTING_DIR]");
-    Console.Error.WriteLine("  Selects recorded latest versions, or matches --version exactly. Supported PostgreSQL majors: 15-18.");
+    Console.Error.WriteLine("  Selects recorded latest versions, or matches --version exactly. Supported PostgreSQL majors: 14-18.");
     Console.Error.WriteLine("  Only versions with reviewed exact-version license evidence and measured byte pins are available.");
     Console.Error.WriteLine("External GET uses exact-version license-reviewed Catalog byte pins; --source all remains denied.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");

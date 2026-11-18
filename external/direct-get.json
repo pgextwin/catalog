@@ -2,6 +2,29 @@
   "schemaVersion": "pgextwin-external-direct-get/v1",
   "records": [
     {
+      "assetId": 442625883,
+      "assetName": "oracle_fdw-2.9.0-pg14-win64.zip",
+      "extension": "oracle_fdw",
+      "originalBytes": 375533,
+      "originalProviderUrl": "https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg14-win64.zip",
+      "originalSha256": "91a9857041c3e78981f4f554fa03cb606ff8cd0347b7cc3e3604b215f9655b2d",
+      "pgMajor": "14",
+      "releaseId": 335861225,
+      "releaseTag": "ORACLE_FDW_2_9_0",
+      "repositoryId": 14332609,
+      "sourceRepo": "laurenz/oracle_fdw",
+      "upstreamVersion": "2.9.0",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE",
+          "sha256": "2f370883dd4b98d73835a1dcada925d03917a1fa5dfdc8e99d4f166e2e384174",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
       "assetId": 442625869,
       "assetName": "oracle_fdw-2.9.0-pg15-win64.zip",
       "extension": "oracle_fdw",
@@ -89,6 +112,29 @@
         {
           "url": "https://github.com/laurenz/oracle_fdw/blob/ORACLE_FDW_2_9_0/LICENSE",
           "sha256": "2f370883dd4b98d73835a1dcada925d03917a1fa5dfdc8e99d4f166e2e384174",
+          "file": "LICENSE"
+        }
+      ]
+    },
+    {
+      "assetId": 661612126,
+      "assetName": "vector.v0.8.7-pg14.zip",
+      "extension": "pgvector",
+      "originalBytes": 174619,
+      "originalProviderUrl": "https://github.com/andreiramani/pgvector_pgsql_windows/releases/download/0.8.7/vector.v0.8.7-pg14.zip",
+      "originalSha256": "51dd3626905d31509e06552d16ddcc8eda2ac47d1e84eb923d2aff9207716ee7",
+      "pgMajor": "14",
+      "releaseId": 419235203,
+      "releaseTag": "0.8.7",
+      "repositoryId": 838202416,
+      "sourceRepo": "andreiramani/pgvector_pgsql_windows",
+      "upstreamVersion": "0.8.7",
+      "license": "PostgreSQL",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/pgvector/pgvector/blob/v0.8.7/LICENSE",
+          "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
           "file": "LICENSE"
         }
       ]

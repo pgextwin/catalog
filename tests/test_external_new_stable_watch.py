@@ -151,9 +151,20 @@ class DailyWatchTests(unittest.TestCase):
             json.loads('{"trust":"DENY","trust":"ALLOW"}',
                        object_pairs_hook=watch.unique_json_pairs)
 
+    def test_direct_catalog_tracks_github_asset_ids_only(self):
+        direct_get = {"schemaVersion": "pgextwin-external-direct-get/v1", "records": [
+            {"sourceRepo": "Example/Provider", "releaseTag": "1.4.1", "assetId": 101},
+            {"sourceRepo": "example/https", "releaseTag": "2.0.0", "assetId": 0},
+        ]}
+        known = watch.tracked_assets(direct_get, [])
+        self.assertEqual(known, {"example/provider": {("1.4.1", 101)}})
+        report = watch.analyze(inventory(release("1.4.1")), CONFIG, known)
+        self.assertEqual(report["providers"][0]["status"], "TRACKED")
+        self.assertFalse(report["downloadAuthorized"])
+
     def test_historical_issuer_is_only_tracking_not_live_authorization(self):
-        cohort = {"schemaVersion": "pgextwin-external-latest-original-pins/v1",
-                  "records": []}
+        direct_get = {"schemaVersion": "pgextwin-external-direct-get/v1",
+                      "records": []}
         ledger = {"schemaVersion": "pgextwin-windows-source-candidates/v1",
                   "publicationAuthorized": False, "redistributionAuthorized": False,
                   "candidates": []}
@@ -163,7 +174,7 @@ class DailyWatchTests(unittest.TestCase):
                    "expiresAt": "2026-11-08T00:00:00Z", "records": [
                        {"sourceRepo": "example/provider", "releaseTag": "1.4.1",
                         "assetId": 101}]}
-        known = watch.tracked_assets(cohort, [ledger], [receipt])
+        known = watch.tracked_assets(direct_get, [ledger], [receipt])
         report = watch.analyze(inventory(release("1.4.1")), CONFIG, known)
         self.assertEqual(report["providers"][0]["status"], "TRACKED")
         self.assertFalse(report["downloadAuthorized"])

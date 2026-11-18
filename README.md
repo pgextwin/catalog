@@ -9,15 +9,21 @@ This repository contains the download information used by that website. It is **
 ## Binary sources and review details
 
 Users will see two provider groups: **external** (upstream/community binaries) and
-**pgextwin** (including our reference-adapted and native builds). Only independently
-verified and authorized downloads are offered as available. Historical/unverified
-external discoveries do **not** become downloadable merely by being indexed.
+**pgextwin** (including our reference-adapted and native builds). The pgextwin
+CLI feed uses signed Catalog metadata. For external originals, the CLI uses
+records with version-specific license evidence and byte pins.
 For provenance, reference build choices, reasons to exclude a source, dependencies
 and verification evidence, see [external sources and selection policy](docs/issue-112-external-windows-sources.md).
 
 ## Verified direct external ZIP acquisition (GET-only)
 
-The [published Windows CLI](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.16) can acquire the **currently owner-authorized** external original ZIPs directly from their providers, as one verified local batch. An unexpired Build/main signed admission and the exact current protected Catalog pins are mandatory; discovery alone never authorizes downloads. The real Windows E2E on 2026-11-13 verified 11 ZIPs for oracle_fdw 2.9.0 (PG14–18), community pgvector 0.8.7 (PG14–18), and pg_trickle 0.108.3 (PG18), not a permanent authorization. See the [verified external GET usage and scope](docs/issue-112-public-external-original-get.md) for `--pg all`, `--extension` and `--version` examples, expiry, dependencies, and the still-denied PostGIS/pgRouting and other review candidates.
+Windows CLI v0.3.17 and later use the [direct GET catalog](external/direct-get.json)
+to fetch original ZIPs from external providers. The CLI verifies each ZIP
+against its recorded SHA-256 and size before committing the batch locally.
+External downloads no longer require a time-limited admission.
+See the [external GET guide](docs/issue-112-public-external-original-get.md)
+for [CLI releases](https://github.com/pgextwin/catalog/releases), supported
+versions, selection examples, and dependencies.
 
 ## What you can check
 

@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths:
       - 'dotnet/**'
-      - 'external/signed-direct-get/qualified_cohort/**'
+      - 'external/direct-get.json'
       - '.github/workflows/cli-release.yml'
       - 'scripts/cli_r6_candidate.py'
       - 'tests/test_cli_r6_candidate.py'
@@ -15,6 +15,7 @@ on:
   pull_request:
     paths:
       - 'dotnet/**'
+      - 'external/direct-get.json'
       - '.github/workflows/cli-candidate.yml'
       - 'scripts/cli_r6_candidate.py'
       - 'tests/test_cli_r6_candidate.py'

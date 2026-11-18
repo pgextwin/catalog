@@ -40,25 +40,12 @@ class FormalPublisher(unittest.TestCase):
 
     def test_real_policy_requires_same_run_owner_approval(self):
         policy = json.loads(FILE.read_text())
-        version = "0.3.16"
+        version = "0.3.17"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
         with self.assertRaises(MOD.Denied):
-            MOD.eligible(policy, "0.3.15")  # Previously published version cannot be reauthorized.
-        self.assertEqual(len(policy["approvedSources"]), 11)
-        for major in ("14", "15", "16", "17", "18"):
-            self.assertIn(
-                {"extension": "oracle_fdw", "pgMajor": major,
-                 "sourceRepo": "laurenz/oracle_fdw", "releaseTag": "ORACLE_FDW_2_9_0"},
-                policy["approvedSources"])
-            self.assertIn(
-                {"extension": "pgvector", "pgMajor": major,
-                 "sourceRepo": "andreiramani/pgvector_pgsql_windows", "releaseTag": "0.8.7"},
-                policy["approvedSources"])
-        self.assertIn(
-            {"extension": "pg_trickle", "pgMajor": "18",
-             "sourceRepo": "trickle-labs/pg-trickle", "releaseTag": "v0.108.3"},
-            policy["approvedSources"])
+            MOD.eligible(policy, "0.3.16")  # Previously published version cannot be reauthorized.
+        self.assertEqual(policy["externalCatalogPath"], "external/direct-get.json")
         with self.assertRaises(MOD.Denied):
             MOD.eligible(policy, "0.3.6")
         with self.assertRaises(MOD.Denied):
@@ -71,10 +58,9 @@ class FormalPublisher(unittest.TestCase):
             {"environmentId": None}, {"environmentId": 0},
             {"publishAuthorized": "true"}, {"mirrorAuthorized": True},
             {"redistributionAuthorized": True}, {"operation": "MIRROR"},
-            {"approvedSources": []},
-            {"approvedSources": [{"extension": "oracle_fdw", "pgMajor": "18",
-                                  "sourceRepo": "laurenz/oracle_fdw", "releaseTag": "2.9.0"}]},
-            {"approvedSources": active()["approvedSources"][:-1]}, {"ownerId": 111},
+            {"externalCatalogPath": None}, {"externalCatalogPath": "external/windows-candidates-v1.json"},
+            {"externalCatalogPath": "external/signed-direct-get/qualified_cohort/latest.json"},
+            {"ownerId": 111},
             {"repository": "wrong/repo"}, {"unexpected": True},
         ):
             with self.subTest(mutation=mutation):

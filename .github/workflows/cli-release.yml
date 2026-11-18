@@ -227,7 +227,9 @@ jobs:
           @"
           ## English
 
-          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs. The provider-original ``download-all --source external`` uses the signed Catalog's current 11-ZIP selection: pg_trickle 0.108.3 PG18, official oracle_fdw 2.9.0 PG14–18 and unofficial community pgvector 0.8.7 PG14–18. ``--pg`` filters majors; ``--extension`` plus ``--version`` requests one exact signed source version. No historical fallback is used. Actual provider bytes are fetched only with genuine unexpired owner-reviewed independently Sigstore-verified original GET permission, and are checked against signed SHA256/size/ZIP integrity. Oracle Client remains separately licensed and installed. Community pgvector lacks bundled LICENSE/NOTICE and requires visible upstream license attribution. No mirroring, redistribution or automatic installation. Provider API SHA256 may be null for old assets; the independent signed original-byte SHA256, size and ZIP integrity are mandatory regardless. All other external sources remain DOWNLOAD_DENY; no third-party ZIP mirror, redistribution, or automatic install.
+          Windows x64 CLI $env:VERSION follows the authenticated latest Catalog as its registered extension roster grows. The default download-all command includes all registered PostgreSQL-major ZIPs, including pgTAP, pg_variables and pg_store_plans once their signed Catalog records are merged. --fixed preserves the historical snapshot; --verbose reports progress. Catalog-feed signatures and original ZIP SHA256 are checked. Individual extension ZIPs remain INTEGRITY_ONLY. The new verify-external-all command verifies separately obtained original external ZIPs offline using the local review ledger; it never downloads, installs or redistributes those ZIPs.
+
+          The external command ``download-all --source external --pg all`` fetches original ZIPs from their providers using the Catalog's version-specific license reviews. ``--pg`` filters PostgreSQL majors, ``--extension`` filters extensions, and ``--version`` selects an exact recorded version. Each ZIP is checked against its Catalog SHA256 and exact size. External GET has no admission renewal or expiry. oracle_fdw still requires a separately licensed Oracle Client. The Catalog links to the upstream community pgvector license. The CLI leaves all ZIPs intact in a local directory.
 
           ## 日本語
 
@@ -235,9 +237,7 @@ jobs:
 
           ``verify-external-all`` は、利用者が別途取得した外部提供元の原本ZIPを、ローカルの確認用台帳とオフラインで照合します。このコマンドは外部ZIPの取得・インストール・再配布を行いません。
 
-          外部原本の ``download-all --source external`` は、署名付きCatalogの最新11 ZIP（pg_trickle 0.108.3 PG18、公式oracle_fdw 2.9.0 PG14〜18、非公式コミュニティpgvector 0.8.7 PG14〜18）を対象とします。``--pg`` でPGメジャーを絞り込み、``--extension`` と ``--version`` で署名済みの正確な拡張機能バージョンを選択できます。古い版への黙示フォールバックはありません。所有者による有効期限内の真正署名・独立検証が成立した原本に限り取得し、SHA256・サイズ・ZIP構造を確認します。Oracle Clientは別途入手・ライセンス確認が必要で、非公式pgvectorには上流ライセンスへの案内が必要です。ミラー・再配布・自動インストールは認めません。
-
-          古いGitHub ReleaseのAPIでSHA256欄が空の場合も、独立した署名付きの原本SHA256、サイズ、ZIP構造の検証は必須です。その他の外部提供元は ``DOWNLOAD_DENY`` のままです。第三者のZIPのミラー・再配布・自動インストールは行いません。
+          ``download-all --source external --pg all`` は、Catalogにバージョンごとのライセンス確認記録がある原本ZIPを提供元から直接取得します。``--pg`` でPostgreSQLのメジャーバージョン、``--extension`` で拡張機能、``--version`` で記録済みのバージョンを指定できます。各ZIPのSHA256とバイト数をCatalogの記録と照合します。取得認可の更新や有効期限はありません。oracle_fdwに必要なOracle Clientは別途入手し、ライセンスをご確認ください。コミュニティ版pgvectorの上流ライセンスはCatalogから確認できます。原本ZIPは展開せず、ローカルに保存します。
           "@ | Set-Content $notes -Encoding utf8
           $request=@{tag_name=$tag;target_commitish=$env:SOURCE;name="pgextwin CLI v$env:VERSION";draft=$true;prerelease=$true;make_latest='false';body=(Get-Content $notes -Raw)}
           $requestFile=Join-Path $env:RUNNER_TEMP 'cli-draft-request.json'
@@ -287,10 +287,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Read the current signed external GET-only cohort
+      - name: Check out the verified release source for external ZIP expectations
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ needs.prepare.outputs.source }}
           persist-credentials: false
       - name: Download and rehash the newly public original CLI executable
         shell: pwsh
@@ -364,53 +364,8 @@ jobs:
                 $trace -notmatch "BATCH_COMPLETE zip_count=$count\b" -or $trace -match 'Authorization:|Bearer |GH_TOKEN=') { throw 'Verbose coverage or redaction failed' }
             Write-Output "PUBLIC_CLI_REAL_ZIPS=PASS VERSION=$env:VERSION SHA256=$count/$count EXTENSIONS=$($actual.Count) CATALOG_AUTH=SIGSTORE_VERIFIED_FEED"
           } finally { Pop-Location }
-      - name: Verify owner-signed original-provider cohort through public CLI without proof flags
+      - name: Rehash license-reviewed original provider ZIPs fetched anonymously by the public CLI
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference='Stop'
-          python scripts/validate_public_get_pin.py --catalog .
-          if ($LASTEXITCODE -ne 0) { throw 'Current published external admission invalid' }
-          $root='external/signed-direct-get/qualified_cohort'
-          $now=[DateTimeOffset]::UtcNow
-          # An older signed Run may still be active, but is never the
-          # current approved latest selection. Bind to the verified pointer.
-          $latest=Get-Content (Join-Path $root 'latest.json') -Raw | ConvertFrom-Json
-          if ($latest.schemaVersion -cne 'pgextwin-external-latest-original-pins/v1' -or
-              [long]$latest.issuerRunId -le 0 -or @($latest.records).Count -ne 11) {
-            throw 'Current signed Catalog latest eleven-pointer is invalid'
-          }
-          $current=Join-Path $root ("run-" + [string]$latest.issuerRunId)
-          $signed=Get-Content (Join-Path $current 'external-get-admission.json') -Raw | ConvertFrom-Json
-          if ([long]$signed.issuerRunId -ne [long]$latest.issuerRunId -or
-              ([DateTimeOffset]::Parse($signed.issuedAt) -gt $now) -or
-              ($now -ge [DateTimeOffset]::Parse($signed.expiresAt))) {
-            throw 'Selected owner-signed latest cohort is not currently authorized'
-          }
-          $expected=@($signed.records)
-          if ($expected.Count -ne 11) { throw 'Signed current original cohort length is not eleven' }
-          $exe=Join-Path $env:RUNNER_TEMP 'public-cli/pgextwin.exe'
-          $dest=Join-Path $env:RUNNER_TEMP 'public-external-originals'
-          New-Item -ItemType Directory -Path $dest | Out-Null
-          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-          try {
-            & $exe download-all --source external --pg all --output $dest
-            if ($LASTEXITCODE -ne 0) { throw 'Actual public CLI automatic external GET failed' }
-            $files=@(Get-ChildItem $dest -Recurse -File -Filter '*.zip')
-            if ($files.Count -ne $expected.Count) { throw 'Public original ZIP count differs from signed cohort' }
-            foreach ($record in $expected) {
-              $matching=@($files | Where-Object { $_.Name -ceq $record.assetName })
-              if ($matching.Count -ne 1) { throw "Missing original ZIP: $($record.assetName)" }
-              $sha=(Get-FileHash $matching[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-              if ($matching[0].Length -ne [long]$record.originalBytes -or
-                  $sha -cne [string]$record.originalSha256) {
-                throw "Original provider SHA256 or size mismatch: $($record.assetName)"
-              }
-              Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINAL=PASS FILE=$($record.assetName) BYTES=$($matching[0].Length) SHA256=$sha"
-            }
-            Write-Output "PUBLIC_CLI_EXTERNAL_ORIGINALS=PASS ZIP_COUNT=$($expected.Count) SIGNED_COHORT=TRUE"
-          } finally {
-            Remove-Item $dest -Recurse -Force -ErrorAction SilentlyContinue
-          }
+          & ./scripts/issue112-public-original-get-e2e.ps1 -CliKind public -CliPath (Join-Path $env:RUNNER_TEMP 'public-cli/pgextwin.exe')

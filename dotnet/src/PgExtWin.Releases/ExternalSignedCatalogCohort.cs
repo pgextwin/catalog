@@ -165,9 +165,9 @@ public static class ExternalSignedCatalogCohort
     internal static IReadOnlyList<ExternalOriginalPin> SelectDirect(byte[] records,
         string pgSelection, string? requestedExtension = null, string? requestedVersion = null)
     {
-        if (pgSelection is not ("15" or "16" or "17" or "18" or "all") ||
+        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all") ||
             requestedVersion is not null && requestedExtension is null)
-            throw new InvalidDataException("Expected PG15–18/all and an extension for --version");
+            throw new InvalidDataException("Expected PG14–18/all and an extension for --version");
         using var doc = StrictJson.Parse(records);
         var root = doc.RootElement;
         if (root.GetProperty("schemaVersion").GetString() != "pgextwin-external-direct-get/v1")
@@ -193,9 +193,8 @@ public static class ExternalSignedCatalogCohort
                 Text("originalProviderUrl"),
                 row.TryGetProperty("provider", out _) ? Text("provider") : null);
             ExternalProviderAssetTransport.ValidatePin(pin);
-            if (pin.PgMajor is not ("15" or "16" or "17" or "18") ||
-                !identities.Add(pin.Extension + ":" + pin.PgMajor + ":" + version))
-                throw new InvalidDataException("Duplicate or out-of-scope external record");
+            if (!identities.Add(pin.Extension + ":" + pin.PgMajor + ":" + version))
+                throw new InvalidDataException("Duplicate external record");
             string? pgroutingVersion = null;
             if (pin.Provider == ExternalProviderAssetTransport.OsgeoProvider)
             {

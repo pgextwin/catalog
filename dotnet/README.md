@@ -1,11 +1,10 @@
 # pgextwin CLI — Issue #112
 
-## External original ZIP batch (relaxed policy, 2026-11-17)
+## v0.3.17 — external original ZIP batch
 
 The implementation uses [exact-version license-reviewed records](../external/direct-get.json)
 with provider URLs, versions, measured SHA-256 pins and license evidence.
-External originals require no Sigstore proof or Build admission. The native
-signed feed path is unchanged. This support change publishes no CLI or feed.
+External originals require no Sigstore proof or Build admission. The default pgextwin download continues to verify the signed Catalog feed.
 
 ```powershell
 pgextwin.exe download-all --source external --pg all
@@ -13,13 +12,14 @@ pgextwin.exe download-all --source external --pg 18 --extension pglogical --vers
 pgextwin.exe download-all --source external --pg all --extension pg_crash --version 0.3
 ```
 
-PG15–18 records cover pglogical 2.4.8 and pg_crash 0.3, plus the existing
-oracle_fdw 2.9.0 / pgvector 0.8.7 cohorts and pg_trickle 0.108.3 (PG18).
+The direct catalog includes oracle_fdw 2.9.0 and community pgvector 0.8.7
+for PG14–18, pg_trickle 0.108.3 for PG18, and pglogical 2.4.8, pg_crash 0.3,
+and the shared PostGIS/pgRouting bundles for PG15–18.
 Omitting `--version` selects each recorded latest version; exact selection
 never falls back to a different version. Provider bytes are fetched directly,
 verified and committed using the existing atomic batch stager. ZIPs are not
 installed or repackaged. See the [candidate license/binary review](../docs/issue-112-relaxed-external-bulk-fetch-20261117.md)
-for blocked candidates, exact evidence and scope. Historical signed-admission
+for the review and supporting evidence. Historical signed-admission
 records/APIs remain available for their fixed historical paths.
 
 **Experimental external discovery (not a downloadable CLI Release):**

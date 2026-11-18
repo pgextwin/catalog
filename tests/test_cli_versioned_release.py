@@ -50,7 +50,7 @@ class VersionedCliRelease(unittest.TestCase):
             self.assertRegex(dependency,r'^[^@]+@[0-9a-f]{40}$')
 
 
-    def test_publisher_public_smoke_uses_exact_signed_cohort(self):
+    def test_publisher_public_smoke_checks_signed_feed_and_direct_pins(self):
         release=(ROOT/'.github/workflows/cli-release.yml').read_text()
         smoke=release.split("  public-smoke:",1)[1]
         self.assertNotIn("pgextwin-pg14-18",smoke)
@@ -60,19 +60,22 @@ class VersionedCliRelease(unittest.TestCase):
         self.assertIn("Signed public CLI cohort and actual ZIP matrix differ",smoke)
         self.assertIn("($approved.Count * $extensions.Count)",smoke)
         self.assertIn("($approved[0])-$($approved[-1])",smoke)
-        self.assertIn("PUBLIC_CLI_EXTERNAL_ORIGINALS=PASS",smoke)
+        self.assertIn("ref: ${{ needs.prepare.outputs.source }}",smoke)
+        self.assertIn("issue112-public-original-get-e2e.ps1 -CliKind public",smoke)
+        self.assertNotIn("validate_public_get_pin.py",smoke)
+        self.assertNotIn("expiresAt",smoke)
         self.assertIn("Remove-Item Env:GH_TOKEN",smoke)
 
-    def test_genuine_published_e2e_covers_both_current_catalog_and_signed_externals(self):
+    def test_genuine_published_e2e_covers_signed_feed_and_direct_pins(self):
         e2e=(ROOT/'.github/workflows/cli-published-e2e.yml').read_text()
-        self.assertIn("on:\n  push:",e2e)
-        self.assertIn("branches: [main]",e2e)
+        self.assertIn("workflow_dispatch:",e2e)
+        self.assertNotIn("  push:",e2e)
         self.assertIn("'refs/heads/main'",e2e)
         self.assertIn("Independently verify the published EXE Sigstore provenance",e2e)
         self.assertIn("Run the public EXE without tokens and rehash the complete current roster",e2e)
-        self.assertIn("PUBLIC_CLI_EXTERNAL_ORIGINALS=PASS",e2e)
-        self.assertIn("python scripts/validate_public_get_pin.py --catalog .",e2e)
-        self.assertIn("SIGNED_COHORT=TRUE",e2e)
+        self.assertIn("issue112-public-original-get-e2e.ps1 -CliKind public",e2e)
+        self.assertNotIn("validate_public_get_pin.py",e2e)
+        self.assertNotIn("expiresAt",e2e)
         self.assertIn("Remove-Item Env:GH_TOKEN",e2e)
         self.assertIn("published-pgextwin.exe",e2e)
         self.assertNotIn("--source all",e2e)

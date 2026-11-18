@@ -1,98 +1,61 @@
-# Issue #112 — verified public CLI external original GET (GET-only)
-
-**Policy update (2026-11-17):** the implementation in
-[the relaxed external fetch review](issue-112-relaxed-external-bulk-fetch-20261117.md)
-supersedes the admission/signature requirements below for external binaries.
-It adds exact-version license-reviewed PG15–18 direct GET support without
-publishing a CLI/feed release. The following describes the historical released
-CLI and its original signed-admission behavior.
+# Download original external Windows ZIPs with the CLI
 
 [日本語](#日本語) | [English](#english)
 
 ## 日本語
 
-**提供元からの原本ZIP直接取得に限定。** pgextwinは外部ZIPを再配布・ミラー・再圧縮・インストールしません。
-公開CLIと**期限内の**Build/main由来の署名付き取得認可がそろい、Catalogの保護mainにある
-最新選択と原本のRelease・Asset ID／サイズ／SHA256が一致するときだけ取得します。
-期限切れ、署名不正、未承認の拡張・PGメジャー・バージョン、権限不足は **DENY** です。
+Windows CLI v0.3.17以降は、[原本取得用カタログ](../external/direct-get.json)に
+バージョンごとのライセンス確認記録があるZIPを、提供元から直接取得します。
+各ZIPのSHA-256とバイト数を照合し、すべての照合が済んだ時点で新しいサブフォルダーに保存します。
 
-[正式CLI v0.3.16 Release](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.16)
-から `pgextwin.exe` と `SHA256SUMS.txt` を取得し、実行ファイルのSHA256を確認してください。
-出力先フォルダーは事前に作成し、Windows PowerShellで実行します。
+[CLIのリリース一覧](https://github.com/pgextwin/catalog/releases)から
+v0.3.17以降の `pgextwin.exe` と `SHA256SUMS.txt` を取得し、
+実行ファイルのSHA-256を確認してください。PowerShellで出力先を作成してから実行します。
 
 ```powershell
-# 認可済みの最新原本を、観測済みの全PGメジャーについて一括取得
+New-Item -ItemType Directory -Force C:\pgextwin-originals
 .\pgextwin.exe download-all --source external --pg all --output C:\pgextwin-originals
-
-# PG18だけ
 .\pgextwin.exe download-all --source external --pg 18 --output C:\pgextwin-originals
-
-# 拡張名＋バージョン指定（署名済み最新選択に存在するものだけ）
-.\pgextwin.exe download-all --source external --pg all --extension oracle_fdw --version 2.9.0 --output C:\pgextwin-originals
+.\pgextwin.exe download-all --source external --pg 14 --extension oracle_fdw --version 2.9.0 --output C:\pgextwin-originals
 ```
 
-`--extension` と `--version` は、追加の提供元や過去のリリースを許可するオプションではありません。
-`--version` は `--extension` と併用し、正確に署名済みの対象だけを絞ります。
-`--pg all` は**全PGに対する互換性の保証ではなく**、署名済みで登録されたPGメジャーの原本を選びます。
-CLIはダウンロードしたZIPを新しいサブディレクトリへまとめて確定し、一部失敗したセットを成功扱いしません。
+`--pg all` はカタログに記録のある全PGメジャーから最新として指定された版を取得します。
+バージョンを指定する場合は `--extension` と `--version` を併用してください。
+PostGISとpgRoutingは、どちらを選んでも該当する同じバンドルを取得します。
+ZIPの利用前に、提供元のライセンス、インストール手順、依存関係を確認してください。
+oracle_fdwに必要なOracle Clientは別途入手します。
 
-**2026-11-13 11:00 JSTに成功が確認された範囲**：
-`oracle_fdw` 2.9.0（PG14～18：5 ZIP）、
-コミュニティ版 `pgvector` 0.8.7（PG14～18：5 ZIP）、
-`pg_trickle` 0.108.3（PG18：1 ZIP）、計 **11 ZIP / 9,743,563 bytes**。
-[Windows E2E Run 43348662236](https://github.com/pgextwin/catalog/actions/runs/43348662236)
-で正式ReleaseのCLIを認証し、全11件の原本サイズ・SHA256照合に成功しました。
-これは**その時点の認可・動作証跡**であり、将来の署名期限や新しいバージョンへの永続的な許可ではありません。
-
-GitHubの匿名REST APIは時間枠の制限を受けます。HTTP 403のときは、
-認可期限とレート制限を区別してください。必要なら適切な読み取り権限の
-`GH_TOKEN` または `GITHUB_TOKEN` をプロセス環境に設定できます。
-トークンをコマンド引数・ログ・Issueへ書き込まないでください。
-認可の更新や署名チェックの迂回はできません。
-
-**未認可の追加提供元**：PostGIS / pgRouting（OSGeoバンドル）、PGroonga、
-TimescaleDB等の調査・検証は正式取得認可と別です。
-候補JSONや独立SHA256の一致だけでは、公開CLIの取得対象には追加されません。
-OSGeoの最新バンドル1件の選択は現時点では**非公開のレビュー計画**です。
-
-原本のZIPの取得は、ライセンス上の再配布許諾やWindowsでの動作、
-Oracle Instant Client等の別途必要な依存ファイルの提供を意味しません。
-ZIPの適用・インストールについては提供元の手順とライセンスを確認してください。
+v0.3.16以前の署名付き取得認可には有効期限があります。
+期限付きの認可なしで取得するにはv0.3.17以降が必要です。
 
 ## English
 
-The published CLI can perform a user-local **direct original-provider GET**,
-not a mirror, repackage, redistribution or installation. It requires a
-nonexpired independent Build/main Sigstore admission bound to the current
-protected Catalog latest selection and exact release/asset/byte identities.
-There is **no unsigned or historical fallback**.
+Windows CLI v0.3.17 and later retrieve original ZIPs directly from providers
+using the [direct GET catalog](../external/direct-get.json). Each record carries
+license evidence for its version, the provider URL, and the original SHA-256
+and size. The CLI commits the ZIPs to a new local subdirectory after the
+whole batch passes verification.
 
-Download `pgextwin.exe` and `SHA256SUMS.txt` from the
-[CLI v0.3.16 Release](https://github.com/pgextwin/catalog/releases/tag/cli-v0.3.16)
-and verify its SHA256 before running. Create the output parent directory first.
+Get `pgextwin.exe` and `SHA256SUMS.txt` for v0.3.17 or later from
+[CLI releases](https://github.com/pgextwin/catalog/releases) and check the
+executable's SHA-256. Create the output parent before running the CLI.
 
 ```powershell
+New-Item -ItemType Directory -Force C:\pgextwin-originals
 .\pgextwin.exe download-all --source external --pg all --output C:\pgextwin-originals
 .\pgextwin.exe download-all --source external --pg 18 --output C:\pgextwin-originals
 .\pgextwin.exe download-all --source external --pg all --extension pgvector --version 0.8.7 --output C:\pgextwin-originals
 ```
 
-`--pg all` selects only **individually admitted** PostgreSQL majors, not
-unobserved compatibility. `--version` requires `--extension` and filters
-the **current signed** cohort; it cannot authorize an unsigned older version.
-The original ZIPs are verified as a single atomic batch in a new output
-subdirectory, with no successful partial commit.
+`--pg all` selects the records marked latest across the listed PostgreSQL majors.
+Use `--version` with `--extension` to select an exact recorded older or current
+version. Selecting either PostGIS or pgRouting fetches its shared provider ZIP.
+Check the provider's licenses, installation instructions, and dependencies
+before using a ZIP. For oracle_fdw, obtain Oracle Client separately.
 
-At 2026-11-13 11:00 JST, genuine Windows
-[E2E Run 43348662236](https://github.com/pgextwin/catalog/actions/runs/43348662236)
-verified the published CLI v0.3.15 and 11 original ZIPs / 9,743,563 bytes:
-oracle_fdw 2.9.0 (PG14–18), community pgvector 0.8.7 (PG14–18),
-and pg_trickle 0.108.3 (PG18). This is a historical passing observation,
-not a permanent admission; expired signed admissions fail closed.
-
-Anonymous GitHub REST quotas can yield HTTP 403; a read-scoped environment
-`GH_TOKEN` or `GITHUB_TOKEN` may be used for authenticated checks.
-Never expose tokens or bypass the expiry or signed admission. PostGIS,
-pgRouting, PGroonga and TimescaleDB remain **review candidates, not
-publicly admitted GET-only sources**. Verify provider licenses,
-dependencies and installation prerequisites separately.
+The v0.3.17 catalog includes 23 ZIPs. That covers oracle_fdw 2.9.0 and community
+pgvector 0.8.7 for PG14–18, pg_trickle 0.108.3 for PG18, and pglogical 2.4.8,
+pg_crash 0.3, and shared PostGIS/pgRouting bundles for PG15–18.
+The [2026-11-13 Windows E2E run](https://github.com/pgextwin/catalog/actions/runs/43348662236)
+records the 11 ZIPs verified under the old signed-admission flow. Upgrade
+from v0.3.16 to remove the external admission expiry from the CLI.

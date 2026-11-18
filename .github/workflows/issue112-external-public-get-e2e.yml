@@ -106,8 +106,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          Write-Output 'PUBLIC_DIRECT_GET=NOT_TESTED LEGACY_SIGNED_CONTRACT PROOF_SCOPE=PROVENANCE_VERSION_ONLY'
-          ./scripts/issue112-public-original-get-e2e.ps1
+          Write-Output 'PUBLIC_DIRECT_GET=NOT_TESTED PROOF_SCOPE=PROVENANCE_VERSION_ONLY'
+          & ./scripts/issue112-public-original-get-e2e.ps1 -CliKind private -CliPath (Join-Path $env:RUNNER_TEMP 'issue112-private-cli/pgextwin.exe')
       - name: Authenticate public Windows CLI provenance/version evidence only
         shell: pwsh
         env:
