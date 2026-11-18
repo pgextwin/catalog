@@ -308,7 +308,7 @@ static void Usage()
     Console.Error.WriteLine("pgextwin download-all --pg MAJOR|all --catalog-dir PATH");
     Console.Error.WriteLine("  --policy EXTERNALLY_AUTHENTICATED_POLICY --policy-sha256 OUT_OF_BAND_SHA256 --output EXISTING_DIR");
     Console.Error.WriteLine("pgextwin download-all --source external [--pg MAJOR|all] [--extension NAME [--version EXACT]] [--output EXISTING_DIR]");
-    Console.Error.WriteLine("  Selects recorded latest versions, or matches --version exactly. Supported PostgreSQL majors: 15-18.");
+    Console.Error.WriteLine("  Selects recorded latest versions, or matches --version exactly. Supported PostgreSQL majors: 14-18.");
     Console.Error.WriteLine("  Only versions with reviewed exact-version license evidence and measured byte pins are available.");
     Console.Error.WriteLine("External GET uses exact-version license-reviewed Catalog byte pins; --source all remains denied.");
     Console.Error.WriteLine("download-all saves one original ZIP per verified Catalog extension and selected PG major in an atomic new subdirectory.");
