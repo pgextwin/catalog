@@ -51,6 +51,13 @@
       "license": "PostgreSQL"
     },
     {
+      "name": "pg_wait_sampling",
+      "upstreamRepository": "postgrespro/pg_wait_sampling",
+      "displayName": "pg_wait_sampling",
+      "description": "Collect sampling statistics for PostgreSQL wait events",
+      "license": "PostgreSQL"
+    },
+    {
       "name": "pgtap",
       "upstreamRepository": "theory/pgtap",
       "displayName": "pgTAP",

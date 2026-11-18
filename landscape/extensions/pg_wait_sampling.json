@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_wait_sampling",
+  "displayName": "pg_wait_sampling",
+  "description": "Collect sampling statistics for PostgreSQL wait events",
+  "upstreamRepository": "postgrespro/pg_wait_sampling",
+  "status": "implemented",
+  "pgextwinCatalogName": "pg_wait_sampling",
+  "lastReviewed": "2026-11-18",
+  "evidenceUrls": [
+    "https://github.com/pgextwin/pg_wait_sampling/releases/tag/v1.1.11-windows.1",
+    "https://github.com/postgrespro/pg_wait_sampling"
+  ],
+  "windowsBinarySources": []
+}
