@@ -19,10 +19,12 @@ static async Task<int> RunAsync(string[] args)
         Action<string>? log = verbose
             ? message => Console.Error.WriteLine($"[{DateTimeOffset.UtcNow:O}] VERBOSE {message}")
             : null;
+        if (CommandHelp.TryWriteForCommand(args))
+            return 0;
         if (args.Length > 0 && args[0] == "verify")
         {
             if (args.Length < 2 || args[1] is not ("report" or "external"))
-                throw new ArgumentException("Use verify report or verify external");
+                throw new ArgumentException("Run pgextwin verify --help for verification commands");
             var verb = args[1] == "report" ? "verify-report" : "verify-external-all";
             args = [verb, .. args[2..]];
         }
@@ -42,7 +44,8 @@ static async Task<int> RunAsync(string[] args)
         }
         if (args.Length == 1 && args[0] is "--help" or "-h" or "help")
         {
-            Usage(); return 0;
+            CommandHelp.WriteOverview();
+            return 0;
         }
         if (args.Length < 1 || args[0] is not ("list" or "search" or "download" or "download-all" or "verify-external-all"))
             throw new ArgumentException("Unknown command. Run pgextwin --help");
@@ -53,7 +56,9 @@ static async Task<int> RunAsync(string[] args)
         if (command is "search" or "download")
         {
             if (i >= args.Length || args[i].StartsWith('-'))
-                throw new ArgumentException(command + " requires an item name or search term");
+                throw new ArgumentException(command == "download"
+                    ? "download requires an item name"
+                    : "search requires a search term");
             query = args[i++];
         }
         string? directory = null;
@@ -107,12 +112,16 @@ static async Task<int> RunAsync(string[] args)
                         throw new ArgumentException("Unexpected/duplicate --input-dir");
                     inputDir = value; break;
                 case "--extension":
-                    if (command != "download-all" || requestedExtension is not null)
-                        throw new ArgumentException("--extension only supports external download-all once");
+                    if (command != "download-all")
+                        throw new ArgumentException("Use download ITEM to select an item by name");
+                    if (requestedExtension is not null)
+                        throw new ArgumentException("Duplicate --extension");
                     requestedExtension = value; break;
                 case "--version":
-                    if (command is not ("download" or "download-all") || requestedVersion is not null)
-                        throw new ArgumentException("--version requires a named external download");
+                    if (command is not ("download" or "download-all"))
+                        throw new ArgumentException("Use download ITEM --version EXACT to select a recorded external version");
+                    if (requestedVersion is not null)
+                        throw new ArgumentException("Duplicate --version");
                     requestedVersion = value; break;
                 case "--source":
                     if (sourceGroup is not null || value is not ("external" or "pgextwin" or "all"))
@@ -135,13 +144,13 @@ static async Task<int> RunAsync(string[] args)
             }
         }
         if (requestedExtension is not null && sourceGroup != "external")
-            throw new ArgumentException("--extension requires --source external");
+            throw new ArgumentException("The legacy --extension option requires --source external. Use download ITEM to select an item by name.");
         if (command == "verify-external-all")
         {
             if (reviewLedger is null || inputDir is null || pg is null ||
                 directory is not null || sourceGroup is not null || policy is not null ||
                 policySha is not null || output is not null || format is not null || latest is not null)
-                throw new ArgumentException("verify-external-all requires --ledger, --input-dir and --pg only");
+                throw new ArgumentException("verify external requires --ledger, --input-dir and --pg");
             // Local-only ZIP integrity verification. No network or source admission.
             var verified = ExternalOriginalZipBatch.VerifyLocal(reviewLedger, inputDir, pg);
             Console.WriteLine($"EXTERNAL_BULK_INTEGRITY_ONLY ZIP_COUNT={verified.Count} BYTES={verified.Bytes} MEMBERS={verified.Members} " +
@@ -156,7 +165,7 @@ static async Task<int> RunAsync(string[] args)
             if (external)
             {
                 if (localPolicy || latest is not null)
-                    throw new ArgumentException("External downloads use Catalog records. Use --pg, --category or --output to select them.");
+                    throw new ArgumentException("Local policy options and --latest/--fixed apply to pgextwin downloads");
                 log?.Invoke("EXTERNAL_DIRECT_GET_START source=PROVIDER_RELEASE_ASSET");
                 var parent = output ?? Directory.GetCurrentDirectory();
                 if (requestedExtension is not null && category is null)
@@ -178,7 +187,9 @@ static async Task<int> RunAsync(string[] args)
             if (category is not null || requestedVersion is not null)
                 throw new ArgumentException("--category and --version apply to external downloads");
             if (pg is null || query is not null && pg == "all")
-                throw new ArgumentException(command + " requires a PostgreSQL major for pgextwin downloads");
+                throw new ArgumentException(query is null
+                    ? "download-all requires --pg MAJOR or --pg all for pgextwin downloads"
+                    : "download requires --pg MAJOR for pgextwin downloads");
             var auto = !localPolicy;
             if (!auto && (latest == true || directory is null || policy is null || policySha is null || output is null))
                 throw new ArgumentException("Explicit policy requires --catalog-dir, --policy, --policy-sha256 and --output");
@@ -329,37 +340,7 @@ static async Task<int> RunAsync(string[] args)
         KeyNotFoundException or HttpRequestException or OperationCanceledException)
     {
         Console.Error.WriteLine("DENY: " + e.Message);
-        Usage();
+        CommandHelp.WriteOverview();
         return 2;
     }
-}
-
-static void Usage()
-{
-    Console.Error.WriteLine("""
-        pgextwin — download Windows x64 packages without a PostgreSQL installation
-
-          pgextwin list [--category CATEGORY] [--pg MAJOR] [--format text|json]
-          pgextwin search TERM [--category CATEGORY] [--pg MAJOR] [--format text|json]
-          pgextwin download ITEM [--source external] [--pg MAJOR|all] [--category CATEGORY] [--version EXACT] [--output DIR]
-          pgextwin download ITEM --source pgextwin --pg MAJOR [--output DIR]
-          pgextwin download-all --source external [--category CATEGORY] [--pg MAJOR|all] [--output DIR]
-          pgextwin download-all [--source pgextwin] --pg MAJOR|all [--output DIR] [--latest|--fixed]
-          pgextwin verify external --ledger FILE --input-dir DIR --pg MAJOR|all
-          pgextwin verify report ITEM --pg MAJOR --catalog-dir DIR --policy FILE --policy-sha256 HEX
-            --trusted-root-sha256 HEX --p1-verifier-sha256 HEX --report FILE --signature FILE
-            --authority-key PEM --authority-key-sha256 HEX
-          pgextwin --version | --help
-
-        Categories: extensions, spatial, tools, drivers.
-        List, search and named downloads default to external. External --pg is optional.
-        A PostgreSQL major filters compatible files. Major-independent files match any major.
-        --version selects an exact recorded version for a named external item.
-        Bulk downloads default to the signed pgextwin feed and require --pg in that mode.
-        Use an existing output directory (default: current directory). Files are never run.
-
-        Local views: list/search --catalog-dir DIR [--source pgextwin|external|all] [--pg MAJOR] [--format text|json]
-        Local policy: download/download-all --catalog-dir DIR --policy FILE --policy-sha256 HEX --pg MAJOR --output DIR
-        Add --verbose for timestamped progress on stderr.
-        """);
 }

@@ -25,7 +25,7 @@ C:\original-external\
 CLI実行：
 
 ~~~powershell
-.\pgextwin.exe verify-external-all --ledger .\evidence\issue112-external-pg18-direct-link-review-v1.json --input-dir C:\original-external --pg 18
+.\pgextwin.exe verify external --ledger .\evidence\issue112-external-pg18-direct-link-review-v1.json --input-dir C:\original-external --pg 18
 ~~~
 
 全件成功時のみ EXTERNAL_BULK_INTEGRITY_ONLY ZIP_COUNT=... BYTES=...

@@ -23,21 +23,21 @@ public static class AuthenticatedReportCommand
     public static int Run(string[] args)
     {
         if (args.Length < 2 || args[0] != "verify-report")
-            throw new ArgumentException("verify-report requires one extension name and pinned inputs");
+            throw new ArgumentException("verify report requires one extension name and pinned inputs");
 
         var extension = args[1];
         var options = new Dictionary<string, string>(StringComparer.Ordinal);
         if ((args.Length - 2) % 2 != 0)
-            throw new ArgumentException("Missing verify-report option value");
+            throw new ArgumentException("Missing verify report option value");
         for (var i = 2; i < args.Length; i += 2)
         {
             var key = args[i];
             if (!RequiredOptions.Contains(key) || !options.TryAdd(key, args[i + 1]) ||
                 string.IsNullOrWhiteSpace(args[i + 1]))
-                throw new ArgumentException("Unexpected, empty or repeated verify-report option: " + key);
+                throw new ArgumentException("Unexpected, empty or repeated verify report option: " + key);
         }
         if (options.Count != RequiredOptions.Count)
-            throw new ArgumentException("Missing mandatory verify-report pin/file option");
+            throw new ArgumentException("Missing required verify report inputs. Run pgextwin verify report --help.");
 
         var policyDigest = options["--policy-sha256"];
         var rootDigest = options["--trusted-root-sha256"];
