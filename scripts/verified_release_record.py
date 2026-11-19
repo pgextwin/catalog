@@ -110,7 +110,7 @@ def majors(ext):
         require(type(lo) is int and type(hi) is int and lo<=hi,
                 "invalid PG major range")
         nums=list(range(lo,hi+1))
-    require(bool(nums) and all(type(n) is int and n in range(14,19) for n in nums)
+    require(bool(nums) and all(type(n) is int and n in range(14,20) for n in nums)
             and nums==sorted(set(nums)), "invalid PG major set")
     return nums
 
