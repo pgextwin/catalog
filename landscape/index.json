@@ -4,6 +4,7 @@
     "http",
     "hypopg",
     "oracle_fdw",
+    "odbc_fdw",
     "orafce",
     "pg_bigm",
     "pg_cron",

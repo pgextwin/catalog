@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "extensions": [
     "hypopg",
+    "odbc_fdw",
     "orafce",
     "pg_bigm",
     "pg_cron",

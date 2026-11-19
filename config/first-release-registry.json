@@ -2,6 +2,13 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "name": "odbc_fdw",
+      "upstreamRepository": "CartoDB/odbc_fdw",
+      "displayName": "odbc_fdw",
+      "description": "A PostgreSQL extension that provides a Foreign Data Wrapper for easy and efficient access to ODBC databases",
+      "license": "PostgreSQL"
+    },
+    {
       "name": "pg_failover_slots",
       "upstreamRepository": "EnterpriseDB/pg_failover_slots",
       "displayName": "pg_failover_slots",
