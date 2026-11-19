@@ -24,31 +24,23 @@ public static class SignedPublicCatalogFeed
     private static readonly Regex Sha40 = new(@"\A[0-9a-f]{40}\z", RegexOptions.CultureInvariant);
     private static readonly Regex Sha64 = new(@"\A[0-9a-f]{64}\z", RegexOptions.CultureInvariant);
     private static readonly Regex SafeName = new(@"\A[a-z][a-z0-9_]*\z", RegexOptions.CultureInvariant);
-    private const int FirstSupportedMajor = 14;
-    private const int HighestPermittedMajor = 32;
-    private const int MaxSupportedCohort = 12;
+    private const string CompleteSchema = "pgextwin-signed-catalog-zip-feed/v1";
+    private const string OptionalSchema = "pgextwin-signed-catalog-zip-feed/v2";
 
-    private static string[] RequireSignedMajors(JsonElement root)
+    internal static PostgresqlFeedCohort ReadFeedCohort(JsonElement root)
     {
-        var raw = root.GetProperty("postgresqlMajors");
-        if (raw.ValueKind != JsonValueKind.Array ||
-            raw.GetArrayLength() is < 1 or > MaxSupportedCohort)
-            throw new InvalidDataException("Invalid signed-feed PG cohort");
-        var majors = raw.EnumerateArray().Select(item =>
-        {
-            if (item.ValueKind != JsonValueKind.String)
-                throw new InvalidDataException("Nonstring signed PG major");
-            return item.GetString() ?? "";
-        }).ToArray();
-        if (majors.Any(item => !Regex.IsMatch(item, @"\A[1-9][0-9]*\z")) ||
-            majors.Any(item => !int.TryParse(item, out var n) ||
-                               n < FirstSupportedMajor || n > HighestPermittedMajor))
-            throw new InvalidDataException("Unsupported signed PG major");
-        var start = int.Parse(majors[0]);
-        if (!majors.SequenceEqual(Enumerable.Range(start, majors.Length)
-                                  .Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture))))
-            throw new InvalidDataException("Signed PG cohort has gaps or duplicates");
-        return majors;
+        var cohort = PostgresqlFeedCohort.Parse(root);
+        var schema = cohort.Optional is null ? CompleteSchema : OptionalSchema;
+        if (root.GetProperty("schemaVersion").GetString() != schema)
+            throw new InvalidDataException("Unknown signed Catalog feed schema");
+        var count = root.GetProperty("extensionCount").GetInt32();
+        var zipCount = root.GetProperty("zipCount").GetInt32();
+        if (count < VerifiedFleetRoster.MinimumCount || count > VerifiedFleetRoster.MaximumCount ||
+            (cohort.Optional is null
+                ? zipCount != count * cohort.Required.Length
+                : zipCount <= count * cohort.Required.Length || zipCount > count * cohort.Majors.Length))
+            throw new InvalidDataException("Invalid signed Catalog ZIP count");
+        return cohort;
     }
 
     public sealed class Session : IDisposable
@@ -81,7 +73,7 @@ public static class SignedPublicCatalogFeed
     {
         if (pgSelection != "all" &&
             (!int.TryParse(pgSelection, out var requested) ||
-             requested < FirstSupportedMajor || requested > HighestPermittedMajor ||
+             requested < PostgresqlFeedCohort.FirstSupportedMajor || requested > PostgresqlFeedCohort.HighestPermittedMajor ||
              requested.ToString(System.Globalization.CultureInfo.InvariantCulture) != pgSelection))
             throw new InvalidDataException("Unsupported signed Catalog PG selection");
         var parent = Path.GetFullPath(outputParent);
@@ -116,15 +108,11 @@ public static class SignedPublicCatalogFeed
         var root = feed.RootElement;
         var commit = root.GetProperty("catalogCommit").GetString() ?? "";
         var expectedCount = root.GetProperty("extensionCount").GetInt32();
-        var majors = RequireSignedMajors(root);
-        if (pgSelection != "all" && !majors.Contains(pgSelection, StringComparer.Ordinal))
+        var cohort = ReadFeedCohort(root);
+        if (pgSelection != "all" && !cohort.Majors.Contains(pgSelection, StringComparer.Ordinal))
             throw new InvalidDataException("Requested PG major is not in signer-approved Catalog cohort");
         if (!Sha40.IsMatch(commit) ||
-            root.GetProperty("schemaVersion").GetString() != "pgextwin-signed-catalog-zip-feed/v1" ||
             root.GetProperty("repository").GetString() != "pgextwin/catalog" ||
-            (expectedCount < VerifiedFleetRoster.MinimumCount ||
-             expectedCount > VerifiedFleetRoster.MaximumCount) ||
-            root.GetProperty("zipCount").GetInt32() != expectedCount * majors.Length ||
             root.GetProperty("extensionSignatureVerified").ValueKind != JsonValueKind.False ||
             root.GetProperty("publicationAuthorized").ValueKind != JsonValueKind.False ||
             root.GetProperty("installAuthorized").ValueKind != JsonValueKind.False ||
@@ -205,71 +193,9 @@ public static class SignedPublicCatalogFeed
                 await File.WriteAllBytesAsync(file, bytes, token);
                 progress?.Invoke($"CATALOG_RECORD_VERIFIED path={path} bytes={bytes.Length}");
             }
-            var loaded = CatalogReader.LoadLocal(catalogue);
-            if (loaded.Count != expectedCount || loaded.Any(x =>
-                    majors.Any(major => !x.Versions.Any(v => v.Major == major)) ||
-                    x.Versions.Any(v => !majors.Contains(v.Major, StringComparer.Ordinal) &&
-                        int.Parse(v.Major) >= int.Parse(majors[0]))) ||
-                !loaded.Select(x => x.Name).SequenceEqual(
-                    names.Order(StringComparer.Ordinal)))
-                throw new InvalidDataException("Signed Catalog fleet is incomplete");
-
-            var selected = pgSelection == "all" ? majors : [pgSelection];
-            var pins = new List<ReleasePins>();
-            foreach (var info in releaseArray)
-            {
-                var name = info.GetProperty("extension").GetString()!;
-                using var record = StrictJson.Parse(
-                    await File.ReadAllBytesAsync(Path.Combine(catalogue, "extensions", name + ".json"), token));
-                var catalog = record.RootElement;
-                var tagValue = info.GetProperty("releaseTag").GetString() ?? "";
-                var repoId = info.GetProperty("repositoryId").GetInt64();
-                var releaseId = info.GetProperty("releaseId").GetInt64();
-                var sumId = info.GetProperty("checksumsAssetId").GetInt64();
-                if (repoId <= 0 || releaseId <= 0 || sumId <= 0 ||
-                    !PinnedReleaseSelector.SafeAssetName(tagValue) ||
-                    tagValue != catalog.GetProperty("latest").GetProperty("releaseTag").GetString())
-                    throw new InvalidDataException("Signed Catalog release identity invalid");
-
-                var zipRows = info.GetProperty("packages").EnumerateArray().ToArray();
-                if (zipRows.Length != majors.Length ||
-                    !zipRows.Select(x => x.GetProperty("pgMajor").GetString())
-                        .SequenceEqual(majors))
-                    throw new InvalidDataException("Signed Catalog PG inventory incomplete");
-                foreach (var row in zipRows)
-                {
-                    var major = row.GetProperty("pgMajor").GetString()!;
-                    var asset = row.GetProperty("asset").GetString() ?? "";
-                    var sha = row.GetProperty("sha256").GetString() ?? "";
-                    var url = row.GetProperty("downloadUrl").GetString() ?? "";
-                    var assetId = row.GetProperty("assetId").GetInt64();
-                    var expectedUrl = "https://github.com/pgextwin/" + name +
-                        "/releases/download/" + tagValue + "/" + asset;
-                    var pg = catalog.GetProperty("postgresql").GetProperty(major);
-                    if (!pg.GetProperty("available").GetBoolean() ||
-                        !Sha64.IsMatch(sha) || assetId <= 0 ||
-                        !PinnedReleaseSelector.SafeAssetName(asset) ||
-                        !asset.StartsWith(name + "-", StringComparison.Ordinal) ||
-                        !asset.EndsWith("-pg" + major + "-windows-x64.zip", StringComparison.Ordinal) ||
-                        url != expectedUrl ||
-                        pg.GetProperty("asset").GetString() != asset ||
-                        pg.GetProperty("downloadUrl").GetString() != url ||
-                        pg.GetProperty("sha256").GetString() != sha)
-                        throw new InvalidDataException("Signed feed differs from immutable Catalog ZIP");
-                    if (selected.Contains(major, StringComparer.Ordinal))
-                        pins.Add(new ReleasePins(name, major, tagValue, asset, sha,
-                            repoId, releaseId,
-                            new Dictionary<string, long>
-                            {
-                                [asset] = assetId,
-                                ["SHA256SUMS.txt"] = sumId
-                            }, commit));
-                }
-            }
-            if (pins.Count != selected.Length * expectedCount)
-                throw new InvalidDataException("Incomplete Sigstore-signed Catalog selection");
+            var pins = await SelectPinsAsync(root, catalogue, cohort, pgSelection, token);
             progress?.Invoke($"CATALOG_PINS_SELECTED count={pins.Count} pg={pgSelection} extension_auth=INTEGRITY_ONLY");
-            return new Session(stage, commit, tag, pins, majors);
+            return new Session(stage, commit, tag, pins, cohort.Majors);
         }
         catch
         {
@@ -277,6 +203,78 @@ public static class SignedPublicCatalogFeed
                 System.IO.Directory.Delete(stage, recursive: true);
             throw;
         }
+    }
+
+    // Called after verifying the signature and every immutable Catalog file's digest.
+    internal static async Task<IReadOnlyList<ReleasePins>> SelectPinsAsync(JsonElement root,
+        string catalogue, PostgresqlFeedCohort cohort, string pgSelection, CancellationToken token = default)
+    {
+        var loaded = CatalogReader.LoadLocal(catalogue);
+        var releases = root.GetProperty("releases").EnumerateArray();
+        var entries = loaded.ToDictionary(entry => entry.Name, StringComparer.Ordinal);
+        if (entries.Count != root.GetProperty("extensionCount").GetInt32() ||
+            loaded.Any(entry => !cohort.Covers(entry)) ||
+            !loaded.Select(entry => entry.Name).SequenceEqual(releases
+                .Select(release => release.GetProperty("extension").GetString()).Order(StringComparer.Ordinal)))
+            throw new InvalidDataException("Signed Catalog fleet is incomplete");
+
+        var commit = root.GetProperty("catalogCommit").GetString()!;
+        var zipCount = 0;
+        var pins = new List<ReleasePins>();
+        foreach (var info in releases)
+        {
+            var name = info.GetProperty("extension").GetString()!;
+            using var record = StrictJson.Parse(
+                await File.ReadAllBytesAsync(Path.Combine(catalogue, "extensions", name + ".json"), token));
+            var catalog = record.RootElement;
+            var tagValue = info.GetProperty("releaseTag").GetString() ?? "";
+            var repoId = info.GetProperty("repositoryId").GetInt64();
+            var releaseId = info.GetProperty("releaseId").GetInt64();
+            var sumId = info.GetProperty("checksumsAssetId").GetInt64();
+            if (repoId <= 0 || releaseId <= 0 || sumId <= 0 ||
+                !PinnedReleaseSelector.SafeAssetName(tagValue) ||
+                tagValue != catalog.GetProperty("latest").GetProperty("releaseTag").GetString())
+                throw new InvalidDataException("Signed Catalog release identity invalid");
+
+            var zipRows = info.GetProperty("packages").EnumerateArray().ToArray();
+            var expectedMajors = entries[name].Versions.Select(version => version.Major)
+                .Where(major => cohort.Majors.Contains(major, StringComparer.Ordinal));
+            if (!zipRows.Select(row => row.GetProperty("pgMajor").GetString()).SequenceEqual(expectedMajors))
+                throw new InvalidDataException("Signed Catalog PG inventory incomplete");
+            zipCount += zipRows.Length;
+            foreach (var row in zipRows)
+            {
+                var major = row.GetProperty("pgMajor").GetString()!;
+                var asset = row.GetProperty("asset").GetString() ?? "";
+                var sha = row.GetProperty("sha256").GetString() ?? "";
+                var url = row.GetProperty("downloadUrl").GetString() ?? "";
+                var assetId = row.GetProperty("assetId").GetInt64();
+                var expectedUrl = "https://github.com/pgextwin/" + name +
+                    "/releases/download/" + tagValue + "/" + asset;
+                var pg = catalog.GetProperty("postgresql").GetProperty(major);
+                if (!pg.GetProperty("available").GetBoolean() ||
+                    !Sha64.IsMatch(sha) || assetId <= 0 ||
+                    !PinnedReleaseSelector.SafeAssetName(asset) ||
+                    !asset.StartsWith(name + "-", StringComparison.Ordinal) ||
+                    !asset.EndsWith("-pg" + major + "-windows-x64.zip", StringComparison.Ordinal) ||
+                    url != expectedUrl ||
+                    pg.GetProperty("asset").GetString() != asset ||
+                    pg.GetProperty("downloadUrl").GetString() != url ||
+                    pg.GetProperty("sha256").GetString() != sha)
+                    throw new InvalidDataException("Signed feed differs from immutable Catalog ZIP");
+                if (pgSelection == "all" || pgSelection == major)
+                    pins.Add(new ReleasePins(name, major, tagValue, asset, sha,
+                        repoId, releaseId,
+                        new Dictionary<string, long>
+                        {
+                            [asset] = assetId,
+                            ["SHA256SUMS.txt"] = sumId
+                        }, commit));
+            }
+        }
+        if (zipCount != root.GetProperty("zipCount").GetInt32() || pins.Count == 0)
+            throw new InvalidDataException("Incomplete Sigstore-signed Catalog selection");
+        return pins;
     }
 
     private static async Task<(byte[] Bytes, string Tag)> GetReleaseAssetAsync(

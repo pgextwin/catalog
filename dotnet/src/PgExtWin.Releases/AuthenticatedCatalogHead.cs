@@ -108,8 +108,8 @@ public static class AuthenticatedCatalogHead
         var stage = Path.Combine(parent, ".pgextwin-latest-" + Guid.NewGuid().ToString("N"));
         var cohortBytes = await ReadAsync(http, ImmutableUrl(commit, "config/cli-feed-majors.json"),
             cancellationToken);
-        var majors = ParseCohort(cohortBytes);
-        var session = new Session(stage, commit, majors);
+        var cohort = ParseCohort(cohortBytes);
+        var session = new Session(stage, commit, cohort.Required);
         Directory.CreateDirectory(session.CatalogPath);
         try
         {
@@ -142,11 +142,7 @@ public static class AuthenticatedCatalogHead
                     data, cancellationToken);
             }
             var entries = CatalogReader.LoadLocal(session.CatalogPath);
-            if (entries.Count != names.Length || entries.Any(x =>
-                majors.Any(major => !x.Versions.Any(version => version.Major == major)) ||
-                x.Versions.Any(version =>
-                    !majors.Contains(version.Major, StringComparer.Ordinal) &&
-                    int.Parse(version.Major) >= int.Parse(majors[0]))))
+            if (entries.Count != names.Length || entries.Any(entry => !cohort.Covers(entry)))
                 throw new InvalidDataException("Catalog latest missing approved cohort");
             // Fail closed on concurrent publication or head replacement.
             if (await HeadAsync() != commit)
@@ -156,27 +152,18 @@ public static class AuthenticatedCatalogHead
         catch { session.Dispose(); throw; }
     }
 
-    private static string[] ParseCohort(byte[] payload)
+    private static PostgresqlFeedCohort ParseCohort(byte[] payload)
     {
         // Protected-main cohort, authenticated with the signed merge and
         // exact-head Validate. This is NOT independent Sigstore feed validation.
         using var doc = StrictJson.Parse(payload);
         var root = doc.RootElement;
         if (root.ValueKind != JsonValueKind.Object ||
-            root.EnumerateObject().Count() != 2 ||
+            root.EnumerateObject().Count() !=
+                (root.TryGetProperty(PostgresqlFeedCohort.OptionalProperty, out _) ? 3 : 2) ||
             root.GetProperty("schemaVersion").GetInt32() != 1)
             throw new InvalidDataException("Invalid protected Catalog PG cohort policy");
-        var values = root.GetProperty("postgresqlMajors");
-        if (values.ValueKind != JsonValueKind.Array || values.GetArrayLength() is < 1 or > 12)
-            throw new InvalidDataException("Invalid protected PG cohort length");
-        var majors = values.EnumerateArray().Select(x =>
-            x.ValueKind == JsonValueKind.String ? x.GetString() ?? "" : "").ToArray();
-        if (majors.Any(x => !Regex.IsMatch(x, @"\A[1-9][0-9]*\z") ||
-                            !int.TryParse(x, out var n) || n < 14 || n > 32) ||
-            !majors.SequenceEqual(Enumerable.Range(int.Parse(majors[0]), majors.Length)
-                  .Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture))))
-            throw new InvalidDataException("Noncontiguous or unsupported protected PG cohort");
-        return majors;
+        return PostgresqlFeedCohort.Parse(root);
     }
 
     private static Uri ImmutableUrl(string sha, string path) =>

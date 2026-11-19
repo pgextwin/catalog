@@ -4,11 +4,13 @@ on:
     paths:
       - 'dotnet/**'
       - '.github/workflows/cli-authenticated-latest-canary.yml'
+      - 'scripts/check-cli-signed-feed-receipt.ps1'
   push:
     branches: [main]
     paths:
       - 'dotnet/**'
       - '.github/workflows/cli-authenticated-latest-canary.yml'
+      - 'scripts/check-cli-signed-feed-receipt.ps1'
 
 permissions:
   contents: read
@@ -72,18 +74,7 @@ jobs:
             $match=[regex]::Match($receipt, 'CATALOG_COMMIT=([0-9a-f]{40})')
             if (!$match.Success) { throw 'Missing signed feed source commit' }
             $source=$match.Groups[1].Value
-            $cohort=Invoke-RestMethod -Uri "https://raw.githubusercontent.com/pgextwin/catalog/$source/config/cli-feed-majors.json"
-            $approved=[string[]]@($cohort.postgresqlMajors)
-            $actual=[string[]]@($info.packages | ForEach-Object { [string]$_.pgMajor } | Sort-Object -Unique)
-            $extensions=[string[]]@($info.packages | ForEach-Object { [string]$_.extension } | Sort-Object -Unique)
-            $pairs=@($info.packages | ForEach-Object { "$($_.extension)|$($_.pgMajor)" })
-            if ($cohort.schemaVersion -ne 1 -or $approved.Count -lt 1 -or
-                ($approved -join ',') -cne ($actual -join ',') -or
-                $expected -ne ($approved.Count * $extensions.Count) -or
-                @($pairs | Sort-Object -Unique).Count -ne $expected -or
-                (Split-Path $folder -Leaf) -cne "pgextwin-pg$($approved[0])-$($approved[-1])") {
-              throw 'Signed latest cohort and actual ZIP matrix differ'
-            }
+            & (Join-Path $env:GITHUB_WORKSPACE 'scripts/check-cli-signed-feed-receipt.ps1') -Source $source -Folder $folder -Receipt $info
             $hashes=0
             foreach ($row in $info.packages) {
               if ($row.catalogCommit -notmatch '^[0-9a-f]{40}$' -or $row.releaseTag -notmatch '^[a-zA-Z0-9._-]+$') { throw 'Unpinned latest receipt' }

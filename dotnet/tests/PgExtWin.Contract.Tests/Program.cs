@@ -92,6 +92,7 @@ await ReleaseHttpTests.RunAsync(Check);
 await BatchDownloadTests.RunAsync(Check);
 await TrustedBootstrapTests.RunAsync(Check);
 await AuthenticatedCatalogHeadTests.RunAsync(Check);
+await SignedPublicCatalogFeedTests.RunAsync(Check);
 await PinnedBrowserDownloadTests.RunAsync(Check);
 await ExternalProviderIsolationTests.RunAsync(Check);
 await ExternalProviderAssetTransportTests.RunAsync(Check);

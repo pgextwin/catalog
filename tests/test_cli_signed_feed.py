@@ -6,7 +6,7 @@ import sys
 import textwrap
 import unittest
 from pathlib import Path
-from scripts.cli_signed_feed import build_feed, canonical, SCHEMA
+from scripts.cli_signed_feed import build_feed, canonical, OPTIONAL_SCHEMA, SCHEMA
 
 NAMES = ["hypopg","orafce","pg_bigm","pg_cron","pg_hint_plan",
          "pg_ivm","pg_partman","pg_qualstats","pg_repack",
@@ -164,6 +164,79 @@ class SignedFeedTests(unittest.TestCase):
         self.assets["pgtap"]["release"]["draft"] = False
         self.assets["pgtap"]["release"]["published_at"] = None
         with self.assertRaises(ValueError):
+            self.generate()
+
+    def test_optional_pg19_preserves_required_packages_and_uses_same_asset_checks(self):
+        config = self.root / "config" / "cli-feed-majors.json"
+        required = ["15", "16", "17", "18"]
+        policy = {"schemaVersion": 1, "postgresqlMajors": required}
+        config.write_text(json.dumps(policy))
+        baseline = self.generate()
+        for optional in ("18", "20", "019", 19, None):
+            config.write_text(json.dumps({**policy, "optionalPostgresqlMajor": optional}))
+            with self.subTest(optional=optional), self.assertRaisesRegex(ValueError, "Unsafe optional"):
+                self.generate()
+
+        config.write_text(json.dumps({**policy, "optionalPostgresqlMajor": "19"}))
+        self.assertEqual(canonical(self.generate()), canonical(baseline))
+        unavailable = self.root / "extensions" / "hypopg.json"
+        record = json.loads(unavailable.read_text())
+        record["postgresql"]["19"] = {"available": False}
+        unavailable.write_text(json.dumps(record))
+        self.assertEqual(self.generate()["schemaVersion"], SCHEMA)
+
+        ready = self.root / "extensions" / "wal2json.json"
+        record = json.loads(ready.read_text())
+        pg18 = record["postgresql"]["18"]
+        asset = pg18["asset"].replace("-pg18-", "-pg19-")
+        url = pg18["downloadUrl"].replace("-pg18-", "-pg19-")
+        record["postgresql"]["19"] = {**pg18, "asset": asset, "downloadUrl": url}
+        ready.write_text(json.dumps(record))
+        release = self.assets["wal2json"]["release"]
+        with self.assertRaisesRegex(ValueError, "does not match public Release"):
+            self.generate()
+        original = {"id": 301, "name": asset, "state": "uploaded",
+                    "browser_download_url": url, "digest": "sha256:" + D}
+        release["assets"].append(original)
+
+        feed = self.generate()
+        self.assertEqual(feed["schemaVersion"], OPTIONAL_SCHEMA)
+        self.assertEqual(feed["postgresqlMajors"], required)
+        self.assertEqual(feed["optionalPostgresqlMajor"], "19")
+        self.assertEqual(feed["zipCount"], baseline["zipCount"] + 1)
+        for old, new in zip(baseline["releases"], feed["releases"], strict=True):
+            packages = new["packages"]
+            self.assertEqual(old, {**new, "packages": packages[:len(required)]})
+            self.assertEqual([p["pgMajor"] for p in packages[len(required):]],
+                             ["19"] if new["extension"] == "wal2json" else [])
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/cli-signed-catalog-feed.yml").read_text()
+        inventory = textwrap.dedent(workflow.split("<<'FEED_INVENTORY_PY'\n", 1)[1]
+                                    .split("          FEED_INVENTORY_PY\n", 1)[0])
+        source = self.root / "feed.json"
+        source.write_bytes(canonical(feed))
+        subprocess.run([sys.executable, "-c", inventory, str(source), SHA],
+                       check=True, capture_output=True)
+        feed["releases"][0]["packages"].pop(0)
+        feed["zipCount"] -= 1
+        source.write_bytes(canonical(feed))
+        self.assertNotEqual(subprocess.run([sys.executable, "-c", inventory, str(source), SHA],
+                                           capture_output=True).returncode, 0)
+
+        original["digest"] = "sha256:" + "c" * 64
+        with self.assertRaisesRegex(ValueError, "does not match public Release"):
+            self.generate()
+        original["digest"] = "sha256:" + D
+        for major in required:
+            row = record["postgresql"].pop(major)
+            ready.write_text(json.dumps(record))
+            with self.subTest(missing=major), self.assertRaisesRegex(ValueError, "major set"):
+                self.generate()
+            record["postgresql"][major] = row
+        ready.write_text(json.dumps(record))
+        row = next(a for a in release["assets"] if a["name"] == pg18["asset"])
+        release["assets"].remove(row)
+        with self.assertRaisesRegex(ValueError, "does not match public Release"):
             self.generate()
 
     def test_retired_extension_removed_from_authorized_roster(self):
@@ -326,6 +399,12 @@ class SignedFeedTests(unittest.TestCase):
                                      text=True, capture_output=True)
                 self.assertNotEqual(run.returncode, 0)
                 self.assertFalse(notes.exists())
+            feed.update(postgresqlMajors=["15", "16", "17", "18"],
+                        optionalPostgresqlMajor="19", zipCount=73)
+            source.write_text(json.dumps(feed))
+            subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
+                           check=True, capture_output=True)
+            self.assertIn("PostgreSQL 19 is available for 1 of these extensions.", notes.read_text())
 
 
 

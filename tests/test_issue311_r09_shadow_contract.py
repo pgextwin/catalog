@@ -42,7 +42,8 @@ class PrivatePreview(unittest.TestCase):
         # Its signed-feed cohort can omit EOL PG14 while published history remains.
         self.assertIn(self.majors["postgresqlMajors"],
                       [self.e["pgMajors"], self.e["pgMajors"][1:]])
-        self.assertEqual(set(self.record["postgresql"]),set(self.e["pgMajors"]))
+        self.assertEqual(set(self.record["postgresql"]) - {self.majors.get("optionalPostgresqlMajor")},
+                         set(self.e["pgMajors"]))
     def test_deny_all_publication(self):
         for key in ("publicReleaseAuthorized","proposedPublicRecord","writeOutcomeUnknown",
             "catalogMainUpdateAuthorized","createPublicCatalogRecord","createTagOrRelease",
