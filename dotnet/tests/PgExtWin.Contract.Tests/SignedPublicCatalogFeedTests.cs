@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using PgExtWin.Releases;
@@ -7,6 +8,11 @@ internal static class SignedPublicCatalogFeedTests
 {
     private static readonly string[] Required = ["15", "16", "17", "18"];
     private static readonly string[] Names = ["hypopg", "pg_ivm", "wal2json"];
+    private const string Repo = "https://github.com/pgextwin/catalog/";
+    private const string Discovery = Repo + "commits/catalog-feed-v2-current.atom";
+    private const string Latest = Repo + "releases/latest/download/";
+    private const string Tagged = Repo + "releases/download/";
+    private const string Cdn = "https://release-assets.githubusercontent.com/";
 
     public static async Task RunAsync(Action<bool, string> check)
     {
@@ -18,6 +24,10 @@ internal static class SignedPublicCatalogFeedTests
             {
                 ["schemaVersion"] = "pgextwin-signed-catalog-zip-feed/v1",
                 ["catalogCommit"] = new string('a', 40),
+                ["repository"] = "pgextwin/catalog",
+                ["extensionSignatureVerified"] = false,
+                ["publicationAuthorized"] = false,
+                ["installAuthorized"] = false,
                 ["extensionCount"] = Names.Length,
                 ["postgresqlMajors"] = JsonSerializer.SerializeToNode(Required),
                 ["zipCount"] = Names.Length * Required.Length,
@@ -78,6 +88,7 @@ internal static class SignedPublicCatalogFeedTests
             var baseline = await Select("all");
             check(baseline.Count == 12 && baseline.All(pin => pin.PgMajor != "14"),
                 "signed v1 cohort retains its required-only selection");
+            var completeFeed = JsonSerializer.SerializeToUtf8Bytes(feed);
 
             var pg19 = Package("wal2json", "19");
             records["wal2json"]["19"] = new JsonObject
@@ -96,6 +107,7 @@ internal static class SignedPublicCatalogFeedTests
             feed["optionalPostgresqlMajor"] = "19";
             feed["zipCount"] = 13;
 
+            await CheckFeedDiscoveryAsync(catalog, completeFeed, JsonSerializer.SerializeToUtf8Bytes(feed), check);
             var all = await Select("all");
             check(all.Where(pin => pin.PgMajor != "19").Select(Identity).SequenceEqual(baseline.Select(Identity)),
                 "signed v2 keeps all original required-major pins in order");
@@ -133,6 +145,111 @@ internal static class SignedPublicCatalogFeedTests
             await Reject("signed PG19 ZIP digest is checked even for a PG15 request");
         }
         finally { Directory.Delete(catalog, recursive: true); }
+    }
+
+    private static async Task CheckFeedDiscoveryAsync(string catalog, byte[] complete, byte[] optional,
+        Action<bool, string> check)
+    {
+        var commit = new string('a', 40);
+        var completeTag = "catalog-feed-" + commit;
+        var optionalTag = "catalog-feed-v2-" + commit;
+        const string v1 = "catalog-latest";
+        const string v2 = "catalog-latest-v2";
+        var bundle = "{}"u8.ToArray();
+        var discovery = $"""
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <entry><link rel="alternate" href="{Repo}commit/{commit}" /></entry>
+            </feed>
+            """;
+
+        using var handler = new FeedHandler();
+        using var http = new HttpClient(handler);
+        void QueuePair(string stem, string tag, byte[] feed, bool latest)
+        {
+            foreach (var (suffix, bytes) in new[] { (".json", feed), (".sigstore.json", bundle) })
+            {
+                var asset = stem + suffix;
+                var tagged = Tagged + tag + "/" + asset;
+                if (latest)
+                    handler.Redirect(Latest + asset, tagged);
+                handler.Redirect(tagged, Cdn + asset);
+                handler.Bytes(Cdn + asset, bytes);
+            }
+        }
+        void QueueDiscovery() => handler.Bytes(Discovery, System.Text.Encoding.UTF8.GetBytes(discovery));
+
+        QueueDiscovery();
+        QueuePair(v2, optionalTag, optional, latest: false);
+        var fetched = await SignedPublicCatalogFeed.FetchFeedAsync(http);
+        using var fetchedJson = JsonDocument.Parse(fetched.Feed);
+        var cohort = SignedPublicCatalogFeed.ReadFeedCohort(fetchedJson.RootElement);
+        check(fetched.Tag == optionalTag && fetched.Feed.SequenceEqual(optional) &&
+              fetched.Bundle.SequenceEqual(bundle) && cohort.Optional == "19" && handler.Remaining == 0,
+            "signed reader selects the separate commit-tagged v2 feed and bundle");
+
+        handler.Status(Discovery, HttpStatusCode.NotFound);
+        QueuePair(v1, completeTag, complete, latest: true);
+        fetched = await SignedPublicCatalogFeed.FetchFeedAsync(http);
+        check(fetched.Tag == completeTag && fetched.Feed.SequenceEqual(complete) &&
+              fetched.Bundle.SequenceEqual(bundle) && handler.Remaining == 0,
+            "signed reader falls back to v1 when the discovery ref is absent");
+
+        QueueDiscovery();
+        handler.Status(Tagged + optionalTag + "/" + v2 + ".json", HttpStatusCode.NotFound);
+        QueuePair(v1, completeTag, complete, latest: true);
+        fetched = await SignedPublicCatalogFeed.FetchFeedAsync(http);
+        check(fetched.Tag == completeTag && fetched.Feed.SequenceEqual(complete) && handler.Remaining == 0,
+            "signed reader falls back to v1 after a newer v1-only publication");
+
+        QueueDiscovery();
+        handler.Redirect(Tagged + optionalTag + "/" + v2 + ".json", Cdn + v2 + ".json");
+        handler.Bytes(Cdn + v2 + ".json", optional);
+        handler.Status(Tagged + optionalTag + "/" + v2 + ".sigstore.json", HttpStatusCode.NotFound);
+        var denied = false;
+        try { await SignedPublicCatalogFeed.FetchFeedAsync(http); }
+        catch (HttpRequestException) { denied = true; }
+        check(denied && handler.Remaining == 0, "missing v2 bundle fails closed without trying v1");
+
+        QueueDiscovery();
+        var wrongCommit = JsonNode.Parse(optional)!.AsObject();
+        wrongCommit["catalogCommit"] = new string('b', 40);
+        QueuePair(v2, optionalTag, JsonSerializer.SerializeToUtf8Bytes(wrongCommit), latest: false);
+        denied = false;
+        try { using var _ = await SignedPublicCatalogFeed.AcquireAsync(catalog, "19", handler); }
+        catch (InvalidDataException ex) when (ex.Message.Contains("identity", StringComparison.Ordinal)) { denied = true; }
+        check(denied && handler.Remaining == 0, "v2 tag must match the claimed Catalog commit");
+
+        handler.Status(Discovery, HttpStatusCode.NotFound);
+        QueuePair(v1, completeTag, optional, latest: true);
+        denied = false;
+        try { using var _ = await SignedPublicCatalogFeed.AcquireAsync(catalog, "18", handler); }
+        catch (InvalidDataException ex) when (ex.Message.Contains("identity", StringComparison.Ordinal)) { denied = true; }
+        check(denied && handler.Remaining == 0, "legacy release tag cannot serve a v2 feed");
+    }
+
+    private sealed class FeedHandler : HttpMessageHandler
+    {
+        private readonly Queue<(Uri Request, HttpResponseMessage Response)> exchanges = new();
+        internal int Remaining => exchanges.Count;
+
+        internal void Status(string url, HttpStatusCode status) =>
+            exchanges.Enqueue((new Uri(url), new HttpResponseMessage(status)));
+
+        internal void Redirect(string url, string target) =>
+            exchanges.Enqueue((new Uri(url), new HttpResponseMessage(HttpStatusCode.Redirect)
+                { Headers = { Location = new Uri(target) } }));
+
+        internal void Bytes(string url, byte[] bytes) =>
+            exchanges.Enqueue((new Uri(url), new HttpResponseMessage(HttpStatusCode.OK)
+                { Content = new ByteArrayContent(bytes) }));
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            if (!exchanges.TryDequeue(out var exchange) || request.Method != HttpMethod.Get ||
+                request.RequestUri != exchange.Request)
+                throw new InvalidOperationException("Unexpected signed feed GET " + request.RequestUri);
+            return Task.FromResult(exchange.Response);
+        }
     }
 
     private static (string, string, string, string, string, long) Identity(ReleasePins pin) =>
