@@ -263,6 +263,16 @@ def map_verified_release(existing, release, ext, contract, assets, sums,
             "vulnerabilityReport":entry(".vulnerabilities.json")
         }
         out["postgresql"][str(m)]=item
+    # PG14 reached end of life on 2026-11-12 and is outside the maintained
+    # release matrix. When the new Release does not contain PG14, the
+    # historical PG14 entry must not be carried forward as available:
+    # validation binds every available entry (and its SPDX/Grype evidence)
+    # to the new Release tag, which has no PG14 assets. Preserve the major
+    # as an explicit unavailable marker instead; the historical PG14
+    # binaries remain available through the previous Release's
+    # fixed/pinned paths.
+    if "14" in out["postgresql"] and 14 not in required_majors:
+        out["postgresql"]["14"]={"available":False}
     out["runtime"]["requirements"]=copy.deepcopy(contract["runtimeRequirements"])
     out["capabilities"]={
         "testContractVersion":2,

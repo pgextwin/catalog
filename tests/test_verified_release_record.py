@@ -118,8 +118,35 @@ class RecordTests(unittest.TestCase):
                 del parts[4][name]
                 del parts[5][name]
         out=mapped("wal2json",parts,required=[15,16,17,18])
-        self.assertEqual(out["postgresql"]["14"]["asset"],"historical-pg14.zip")
+        # PG14 is EOL: the major is preserved as an explicit unavailable
+        # marker, never carried forward as available under a Release tag
+        # that has no PG14 assets.
+        self.assertEqual(out["postgresql"]["14"],{"available":False})
         self.assertEqual(out["postgresql"]["15"]["available"],True)
+
+    def test_pg14_rollover_marks_unavailable_for_pg19_release(self):
+        # wal2json-shaped rollover: the existing record carries a full
+        # PG14 entry bound to the old tag; the new Release covers 15-19.
+        parts=fixture("wal2json")
+        parts[0]["postgresql"]["14"]={
+            "available":True,"asset":"wal2json-wal2json_2_7-pg14-windows-x64.zip",
+            "downloadUrl":"https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg14-windows-x64.zip",
+            "sha256":"f"*64,"evidence":{}}
+        for name in list(parts[4]):
+            if "-pg14-" in name:
+                del parts[4][name]
+                del parts[5][name]
+        for m in (19,):
+            ref=parts[2]["upstream"]["ref"]
+            stem="wal2json-"+ref+"-pg"+str(m)+"-windows-x64"
+            for suffix in (".zip",".spdx.json",".vulnerabilities.json"):
+                fn=stem+suffix
+                parts[5][fn]="f"*64
+                parts[4][fn]={"name":fn,"state":"uploaded","digest":"sha256:"+"f"*64}
+        parts[2]["postgresql"]["majors"]=[14,15,16,17,18,19]
+        out=mapped("wal2json",parts,required=[15,16,17,18,19])
+        self.assertEqual(out["postgresql"]["14"],{"available":False})
+        self.assertEqual(out["postgresql"]["19"]["available"],True)
 
     def test_tampered_release_and_assets_are_rejected(self):
         mutations=(
