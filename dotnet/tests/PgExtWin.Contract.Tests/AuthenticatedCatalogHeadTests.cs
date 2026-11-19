@@ -23,6 +23,7 @@ internal static class AuthenticatedCatalogHeadTests
         public bool InvalidName = false;
         public string[]? RosterOverride;
         public string[] Majors = ["14", "15", "16", "17", "18"];
+        public bool OptionalPg19;
         private static readonly string[] Wave3 = ["pgtap", "pg_variables", "pg_store_plans"];
         private string[] Inventory => RosterOverride ?? Names
             .Concat(Wave3.Take(WaveThreeCount))
@@ -125,7 +126,10 @@ internal static class AuthenticatedCatalogHeadTests
             }
             else if (path.EndsWith("/config/cli-feed-majors.json", StringComparison.Ordinal))
             {
-                body = JsonSerializer.Serialize(new { schemaVersion = 1, postgresqlMajors = Majors });
+                body = OptionalPg19
+                    ? JsonSerializer.Serialize(new
+                        { schemaVersion = 1, postgresqlMajors = Majors, optionalPostgresqlMajor = "19" })
+                    : JsonSerializer.Serialize(new { schemaVersion = 1, postgresqlMajors = Majors });
             }
             else if (path.EndsWith("/index.json", StringComparison.Ordinal))
             {
@@ -137,7 +141,9 @@ internal static class AuthenticatedCatalogHeadTests
                 if (!Inventory.Contains(name, StringComparer.Ordinal))
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 var pg = new Dictionary<string, object>();
-                foreach (var major in new[] { "14", "15", "16", "17", "18" })
+                string[] recordMajors = OptionalPg19 && name == "wal2json"
+                    ? ["14", "15", "16", "17", "18", "19"] : ["14", "15", "16", "17", "18"];
+                foreach (var major in recordMajors)
                     pg.Add(major, new
                     {
                         available = true,
@@ -218,6 +224,13 @@ internal static class AuthenticatedCatalogHeadTests
                 try { using var session = await AuthenticatedCatalogHead.AcquireAsync(parent, malformed); }
                 catch (InvalidDataException) { denied = true; }
                 check(denied, "noncontiguous approved cohort fails closed");
+            }
+            using (var optional = new FixtureHandler { Majors = ["15", "16", "17", "18"], OptionalPg19 = true })
+            {
+                using var snapshot = await AuthenticatedCatalogHead.AcquireAsync(parent, optional);
+                var plan = await AuthenticatedLatestReleasePins.ResolveAsync(snapshot, "all", optional);
+                check(plan.Count == 56 && plan.All(pin => pin.PgMajor is not ("14" or "19")),
+                    "authenticated HEAD admits optional Catalog rows while its legacy resolver keeps the required cohort");
             }
 
             // All synthetic: the live Catalog still indexes only 14 signed public Releases.

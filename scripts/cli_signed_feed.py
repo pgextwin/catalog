@@ -19,9 +19,10 @@ EXTENSION = re.compile(r"[a-z][a-z0-9_]*\Z")
 SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 SHA64 = re.compile(r"[0-9a-f]{64}\Z")
 ASSET = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,159}\Z")
-MAJORS = ("14", "15", "16", "17", "18")
 LIMIT = 2_000_000
 SCHEMA = "pgextwin-signed-catalog-zip-feed/v1"
+OPTIONAL_SCHEMA = "pgextwin-signed-catalog-zip-feed/v2"
+OPTIONAL_MAJOR = "optionalPostgresqlMajor"
 # Membership is the exact protected Catalog index used by authenticated,
 # successful main CI and the pinned signer. Retirement may shrink that index;
 # nonempty/resource/identifier checks do not prescribe historical membership.
@@ -73,7 +74,7 @@ def declared_majors(root):
     """Fail-closed PG cohort configured in the protected, signed-feed source commit."""
     raw = source_bytes(root, "config/cli-feed-majors.json")
     matrix = strict_object(raw.decode("utf-8"))
-    if type(matrix) is not dict or set(matrix) != {"schemaVersion", "postgresqlMajors"} or (
+    if type(matrix) is not dict or set(matrix) - {OPTIONAL_MAJOR} != {"schemaVersion", "postgresqlMajors"} or (
         type(matrix["schemaVersion"]) is not int or matrix["schemaVersion"] != 1
     ):
         raise ValueError("Unknown signed-feed PG support policy")
@@ -85,14 +86,20 @@ def declared_majors(root):
         [int(item) for item in values] !=
             list(range(int(values[0]), int(values[0]) + len(values)))):
         raise ValueError("Unsafe or noncontiguous protected PostgreSQL cohort")
-    return tuple(values)
+    optional = matrix.get(OPTIONAL_MAJOR)
+    if OPTIONAL_MAJOR in matrix and (
+        len(values) == 12 or int(values[-1]) == MAX_MAJOR or
+        optional != str(int(values[-1]) + 1)
+    ):
+        raise ValueError("Unsafe optional PostgreSQL major")
+    return tuple(values), optional
 
 
 def build_feed(root, commit, load):
     root = Path(root)
     if not SHA40.fullmatch(commit):
         raise ValueError("Full protected Catalog commit required")
-    majors = declared_majors(root)
+    majors, optional = declared_majors(root)
     index_bytes = source_bytes(root, "index.json")
     index = strict_object(index_bytes.decode("utf-8"))
     names = index["extensions"]
@@ -112,10 +119,10 @@ def build_feed(root, commit, load):
         pg_matrix = data.get("postgresql")
         # Historical published majors (e.g. PG14 after EOL) remain in the
         # immutable Catalog record but cannot enter the signer-approved feed.
-        # Never tolerate a missing cohort major or an unapproved future major.
+        # Future rows require explicit approval in the protected policy.
         if (type(pg_matrix) is not dict or not set(majors).issubset(pg_matrix) or
             any(not re.fullmatch(r"[1-9][0-9]*", major) or
-                (major not in majors and not 14 <= int(major) < int(majors[0]))
+                (major not in majors and major != optional and not 14 <= int(major) < int(majors[0]))
                 for major in pg_matrix)):
             raise ValueError("Catalog major set differs from protected PG cohort")
         tag = data["latest"]["releaseTag"]
@@ -150,8 +157,11 @@ def build_feed(root, commit, load):
         if "SHA256SUMS.txt" not in assets:
             raise ValueError("Published checksum asset missing")
         packages = []
-        for major in majors:
-            pg = data["postgresql"][major]
+        package_majors = majors
+        if optional in pg_matrix and pg_matrix[optional].get("available") is not False:
+            package_majors += (optional,)
+        for major in package_majors:
+            pg = pg_matrix[major]
             if pg.get("available") is not True:
                 raise ValueError("Incomplete signed-feed cohort availability")
             filename = pg["asset"]
@@ -174,20 +184,25 @@ def build_feed(root, commit, load):
             "checksumsAssetId": assets["SHA256SUMS.txt"]["id"],
             "packages": packages,
         })
-    return {
+    zip_count = sum(len(record["packages"]) for record in records)
+    feed = {
         "schemaVersion": SCHEMA,
         "repository": "pgextwin/catalog",
         "catalogCommit": commit,
         "catalogSha256": source_hashes,
         "postgresqlMajors": list(majors),
         "extensionCount": len(names),
-        "zipCount": len(names) * len(majors),
+        "zipCount": zip_count,
         "releases": records,
         "verificationLevel": "CATALOG_FEED_SIGNED_CLAIM_ONLY",
         "extensionSignatureVerified": False,
         "publicationAuthorized": False,
         "installAuthorized": False,
     }
+    if zip_count > len(names) * len(majors):
+        feed["schemaVersion"] = OPTIONAL_SCHEMA
+        feed[OPTIONAL_MAJOR] = optional
+    return feed
 
 
 def canonical(feed):

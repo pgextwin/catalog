@@ -16,10 +16,10 @@ class SignedFeedTransitionSmokeContract(unittest.TestCase):
     def setUpClass(cls):
         cls.sources = {p: (ROOT / p).read_text(encoding="utf-8") for p in FILES}
 
-    def test_protected_policy_now_contains_only_current_major_cohort(self):
+    def test_protected_policy_keeps_current_required_major_cohort(self):
         policy = json.loads((ROOT / "config/cli-feed-majors.json").read_text())
-        self.assertEqual(policy, {"schemaVersion": 1,
-                                  "postgresqlMajors": ["15", "16", "17", "18"]})
+        self.assertEqual(policy["schemaVersion"], 1)
+        self.assertEqual(policy["postgresqlMajors"], ["15", "16", "17", "18"])
 
     def test_all_real_smokes_follow_signed_cohort_not_stale_five_major_path(self):
         for path, source in self.sources.items():
@@ -27,11 +27,8 @@ class SignedFeedTransitionSmokeContract(unittest.TestCase):
                 self.assertNotIn("'pgextwin-pg14-18'", source)
                 self.assertNotIn("(% 5)", source)
                 self.assertIn("CATALOG_COMMIT=([0-9a-f]{40})", source)
-                self.assertIn("/config/cli-feed-majors.json", source)
                 self.assertIn("Expected exactly one signed PG cohort directory", source)
-                self.assertIn("($approved -join ',') -cne", source)
-                self.assertIn("Sort-Object -Unique", source)
-                self.assertIn("pgextwin-pg$($approved[0])-$($approved[-1])", source)
+                self.assertIn("check-cli-signed-feed-receipt.ps1", source)
                 self.assertIn("ZIP", source)
                 self.assertIn("SHA256", source)
 
