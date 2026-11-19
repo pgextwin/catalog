@@ -96,6 +96,7 @@ def declared_majors(root):
 
 
 def build_feed(root, commit, load):
+    """Build the required-only v1 and, when available, the optional-cohort v2."""
     root = Path(root)
     if not SHA40.fullmatch(commit):
         raise ValueError("Full protected Catalog commit required")
@@ -111,6 +112,7 @@ def build_feed(root, commit, load):
         raise ValueError("Catalog extension inventory incomplete")
     source_hashes = {"index.json": hashlib.sha256(index_bytes).hexdigest()}
     records = []
+    optional_packages = {}
     for name in names:
         location = f"extensions/{name}.json"
         raw = source_bytes(root, location)
@@ -174,17 +176,20 @@ def build_feed(root, commit, load):
                 pg.get("downloadUrl") != url or filename not in assets or
                 assets[filename].get("digest") != "sha256:" + digest):
                 raise ValueError("Catalog ZIP does not match public Release")
-            packages.append({
+            package = {
                 "pgMajor": major, "asset": filename, "sha256": digest,
                 "downloadUrl": url, "assetId": assets[filename]["id"],
-            })
+            }
+            if major == optional:
+                optional_packages[name] = package
+            else:
+                packages.append(package)
         records.append({
             "extension": name, "releaseTag": tag,
             "repositoryId": repository_id, "releaseId": release_id,
             "checksumsAssetId": assets["SHA256SUMS.txt"]["id"],
             "packages": packages,
         })
-    zip_count = sum(len(record["packages"]) for record in records)
     feed = {
         "schemaVersion": SCHEMA,
         "repository": "pgextwin/catalog",
@@ -192,17 +197,22 @@ def build_feed(root, commit, load):
         "catalogSha256": source_hashes,
         "postgresqlMajors": list(majors),
         "extensionCount": len(names),
-        "zipCount": zip_count,
+        "zipCount": len(names) * len(majors),
         "releases": records,
         "verificationLevel": "CATALOG_FEED_SIGNED_CLAIM_ONLY",
         "extensionSignatureVerified": False,
         "publicationAuthorized": False,
         "installAuthorized": False,
     }
-    if zip_count > len(names) * len(majors):
-        feed["schemaVersion"] = OPTIONAL_SCHEMA
-        feed[OPTIONAL_MAJOR] = optional
-    return feed
+    if not optional_packages:
+        return feed, None
+    optional_feed = dict(feed, schemaVersion=OPTIONAL_SCHEMA, optionalPostgresqlMajor=optional,
+                         zipCount=feed["zipCount"] + len(optional_packages), releases=[
+        {**record, "packages": [*record["packages"], optional_packages[record["extension"]]]}
+        if record["extension"] in optional_packages else record
+        for record in records
+    ])
+    return feed, optional_feed
 
 
 def canonical(feed):
@@ -215,18 +225,28 @@ def main():
     parser.add_argument("--catalog", required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--v2-output")
     opts = parser.parse_args()
     token = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
     if not token:
         parser.error("Feed publisher requires job-scoped GitHub token")
-    feed = build_feed(opts.catalog, opts.commit,
-                      lambda repo, route: get_repo_json(repo, route, token))
-    path = Path(opts.output)
-    if path.exists() or path.is_symlink():
-        raise ValueError("Refuse to overwrite old feed")
-    path.write_bytes(canonical(feed))
-    print(f"CATALOG_FEED_READY={feed['zipCount']} HASH={hashlib.sha256(path.read_bytes()).hexdigest()} "
-          "SIGNED=false PUBLISH=DENY")
+    outputs = [Path(opts.output)]
+    if opts.v2_output is not None:
+        outputs.append(Path(opts.v2_output))
+    if len({path.resolve() for path in outputs}) != len(outputs) or any(
+        path.exists() or path.is_symlink() for path in outputs
+    ):
+        raise ValueError("Refuse to overwrite feed output")
+    feeds = build_feed(opts.catalog, opts.commit,
+                       lambda repo, route: get_repo_json(repo, route, token))
+    for path, feed in zip(outputs, feeds[:len(outputs)], strict=True):
+        if feed is None:
+            continue
+        data = canonical(feed)
+        with path.open("xb") as output:
+            output.write(data)
+        print(f"CATALOG_FEED_READY={feed['zipCount']} HASH={hashlib.sha256(data).hexdigest()} "
+              f"ASSET={path.name} SIGNED=false PUBLISH=DENY")
 
 
 if __name__ == "__main__":

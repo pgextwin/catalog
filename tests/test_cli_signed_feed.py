@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import tempfile
 import subprocess
 import sys
@@ -178,12 +179,16 @@ class SignedFeedTests(unittest.TestCase):
                 self.generate()
 
         config.write_text(json.dumps({**policy, "optionalPostgresqlMajor": "19"}))
-        self.assertEqual(canonical(self.generate()), canonical(baseline))
+        v1, v2 = build_feed(self.root, SHA, self.load)
+        self.assertEqual(canonical(v1), canonical(baseline))
+        self.assertIsNone(v2)
         unavailable = self.root / "extensions" / "hypopg.json"
         record = json.loads(unavailable.read_text())
         record["postgresql"]["19"] = {"available": False}
         unavailable.write_text(json.dumps(record))
-        self.assertEqual(self.generate()["schemaVersion"], SCHEMA)
+        v1, v2 = build_feed(self.root, SHA, self.load)
+        self.assertEqual(v1["schemaVersion"], SCHEMA)
+        self.assertIsNone(v2)
 
         ready = self.root / "extensions" / "wal2json.json"
         record = json.loads(ready.read_text())
@@ -199,8 +204,14 @@ class SignedFeedTests(unittest.TestCase):
                     "browser_download_url": url, "digest": "sha256:" + D}
         release["assets"].append(original)
 
-        feed = self.generate()
+        v1, feed = build_feed(self.root, SHA, self.load)
+        # The required-only feed still pins the exact Catalog bytes of this commit.
+        for path in (unavailable, ready):
+            baseline["catalogSha256"][f"extensions/{path.name}"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        self.assertEqual(canonical(v1), canonical(baseline))
         self.assertEqual(feed["schemaVersion"], OPTIONAL_SCHEMA)
+        self.assertEqual(feed["catalogCommit"], v1["catalogCommit"])
+        self.assertEqual(feed["catalogSha256"], v1["catalogSha256"])
         self.assertEqual(feed["postgresqlMajors"], required)
         self.assertEqual(feed["optionalPostgresqlMajor"], "19")
         self.assertEqual(feed["zipCount"], baseline["zipCount"] + 1)
@@ -213,15 +224,42 @@ class SignedFeedTests(unittest.TestCase):
                     ".github/workflows/cli-signed-catalog-feed.yml").read_text()
         inventory = textwrap.dedent(workflow.split("<<'FEED_INVENTORY_PY'\n", 1)[1]
                                     .split("          FEED_INVENTORY_PY\n", 1)[0])
-        source = self.root / "feed.json"
-        source.write_bytes(canonical(feed))
-        subprocess.run([sys.executable, "-c", inventory, str(source), SHA],
-                       check=True, capture_output=True)
+        artifact = self.root / "verified-catalog-feed"
+        artifact.mkdir()
+
+        def verify_as(stem, candidate):
+            for path in artifact.iterdir():
+                path.unlink()
+            (artifact / f"{stem}.json").write_bytes(canonical(candidate))
+            (artifact / f"{stem}.sigstore.json").write_text("{}")
+            return subprocess.run([sys.executable, "-c", inventory, str(artifact), SHA],
+                                  text=True, capture_output=True)
+
+        for stem, candidate in (("catalog-latest", v1), ("catalog-latest-v2", feed)):
+            verified = verify_as(stem, candidate)
+            self.assertEqual(verified.returncode, 0, verified.stderr)
+            self.assertEqual(verified.stdout.strip(), stem)
+        v2_calls = self.publish_commands(workflow, "catalog-latest-v2", ref_exists=False)
+        self.assertIn(f"release edit catalog-feed-v2-{SHA} --repo pgextwin/catalog "
+                      "--draft=false --latest=false --prerelease", v2_calls)
+        self.assertTrue(any(" --draft --latest=false --prerelease " in call for call in v2_calls))
+        self.assertTrue(v2_calls[-1].startswith("api --method POST repos/pgextwin/catalog/git/refs "
+                                               "-f ref=refs/heads/catalog-feed-v2-current "))
+
+        verify_as("catalog-latest", baseline)
+        v1_calls = self.publish_commands(workflow, "catalog-latest", ref_exists=False)
+        self.assertIn(f"release edit catalog-feed-{SHA} --repo pgextwin/catalog --draft=false --latest=true", v1_calls)
+        self.assertFalse(any("--prerelease" in call or "force=false" in call or
+                             "ref=refs/heads/" in call for call in v1_calls))
+        resumed_calls = self.publish_commands(workflow, "catalog-latest", ref_exists=True)
+        self.assertEqual(resumed_calls[-1], "api --method PATCH "
+                         f"repos/pgextwin/catalog/git/refs/heads/catalog-feed-v2-current -f sha={SHA} -F force=false")
+
+        self.assertNotEqual(verify_as("catalog-latest", feed).returncode, 0)
+        self.assertNotEqual(verify_as("catalog-latest-v2", v1).returncode, 0)
         feed["releases"][0]["packages"].pop(0)
         feed["zipCount"] -= 1
-        source.write_bytes(canonical(feed))
-        self.assertNotEqual(subprocess.run([sys.executable, "-c", inventory, str(source), SHA],
-                                           capture_output=True).returncode, 0)
+        self.assertNotEqual(verify_as("catalog-latest-v2", feed).returncode, 0)
 
         original["digest"] = "sha256:" + "c" * 64
         with self.assertRaisesRegex(ValueError, "does not match public Release"):
@@ -238,6 +276,35 @@ class SignedFeedTests(unittest.TestCase):
         release["assets"].remove(row)
         with self.assertRaisesRegex(ValueError, "does not match public Release"):
             self.generate()
+
+    def publish_commands(self, workflow, stem, *, ref_exists):
+        code = textwrap.dedent(workflow.split(
+            "      - name: Create-only draft -> rehash -> public metadata Release", 1
+        )[1].split("        run: |\n", 1)[1])
+        log = self.root / "gh.log"
+        log.unlink(missing_ok=True)
+        # Exercise the actual release-routing shell with local copies in place of GitHub.
+        gh = '''
+python() { "$TEST_PYTHON" "$@"; }
+gh() {
+  printf '%s\\n' "$*" >> "$RUNNER_TEMP/gh.log"
+  case "$1 $2" in
+    "release download")
+      cp "$RUNNER_TEMP"/verified-catalog-feed/* "$RUNNER_TEMP/feed-draft-audit"
+      ;;
+    "api repos/pgextwin/catalog/git/matching-refs/heads/catalog-feed-v2-current")
+      printf '%s\\n' "$DISCOVERY_REFS"
+      ;;
+  esac
+}
+'''
+        refs = [{"ref": "refs/heads/catalog-feed-v2-current"}] if ref_exists else []
+        result = subprocess.run(["bash", "-c", gh + code], capture_output=True, text=True,
+                                env={**os.environ, "RUNNER_TEMP": str(self.root), "SOURCE": SHA,
+                                     "STEM": stem, "DISCOVERY_REFS": json.dumps(refs),
+                                     "TEST_PYTHON": sys.executable})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return log.read_text().splitlines()
 
     def test_retired_extension_removed_from_authorized_roster(self):
         index = self.root / "index.json"
@@ -301,7 +368,7 @@ class SignedFeedTests(unittest.TestCase):
         return self.assets[name]["release" if route else "repo"]
 
     def generate(self):
-        return build_feed(self.root, SHA, self.load)
+        return build_feed(self.root, SHA, self.load)[0]
 
     def test_all_70_signed_feed_claims_not_original_signatures(self):
         feed = self.generate()
