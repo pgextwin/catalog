@@ -2,7 +2,7 @@
 """No-network tests for mapping a pre-verified formal Windows Release to Catalog v2."""
 import copy
 import unittest
-from scripts.verified_release_record import INTAKE_ALLOWED, Denied, tag_for, map_verified_release, seed_verified_first_release
+from scripts.verified_release_record import INTAKE_ALLOWED, Denied, majors, tag_for, map_verified_release, seed_verified_first_release
 
 REFS={
  "pg_bigm":("v1.2-20250903","1.2"),
@@ -150,6 +150,16 @@ class RecordTests(unittest.TestCase):
         f=fixture("hypopg")
         with self.assertRaises(Denied):
             mapped("hypopg",f,required=[14,15,16,16,18])
+
+class MajorsCap(unittest.TestCase):
+    def test_pg19_accepted_pg20_denied(self):
+        self.assertEqual(majors({"postgresql": {"majors": [15, 16, 17, 18, 19]}}),
+                         [15, 16, 17, 18, 19])
+        self.assertEqual(majors({"postgresql": {"minMajor": 15, "maxMajor": 19}}),
+                         [15, 16, 17, 18, 19])
+        with self.assertRaises(Denied):
+            majors({"postgresql": {"majors": [15, 16, 17, 18, 19, 20]}})
+
 
 if __name__=="__main__":
     unittest.main()
