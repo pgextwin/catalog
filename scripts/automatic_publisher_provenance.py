@@ -42,6 +42,7 @@ OWNER_SIGNING_ISSUES={
     "pgextwin/pg_ivm":67,
     "pgextwin/orafce":94,
     "pgextwin/pg_hint_plan":69,
+    "pgextwin/odbc_fdw":3,
     "pgextwin/pg_failover_slots":3,
     "pgextwin/pg_permissions":1,
     "pgextwin/pg_profile":2,

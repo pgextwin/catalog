@@ -42,6 +42,7 @@ SIGNER = "pgextwin/build/.github/workflows/build-extension-attested.yml"
 # The original Wave 3 pin stays the default for registry entries.
 FIRST_RELEASE_SIGNER_SHA = "5756b3c5136a8bf4db710016cfe97555f0a71c6d"
 FIRST_RELEASE_SIGNER_PINS = {
+    "odbc_fdw": "d6199f906e5e60fb9740479e37319e676f74ee2e",
     "pg_failover_slots": "89b2b8d49d1c09827307ce5d5c77beee3fa8641b",
     "pg_permissions": "cdb253b5167031264e1baea634b55934c5f91d59",
     "pg_profile": "ac17f771eef4113a85133b280bc79659eee04874",
