@@ -91,7 +91,7 @@
           "available": true,
           "asset": "odbc_fdw-dfb157dbf75c41381687608caf8fd35e2f973493-pg17-windows-x64.vulnerabilities.json",
           "downloadUrl": "https://github.com/pgextwin/odbc_fdw/releases/download/v0.5.2.3-windows.1/odbc_fdw-dfb157dbf75c41381687608caf8fd35e2f973493-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "386853770190798d28e4cb5f378f1a9ce85dc040b64b9524809c3745180e7e7ecaa6e"
+          "sha256": "386853770190798d28e4cb5f378f1a9ce85dc040b64c30267e9abfd4a6b1faa9"
         }
       }
     },
