@@ -11,43 +11,20 @@
   "license": "PostgreSQL-style",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.6.8-windows.2",
-    "publishedAt": "2026-10-10T00:19:06Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_cron/releases/tag/v1.6.8-windows.2",
+    "releaseTag": "v1.6.8-windows.3",
+    "publishedAt": "2026-11-20T04:59:27Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_cron/releases/tag/v1.6.8-windows.3",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
-      "available": true,
-      "asset": "pg_cron-v1.6.8-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg14-windows-x64.zip",
-      "sha256": "c72c862aaf7125bd52a34484f7143a14140661059569cbbc66ddd540846c89f3",
-      "evidence": {
-        "buildProvenanceAttestation": {
-          "available": true
-        },
-        "sbom": {
-          "available": true,
-          "asset": "pg_cron-v1.6.8-pg14-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg14-windows-x64.spdx.json",
-          "sha256": "0da26e9316e12260d9359e566b025e3513c0ddcfa3ef555daabd7328d1791422"
-        },
-        "sbomAttestation": {
-          "available": true
-        },
-        "vulnerabilityReport": {
-          "available": true,
-          "asset": "pg_cron-v1.6.8-pg14-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg14-windows-x64.vulnerabilities.json",
-          "sha256": "9687841da84cbdfc46330dc1e0a95b52b73ae8d4050d49df74df53993c1b19f3"
-        }
-      }
+      "available": false
     },
     "15": {
       "available": true,
       "asset": "pg_cron-v1.6.8-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg15-windows-x64.zip",
-      "sha256": "ee7c35b9113db483ab184e91e72e096ade9e44bf9a32b3f51f4e57ea16dfbd6e",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg15-windows-x64.zip",
+      "sha256": "3807ab6cccbdb824a1709eed19ca6e929629137ae96429d29c47b18f7611878d",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -55,8 +32,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg15-windows-x64.spdx.json",
-          "sha256": "f33ae092619aee0103c3ad1d4e2edfd647c8f03f12e28964e55a35b0228da2c6"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg15-windows-x64.spdx.json",
+          "sha256": "40cb55126a6bca4bec64efbc2646305fe1bd1acd03e7242366aa1620c6b9fa54"
         },
         "sbomAttestation": {
           "available": true
@@ -64,16 +41,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "9ea09d491f040f9281527ca2c4b6e810982fc41b653d8579bf5351d79452ef4d"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "52607626f4b3fe113e7a43bb74cb2630ec235d0ace40f2907fac3f9d093ffa56"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pg_cron-v1.6.8-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg16-windows-x64.zip",
-      "sha256": "d951a08890a506ab6b881224e3a73eb85806203230f48f927e58b4a7b71db112",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg16-windows-x64.zip",
+      "sha256": "92fb3e5a5fa053e6b857a161bdf42317cc060c457f64d20c985588d877fbbcd0",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -81,8 +58,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg16-windows-x64.spdx.json",
-          "sha256": "37166f4257405d6fd45c290cbd7276a5716e0344b1550357690a46ab2e53ce61"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg16-windows-x64.spdx.json",
+          "sha256": "e37f6509dfb33c5cadc3fae79523c40b987e025ed8f80840f78136215cc00c99"
         },
         "sbomAttestation": {
           "available": true
@@ -90,16 +67,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "f053fa56657229fc2742d3d9490bb564104be9cef61f239aa9b8ce34c3789c23"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "e32436d8c5219c118a9589cc872053f22b27e59fb712d770b32a93a36f26f894"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pg_cron-v1.6.8-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg17-windows-x64.zip",
-      "sha256": "2e6f128eb3839c636af7442fe8c2d167e215e36c2a2a6284be3077163bec41b8",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg17-windows-x64.zip",
+      "sha256": "d42f954711e03d90544e2a39384736291faff1a4c3faaf8f5cf4ed8ea46ec6d5",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -107,8 +84,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg17-windows-x64.spdx.json",
-          "sha256": "12a019a1868d949cc9e2a2a0c815a082a659f71d3362c65f0c4c7ae0cff619a0"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg17-windows-x64.spdx.json",
+          "sha256": "f5a0df61b96a4d594bd49275e949f4ee7aa1826b8a0dbff3f5311f8dc09bb46e"
         },
         "sbomAttestation": {
           "available": true
@@ -116,16 +93,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "bd949673edf3b91a84d16f5ee6da687caa650554c3ee11373a2c5762e01d595a"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "541dfe545ee33a392703fb094426f3dd97e0324cc706236143177f31e9ddeb8b"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pg_cron-v1.6.8-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg18-windows-x64.zip",
-      "sha256": "35822154d4af1eb06fa85f34df533918ee908a8e1af19137f05ce1f693b47103",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg18-windows-x64.zip",
+      "sha256": "02527e44bf3107cc282e15a595259a2a9cfa4de1e02cc9aab45cdb654254490f",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -133,8 +110,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg18-windows-x64.spdx.json",
-          "sha256": "2e4e1d57a0c8079146378bc427d773f83a9a044c3e760d90ecc7777935d177d2"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg18-windows-x64.spdx.json",
+          "sha256": "d8227bf3582894269a27f523b66b1bb558b363141e01df23316b8a1f36d1c666"
         },
         "sbomAttestation": {
           "available": true
@@ -142,8 +119,34 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_cron-v1.6.8-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.2/pg_cron-v1.6.8-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "badc029bfad6d9ab0082afc51e2964e600f94345867e95a0e6436fe771fe2fe6"
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "f409f5fb89653c63cd1705ecbac82dedf1a8925b4d5d4f78c64640076b388251"
+        }
+      }
+    },
+    "19": {
+      "available": true,
+      "asset": "pg_cron-v1.6.8-pg19-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg19-windows-x64.zip",
+      "sha256": "c6c3bea69ed2a0592293f8976cd603aa4cad7f8101b4ca7c779915d1a2f79653",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_cron-v1.6.8-pg19-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg19-windows-x64.spdx.json",
+          "sha256": "540fd217433ade78ad7fd66baa7bbd63aa8b39ec7ad3c3da5a203481b4ddce87"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_cron-v1.6.8-pg19-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_cron/releases/download/v1.6.8-windows.3/pg_cron-v1.6.8-pg19-windows-x64.vulnerabilities.json",
+          "sha256": "db4f612f295f7ac4a9bd5ef4bb114547f145c6850fa195113edb76641da20c6e"
         }
       }
     }
@@ -185,6 +188,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_cron",
     "path": "config/test-contract.json",
-    "commit": "c90668fd73d2f7ebab3aafc2b9d783bc0293254d"
+    "commit": "71b000736fcc9853c3f835ab809234ad7fb795b4"
   }
 }
