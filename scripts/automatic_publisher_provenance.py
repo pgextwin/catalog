@@ -53,6 +53,7 @@ OWNER_SIGNING_ISSUES={
     "pgextwin/pg_wait_sampling":3,
     "pgextwin/pldebugger":2,
     "pgextwin/wal2json":50,
+    "pgextwin/hypopg":58,
 }
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),
