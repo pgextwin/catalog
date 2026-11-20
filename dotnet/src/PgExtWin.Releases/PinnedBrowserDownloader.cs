@@ -33,7 +33,7 @@ public sealed class PinnedBrowserDownloader : IDisposable
     {
         if (!Regex.IsMatch(pin.Extension, @"\A[a-z][a-z0-9_]*\z",
                 RegexOptions.CultureInvariant) ||
-            !Regex.IsMatch(pin.PgMajor, @"\A1[4-8]\z") ||
+            !Regex.IsMatch(pin.PgMajor, @"\A(1[4-9]|2[0-9]|3[0-2])\z") ||
             !PinnedReleaseSelector.SafeAssetName(pin.Tag) ||
             !PinnedReleaseSelector.SafeAssetName(pin.AssetName) ||
             !pin.AssetName.StartsWith(pin.Extension + "-", StringComparison.Ordinal) ||

@@ -32,7 +32,7 @@ internal static class PinnedBrowserDownloadTests
         try
         {
             async Task<(bool rejected, string directory)> TryDownload(
-                string label, Scenario scenario)
+                string label, Scenario scenario, ReleasePins usePin)
             {
                 var folder = Path.Combine(root, "case-" + Guid.NewGuid().ToString("N"));
                 Directory.CreateDirectory(folder);
@@ -41,7 +41,7 @@ internal static class PinnedBrowserDownloadTests
                 bool rejected = false;
                 try
                 {
-                    var receipt = await client.DownloadAsync(pin, folder);
+                    var receipt = await client.DownloadAsync(usePin, folder);
                     check(scenario is Scenario.Success or Scenario.TransientGateway or Scenario.ApiRecover &&
                           receipt.Sha256 == sha && receipt.RepositoryId == 100001 &&
                           receipt.ReleaseId == 100002 && receipt.AssetId == 100003 &&
@@ -68,17 +68,22 @@ internal static class PinnedBrowserDownloadTests
                     check(fake.AssetRequests == 1, "HTTP 403 is never retried");
                 return (rejected, folder);
             }
-            await TryDownload("Github browser 302 to approved CDN", Scenario.Success);
-            await TryDownload("Changed final original ZIP SHA256", Scenario.Corrupt);
-            await TryDownload("Hostile external CDN redirect", Scenario.EvilRedirect);
-            await TryDownload("Metadata JSON not accepted as binary ZIP", Scenario.JsonBody);
-            await TryDownload("Binary HTTP 403 fails closed", Scenario.Deny);
-            await TryDownload("Two transient HTTP 504 replies recover on same verified URL", Scenario.TransientGateway);
-            await TryDownload("Three persistent HTTP 504 replies fail closed", Scenario.PersistentGateway);
-            await TryDownload("Verified native API asset-ID fallback obtains exact original ZIP", Scenario.ApiRecover);
-            await TryDownload("API metadata JSON cannot masquerade as ZIP", Scenario.ApiJson);
-            await TryDownload("API fallback never follows an untrusted redirect", Scenario.ApiEvilRedirect);
-            await TryDownload("HTTP 302 redirect loop fails closed", Scenario.Loop);
+            await TryDownload("Github browser 302 to approved CDN", Scenario.Success, pin);
+            await TryDownload("Changed final original ZIP SHA256", Scenario.Corrupt, pin);
+            await TryDownload("Hostile external CDN redirect", Scenario.EvilRedirect, pin);
+            await TryDownload("Metadata JSON not accepted as binary ZIP", Scenario.JsonBody, pin);
+            await TryDownload("Binary HTTP 403 fails closed", Scenario.Deny, pin);
+            await TryDownload("Two transient HTTP 504 replies recover on same verified URL", Scenario.TransientGateway, pin);
+            await TryDownload("Three persistent HTTP 504 replies fail closed", Scenario.PersistentGateway, pin);
+            await TryDownload("Verified native API asset-ID fallback obtains exact original ZIP", Scenario.ApiRecover, pin);
+            await TryDownload("API metadata JSON cannot masquerade as ZIP", Scenario.ApiJson, pin);
+            await TryDownload("API fallback never follows an untrusted redirect", Scenario.ApiEvilRedirect, pin);
+            await TryDownload("HTTP 302 redirect loop fails closed", Scenario.Loop, pin);
+            var pin19Name = "pg_cron-v1-pg19-windows-x64.zip";
+            var pin19 = new ReleasePins("pg_cron", "19", "v1-windows.1", pin19Name,
+                sha, 100001, 100002, new Dictionary<string, long> { [pin19Name] = 100003 },
+                new string('a', 40));
+            await TryDownload("Pinned public browser transport accepts the PG19 major cohort", Scenario.Success, pin19);
 
             var dest = Path.Combine(root, "final-batch");
             Directory.CreateDirectory(dest);
@@ -118,8 +123,9 @@ internal static class PinnedBrowserDownloadTests
             var url = req.RequestUri!;
             if (url.Host == "github.com")
             {
-                if (url.AbsolutePath !=
-                    "/pgextwin/pg_cron/releases/download/v1-windows.1/pg_cron-v1-pg18-windows-x64.zip")
+                if (url.AbsolutePath is not
+                        "/pgextwin/pg_cron/releases/download/v1-windows.1/pg_cron-v1-pg18-windows-x64.zip" and not
+                        "/pgextwin/pg_cron/releases/download/v1-windows.1/pg_cron-v1-pg19-windows-x64.zip")
                     throw new InvalidDataException("Browser URL is not exact pinned source");
                 var result = new HttpResponseMessage(HttpStatusCode.Redirect);
                 result.Headers.Location = scenario switch
