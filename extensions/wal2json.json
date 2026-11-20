@@ -11,43 +11,20 @@
   "license": "BSD-3-Clause",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v2.7-windows.1",
-    "publishedAt": "2026-10-12T09:46:28Z",
-    "releaseUrl": "https://github.com/pgextwin/wal2json/releases/tag/v2.7-windows.1",
+    "releaseTag": "v2.7-windows.2",
+    "publishedAt": "2026-11-20T01:30:05Z",
+    "releaseUrl": "https://github.com/pgextwin/wal2json/releases/tag/v2.7-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
-      "available": true,
-      "asset": "wal2json-wal2json_2_7-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg14-windows-x64.zip",
-      "sha256": "6e4f549c4c43e1695ea400bd045d412b4bec54e13b8be1dd6bdd257d0e7a26b0",
-      "evidence": {
-        "buildProvenanceAttestation": {
-          "available": true
-        },
-        "sbom": {
-          "available": true,
-          "asset": "wal2json-wal2json_2_7-pg14-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg14-windows-x64.spdx.json",
-          "sha256": "b49b29ed56d0902f5590ba748ad604a816d4d2025fd0beee37683bdb903990ea"
-        },
-        "sbomAttestation": {
-          "available": true
-        },
-        "vulnerabilityReport": {
-          "available": true,
-          "asset": "wal2json-wal2json_2_7-pg14-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg14-windows-x64.vulnerabilities.json",
-          "sha256": "a23c0ec563b1c2a2e93e38bda0dd76b5d79d4d688ff5ff1808e211496ecd34a2"
-        }
-      }
+      "available": false
     },
     "15": {
       "available": true,
       "asset": "wal2json-wal2json_2_7-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg15-windows-x64.zip",
-      "sha256": "fb11e93550a6e413dab55d9688fb64017e0a0ca63bdd4e009d125176b00548f2",
+      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg15-windows-x64.zip",
+      "sha256": "2a4edb0801d6e62ddaaca3abe5fab1c3e5eda993aa98dec236bb9a1ec583d1a9",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -55,8 +32,8 @@
         "sbom": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg15-windows-x64.spdx.json",
-          "sha256": "60c36d49580c62cf3952ee68615becaeab13fa9a4829c36d84d9648581764cc1"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg15-windows-x64.spdx.json",
+          "sha256": "2ad5a465f034d762aa281d8fd4adff57c878bf3046058687133026d4ccb60555"
         },
         "sbomAttestation": {
           "available": true
@@ -64,16 +41,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "6e8d3e1999b5621eb3b6f9eaee17cf0fd42f484b9ebe63bf9b375162f2688f9f"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "f639158afff737cad75ee3baf7e50eef43ae87decce74bf1ddc0edf39f1c9afa"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "wal2json-wal2json_2_7-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg16-windows-x64.zip",
-      "sha256": "3d13ec8d8797f5808d896f5b28b0a8a069fa4e183d57acb5b84bd98ca4409545",
+      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg16-windows-x64.zip",
+      "sha256": "d0ba2ff53c6e1a2676baec86ba261eb4a82400e532dd6f449c1d661ba403ee3b",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -81,8 +58,8 @@
         "sbom": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg16-windows-x64.spdx.json",
-          "sha256": "aeef2c0c7344c1aeccc7505fe50018b9945a198c46d9627fb915777cd45610dc"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg16-windows-x64.spdx.json",
+          "sha256": "d260aa00331d3a6cadbea21be76fb8e8eb30358c9ea88c1712ef90022dd04e37"
         },
         "sbomAttestation": {
           "available": true
@@ -90,16 +67,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "aa994582dc33715ac98fb2af15151526485855dab0ad9d7d4bbc8a350e1c95e3"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "9c853f030ff95f50b1661e3e207d18e0990986ba4fe01381ac5d402d167159dc"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "wal2json-wal2json_2_7-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg17-windows-x64.zip",
-      "sha256": "933de356db8b40faccdcef183863a6e2b6a8864a4353ffc311db65e644259515",
+      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg17-windows-x64.zip",
+      "sha256": "1f0ef79b7a457dbc6216c329ea6996f7101efe98a3994055f23c95d2fa2119dc",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -107,8 +84,8 @@
         "sbom": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg17-windows-x64.spdx.json",
-          "sha256": "14788d5e60f41c8de5bfe464e93cb1898777e02b067c4dbe5739026504977a84"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg17-windows-x64.spdx.json",
+          "sha256": "341bbcfac3133412e40e2fd98e70ced0f1f7e8583a42ad0ee7c850b88425f905"
         },
         "sbomAttestation": {
           "available": true
@@ -116,16 +93,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "66bce12cc097f733ba5eb35e1f89618091c3866de7303b0785a666a8b9caa77d"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "458e898f5d64aba7bad1ab62140ca91b904b7d874bec19aea87a8f03a385ac40"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "wal2json-wal2json_2_7-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg18-windows-x64.zip",
-      "sha256": "bd06bc2755c6ef7ebbde4ddcb04cf5e908c7a01ed8336dd869a4ea77cb6afc56",
+      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg18-windows-x64.zip",
+      "sha256": "9fb0999bc3a50bc38cb1b822ffee045eb6208df3c5553fd3a5d510cbbbe429b0",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -133,8 +110,8 @@
         "sbom": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg18-windows-x64.spdx.json",
-          "sha256": "a8d8177ae89eace7958d3a772a50139cc965fe9409b0d90d9641e957b6ebbe0a"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg18-windows-x64.spdx.json",
+          "sha256": "e4be17cb38a1337371743ccf55b7721b905381d14d844ec4d604c3e033e3205f"
         },
         "sbomAttestation": {
           "available": true
@@ -142,8 +119,34 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "wal2json-wal2json_2_7-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.1/wal2json-wal2json_2_7-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "61bd6ef199b8160e7d599c622c66f574f09870b06dc87f9ab2c6f35b65c6371b"
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "634b6b4ce4bad3940c914501e10be32f2dbbfbfa7388554b8cb12ec15739c69e"
+        }
+      }
+    },
+    "19": {
+      "available": true,
+      "asset": "wal2json-wal2json_2_7-pg19-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg19-windows-x64.zip",
+      "sha256": "e8444c8e01e5390241e2b03125e313391af3bb5e163c85d80a03776ab74d7c9d",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "wal2json-wal2json_2_7-pg19-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg19-windows-x64.spdx.json",
+          "sha256": "96b7c8a6a498b5061455b25bdb43c3e50a8b702ea61766d776ad4b5705f7b9f4"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "wal2json-wal2json_2_7-pg19-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/wal2json/releases/download/v2.7-windows.2/wal2json-wal2json_2_7-pg19-windows-x64.vulnerabilities.json",
+          "sha256": "a1c34e1f0aeb5e3825378e28ed68e5104f934dc90bc1e6bfe4d445c8c014c331"
         }
       }
     }
@@ -183,6 +186,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/wal2json",
     "path": "config/test-contract.json",
-    "commit": "1198ff30137ee3fd01a9e168647a7167324bb713"
+    "commit": "dc3ea9aebcc7a89776198e57132127c583dbb25d"
   }
 }
