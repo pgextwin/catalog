@@ -11,43 +11,20 @@
   "license": "PostgreSQL License",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v4.3.0-windows.1",
-    "publishedAt": "2026-11-05T12:06:12Z",
-    "releaseUrl": "https://github.com/pgextwin/set_user/releases/tag/v4.3.0-windows.1",
+    "releaseTag": "v4.3.0-windows.2",
+    "publishedAt": "2026-11-20T10:32:20Z",
+    "releaseUrl": "https://github.com/pgextwin/set_user/releases/tag/v4.3.0-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
-      "available": true,
-      "asset": "set_user-REL4_3_0-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg14-windows-x64.zip",
-      "sha256": "c2e0a996b1b1836332bacbc12d714d10d926596bef790bf9130f028bb104e4aa",
-      "evidence": {
-        "buildProvenanceAttestation": {
-          "available": true
-        },
-        "sbom": {
-          "available": true,
-          "asset": "set_user-REL4_3_0-pg14-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg14-windows-x64.spdx.json",
-          "sha256": "7a33b76d17f9eda3a671ffbfaaebe112a0c1951e12187a25f8d7821a8dd7351f"
-        },
-        "sbomAttestation": {
-          "available": true
-        },
-        "vulnerabilityReport": {
-          "available": true,
-          "asset": "set_user-REL4_3_0-pg14-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg14-windows-x64.vulnerabilities.json",
-          "sha256": "fc777b89724d79fedf0b71091325b41cfbd12769a1362b099abf0a21a4ef62ce"
-        }
-      }
+      "available": false
     },
     "15": {
       "available": true,
       "asset": "set_user-REL4_3_0-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg15-windows-x64.zip",
-      "sha256": "b5d62937e98dd10e939398997b4e65c06a1e6fcee83350ae712cfd8cdb5dacfe",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg15-windows-x64.zip",
+      "sha256": "2b419139c425e69b3b0ee49529242ade8692f6a849a361edc83f5ef76c1f73ee",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -55,8 +32,8 @@
         "sbom": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg15-windows-x64.spdx.json",
-          "sha256": "3a3bf399c609a3a6b6bfca855ba92afa60253cd116fdcaa5ecd47d60acdbdd5b"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg15-windows-x64.spdx.json",
+          "sha256": "c0df59df10959cbfcbe122198380f5a5ecb142972cf8551d7e92091122a4c5fc"
         },
         "sbomAttestation": {
           "available": true
@@ -64,16 +41,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "09c6e9b0cc43b5d5f0a0b61fd6574378eb0f14bf3d4cc8a5977ba1ed9087d7e7"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "870c37976547c36878b3091048aa62c0d4aa59614aed258fea7aec570bb74cae"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "set_user-REL4_3_0-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg16-windows-x64.zip",
-      "sha256": "7888de4c55b992dc775d6a643b249a984510f686dfb227be9b2c22ac03193bae",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg16-windows-x64.zip",
+      "sha256": "e7b3f4c059738b583226d795682dbca44be578779ea332b8024a46619ec92b3f",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -81,8 +58,8 @@
         "sbom": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg16-windows-x64.spdx.json",
-          "sha256": "fb269f36eedfd2f9cd47397608fde1edc858cee23b7f0797426f9bd978b9eb82"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg16-windows-x64.spdx.json",
+          "sha256": "2beb57ba4c02ab10e9d723bc6511773484a0d9095dcbdcc521095ee1963942b9"
         },
         "sbomAttestation": {
           "available": true
@@ -90,16 +67,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "ee5f610179a9de3119de6fe4f9b0bbb392fa4bac4ddc5876f221b4a78a0774d8"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "9b8e6b0b1661f4baceb7f20ad27345f37c65ff8504d85efc3282a3283c654a1e"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "set_user-REL4_3_0-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg17-windows-x64.zip",
-      "sha256": "f6c5cc7b42b19e6717bb82db24790d8b4be0feb7d21f7e2dd6d325c6f73254c3",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg17-windows-x64.zip",
+      "sha256": "cf661f5974d55ca9d437e78502a50f2c695b5a4829dde7bf7169c04c6bb73ff8",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -107,8 +84,8 @@
         "sbom": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg17-windows-x64.spdx.json",
-          "sha256": "fa3f916bdf783f9e6046a608d968269ea2288f62fca17ffafc5e457c07beb0f6"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg17-windows-x64.spdx.json",
+          "sha256": "34e584232f806d446008d30d30de491959eef83e3553622df334729403bfda75"
         },
         "sbomAttestation": {
           "available": true
@@ -116,16 +93,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "c10af943bf7efc6745fde28c7dcc19f38c44ad774cc62188d8663a9154816477"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "ebc1491d3e25f207f0f458212946819c80399dcf2e3a79062cadda68a0390117"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "set_user-REL4_3_0-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg18-windows-x64.zip",
-      "sha256": "305f3bbbc1d8493d277844275ca00ceacc8ef1fef17c276e3964188cac6d5fd8",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg18-windows-x64.zip",
+      "sha256": "abfea787efd6a273dfa20e24aa5669c005ee129e873cf66ec5ef378b17ce5504",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -133,8 +110,8 @@
         "sbom": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg18-windows-x64.spdx.json",
-          "sha256": "67b79a04cc61b4837e6c762eb537dc3901b44caa4b0c604b02c0d34e417706cc"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg18-windows-x64.spdx.json",
+          "sha256": "9499188e0e627b59d801f4c3bfca43b504b4ed2317714f26bdee3a25767e9799"
         },
         "sbomAttestation": {
           "available": true
@@ -142,8 +119,34 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "set_user-REL4_3_0-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.1/set_user-REL4_3_0-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "5e5e21d0c5c36bc0fd546076c2d67908d1bad5915b5cbc395413815109ccbb55"
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "28feea97efb1ac35fd87f5e83a2bc00071bf010f78459e5e6160ebdc7670f822"
+        }
+      }
+    },
+    "19": {
+      "available": true,
+      "asset": "set_user-REL4_3_0-pg19-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg19-windows-x64.zip",
+      "sha256": "4b31f8a7a44648652164964220c62210cdff60aab12ed35a4e5f7ee4e54c9b17",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "set_user-REL4_3_0-pg19-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg19-windows-x64.spdx.json",
+          "sha256": "6b53a6775463976b49d6b6ef4bc86700ee115e078b98574383c3fce8e43ee199"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "set_user-REL4_3_0-pg19-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg19-windows-x64.vulnerabilities.json",
+          "sha256": "2d7747302a39e1eb07150ce2467c822bbff74cf4c3dc3ea11bb273c09436f1ce"
         }
       }
     }
@@ -185,6 +188,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/set_user",
     "path": "config/test-contract.json",
-    "commit": "bc2733ee8f3712501c995d342d3b4c7022fe7f84"
+    "commit": "8c1197f75640b3c0b7e2f18b4901a2e4038665c3"
   }
 }
