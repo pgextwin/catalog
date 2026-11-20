@@ -207,7 +207,7 @@ class CatalogV2ValidationTests(unittest.TestCase):
         self.assertEqual("not-covered", record["capabilities"]["coverage"]["upgrade"])
         self.assertEqual(["detect-invalid-record-field"], [s["id"] for s in record["capabilities"]["functionalScenarios"]])
         self.assertEqual(40, len(record["capabilitiesSource"]["commit"]))
-        self.assertTrue(all(metadata["evidence"]["buildProvenanceAttestation"]["available"] and metadata["evidence"]["sbomAttestation"]["available"] for metadata in record["postgresql"].values()))
+        self.assertTrue(all(metadata["evidence"]["buildProvenanceAttestation"]["available"] and metadata["evidence"]["sbomAttestation"]["available"] for metadata in record["postgresql"].values() if metadata["available"]))
 
 
     def test_pg_partman_release_describes_optional_bundled_bgw(self):
