@@ -3,8 +3,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Xml;
-using System.Xml.Linq;
 using PgExtWin.Catalog;
 using PgExtWin.Core;
 using Sigstore;
@@ -20,23 +18,19 @@ namespace PgExtWin.Releases;
 public static class SignedPublicCatalogFeed
 {
     private const string ReleaseRoot = "https://github.com/pgextwin/catalog/releases/";
-    private const string Discovery = "https://github.com/pgextwin/catalog/commits/catalog-feed-v2-current.atom";
-    private const string CompleteTagPrefix = "catalog-feed-";
-    private const string OptionalTagPrefix = "catalog-feed-v2-";
+    private const string TagPrefix = "catalog-feed-";
     private const string SignerSan =
         "https://github.com/pgextwin/catalog/.github/workflows/cli-signed-catalog-feed.yml@refs/heads/main";
     private const int MaxBytes = 2 * 1024 * 1024;
     private static readonly Regex Sha40 = new(@"\A[0-9a-f]{40}\z", RegexOptions.CultureInvariant);
     private static readonly Regex Sha64 = new(@"\A[0-9a-f]{64}\z", RegexOptions.CultureInvariant);
     private static readonly Regex SafeName = new(@"\A[a-z][a-z0-9_]*\z", RegexOptions.CultureInvariant);
-    private const string CompleteSchema = "pgextwin-signed-catalog-zip-feed/v1";
-    private const string OptionalSchema = "pgextwin-signed-catalog-zip-feed/v2";
+    private const string Schema = "pgextwin-signed-catalog-zip-feed/v2";
 
     internal static PostgresqlFeedCohort ReadFeedCohort(JsonElement root)
     {
         var cohort = PostgresqlFeedCohort.Parse(root);
-        var schema = cohort.Optional is null ? CompleteSchema : OptionalSchema;
-        if (root.GetProperty("schemaVersion").GetString() != schema)
+        if (root.GetProperty("schemaVersion").GetString() != Schema)
             throw new InvalidDataException("Unknown signed Catalog feed schema");
         var count = root.GetProperty("extensionCount").GetInt32();
         var zipCount = root.GetProperty("zipCount").GetInt32();
@@ -114,7 +108,7 @@ public static class SignedPublicCatalogFeed
             root.GetProperty("extensionSignatureVerified").ValueKind != JsonValueKind.False ||
             root.GetProperty("publicationAuthorized").ValueKind != JsonValueKind.False ||
             root.GetProperty("installAuthorized").ValueKind != JsonValueKind.False ||
-            tag != (cohort.Optional is null ? CompleteTagPrefix : OptionalTagPrefix) + commit)
+            tag != TagPrefix + commit)
             throw new InvalidDataException("Signed Catalog feed identity or trust boundary invalid");
 
         progress?.Invoke("FEED_SIGSTORE_VERIFY_START signer=pinned-workflow");
@@ -275,66 +269,34 @@ public static class SignedPublicCatalogFeed
         return pins;
     }
 
+    // The feed JSON is resolved exactly once through releases/latest. The exact
+    // Release tag is taken from that redirect chain and the Sigstore bundle GET
+    // is pinned to it, so a latest advance mid-fetch cannot mix two Releases.
+    // There is no discovery ref, no alternate stem and no fallback: a 404, a
+    // different tag or a verification failure is a fetch failure.
     internal static async Task<(byte[] Feed, byte[] Bundle, string Tag)> FetchFeedAsync(
         HttpClient http, CancellationToken token = default, Action<string>? progress = null)
     {
-        var optionalTag = await DiscoverOptionalTagAsync(http, token);
-        const string completeStem = "catalog-latest";
-        const string optionalStem = "catalog-latest-v2";
-        var stem = optionalTag is null ? completeStem : optionalStem;
+        const string stem = "catalog-latest";
         progress?.Invoke($"FEED_FETCH_START asset={stem}.json");
-        var feed = await GetReleaseAssetAsync(http, stem + ".json", optionalTag, token,
-            allowMissing: optionalTag is not null);
-        if (feed is null)
-        {
-            // The discovery branch can also point to a newer, v1-only publication.
-            optionalTag = null;
-            stem = completeStem;
-            progress?.Invoke($"FEED_FETCH_START asset={stem}.json");
-            feed = await GetReleaseAssetAsync(http, stem + ".json", null, token);
-        }
-        var (feedBytes, tag) = feed!.Value;
+        var (feedBytes, tag) = await GetReleaseAssetAsync(http, stem + ".json", null, token);
         progress?.Invoke($"FEED_FETCH_OK bytes={feedBytes.Length}");
         progress?.Invoke($"FEED_BUNDLE_FETCH_START asset={stem}.sigstore.json");
-        var (bundleBytes, secondTag) = (await GetReleaseAssetAsync(
-            http, stem + ".sigstore.json", optionalTag, token))!.Value;
+        var (bundleBytes, bundleTag) = await GetReleaseAssetAsync(
+            http, stem + ".sigstore.json", tag, token);
         progress?.Invoke($"FEED_BUNDLE_FETCH_OK bytes={bundleBytes.Length}");
-        if (tag != secondTag)
+        if (tag != bundleTag)
             throw new InvalidDataException("Signed feed and Sigstore bundle originate from different Releases");
         return (feedBytes, bundleBytes, tag);
     }
 
-    // This ref only discovers a candidate. The release tag, signed commit, signer
-    // certificate source digest and immutable Catalog bytes still have to agree.
-    private static async Task<string?> DiscoverOptionalTagAsync(HttpClient http, CancellationToken token)
+    private static async Task<(byte[] Bytes, string Tag)> GetReleaseAssetAsync(
+        HttpClient http, string asset, string? pinnedTag, CancellationToken token)
     {
-        using var response = await http.GetAsync(Discovery, HttpCompletionOption.ResponseHeadersRead, token);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return null;
-        response.EnsureSuccessStatusCode();
-        using var bytes = new MemoryStream(await ReadBoundedAsync(response.Content, token));
-        using var reader = XmlReader.Create(bytes);
-        XNamespace atom = "http://www.w3.org/2005/Atom";
-        const string commitPrefix = "https://github.com/pgextwin/catalog/commit/";
-        XElement? root;
-        try { root = XDocument.Load(reader).Root; }
-        catch (XmlException ex) { throw new InvalidDataException("Invalid Catalog feed discovery response", ex); }
-        var entry = root?.Element(atom + "entry");
-        var alternate = entry?.Elements(atom + "link").FirstOrDefault(link => (string?)link.Attribute("rel") == "alternate");
-        var href = (string?)alternate?.Attribute("href");
-        if (root?.Name != atom + "feed" || href is null || !href.StartsWith(commitPrefix, StringComparison.Ordinal) ||
-            !Sha40.IsMatch(href[commitPrefix.Length..]))
-            throw new InvalidDataException("Invalid Catalog feed discovery response");
-        return OptionalTagPrefix + href[commitPrefix.Length..];
-    }
-
-    private static async Task<(byte[] Bytes, string Tag)?> GetReleaseAssetAsync(
-        HttpClient http, string asset, string? optionalTag, CancellationToken token, bool allowMissing = false)
-    {
-        var path = (optionalTag is null ? "latest/download/" : "download/" + optionalTag + "/") + asset;
+        var path = (pinnedTag is null ? "latest/download/" : "download/" + pinnedTag + "/") + asset;
         var next = new Uri(ReleaseRoot + path);
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var release = optionalTag;
+        var release = pinnedTag;
         for (var hop = 0; hop < 6; hop++)
         {
             if (next.Scheme != Uri.UriSchemeHttps || next.Port != 443 ||
@@ -351,9 +313,12 @@ public static class SignedPublicCatalogFeed
                 var match = Regex.Match(next.AbsolutePath,
                     @"\A/pgextwin/catalog/releases/download/(catalog-feed-[0-9a-f]{40})/" +
                     Regex.Escape(asset) + @"\z", RegexOptions.CultureInvariant);
-                if (!match.Success || release is not null)
-                    throw new InvalidDataException("Feed latest escaped its exact Release tag");
-                release = match.Groups[1].Value;
+                if (!match.Success)
+                    throw new InvalidDataException("Feed asset escaped its exact Release tag");
+                if (release is null)
+                    release = match.Groups[1].Value;
+                else if (release != match.Groups[1].Value)
+                    throw new InvalidDataException("Feed asset escaped its exact Release tag");
             }
             else if (release is null ||
                      next.Host is not ("release-assets.githubusercontent.com" or
@@ -362,8 +327,6 @@ public static class SignedPublicCatalogFeed
 
             using var req = new HttpRequestMessage(HttpMethod.Get, next);
             using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, token);
-            if (allowMissing && hop == 0 && resp.StatusCode == HttpStatusCode.NotFound)
-                return null;
             if (resp.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.MovedPermanently
                 or HttpStatusCode.RedirectMethod or HttpStatusCode.TemporaryRedirect
                 or HttpStatusCode.PermanentRedirect)

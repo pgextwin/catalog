@@ -167,7 +167,7 @@ jobs:
           if ($LASTEXITCODE -ne 2 -or $duplicate -notmatch 'DENY: Duplicate --verbose') { throw 'Duplicate verbose accepted' }
           $unsupported = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --debug 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $unsupported -notmatch 'DENY:') { throw 'Unknown flag accepted' }
-          $downloadVerbose = & $exe download-all --pg 19 --verbose 2>&1 | Out-String
+          $downloadVerbose = & $exe download-all --pg 20 --verbose 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $downloadVerbose -notmatch 'DENY:') { throw 'Verbose bypassed PG validation' }
           $global:LASTEXITCODE = 0
           if ($json.schemaVersion -ne 'pgextwin-cli-local-catalog/v1' -or
