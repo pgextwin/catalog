@@ -45,7 +45,7 @@ FIRST_RELEASE_SIGNER_PINS = {
     "odbc_fdw": "d6199f906e5e60fb9740479e37319e676f74ee2e",
     "pg_failover_slots": "89b2b8d49d1c09827307ce5d5c77beee3fa8641b",
     "pg_permissions": "d62bbd49372f836123a9b005cf8f91e8e4e4fb6d",
-    "pg_profile": "ac17f771eef4113a85133b280bc79659eee04874",
+    "pg_profile": "c8b8a3cfad9734872ae9ceb8e305135a5d13e4a1",
     "pg_show_plans": "3b8f4b7cfb0b5245f5134a7c57be1c1dd1dc5558",
     "pg_squeeze": "cddbfb988f01c85200ac5fab36389ea0484da45f",
     "pg_track_settings": "cdb253b5167031264e1baea634b55934c5f91d59",
