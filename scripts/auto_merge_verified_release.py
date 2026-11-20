@@ -433,6 +433,15 @@ def perform(config_path, dry_run=False):
     # One immutable existing-record PR per genuine event; no index mutation.
     pr = min(eligible, key=lambda row: row.get("number", 0))
     number = pr["number"]
+    # The list endpoint omits the numeric "commits" field that the
+    # proposer-identity gate in inspect_pr requires; re-fetch the single
+    # PR (the shape the gate and its fixtures are defined against) and
+    # fail closed if it no longer matches the selected list entry.
+    selected_head = (pr.get("head") or {})
+    pr = api("repos/" + REPO + "/pulls/" + str(number))
+    require((pr.get("head") or {}).get("ref") == selected_head.get("ref")
+            and (pr.get("head") or {}).get("sha") == selected_head.get("sha"),
+            "selected Catalog PR changed during inspection")
     files = api("repos/" + REPO + "/pulls/" + str(number) + "/files?per_page=100")
     commits = api("repos/" + REPO + "/pulls/" + str(number) + "/commits?per_page=100")
     match = BRANCH.fullmatch((pr.get("head") or {}).get("ref", ""))
