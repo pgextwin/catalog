@@ -46,6 +46,7 @@ OWNER_SIGNING_ISSUES={
     "pgextwin/pg_failover_slots":3,
     "pgextwin/pg_permissions":1,
     "pgextwin/pg_profile":2,
+    "pgextwin/pg_cron":68,
     "pgextwin/pg_show_plans":2,
     "pgextwin/pg_squeeze":3,
     "pgextwin/pg_track_settings":1,
