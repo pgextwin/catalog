@@ -11,17 +11,17 @@
   "license": "PostgreSQL",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.1.11-windows.1",
-    "publishedAt": "2026-11-18T09:44:09Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/tag/v1.1.11-windows.1",
+    "releaseTag": "v1.1.11-windows.2",
+    "publishedAt": "2026-11-20T09:53:17Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/tag/v1.1.11-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "15": {
       "available": true,
       "asset": "pg_wait_sampling-v1.1.11-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg15-windows-x64.zip",
-      "sha256": "447f3e3eed2679c1012c5b96eb7b942af20eb9a8f73e04c6d71ce658fb5d94c7",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg15-windows-x64.zip",
+      "sha256": "dc8498429c5b4153495ed707d6119ed86b1f491185d64cc119f15f833b2db6c7",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -29,8 +29,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg15-windows-x64.spdx.json",
-          "sha256": "712f41077b3fc5c86aaa8e17b4dea71ef603ab5efcb54aff2426084e8f38924b"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg15-windows-x64.spdx.json",
+          "sha256": "0f289bad6c164f4c801328fbadb1faa10b1b0e66e271d3f81c8416b8077b47ef"
         },
         "sbomAttestation": {
           "available": true
@@ -38,16 +38,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "36eaebbc786954fc9fff92df8063d942efcd646e232e4ee59c3ec1f023c36314"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "660e3f84b24e6b06cbe13b2aee62acec5adf2ea443a6cabf49e149cff2aaab15"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pg_wait_sampling-v1.1.11-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg16-windows-x64.zip",
-      "sha256": "262cb147eeb281df5acc2efdd335685e6bb626e93c57746646bae3c01b8c9f3a",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg16-windows-x64.zip",
+      "sha256": "18d25ace44fb31d93bc2fa6944856860c41d59ceca0cb94a28fcb32bbcebcd85",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -55,8 +55,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg16-windows-x64.spdx.json",
-          "sha256": "da9d1af03c9f71908827761dc13f941108b14ba8844c38545dcafd6781992733"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg16-windows-x64.spdx.json",
+          "sha256": "8a4800884e1d986c16bbfce93e4c921c969ab1cdd3eea9239df19f1955a6ccca"
         },
         "sbomAttestation": {
           "available": true
@@ -64,16 +64,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "05ca3a5e030d7c55f82fabda9c5196ddb4064222a98ed819c392034e200eef09"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "cbf6abda7c331429f51b4cabedc7a368c30b9c810e5479fba859317a0a7b1469"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pg_wait_sampling-v1.1.11-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg17-windows-x64.zip",
-      "sha256": "1d69c648fcbe02a2339891d3d753e84a0d97fe17d574008195ca64b7bf1aed68",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg17-windows-x64.zip",
+      "sha256": "296a026008f63194d34c11e4951c7da2961357eaa3fc75a64e384ebc63e6b38d",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -81,8 +81,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg17-windows-x64.spdx.json",
-          "sha256": "404ffe2e07744b7f8c440f41000c7342fe67779196cf5edee42fb4d670c82871"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg17-windows-x64.spdx.json",
+          "sha256": "55a583128734c9612b820ef8c26c1ceb888fb7d04365048943680afecc49cc11"
         },
         "sbomAttestation": {
           "available": true
@@ -90,16 +90,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "db2eb3de92af62979b792120f31a2d2f5816bff5289b21d7a528225cf17b0772"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "980b28ff21a8f571d7d67af1fcabe32f7d4f5e79a669d1b53c2773aa33234c50"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pg_wait_sampling-v1.1.11-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg18-windows-x64.zip",
-      "sha256": "0683f51e2e6f04cefe1a18aeb23c6cf92e28144579378bfcfce82271c5ec4ced",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg18-windows-x64.zip",
+      "sha256": "0b8771d262812ca192fde0730925ffb34066b6bfcb49fbd4f8d38acf176d598f",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -107,8 +107,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg18-windows-x64.spdx.json",
-          "sha256": "63cc329d38cafa23cee49f3f7892cb11f7cdad07712e1c1b518b48b84cb2626f"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg18-windows-x64.spdx.json",
+          "sha256": "af5b7622de529f30c3ad9fb289c888ec763ded0e29e63ed155c81e8940df4e1f"
         },
         "sbomAttestation": {
           "available": true
@@ -116,8 +116,34 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_wait_sampling-v1.1.11-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.1/pg_wait_sampling-v1.1.11-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "2ac843c5fec7b46acd43e0efa5b564179f080e2d057ee8690c6616c7b8611ee3"
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "c3721470efb286483762b764f054fe0600a2dfe1d04fc2f969a44c3c24cd0690"
+        }
+      }
+    },
+    "19": {
+      "available": true,
+      "asset": "pg_wait_sampling-v1.1.11-pg19-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg19-windows-x64.zip",
+      "sha256": "cb8912fecd0876e40dbc23737fb98ca9c453b0c84b862d2e4493319435645f84",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg19-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg19-windows-x64.spdx.json",
+          "sha256": "d1a2f390dbf287689224e1be0890de58090e85060795011fe0061cdd9531d49b"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_wait_sampling-v1.1.11-pg19-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_wait_sampling/releases/download/v1.1.11-windows.2/pg_wait_sampling-v1.1.11-pg19-windows-x64.vulnerabilities.json",
+          "sha256": "efe93e8f5b8a9e3b5a3f2a55c007c35d393c50ae8c657c8c5a25cdd5494b59b6"
         }
       }
     }
@@ -159,6 +185,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_wait_sampling",
     "path": "config/test-contract.json",
-    "commit": "b2b67452dd15610f7046a115cdea37b009509026"
+    "commit": "0f45f3c266ab1074f5b36378401486588051477c"
   }
 }
