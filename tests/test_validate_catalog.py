@@ -199,7 +199,8 @@ class CatalogV2ValidationTests(unittest.TestCase):
         self.assertTrue({"15", "16", "17", "18"}.issubset({major for major, metadata in record["postgresql"].items() if metadata["available"]}))
         if "14" in record["postgresql"]:
             self.assertNotEqual("v2.10.13-windows.1", record["latest"]["releaseTag"])
-        self.assertNotIn("19", record["postgresql"])
+        if "19" in record["postgresql"]:
+            self.assertTrue(record["postgresql"]["19"]["available"])
         self.assertEqual("optional", record["runtime"]["requirements"]["preload"])
         self.assertEqual("required", record["runtime"]["requirements"]["extensionCreation"])
         self.assertFalse(record["runtime"]["requirements"]["backgroundWorker"])
