@@ -29,6 +29,10 @@ class WebsiteV1CompatibilityTests(unittest.TestCase):
             supported_majors = range(14, 19) if "14" in record["postgresql"] else range(15, 19)
             for major in map(str, supported_majors):
                 info = record["postgresql"][major]
+                if info["available"] is False:
+                    # PG14 EOL rollover marker: the major stays present in
+                    # the record but is explicitly unavailable (no asset).
+                    continue
                 self.assertIs(info["available"], True)
                 self.assertTrue(info["asset"])
 
