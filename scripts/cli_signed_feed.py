@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exact approved Catalog v2 -> read-only public ZIP feed builder.
+"""Exact approved Catalog -> single read-only public ZIP feed (v2) builder.
 
 The builder runs only on a protected-main, completed-success Validate workflow
 and reads public Release metadata with workflow-scoped GitHub access.
@@ -20,8 +20,7 @@ SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 SHA64 = re.compile(r"[0-9a-f]{64}\Z")
 ASSET = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,159}\Z")
 LIMIT = 2_000_000
-SCHEMA = "pgextwin-signed-catalog-zip-feed/v1"
-OPTIONAL_SCHEMA = "pgextwin-signed-catalog-zip-feed/v2"
+SCHEMA = "pgextwin-signed-catalog-zip-feed/v2"
 OPTIONAL_MAJOR = "optionalPostgresqlMajor"
 # Membership is the exact protected Catalog index used by authenticated,
 # successful main CI and the pinned signer. Retirement may shrink that index;
@@ -96,7 +95,7 @@ def declared_majors(root):
 
 
 def build_feed(root, commit, load):
-    """Build the required-only v1 and, when available, the optional-cohort v2."""
+    """Build the single v2 feed: required majors plus any available optional rows."""
     root = Path(root)
     if not SHA40.fullmatch(commit):
         raise ValueError("Full protected Catalog commit required")
@@ -112,7 +111,7 @@ def build_feed(root, commit, load):
         raise ValueError("Catalog extension inventory incomplete")
     source_hashes = {"index.json": hashlib.sha256(index_bytes).hexdigest()}
     records = []
-    optional_packages = {}
+    optional_count = 0
     for name in names:
         location = f"extensions/{name}.json"
         raw = source_bytes(root, location)
@@ -181,9 +180,8 @@ def build_feed(root, commit, load):
                 "downloadUrl": url, "assetId": assets[filename]["id"],
             }
             if major == optional:
-                optional_packages[name] = package
-            else:
-                packages.append(package)
+                optional_count += 1
+            packages.append(package)
         records.append({
             "extension": name, "releaseTag": tag,
             "repositoryId": repository_id, "releaseId": release_id,
@@ -197,22 +195,19 @@ def build_feed(root, commit, load):
         "catalogSha256": source_hashes,
         "postgresqlMajors": list(majors),
         "extensionCount": len(names),
-        "zipCount": len(names) * len(majors),
+        "zipCount": sum(len(record["packages"]) for record in records),
         "releases": records,
         "verificationLevel": "CATALOG_FEED_SIGNED_CLAIM_ONLY",
         "extensionSignatureVerified": False,
         "publicationAuthorized": False,
         "installAuthorized": False,
     }
-    if not optional_packages:
-        return feed, None
-    optional_feed = dict(feed, schemaVersion=OPTIONAL_SCHEMA, optionalPostgresqlMajor=optional,
-                         zipCount=feed["zipCount"] + len(optional_packages), releases=[
-        {**record, "packages": [*record["packages"], optional_packages[record["extension"]]]}
-        if record["extension"] in optional_packages else record
-        for record in records
-    ])
-    return feed, optional_feed
+    # The optional major is declared only when at least one real optional row
+    # exists; with zero optional rows the key is omitted and the feed carries
+    # the required cohort only (CLI v0.4.0 contract).
+    if optional_count:
+        feed[OPTIONAL_MAJOR] = optional
+    return feed
 
 
 def canonical(feed):
@@ -225,28 +220,20 @@ def main():
     parser.add_argument("--catalog", required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--v2-output")
     opts = parser.parse_args()
     token = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
     if not token:
         parser.error("Feed publisher requires job-scoped GitHub token")
-    outputs = [Path(opts.output)]
-    if opts.v2_output is not None:
-        outputs.append(Path(opts.v2_output))
-    if len({path.resolve() for path in outputs}) != len(outputs) or any(
-        path.exists() or path.is_symlink() for path in outputs
-    ):
+    path = Path(opts.output)
+    if path.exists() or path.is_symlink():
         raise ValueError("Refuse to overwrite feed output")
-    feeds = build_feed(opts.catalog, opts.commit,
-                       lambda repo, route: get_repo_json(repo, route, token))
-    for path, feed in zip(outputs, feeds[:len(outputs)], strict=True):
-        if feed is None:
-            continue
-        data = canonical(feed)
-        with path.open("xb") as output:
-            output.write(data)
-        print(f"CATALOG_FEED_READY={feed['zipCount']} HASH={hashlib.sha256(data).hexdigest()} "
-              f"ASSET={path.name} SIGNED=false PUBLISH=DENY")
+    feed = build_feed(opts.catalog, opts.commit,
+                      lambda repo, route: get_repo_json(repo, route, token))
+    data = canonical(feed)
+    with path.open("xb") as output:
+        output.write(data)
+    print(f"CATALOG_FEED_READY={feed['zipCount']} HASH={hashlib.sha256(data).hexdigest()} "
+          f"ASSET={path.name} SIGNED=false PUBLISH=DENY")
 
 
 if __name__ == "__main__":
