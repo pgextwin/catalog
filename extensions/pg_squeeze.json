@@ -5,119 +5,145 @@
   "description": "Removes unused space from a table and optionally sorts tuples according to a particular index",
   "upstream": {
     "repository": "Cybertec-PostgreSQL/pg_squeeze",
-    "version": "1.9.4"
+    "version": "1.9.6"
   },
   "repository": "pgextwin/pg_squeeze",
   "license": "PostgreSQL",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v1.9.4-windows.1",
-    "publishedAt": "2026-11-18T11:15:05Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_squeeze/releases/tag/v1.9.4-windows.1",
+    "releaseTag": "v1.9.6-windows.1",
+    "publishedAt": "2026-11-21T09:07:21Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_squeeze/releases/tag/v1.9.6-windows.1",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "15": {
       "available": true,
-      "asset": "pg_squeeze-REL1_9_4-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg15-windows-x64.zip",
-      "sha256": "c8136f6e9957cb7fff198be0f13ec192052014f88c906e0fec6944c0b1500807",
+      "asset": "pg_squeeze-REL1_9_6-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg15-windows-x64.zip",
+      "sha256": "6682e14705c704a03a3dd04e47eacb15eb4fff7db841dbedfce00d8c7e78d8cd",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg15-windows-x64.spdx.json",
-          "sha256": "cbd354d8ce4c9e69f62d7545998056f2faac8e6407b91661cb88bb5b1554dcdf"
+          "asset": "pg_squeeze-REL1_9_6-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg15-windows-x64.spdx.json",
+          "sha256": "26ac85719e63e159425fcb655bb56ca5d0716e3f9aa4c3d64418688607236d95"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "922f526353b003cdb5e727a59b84ee2cf8fcf89e47983ab547ace0e7e7ecaa6e"
+          "asset": "pg_squeeze-REL1_9_6-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "92a81d97575b9a4cd8665c685e958396fd4eba6df482fa9b1afe652994456819"
         }
       }
     },
     "16": {
       "available": true,
-      "asset": "pg_squeeze-REL1_9_4-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg16-windows-x64.zip",
-      "sha256": "db4aabf65791ad69138f256960822334698f8f33ea16c649c91979673a3878cc",
+      "asset": "pg_squeeze-REL1_9_6-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg16-windows-x64.zip",
+      "sha256": "f6d1c63287bb6913e1e58f655de471cafc1161c4405b19bc90833af8b19426fb",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg16-windows-x64.spdx.json",
-          "sha256": "50fd6ff093b9e7612c64a1f6e544c7bcb9d58dfb5f19a2341a372f1f324f2246"
+          "asset": "pg_squeeze-REL1_9_6-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg16-windows-x64.spdx.json",
+          "sha256": "e1382e6f0b0fa2b78673b9756c5841018149d65e4319a46617e262e19cdd9580"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "753ae04976910a64a06903da34a3083085f6b15324871de5dbcbb24dcd7d0600"
+          "asset": "pg_squeeze-REL1_9_6-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "f9bb66aab5dfa56fb4f7790278a5fa8367e123fe26f1e5e00f3517967e67abc7"
         }
       }
     },
     "17": {
       "available": true,
-      "asset": "pg_squeeze-REL1_9_4-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg17-windows-x64.zip",
-      "sha256": "2c72fc21fc7fcff17a1b82fa0a576d2197315b0988aa3974b4b9a6800310c63b",
+      "asset": "pg_squeeze-REL1_9_6-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg17-windows-x64.zip",
+      "sha256": "85b6d5cb606225bb9215bfccfd6d274648f51456d695d8eca244f783816dd76b",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg17-windows-x64.spdx.json",
-          "sha256": "331399dc48438cd6e61c71d8eae9c7e368dc9fb023852dad82544097446498c6"
+          "asset": "pg_squeeze-REL1_9_6-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg17-windows-x64.spdx.json",
+          "sha256": "325dc501254326b10bf599e9a13384eced57f48fa181f8399165e217117c1c60"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "150dc7f3fbf528ef233f0bf50e0e990f58b6d1db89a2e4f243aa40bfb6e912fb"
+          "asset": "pg_squeeze-REL1_9_6-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "adfcc3292ae556ebf33be83ae8132c6b081452f595e34459231c29d437d11c8b"
         }
       }
     },
     "18": {
       "available": true,
-      "asset": "pg_squeeze-REL1_9_4-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg18-windows-x64.zip",
-      "sha256": "a22ef1ebe73420a02d607a342f22932302861b92258712603c0c678f8be1b7b2",
+      "asset": "pg_squeeze-REL1_9_6-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg18-windows-x64.zip",
+      "sha256": "c86f971133272f127ec00c0680893a7b36d7b2c51e7072f06d2fce57abe6c4b4",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg18-windows-x64.spdx.json",
-          "sha256": "5dc8639a079dda0e766e0c27a9b253df2aaba4907b77c0e66a412d2cae065a0e"
+          "asset": "pg_squeeze-REL1_9_6-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg18-windows-x64.spdx.json",
+          "sha256": "f9f779857cd8d5faf16380ee45da8386b7772159fd7f02d89a26d9580e0b2b88"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_squeeze-REL1_9_4-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.4-windows.1/pg_squeeze-REL1_9_4-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "6e0ab331800006a333397dd00055c5ab9ae283df512ffddb53e834bd657ca60e"
+          "asset": "pg_squeeze-REL1_9_6-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "124fe7e756948453db3b3fe3329d89914d181ec8869fc0c2bc3ed5af4e169eb9"
+        }
+      }
+    },
+    "19": {
+      "available": true,
+      "asset": "pg_squeeze-REL1_9_6-pg19-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg19-windows-x64.zip",
+      "sha256": "e4e44a8daad2ef63d19663d16065e855a13630c2515b6a9d996e08f2442dd2a2",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_squeeze-REL1_9_6-pg19-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg19-windows-x64.spdx.json",
+          "sha256": "0d0f6cb448dc6d9df9e369ba9e25c76c8c108c7b1180a67af9a08e3048df7e6b"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_squeeze-REL1_9_6-pg19-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_squeeze/releases/download/v1.9.6-windows.1/pg_squeeze-REL1_9_6-pg19-windows-x64.vulnerabilities.json",
+          "sha256": "7874ab99039584bf3fdaf6834dc869e185e59bcaf5ebfc49048b435b1560d158"
         }
       }
     }
@@ -166,6 +192,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_squeeze",
     "path": "config/test-contract.json",
-    "commit": "6c4d313d6b26a9b2be4eb08f3cd6bd19e5a1170c"
+    "commit": "d9ecea989333eff17433295adf639c4d4ae8a769"
   }
 }
