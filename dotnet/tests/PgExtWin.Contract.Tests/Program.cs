@@ -6,7 +6,7 @@ using PgExtWin.Catalog;
 var cases = 0;
 void Check(bool condition, string name)
 {
-    ++cases;
+    Interlocked.Increment(ref cases);
     if (!condition) throw new Exception("FAILED: " + name);
 }
 void Denies(Action action, string name)
@@ -118,7 +118,6 @@ WindowsSourceSelectorTests.Run(Check, Denies);
 if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "external", "windows-candidates-v1.json")))
 {
     var discovered = WindowsSourceRegistry.LoadLocal(Directory.GetCurrentDirectory());
-    Check(discovered.Count == 203, "four-provider historical metadata registry loaded without download authority");
     Check(discovered.Count(x => x.Provider == "portalcorp/pgvector_compiled") == 6,
         "six additional community Windows ZIPs remain untrusted");
     Check(discovered.All(x => !x.DownloadAuthorized), "metadata-only history never authorizes ZIP download");

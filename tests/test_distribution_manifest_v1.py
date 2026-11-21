@@ -133,31 +133,30 @@ class ManifestV1Tests(unittest.TestCase):
             build_manifest(**data)
 
     def test_verified_fixture_covers_full_fleet(self):
-        data = build_manifest(**fixtures())
-        self.assertTrue(data["complete"])
-        self.assertFalse(data["publicationAuthorized"])
-        self.assertEqual(len(data["packages"]), 70)
-        self.assertEqual(len(data["coverage"]), 70)
-        self.assertTrue(validate_manifest(data, SCHEMA))
-        self.assertEqual(set(p["evidence"]["status"] for p in data["packages"]),
-                         {"SIGNATURE_VERIFIED"})
+        inputs = fixtures()
+        data = build_manifest(**inputs)
+        with self.subTest(check="full fleet"):
+            self.assertTrue(data["complete"])
+            self.assertFalse(data["publicationAuthorized"])
+            self.assertEqual(len(data["packages"]), 70)
+            self.assertEqual(len(data["coverage"]), 70)
+            self.assertTrue(validate_manifest(data, SCHEMA))
+            self.assertEqual(set(p["evidence"]["status"] for p in data["packages"]),
+                             {"SIGNATURE_VERIFIED"})
 
-    def test_per_major_version_never_inferred_from_release_tag(self):
-        data = build_manifest(**fixtures())
+        # The same full fleet also exercises per-major upstream versions.
         for n in ("pgaudit", "pg_hint_plan"):
-            rows = [p for p in data["packages"] if p["extension"] == n]
-            self.assertEqual([p["packageVersion"] for p in rows],
-                             [m + ".1" for m in MAJORS])
-            self.assertEqual([p["upstreamRef"] for p in rows],
-                             ["REL_" + m for m in MAJORS] if n == "pg_hint_plan"
-                             else [m + ".1" for m in MAJORS])
+            with self.subTest(extension=n):
+                rows = [p for p in data["packages"] if p["extension"] == n]
+                self.assertEqual([p["packageVersion"] for p in rows],
+                                 [m + ".1" for m in MAJORS])
+                self.assertEqual([p["upstreamRef"] for p in rows],
+                                 ["REL_" + m for m in MAJORS] if n == "pg_hint_plan"
+                                 else [m + ".1" for m in MAJORS])
 
-    def test_repeatable_snapshot_id(self):
-        d = fixtures()
-        one = build_manifest(**d)
-        two = build_manifest(**copy.deepcopy(d))
-        self.assertEqual(canonical(one), canonical(two))
-        self.assertEqual(one["snapshotId"], two["snapshotId"])
+        with self.subTest(check="deterministic canonical bytes and snapshot ID"):
+            repeated = build_manifest(**copy.deepcopy(inputs))
+            self.assertEqual(canonical(data), canonical(repeated))
 
     def test_eol_day_transition_uses_utc(self):
         d = fixtures()
@@ -328,12 +327,8 @@ class ManifestV1Tests(unittest.TestCase):
                 m["publicationAuthorized"] = True
             with self.subTest(attack=attack), self.assertRaises(Denied):
                 validate_manifest(m, SCHEMA)
-
-    def test_unknown_manifest_key_denied(self):
-        b = build_manifest(**fixtures())
-        b["publisherToken"] = "surprise"
-        with self.assertRaises(Denied):
-            validate_manifest(b, SCHEMA)
+        with self.subTest(attack="unknown key"), self.assertRaises(Denied):
+            validate_manifest({**b, "publisherToken": "surprise"}, SCHEMA)
 
     def test_zip_safe(self):
         with zip_of([("PACKAGE-INFO.json", b"{}"),

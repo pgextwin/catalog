@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import os
 import tempfile
@@ -7,6 +8,7 @@ import sys
 import textwrap
 import unittest
 from copy import deepcopy
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 from scripts.cli_signed_feed import build_feed, canonical, get_catalog_record, get_repo_json, SCHEMA
@@ -242,6 +244,7 @@ class SignedFeedTests(unittest.TestCase):
                     ".github/workflows/cli-signed-catalog-feed.yml").read_text()
         inventory = textwrap.dedent(workflow.split("<<'FEED_INVENTORY_PY'\n", 1)[1]
                                     .split("          FEED_INVENTORY_PY\n", 1)[0])
+        inventory = compile(inventory, "FEED_INVENTORY_PY", "exec")
         artifact = self.root / "verified-catalog-feed"
         artifact.mkdir()
 
@@ -250,13 +253,13 @@ class SignedFeedTests(unittest.TestCase):
                 path.unlink()
             (artifact / "catalog-latest.json").write_bytes(canonical(candidate))
             (artifact / "catalog-latest.sigstore.json").write_text("{}")
-            return subprocess.run([sys.executable, "-c", inventory, str(artifact), SHA],
-                                  text=True, capture_output=True)
+            output = io.StringIO()
+            with patch.object(sys, "argv", ["-", str(artifact), SHA]), redirect_stdout(output):
+                exec(inventory, {"__name__": "__main__"})
+            return output.getvalue()
 
         for candidate in (feed, baseline):
-            verified = verify(candidate)
-            self.assertEqual(verified.returncode, 0, verified.stderr)
-            self.assertEqual(verified.stdout.strip(), "catalog-latest")
+            self.assertEqual(verify(candidate).strip(), "catalog-latest")
 
         calls = self.publish_commands(workflow)
         self.assertIn(f"api --method POST repos/pgextwin/catalog/git/refs "
@@ -270,10 +273,12 @@ class SignedFeedTests(unittest.TestCase):
                              "ref=refs/heads/" in call for call in calls))
 
         latest(feed["extensions"][0])["packages"].pop(0)
-        self.assertNotEqual(verify(feed).returncode, 0)
+        with self.assertRaises(AssertionError):
+            verify(feed)
         # A v1-shaped body is no longer a valid published feed.
         legacy = {**baseline, "schemaVersion": "pgextwin-signed-catalog-zip-feed/v1"}
-        self.assertNotEqual(verify(legacy).returncode, 0)
+        with self.assertRaises(AssertionError):
+            verify(legacy)
 
         original["digest"] = "sha256:" + "c" * 64
         with self.assertRaisesRegex(ValueError, "does not match public Release"):
