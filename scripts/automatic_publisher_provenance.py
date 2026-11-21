@@ -55,6 +55,7 @@ OWNER_SIGNING_ISSUES={
     "pgextwin/wal2json":50,
     "pgextwin/hypopg":58,
     "pgextwin/pg_qualstats":62,
+    "pgextwin/pg_bigm":73,
 }
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),
