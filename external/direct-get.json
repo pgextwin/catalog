@@ -617,6 +617,41 @@
           "sha256": "b7e56b40512b8e22c6f79eee5d5674270dfe6cf2d02d81fd0024a630ba06c991"
         }
       ]
+    },
+    {
+      "provider": "osgeo",
+      "extension": "postgis",
+      "pgMajor": "19",
+      "sourceRepo": "postgis/postgis",
+      "repositoryId": 0,
+      "releaseTag": "3.7.0",
+      "releaseId": 0,
+      "assetName": "postgis-bundle-pg19-3.7.0x64.zip",
+      "assetId": 0,
+      "originalBytes": 83705586,
+      "originalSha256": "5d5630aa0405fbf4503697a1c4fbc80ab896b2ae5799bf71b994a8a87af85b3c",
+      "originalProviderUrl": "https://download-cache.osgeo.org/postgis/windows/pg19/postgis-bundle-pg19-3.7.0x64.zip",
+      "upstreamVersion": "3.7.0",
+      "pgroutingVersion": "4.0.1",
+      "license": "Multiple (PostGIS, pgRouting and bundled components)",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://github.com/postgis/postgis/blob/3.7.0/LICENSE.TXT",
+          "file": "LICENSE.TXT",
+          "sha256": "c6932c2f90517d5254f49c02f957d54b88b41ec662c2ca62a9488b0ab080b11d"
+        },
+        {
+          "url": "https://github.com/pgRouting/pgrouting/blob/v4.0.1/LICENSE",
+          "file": "LICENSE",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        {
+          "url": "https://github.com/autotools-mirror/gettext/blob/v0.19.8/gettext-runtime/intl/dcigettext.c",
+          "file": "gettext-runtime/intl/dcigettext.c",
+          "sha256": "b7e56b40512b8e22c6f79eee5d5674270dfe6cf2d02d81fd0024a630ba06c991"
+        }
+      ]
     }
   ]
 }
