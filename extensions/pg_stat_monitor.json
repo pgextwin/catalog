@@ -5,145 +5,148 @@
   "description": "Time-bucketed query statistics for PostgreSQL.",
   "upstream": {
     "repository": "percona/pg_stat_monitor",
-    "version": "2.4.0"
+    "version": "2.4.1"
   },
   "repository": "pgextwin/pg_stat_monitor",
   "license": "PostgreSQL",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v2.4.0-windows.1",
-    "publishedAt": "2026-10-10T16:38:56Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/tag/v2.4.0-windows.1",
+    "releaseTag": "v2.4.1-windows.1",
+    "publishedAt": "2026-11-21T17:49:56Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/tag/v2.4.1-windows.1",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
     "14": {
-      "available": true,
-      "asset": "pg_stat_monitor-2.4.0-pg14-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg14-windows-x64.zip",
-      "sha256": "fb65c11f6e5989becc34af4c9377bd4b3f9b3d5f9d1ae845ad5a6ba32215557d",
-      "evidence": {
-        "buildProvenanceAttestation": {
-          "available": true
-        },
-        "sbom": {
-          "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg14-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg14-windows-x64.spdx.json",
-          "sha256": "e831da4c7c14a032ea6fb8fc8b2de62ce5f13f37c7dcd4156073ba9bafc7fa8c"
-        },
-        "sbomAttestation": {
-          "available": true
-        },
-        "vulnerabilityReport": {
-          "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg14-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg14-windows-x64.vulnerabilities.json",
-          "sha256": "1e20490b172b0d38ec686d6c1bb178770d3679c608dcb341a5b5d7d95e367bbe"
-        }
-      }
+      "available": false
     },
     "15": {
       "available": true,
-      "asset": "pg_stat_monitor-2.4.0-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg15-windows-x64.zip",
-      "sha256": "ec43027e55c128caa79b15f5e3d6a8520b7988ab8f9e70324f79b6705e170d57",
+      "asset": "pg_stat_monitor-2.4.1-pg15-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg15-windows-x64.zip",
+      "sha256": "16fe7c5d0756cad5c7df9f98abc3df39d9a1d9f93e58f70a9b712b0371ca29c3",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg15-windows-x64.spdx.json",
-          "sha256": "8aec0232fa13ef479bfca6fd9fccf0160877fed27420eccd74e0670ae27aedfc"
+          "asset": "pg_stat_monitor-2.4.1-pg15-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg15-windows-x64.spdx.json",
+          "sha256": "2e559c9bedaaa0fee8fa1ff31751174c9a5205ac33a1074d98e18c6a0edd4157"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "ee7f62b4b1d268df8902581fd74d893b1d99a951faacbbd82bf248cac8944323"
+          "asset": "pg_stat_monitor-2.4.1-pg15-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "90a591d7124a3b2146fd54ecb681907dae568c5cad704f14797f1049ca8f6856"
         }
       }
     },
     "16": {
       "available": true,
-      "asset": "pg_stat_monitor-2.4.0-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg16-windows-x64.zip",
-      "sha256": "e24d7846e5855fefb05aabeba180f3da067c8ce6dcca90c8264f124b7d7370b4",
+      "asset": "pg_stat_monitor-2.4.1-pg16-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg16-windows-x64.zip",
+      "sha256": "c0bdf6f1422d0ae46799c1008d9251c932214b8beedc4efe62fc4e70bbfbf1b6",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg16-windows-x64.spdx.json",
-          "sha256": "6844447dce31e81216dcf644932c74b6f1f7a5c31bb571859f8645fcd6ed454d"
+          "asset": "pg_stat_monitor-2.4.1-pg16-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg16-windows-x64.spdx.json",
+          "sha256": "6731de062f470f802dd3e0bb8a31d33bbdf440ef20fc5cb49428645c323565fb"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "20552ccc8d1f3ecd109e4bef8788feee7a22e8f2b0914346685e0ded971af19e"
+          "asset": "pg_stat_monitor-2.4.1-pg16-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "c7e689acdcc2c75796500499960fce7d3d285eef22922debeac5f008d5e36b68"
         }
       }
     },
     "17": {
       "available": true,
-      "asset": "pg_stat_monitor-2.4.0-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg17-windows-x64.zip",
-      "sha256": "b004eafccf8b5de8c6c5982e4bfe68d91a5b309dba9d7ab31da4a9789d390c24",
+      "asset": "pg_stat_monitor-2.4.1-pg17-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg17-windows-x64.zip",
+      "sha256": "cb640ca9a1342b29925d2b79cedd5c5e37ddb497954e0de0b059c7bb8fd87ec4",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg17-windows-x64.spdx.json",
-          "sha256": "a25760302397cb37e62c0dee552dda9c371a1cd09128e5cf0d7c69c994c90910"
+          "asset": "pg_stat_monitor-2.4.1-pg17-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg17-windows-x64.spdx.json",
+          "sha256": "beecafcc22c5512c0d769ba35c47b9a4d7dd94f4b2c139a3411207e4b8bdcdfa"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "2815e48205b44db1c9d860f512d1e1f29b18ba0809ec9922ea9cfb781e7053b5"
+          "asset": "pg_stat_monitor-2.4.1-pg17-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "ddf52f8b6918cb8c046809a3d378db711812d7f2bd506483fc6202517f67b696"
         }
       }
     },
     "18": {
       "available": true,
-      "asset": "pg_stat_monitor-2.4.0-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg18-windows-x64.zip",
-      "sha256": "4f02f81ed14ad6d29da61572a5ab9972f06c1e0fad5b8272b714c92affe05144",
+      "asset": "pg_stat_monitor-2.4.1-pg18-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg18-windows-x64.zip",
+      "sha256": "860b3c96a7024407dcfca8c023c758a9f405c703ead25e09dd50e57b6f65e2ea",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
         },
         "sbom": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg18-windows-x64.spdx.json",
-          "sha256": "bf3a5e7800afcb9698678d4720362189a7bde0d53fab8e53d2b3c05ce2370d69"
+          "asset": "pg_stat_monitor-2.4.1-pg18-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg18-windows-x64.spdx.json",
+          "sha256": "8d8dc5b8297e051a3fc8374d93e634c74336d52a8e5d54ec36f2ffea201c7f46"
         },
         "sbomAttestation": {
           "available": true
         },
         "vulnerabilityReport": {
           "available": true,
-          "asset": "pg_stat_monitor-2.4.0-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.0-windows.1/pg_stat_monitor-2.4.0-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "889756908cbdd555825d515c0f4df6266ab073f6fc5a9a0b34412abcd34f0d85"
+          "asset": "pg_stat_monitor-2.4.1-pg18-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "3b779723aa28371caa2d719fe15c7ccc2828df92c6608cb109c87b7aaeb7691c"
+        }
+      }
+    },
+    "19": {
+      "available": true,
+      "asset": "pg_stat_monitor-2.4.1-pg19-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg19-windows-x64.zip",
+      "sha256": "4a6deb56185170c12e00071304144876a487b2097225841e6c116fbf7e9f175d",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_stat_monitor-2.4.1-pg19-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg19-windows-x64.spdx.json",
+          "sha256": "ac5b617b564ad5d2adcc0a64e1a3296b24733ba820f5b77a84e5988df7e1d23b"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_stat_monitor-2.4.1-pg19-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_stat_monitor/releases/download/v2.4.1-windows.1/pg_stat_monitor-2.4.1-pg19-windows-x64.vulnerabilities.json",
+          "sha256": "c515b6710a60d25e29a2b7153b600b138fd3bb53087d05039c447f442e172da4"
         }
       }
     }
@@ -191,44 +194,119 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_stat_monitor",
     "path": "config/test-contract.json",
-    "commit": "54617eabf39a406ea4417a46dba3dd205818631e"
+    "commit": "dde9110b61dfd707b098c0888ebeefd88ce79043"
   },
   "releaseInventory": {
     "current": {
-      "releaseTag": "v2.4.0-windows.1",
+      "releaseTag": "v2.4.1-windows.1",
       "licensesByMajor": {
-        "14": {
-          "name": "PostgreSQL",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
-          ]
-        },
         "15": {
           "name": "PostgreSQL",
           "evidenceUrls": [
-            "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+            "https://github.com/pgextwin/pg_stat_monitor/blob/dde9110b61dfd707b098c0888ebeefd88ce79043/LICENSE"
           ]
         },
         "16": {
           "name": "PostgreSQL",
           "evidenceUrls": [
-            "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+            "https://github.com/pgextwin/pg_stat_monitor/blob/dde9110b61dfd707b098c0888ebeefd88ce79043/LICENSE"
           ]
         },
         "17": {
           "name": "PostgreSQL",
           "evidenceUrls": [
-            "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+            "https://github.com/pgextwin/pg_stat_monitor/blob/dde9110b61dfd707b098c0888ebeefd88ce79043/LICENSE"
           ]
         },
         "18": {
           "name": "PostgreSQL",
           "evidenceUrls": [
-            "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+            "https://github.com/pgextwin/pg_stat_monitor/blob/dde9110b61dfd707b098c0888ebeefd88ce79043/LICENSE"
+          ]
+        },
+        "19": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_stat_monitor/blob/dde9110b61dfd707b098c0888ebeefd88ce79043/LICENSE"
           ]
         }
       }
     },
-    "history": []
+    "history": [
+      {
+        "releaseTag": "v2.4.0-windows.1",
+        "releaseId": 409069791,
+        "admission": {
+          "catalogCommit": "561e1d3947c963d8fd919b9f8d7ef97aca66276f"
+        },
+        "packages": [
+          {
+            "pgMajor": "14",
+            "version": "2.4.0",
+            "asset": "pg_stat_monitor-2.4.0-pg14-windows-x64.zip",
+            "sha256": "fb65c11f6e5989becc34af4c9377bd4b3f9b3d5f9d1ae845ad5a6ba32215557d",
+            "license": {
+              "name": "PostgreSQL",
+              "evidenceUrls": [
+                "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+              ]
+            },
+            "assetId": 628455088
+          },
+          {
+            "pgMajor": "15",
+            "version": "2.4.0",
+            "asset": "pg_stat_monitor-2.4.0-pg15-windows-x64.zip",
+            "sha256": "ec43027e55c128caa79b15f5e3d6a8520b7988ab8f9e70324f79b6705e170d57",
+            "license": {
+              "name": "PostgreSQL",
+              "evidenceUrls": [
+                "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+              ]
+            },
+            "assetId": 628455096
+          },
+          {
+            "pgMajor": "16",
+            "version": "2.4.0",
+            "asset": "pg_stat_monitor-2.4.0-pg16-windows-x64.zip",
+            "sha256": "e24d7846e5855fefb05aabeba180f3da067c8ce6dcca90c8264f124b7d7370b4",
+            "license": {
+              "name": "PostgreSQL",
+              "evidenceUrls": [
+                "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+              ]
+            },
+            "assetId": 628455086
+          },
+          {
+            "pgMajor": "17",
+            "version": "2.4.0",
+            "asset": "pg_stat_monitor-2.4.0-pg17-windows-x64.zip",
+            "sha256": "b004eafccf8b5de8c6c5982e4bfe68d91a5b309dba9d7ab31da4a9789d390c24",
+            "license": {
+              "name": "PostgreSQL",
+              "evidenceUrls": [
+                "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+              ]
+            },
+            "assetId": 628455087
+          },
+          {
+            "pgMajor": "18",
+            "version": "2.4.0",
+            "asset": "pg_stat_monitor-2.4.0-pg18-windows-x64.zip",
+            "sha256": "4f02f81ed14ad6d29da61572a5ab9972f06c1e0fad5b8272b714c92affe05144",
+            "license": {
+              "name": "PostgreSQL",
+              "evidenceUrls": [
+                "https://github.com/pgextwin/pg_stat_monitor/blob/54617eabf39a406ea4417a46dba3dd205818631e/LICENSE"
+              ]
+            },
+            "assetId": 628455090
+          }
+        ]
+      }
+    ]
   }
 }
