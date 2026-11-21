@@ -224,8 +224,8 @@ public static class ExternalSignedCatalogCohort
     internal static IReadOnlyList<ExternalOriginalPin> SelectDirect(byte[] records,
         string pgSelection, string? requestedExtension = null, string? requestedVersion = null)
     {
-        if (pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all"))
-            throw new InvalidDataException("Expected PG14–18/all");
+        if (pgSelection != "all" && !ExternalProviderAssetTransport.IsExternalZipMajor(pgSelection))
+            throw new InvalidDataException("Expected PG14–19/all");
         return SelectDownloads(ParseDownloads(records, standalone: false),
             pgSelection, requestedExtension, requestedVersion);
     }

@@ -50,7 +50,7 @@ class PublicGetGuard(unittest.TestCase):
         for text in ("GITHUB_EVENT_NAME -cne 'workflow_run'",
                      "Join-Path $env:GITHUB_WORKSPACE 'external/direct-get.json'",
                      'pgextwin-external-direct-get/v1', '$manifest.records -isnot [array]',
-                     "@('14','15','16','17','18')", '$row.licenseEvidence.Count -lt 1',
+                     "@('14','15','16','17','18','19')", '$row.licenseEvidence.Count -lt 1',
                      '$row.upstreamVersion', 'if (-not $identities.Add($identity)) { throw',
                      'if ($row.latest -eq $true)', '$expected.Count -lt 1 -or $expected.Count -gt 1000',
                      'Expected CLI EXE missing',
