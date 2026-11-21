@@ -201,10 +201,11 @@ internal static class ExternalDirectGetTests
                 "PG14 exact-version selection preserves both previously published asset pins");
             var postgis = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "postgis");
             var pgrouting = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "pgrouting", "4.0.1");
-            check(postgis.Count == 4 && postgis.SequenceEqual(pgrouting) &&
+            check(postgis.Count == 5 && postgis.SequenceEqual(pgrouting) &&
                 postgis.SequenceEqual(pins.Where(pin => pin.Provider == ExternalProviderAssetTransport.OsgeoProvider)) &&
-                postgis.Single(pin => pin.PgMajor == "15").OriginalBytes == 123_986_945,
-                "Catalog contains four shared, size-validated OSGeo pins including 118.2 MiB PG15");
+                postgis.Single(pin => pin.PgMajor == "15").OriginalBytes == 123_986_945 &&
+                postgis.Single(pin => pin.PgMajor == "19").OriginalBytes == 83_705_586,
+                "Catalog contains five shared, size-validated OSGeo pins including 118.2 MiB PG15");
         }
     }
 }
