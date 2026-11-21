@@ -16,6 +16,18 @@ from distribution_manifest_v1 import Denied
 
 P = h.PIN
 
+# The historical P1 checks below validate the frozen record of the
+# historical release (PIN["tag"]). The live extensions/pg_bigm.json moves
+# forward with every new release, so they read this pinned snapshot of the
+# historical record (byte-identical to the record at PIN["catalog"]) instead
+# of the live file.
+HISTORICAL_RECORD_PATH = (Path(__file__).resolve().parent / "fixtures" /
+                          "pg_bigm-historical-p1-record.json")
+
+
+def historical_record():
+    return json.loads(HISTORICAL_RECORD_PATH.read_text(encoding="utf-8"))
+
 
 def bundle(predicate, sha=None, name=None):
     subject = {"name": name or P["asset"],
@@ -97,8 +109,7 @@ class HistoricalP1Tests(unittest.TestCase):
 
 
     def test_original_dot_slash_sha256sums_15_entries_are_normalized(self):
-        rec = json.loads((Path(__file__).resolve().parents[1] /
-                          "extensions" / "pg_bigm.json").read_text(encoding="utf-8"))
+        rec = historical_record()
         expected = {}
         for major, row in rec["postgresql"].items():
             if not row["available"]:
@@ -329,8 +340,7 @@ class HistoricalP1Tests(unittest.TestCase):
 
 
     def test_historical_release_numeric_ids_checksum_spdx_grype_pins(self):
-        record = json.loads((Path(__file__).resolve().parents[1]
-                             / "extensions" / "pg_bigm.json").read_text(encoding="utf-8"))
+        record = historical_record()
         r = {"id": P["releaseId"], "tag_name": P["tag"],
              "target_commitish": P["packaging"], "draft": False,
              "prerelease": False,
