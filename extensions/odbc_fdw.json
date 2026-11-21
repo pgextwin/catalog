@@ -157,5 +157,37 @@
     "repository": "pgextwin/odbc_fdw",
     "path": "config/test-contract.json",
     "commit": "73369762bc87816d273b59bb6a01ba19263a78dd"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v0.5.2.3-windows.1",
+      "licensesByMajor": {
+        "15": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/odbc_fdw/blob/73369762bc87816d273b59bb6a01ba19263a78dd/LICENSE"
+          ]
+        },
+        "16": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/odbc_fdw/blob/73369762bc87816d273b59bb6a01ba19263a78dd/LICENSE"
+          ]
+        },
+        "17": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/odbc_fdw/blob/73369762bc87816d273b59bb6a01ba19263a78dd/LICENSE"
+          ]
+        },
+        "18": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/odbc_fdw/blob/73369762bc87816d273b59bb6a01ba19263a78dd/LICENSE"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }

@@ -8,7 +8,13 @@ namespace PgExtWin.Releases;
 // These pins are INPUT from a separately authenticated P1 policy, NOT a signature verdict.
 public sealed record ReleasePins(string Extension, string PgMajor, string Tag,
     string AssetName, string AssetSha256, long RepositoryId, long ReleaseId,
-    IReadOnlyDictionary<string, long> AssetIds, string CatalogCommit);
+    IReadOnlyDictionary<string, long> AssetIds, string CatalogCommit)
+{
+    public string? Version { get; init; }
+    public ReleasePackageLicense? License { get; init; }
+}
+
+public sealed record ReleasePackageLicense(string Name, IReadOnlyList<string> EvidenceUrls);
 
 public static class PinnedReleaseSelector
 {

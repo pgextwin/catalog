@@ -206,5 +206,43 @@
     "repository": "pgextwin/pgaudit",
     "path": "config/test-contract.json",
     "commit": "98d9563b97bb748b42e99c4c04c13c46a2553212"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v18.0-windows.2",
+      "licensesByMajor": {
+        "14": {
+          "name": "PostgreSQL License",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgaudit/blob/4a6dcb3bc8fbffa6ea180a2a156f335ff0081997/LICENSE"
+          ]
+        },
+        "15": {
+          "name": "PostgreSQL License",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgaudit/blob/4a6dcb3bc8fbffa6ea180a2a156f335ff0081997/LICENSE"
+          ]
+        },
+        "16": {
+          "name": "PostgreSQL License",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgaudit/blob/4a6dcb3bc8fbffa6ea180a2a156f335ff0081997/LICENSE"
+          ]
+        },
+        "17": {
+          "name": "PostgreSQL License",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgaudit/blob/4a6dcb3bc8fbffa6ea180a2a156f335ff0081997/LICENSE"
+          ]
+        },
+        "18": {
+          "name": "PostgreSQL License",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgaudit/blob/4a6dcb3bc8fbffa6ea180a2a156f335ff0081997/LICENSE"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }

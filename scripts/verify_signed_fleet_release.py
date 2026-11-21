@@ -388,6 +388,43 @@ def deny_catalog_rollback(existing, release):
             "different Release tag shares same publication timestamp")
 
 
+def verified_licenses(repo, source_commit, manifest, active, license_name):
+    """Use the packaging paths matched against upstream by the signed build."""
+    config = manifest.get("license", {})
+    licenses = {}
+    paths = set()
+    for major in map(str, active):
+        if "perPostgresql" in config:
+            files = config["perPostgresql"][major]
+        else:
+            files = config.get("files", [{"repositoryPath": "LICENSE"}])
+        major_paths = [file["repositoryPath"] for file in files]
+        paths.update(major_paths)
+        licenses[major] = {
+            "name": license_name,
+            "evidenceUrls": [f"https://github.com/{repo}/blob/{source_commit}/{path}" for path in major_paths],
+        }
+    # Some packaging manifests do not run the upstream comparison. Prove
+    # that their pinned packaging evidence actually exists in that case.
+    if config.get("verifyAgainstUpstream", True) is not True:
+        for path in sorted(paths):
+            file = api(f"repos/{repo}/contents/{path}?ref={source_commit}")
+            require(file.get("type") == "file" and file.get("size", 0) > 0,
+                    "version-specific license file missing: " + path)
+    return licenses
+
+
+def previous_release_admission(extension, repo, tag):
+    # Use the same protected first-parent record commit during proposal and
+    # independent re-verification, even when unrelated changes advance main.
+    catalog_root = Path(__file__).resolve().parents[1]
+    path = f"extensions/{extension}.json"
+    commit = subprocess.check_output(
+        ["git", "log", "-1", "--first-parent", "--format=%H", "HEAD", "--", path],
+        cwd=catalog_root, text=True).strip()
+    return commit, api(f"repos/{repo}/releases/tags/{tag}")
+
+
 def generate(extension, tag, record):
     require(extension in INTAKE_ALLOWED, "extension not on exact Catalog verification allowlist")
     repo = "pgextwin/" + extension
@@ -455,8 +492,20 @@ def generate(extension, tag, record):
     original = (json.loads(record.read_text(encoding="utf-8"))
                 if record.is_file() else seed_verified_first_release(manifest, contract))
     deny_catalog_rollback(original, release)
-    mapped = map_verified_release(original, release, manifest, contract,
-                                assets, sums, source_commit, active)
+    current = original.get("releaseInventory", {}).get("current", {})
+    licenses = {}
+    if current.get("releaseTag") == tag:
+        prefix = f"https://github.com/{repo}/blob/{source_commit}/"
+        licenses = {
+            major: license_info for major, license_info in current["licensesByMajor"].items()
+            if any(url.startswith(prefix) for url in license_info["evidenceUrls"])
+        }
+    unrecorded = [major for major in active if str(major) not in licenses]
+    licenses.update(verified_licenses(repo, source_commit, manifest, unrecorded, original["license"]))
+    mapped = map_verified_release(
+        original, release, manifest, contract, assets, sums, source_commit, active,
+        licenses_by_major=licenses,
+        load_previous=lambda old_tag: previous_release_admission(extension, repo, old_tag))
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
                     "releaseProvenance": (
                         "INDEPENDENT_OWNER_MAIN_SIGNED_PUBLISHER"

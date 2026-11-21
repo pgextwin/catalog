@@ -119,7 +119,7 @@ static async Task<int> RunAsync(string[] args)
                     requestedExtension = value; break;
                 case "--version":
                     if (command is not ("download" or "download-all"))
-                        throw new ArgumentException("Use download ITEM --version EXACT to select a recorded external version");
+                        throw new ArgumentException("Use download ITEM --version EXACT to select a recorded version");
                     if (requestedVersion is not null)
                         throw new ArgumentException("Duplicate --version");
                     requestedVersion = value; break;
@@ -184,8 +184,10 @@ static async Task<int> RunAsync(string[] args)
             }
             if (sourceGroup == "all")
                 throw new InvalidDataException("Mixed/unsigned external download denied; no fallback");
-            if (category is not null || requestedVersion is not null)
-                throw new ArgumentException("--category and --version apply to external downloads");
+            if (category is not null)
+                throw new ArgumentException("--category applies to external downloads");
+            if (requestedVersion is not null && (command != "download" || localPolicy))
+                throw new ArgumentException("--version requires download ITEM --source pgextwin with the signed Catalog feed");
             if (pg is null || query is not null && pg == "all")
                 throw new ArgumentException(query is null
                     ? "download-all requires --pg MAJOR or --pg all for pgextwin downloads"
@@ -195,25 +197,17 @@ static async Task<int> RunAsync(string[] args)
                 throw new ArgumentException("Explicit policy requires --catalog-dir, --policy, --policy-sha256 and --output");
             var outputParent = output ?? Directory.GetCurrentDirectory();
             Console.WriteLine("PUBLISH=DENY SIGNATURE_VERIFIED=FALSE; Catalog provenance is not original extension Sigstore verification");
-            using var downloader = new ReadOnlyReleaseDownloader(new SocketsHttpHandler
-            {
-                AllowAutoRedirect = false,
-                UseCookies = false,
-                AutomaticDecompression = DecompressionMethods.None
-            });
             if (auto && latest != false)
             {
-                log?.Invoke($"CATALOG_MODE mode=latest pg={pg} authentication=Sigstore");
-                using var selected = await SignedPublicCatalogFeed.AcquireAsync(
-                    outputParent, pg, progress: log);
+                log?.Invoke($"CATALOG_MODE mode={(requestedVersion is null ? "latest" : "exact")} pg={pg} authentication=Sigstore");
+                var selected = await SignedPublicCatalogFeed.AcquireAsync(pg, query, requestedVersion, progress: log);
                 using var browser = new PinnedBrowserDownloader();
                 if (query is not null)
                 {
-                    var single = selected.Pins.SingleOrDefault(
-                        x => x.Extension.Equals(query, StringComparison.OrdinalIgnoreCase))
-                        ?? throw new InvalidDataException("No signed Catalog download matches the item and PostgreSQL major");
+                    var single = selected.Pins.Single();
                     var original = await browser.DownloadAsync(single, outputParent, progress: log);
                     Console.WriteLine($"CATALOG_COMMIT={selected.Commit} CATALOG_AUTH=SIGSTORE_VERIFIED_FEED RELEASE={selected.SourceReleaseTag}");
+                    Console.WriteLine($"CATALOG_PACKAGE\t{single.Extension}\tPG{single.PgMajor}\t{single.Version}\t{single.Tag}\t{single.License!.Name}\t{string.Join(' ', single.License.EvidenceUrls)}");
                     Console.WriteLine($"INTEGRITY_ONLY\t{original.Sha256}\t{original.Size}\t{original.FilePath}");
                     return 0;
                 }
@@ -227,6 +221,12 @@ static async Task<int> RunAsync(string[] args)
                 Console.WriteLine($"BATCH_INTEGRITY_ONLY\tZIP_COUNT={latestBatch.Count}\tBYTES={latestBatch.Bytes}\t{latestBatch.Directory}");
                 return 0;
             }
+            using var downloader = new ReadOnlyReleaseDownloader(new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                UseCookies = false,
+                AutomaticDecompression = DecompressionMethods.None
+            });
             if (command == "download-all")
             {
                 // All four optional paths absent: trust anchors live in the
