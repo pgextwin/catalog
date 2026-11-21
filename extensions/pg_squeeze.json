@@ -193,5 +193,43 @@
     "repository": "pgextwin/pg_squeeze",
     "path": "config/test-contract.json",
     "commit": "d9ecea989333eff17433295adf639c4d4ae8a769"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v1.9.6-windows.1",
+      "licensesByMajor": {
+        "15": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_squeeze/blob/d9ecea989333eff17433295adf639c4d4ae8a769/LICENSE"
+          ]
+        },
+        "16": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_squeeze/blob/d9ecea989333eff17433295adf639c4d4ae8a769/LICENSE"
+          ]
+        },
+        "17": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_squeeze/blob/d9ecea989333eff17433295adf639c4d4ae8a769/LICENSE"
+          ]
+        },
+        "18": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_squeeze/blob/d9ecea989333eff17433295adf639c4d4ae8a769/LICENSE"
+          ]
+        },
+        "19": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_squeeze/blob/d9ecea989333eff17433295adf639c4d4ae8a769/LICENSE"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }

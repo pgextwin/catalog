@@ -58,11 +58,17 @@ def fixture(name):
             assets[filename]={"name":filename,"state":"uploaded","digest":"sha256:"+"f"*64}
     return base,rel,ext,tc,assets,sums
 
-def mapped(name, parts=None, required=None):
+def licenses(name, required):
+    url = f"https://github.com/pgextwin/{name}/blob/{'c'*40}/LICENSE"
+    return {str(major): {"name": "PostgreSQL", "evidenceUrls": [url]} for major in required}
+
+
+def mapped(name, parts=None, required=None, **kwargs):
     parts=parts if parts is not None else fixture(name)
     base,rel,ext,tc,assets,sums=parts
-    return map_verified_release(base,rel,ext,tc,assets,sums,"c"*40,
-                                required if required is not None else [14,15,16,17,18])
+    required = required if required is not None else [14,15,16,17,18]
+    return map_verified_release(base,rel,ext,tc,assets,sums,"c"*40,required,
+                                licenses_by_major=licenses(name, required), **kwargs)
 
 class RecordTests(unittest.TestCase):
     def test_existing_seventeen_source_and_asset_naming_rules(self):
@@ -84,6 +90,61 @@ class RecordTests(unittest.TestCase):
                     self.assertIn("-"+ref+"-pg"+str(major)+"-",after["postgresql"][str(major)]["asset"])
                 self.assertEqual(after["capabilities"]["testContractVersion"],2)
 
+    def test_rollover_preserves_prior_approved_rows_and_replaces_same_version(self):
+        current = mapped("hypopg")
+        prior_license = current["releaseInventory"]["current"]["licensesByMajor"]["15"]
+        old_tag = "v1.4.2-windows.1"
+        current["latest"]["releaseTag"] = old_tag
+        current["releaseInventory"]["current"]["releaseTag"] = old_tag
+        current["upstream"]["version"] = "1.4.2"
+
+        for pg in current["postgresql"].values():
+            pg["downloadUrl"] = pg["downloadUrl"].replace("v1.4.3-windows.3", old_tag)
+        repo = "pgextwin/hypopg"
+        assets = [{"name": pg["asset"], "id": int(major), "state": "uploaded",
+                   "digest": "sha256:" + pg["sha256"], "browser_download_url": pg["downloadUrl"]}
+                  for major, pg in current["postgresql"].items()]
+        assets.append({"name": "SHA256SUMS.txt", "id": 100, "state": "uploaded",
+                       "browser_download_url": f"https://github.com/{repo}/releases/download/{old_tag}/SHA256SUMS.txt"})
+        previous = {"tag_name": old_tag, "id": 101, "draft": False,
+                    "published_at": current["latest"]["publishedAt"], "assets": assets}
+        parts = (current, *fixture("hypopg")[1:])
+        switched = mapped("hypopg", parts, load_previous=lambda tag: ("a"*40, previous))
+        history, = switched["releaseInventory"]["history"]
+        self.assertEqual(history["releaseId"], 101)
+        self.assertEqual(history["admission"], {"catalogCommit": "a"*40})
+        row = next(row for row in history["packages"] if row["pgMajor"] == "15")
+        self.assertEqual((row["version"], row["assetId"], row["license"]), ("1.4.2", 15, prior_license))
+
+        revision = fixture("hypopg")
+        revision[1]["tag_name"] = "v1.4.3-windows.4"
+        replaced = mapped("hypopg", (switched, *revision[1:]))
+        self.assertEqual(replaced["releaseInventory"]["current"]["releaseTag"], "v1.4.3-windows.4")
+        self.assertEqual(replaced["releaseInventory"]["history"], [history])
+        stale_duplicate = {**history, "packages": [{**row, "version": "1.4.3"}]}
+        switched["releaseInventory"]["history"].append(stale_duplicate)
+        deduped = mapped("hypopg", (switched, *revision[1:]))
+        self.assertEqual(deduped["releaseInventory"]["history"], [history])
+
+    def test_rollover_rejects_losing_established_license_evidence(self):
+        name = "pg_repack"
+        current = mapped(name)
+        current["releaseInventory"]["current"]["licensesByMajor"]["15"]["evidenceUrls"].append(
+            f"https://github.com/postgres/postgres/blob/{'d' * 40}/COPYRIGHT")
+        revision = fixture(name)
+        revision[1]["tag_name"] = "v1.5.3-windows.4"
+        with self.assertRaisesRegex(Denied, "established license evidence missing for PG15"):
+            mapped(name, (current, *revision[1:]))
+
+    def test_rollover_rejects_available_old_zip_missing_license_evidence(self):
+        current = mapped("hypopg")
+        current["upstream"]["perPostgresql"] = {"16": {"version": "1.4.2"}}
+        del current["releaseInventory"]["current"]["licensesByMajor"]["16"]
+        revision = fixture("hypopg")
+        revision[1]["tag_name"] = "v1.4.3-windows.4"
+        with self.assertRaisesRegex(Denied, "previous Release v1.4.3-windows.3 lacks license evidence for PG16"):
+            mapped("hypopg", (current, *revision[1:]))
+
     def test_first_release_seed_requires_exact_third_wave_identity(self):
         for name in ("pgtap", "pg_variables", "pg_store_plans"):
             with self.subTest(name=name):
@@ -97,7 +158,8 @@ class RecordTests(unittest.TestCase):
                 self.assertEqual(seed["upstream"]["repository"], INTAKE_ALLOWED[name])
                 result = map_verified_release(
                     seed, release, manifest, contract, assets, sums, "c"*40,
-                    [14, 15, 16, 17, 18])
+                    [14, 15, 16, 17, 18],
+                    licenses_by_major=licenses(name, [14, 15, 16, 17, 18]))
                 self.assertEqual(len(result["postgresql"]), 5)
                 self.assertEqual(result["latest"]["releaseTag"], release["tag_name"])
                 self.assertEqual(result["runtime"]["sharedPreloadLibraries"],

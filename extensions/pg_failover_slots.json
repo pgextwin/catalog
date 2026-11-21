@@ -161,5 +161,37 @@
     "repository": "pgextwin/pg_failover_slots",
     "path": "config/test-contract.json",
     "commit": "0bc2ddef720986fa617946e8642c31089c5d238f"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v1.2.1-windows.1",
+      "licensesByMajor": {
+        "15": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_failover_slots/blob/0bc2ddef720986fa617946e8642c31089c5d238f/LICENSE"
+          ]
+        },
+        "16": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_failover_slots/blob/0bc2ddef720986fa617946e8642c31089c5d238f/LICENSE"
+          ]
+        },
+        "17": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_failover_slots/blob/0bc2ddef720986fa617946e8642c31089c5d238f/LICENSE"
+          ]
+        },
+        "18": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_failover_slots/blob/0bc2ddef720986fa617946e8642c31089c5d238f/LICENSE"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }

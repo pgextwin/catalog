@@ -18,6 +18,15 @@ void Denies(Action action, string name)
     Check(rejected, name);
 }
 
+if (args is ["--signed-feed"])
+{
+    await SignedPublicCatalogFeedTests.RunAsync(Check);
+    await PinnedBrowserDownloadTests.RunAsync(Check);
+    await BatchDownloadTests.RunAsync(Check);
+    Console.WriteLine($"PASS: {cases} signed feed and original ZIP contract checks.");
+    return;
+}
+
 // The golden vector is Python P0's canonical(json) output, calculated with
 // json.dumps(ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)+'\n'.
 const string source = "{\"b\":2,\"a\":{\"z\":false,\"x\":\"日本語\"},\"arr\":[1,{\"b\":null,\"a\":true}]}";

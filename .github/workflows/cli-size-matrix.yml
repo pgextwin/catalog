@@ -70,6 +70,8 @@ jobs:
           $global:LASTEXITCODE=0
           Write-Output "SIZE_RUNTIME_NEGATIVE=PASS MODE=$env:MODE"
       - name: Real anonymous Sigstore Catalog and PG18 ZIP byte audit
+        # The PR candidate is built before its matching signed feed is public.
+        if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         env:
           MODE: ${{ matrix.mode }}

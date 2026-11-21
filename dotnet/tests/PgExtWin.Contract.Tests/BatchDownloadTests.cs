@@ -20,7 +20,12 @@ internal static class BatchDownloadTests
                     101, 202, new Dictionary<string, long> { [name] = 303 },
                     new string('a', 40));
             }
-            var a = Pin("pg_cron", "18");
+            var evidence = new[] { "https://github.com/pgextwin/pg_cron/blob/" + new string('a', 40) + "/LICENSE" };
+            var a = Pin("pg_cron", "18") with
+            {
+                Version = "1.0",
+                License = new ReleasePackageLicense("PostgreSQL", evidence)
+            };
             var b = Pin("pg_bigm", "18");
             var all = new[] { a, b };
 
@@ -64,6 +69,11 @@ internal static class BatchDownloadTests
                       value.GetProperty("zipCount").GetInt32() == 2 &&
                       value.GetProperty("packages").GetArrayLength() == 2,
                       "Batch receipt explicitly forbids signature/install/distribution claims");
+                var package = value.GetProperty("packages")[0];
+                check(package.GetProperty("version").GetString() == a.Version &&
+                      package.GetProperty("license").GetProperty("name").GetString() == a.License.Name &&
+                      package.GetProperty("license").GetProperty("evidenceUrls")[0].GetString() == evidence[0],
+                      "Batch receipt preserves the selected version and license evidence");
             }
 
             async Task Deny(string label, IReadOnlyList<ReleasePins> pins, string major,

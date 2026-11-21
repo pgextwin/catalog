@@ -10,6 +10,8 @@ on:
     paths:
       - "config/cli-feed-majors.json"
       - "scripts/cli_signed_feed.py"
+      - "scripts/release_inventory.py"
+      - "extensions/*.json"
       - "tests/test_cli_signed_feed.py"
       - ".github/workflows/cli-signed-catalog-feed.yml"
 
@@ -29,6 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # Historical admission uses the first-parent history of origin/main.
           persist-credentials: false
       - name: Synthetics and protected Catalog-sized signed-feed plan without publication
         env:
@@ -96,6 +99,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.gate.outputs.source }}
+          fetch-depth: 0 # Historical admission uses the first-parent history of origin/main.
           persist-credentials: false
       - name: Build exact verified Catalog roster feed with independently scoped API token
         env:
@@ -169,20 +173,24 @@ jobs:
           d=json.loads(feed.read_bytes())
           majors=d["postgresqlMajors"]
           optional=d.get("optionalPostgresqlMajor")
-          assert d["schemaVersion"]=="pgextwin-signed-catalog-zip-feed/v2"
-          assert d["catalogCommit"]==source and 14<=d["extensionCount"]<=128 and 1<=len(majors)<=12
-          required_zip_count=len(majors)*d["extensionCount"]
-          allowed=[majors]
+          assert d["schemaVersion"]=="pgextwin-signed-catalog-zip-feed/v3"
+          extensions=d["extensions"]
+          assert d["catalogCommit"]==source and 1<=len(extensions)<=128 and 1<=len(majors)<=12
+          allowed=majors.copy()
           if optional is not None:
               assert len(majors)<12 and int(majors[-1])<32 and optional==str(int(majors[-1])+1)
-              allowed.append(majors+[optional])
-              assert required_zip_count<d["zipCount"]<=required_zip_count+d["extensionCount"]
-          else:
-              assert d["zipCount"]==required_zip_count
-          assert all([p["pgMajor"] for p in r["packages"]] in allowed for r in d["releases"])
-          assert d["zipCount"]==sum(len(r["packages"]) for r in d["releases"])
+              allowed.append(optional)
+          latest_zip_count=0
+          for e in extensions:
+              latest,=[r for r in e["releases"] if r["releaseTag"]==e["latestReleaseTag"]]
+              latest_majors=[p["pgMajor"] for p in latest["packages"]]
+              assert latest_majors in (majors,allowed)
+              latest_zip_count+=len(latest_majors)
+              assert all(r["packages"] and all(p["pgMajor"] in allowed for p in r["packages"])
+                         for r in e["releases"])
+          if optional is not None:
+              assert latest_zip_count>len(majors)*len(extensions)
           assert d["extensionSignatureVerified"] is False and d["publicationAuthorized"] is False and d["installAuthorized"] is False
-          assert len(d["catalogSha256"])==d["extensionCount"]+1 and len(d["releases"])==d["extensionCount"]
           print("catalog-latest")
           FEED_INVENTORY_PY
           gh attestation verify "$dir/catalog-latest.json" \
@@ -207,27 +215,31 @@ jobs:
           from pathlib import Path
           source,destination=map(Path,sys.argv[1:])
           feed=json.loads(source.read_text(encoding="utf-8"))
-          count=feed["extensionCount"]
+          extensions=feed["extensions"]
+          count=len(extensions)
           majors=feed["postgresqlMajors"]
           optional=feed.get("optionalPostgresqlMajor")
-          zip_count=feed["zipCount"]
-          assert type(count) is int and 14<=count<=128
-          assert type(majors) is list and 1<=len(majors)<=12
-          assert all(type(m) is str and m.isascii() and m.isdigit() and 14<=int(m)<=32 and str(int(m))==m for m in majors)
-          assert list(map(int,majors))==list(range(int(majors[0]),int(majors[0])+len(majors)))
-          assert type(zip_count) is int
-          if optional is None:
-              assert zip_count==count*len(majors)
-          else:
-              assert count*len(majors)<zip_count<=count*(len(majors)+1)
+          latest_count=0
+          total_count=0
+          for e in extensions:
+              for r in e["releases"]:
+                  total_count+=len(r["packages"])
+                  if r["releaseTag"]==e["latestReleaseTag"]:
+                      latest_count+=len(r["packages"])
           assert all(feed[key] is False for key in ("extensionSignatureVerified","publicationAuthorized","installAuthorized"))
-          optional_en="" if optional is None else f" PostgreSQL {optional} is available for {zip_count-count*len(majors)} of these extensions."
-          optional_ja="" if optional is None else f" PostgreSQL {optional} 向けは{zip_count-count*len(majors)}拡張で利用できます。"
+          optional_count=latest_count-count*len(majors)
+          optional_en="" if optional is None else f" PostgreSQL {optional} is available for {optional_count} of these extensions."
+          optional_ja="" if optional is None else f" PostgreSQL {optional} 向けの最新版は{optional_count}拡張で利用できます。"
+          targets=majors+[optional] if optional else majors
           notes=("# pgextwin signed Catalog ZIP selection feed\n\n## English\n\n"
-                 f"Metadata-only immutable selection of already-Catalog-approved {count} extensions and {zip_count} original ZIPs for PostgreSQL majors {', '.join(majors+[optional] if optional else majors)}.{optional_en} "
+                 f"Signed v3 metadata for {count} Catalog-approved extensions on PostgreSQL majors {', '.join(targets)}. "
+                 f"Original ZIPs: {latest_count} latest, {total_count} total including history.{optional_en} "
+                 "Automatic pgextwin downloads require CLI v0.6.0 or later. "
                  "Independently verifiable GitHub Actions Sigstore attestation is attached. Original extension ZIP bytes remain INTEGRITY_ONLY; this metadata-only feed does not grant an extension Release, installation or publication authorization.\n\n"
                  "## 日本語\n\n"
-                 f"Catalogで承認・登録済みの{count}拡張について、PostgreSQL {'・'.join(majors+[optional] if optional else majors)}向けの元ZIP計{zip_count}件を選択する、不変のメタデータ専用Releaseです。{optional_ja}"
+                 f"Catalogで承認・登録済みの{count}拡張について、PostgreSQL {'・'.join(targets)}向けのv3署名メタデータを提供します。"
+                 f"元ZIPは最新版{latest_count}件、履歴を含めて計{total_count}件です。{optional_ja}"
+                 "pgextwinの自動取得にはCLI v0.6.0以降が必要です。"
                  "独立して検証できるGitHub ActionsのSigstore Attestationが付属します。\n\n"
                  "個別の拡張ZIPの検証状態はINTEGRITY_ONLYです。このメタデータには、原本ZIPの真正署名の検証や、新規Release・インストール・配布／公開の認可を意味する効力はありません。\n")
           destination.write_text(notes,encoding="utf-8")

@@ -6,10 +6,17 @@ merge PRs or publish Releases. Call ONLY after a separate fully signed Release
 verifier has checked actual remote asset bytes and provenance.
 """
 from __future__ import annotations
+from collections import Counter
 import copy
 import json
 from pathlib import Path
 import re
+
+if __package__:
+    from .release_inventory import license_for, license_pins, match_zip, release_assets, version_for
+else:
+    from release_inventory import license_for, license_pins, match_zip, release_assets, version_for
+
 
 ALLOWED = {
     "pg_bigm": "pgbigm/pg_bigm",
@@ -180,8 +187,67 @@ def seed_verified_first_release(ext, contract):
     }
 
 
+def evidence_paths(pins):
+    # Distinct commits of the same file represent distinct evidence.
+    return Counter((repo.lower(), path) for repo, _, path in set(pins))
+
+
+def map_inventory(existing, repo, tag, source_commit, versions, licenses_by_major, load_previous):
+    inventory = existing.get("releaseInventory", {})
+    current = inventory.get("current", {})
+    old_tag = existing.get("latest", {}).get("releaseTag")
+    require(not current or current["releaseTag"] == old_tag,
+            "current license evidence belongs to a different Release")
+    previous_licenses = current.get("licensesByMajor", {})
+    licenses = {major: license_for(licenses_by_major.get(major)) for major in versions}
+    for major in sorted(licenses.keys() & previous_licenses.keys()):
+        old_pins = license_pins(previous_licenses[major])
+        new_pins = license_pins(licenses[major])
+        require(evidence_paths(old_pins) <= evidence_paths(new_pins),
+                f"established license evidence missing for PG{major}")
+        if tag != old_tag:
+            require(all(commit == source_commit for source, commit, _ in new_pins if source.lower() == repo),
+                    f"packaging license evidence must use the new source commit for PG{major}")
+    history = []
+    for snapshot in inventory.get("history", []):
+        packages = [row for row in snapshot["packages"]
+                    if versions.get(row["pgMajor"]) != row["version"]]
+        if packages and snapshot["releaseTag"] != tag:
+            history.append({**snapshot, "packages": packages})
+
+    if old_tag and old_tag != tag:
+        packages = []
+        for major, old in sorted(existing["postgresql"].items(), key=lambda item: int(item[0])):
+            if old.get("available") is not True:
+                continue
+            version = version_for(existing["upstream"], major)
+            require(isinstance(version, str) and bool(version.strip()), "previous package version missing")
+            if versions.get(major) == version:
+                continue
+            try:
+                license_info = license_for(previous_licenses.get(major))
+            except ValueError as exc:
+                raise Denied(f"previous Release {old_tag} lacks license evidence for PG{major}") from exc
+            packages.append({
+                "pgMajor": major, "version": version, "asset": old["asset"], "sha256": old["sha256"],
+                "downloadUrl": old["downloadUrl"], "license": license_info,
+            })
+        if packages:
+            require(load_previous is not None, "previous Release admission evidence required")
+            commit, release = load_previous(old_tag)
+            require(isinstance(commit, str) and SHA.fullmatch(commit), "previous Catalog admission missing")
+            release_id, assets = release_assets(repo, old_tag, release)
+            for row in packages:
+                row["assetId"] = match_zip(repo, old_tag, row["pgMajor"], row, assets)
+                del row["downloadUrl"]
+            history.append({"releaseTag": old_tag, "releaseId": release_id,
+                            "admission": {"catalogCommit": commit}, "packages": packages})
+    return {"current": {"releaseTag": tag, "licensesByMajor": licenses},
+            "history": sorted(history, key=lambda row: row["releaseTag"])}
+
+
 def map_verified_release(existing, release, ext, contract, assets, sums,
-                         source_commit, required_majors):
+                         source_commit, required_majors, *, licenses_by_major, load_previous=None):
     """Record transformation only: caller independently proves signature/bytes."""
     require(isinstance(existing,dict) and isinstance(release,dict)
             and isinstance(ext,dict) and isinstance(contract,dict),
@@ -236,12 +302,17 @@ def map_verified_release(existing, release, ext, contract, assets, sums,
             and isinstance(check.get("digest"),str)
             and re.fullmatch(r"sha256:[a-f0-9]{64}",check["digest"]),
             "SHA256SUMS asset absent or has no GitHub SHA256")
+    versions = {str(major): src[major]["version"] for major in required_majors}
     out=copy.deepcopy(existing)
+    out["releaseInventory"] = map_inventory(existing, repo, tag, source_commit, versions,
+                                            licenses_by_major, load_previous)
     if "perPostgresql" in ext["upstream"]:
+        out["upstream"].pop("version", None)
         out["upstream"]["perPostgresql"]={
             str(m):{"version":src[m]["version"],"ref":src[m]["ref"]}
             for m in sorted(src)}
     else:
+        out["upstream"].pop("perPostgresql", None)
         out["upstream"]["version"]=src[max(src)]["version"]
     out["latest"]={
         "releaseTag":tag,"publishedAt":release["published_at"],
@@ -263,16 +334,9 @@ def map_verified_release(existing, release, ext, contract, assets, sums,
             "vulnerabilityReport":entry(".vulnerabilities.json")
         }
         out["postgresql"][str(m)]=item
-    # PG14 reached end of life on 2026-11-12 and is outside the maintained
-    # release matrix. When the new Release does not contain PG14, the
-    # historical PG14 entry must not be carried forward as available:
-    # validation binds every available entry (and its SPDX/Grype evidence)
-    # to the new Release tag, which has no PG14 assets. Preserve the major
-    # as an explicit unavailable marker instead; the historical PG14
-    # binaries remain available through the previous Release's
-    # fixed/pinned paths.
-    if "14" in out["postgresql"] and 14 not in required_majors:
-        out["postgresql"]["14"]={"available":False}
+    # Majors absent from this Release retain their Website availability marker.
+    for major in out["postgresql"].keys() - versions.keys():
+        out["postgresql"][major] = {"available": False}
     out["runtime"]["requirements"]=copy.deepcopy(contract["runtimeRequirements"])
     out["capabilities"]={
         "testContractVersion":2,

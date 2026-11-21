@@ -331,7 +331,8 @@ internal static class AtomicStageGuard
         try
         {
             if (OperatingSystem.IsWindows())
-                SetWindowsDirectoryAcl(directory, FileSystemRights.FullControl, inheritToChildren: false);
+                // Keep the owner's inherited access on children until the cleanup walk reaches them.
+                SetWindowsDirectoryAcl(directory, FileSystemRights.FullControl, inheritToChildren: true);
             else
                 File.SetUnixFileMode(directory, OwnerDirRwMode);
         }

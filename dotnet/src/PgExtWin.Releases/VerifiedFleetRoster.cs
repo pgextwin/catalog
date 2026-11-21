@@ -4,15 +4,14 @@ namespace PgExtWin.Releases;
 
 /// <summary>
 /// Membership comes from the independently authenticated protected Catalog
-/// index, or a signer-verified feed cryptographically bound to immutable
-/// Catalog records.
+/// index, or a signer-verified feed generated from the protected Catalog.
 /// This guard alone never grants publication, signing or installation rights.
 /// </summary>
 internal static class VerifiedFleetRoster
 {
     // Independent resource ceiling, NOT a list of automatically approved repos.
     // Every member requires successful protected-main CI and byte/signer bindings.
-    // A retired member may be absent when the authenticated index and feed agree.
+    // A retired member may be absent after the protected Catalog removes it.
     internal static int MinimumCount => 1;
     internal static int MaximumCount => 128;
 

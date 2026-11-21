@@ -131,6 +131,9 @@ jobs:
             Write-Output "CLI_RELEASE_POWERSHELL_PARSE=PASS WORKFLOW=$workflow BLOCKS=$($blocks.Count) NO_EXECUTION=true"
           }
 
+      - name: Exercise signed feed v3 selection and trust contracts on Windows
+        run: dotnet run --project dotnet/tests/PgExtWin.Contract.Tests --configuration Release -- --signed-feed
+
       - name: Smoke-check packaged CLI and negative trust path
         shell: pwsh
         run: |
@@ -167,8 +170,12 @@ jobs:
           if ($LASTEXITCODE -ne 2 -or $duplicate -notmatch 'DENY: Duplicate --verbose') { throw 'Duplicate verbose accepted' }
           $unsupported = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --debug 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $unsupported -notmatch 'DENY:') { throw 'Unknown flag accepted' }
-          $downloadVerbose = & $exe download-all --pg 20 --verbose 2>&1 | Out-String
+          $downloadVerbose = & $exe download-all --pg 33 --verbose 2>&1 | Out-String
           if ($LASTEXITCODE -ne 2 -or $downloadVerbose -notmatch 'DENY:') { throw 'Verbose bypassed PG validation' }
+          $exactBulk = & $exe download-all --pg 15 --version 1.4.4 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $exactBulk -notmatch 'DENY: --version requires download ITEM --source pgextwin') {
+            throw 'Internal bulk accepted an exact version'
+          }
           $global:LASTEXITCODE = 0
           if ($json.schemaVersion -ne 'pgextwin-cli-local-catalog/v1' -or
               $json.source -ne 'LOCAL_UNAUTHENTICATED' -or $json.trust -ne 'UNVERIFIED' -or

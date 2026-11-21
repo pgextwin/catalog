@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Offline fail-closed Release byte, metadata, and operator provenance fixtures."""
+import base64
 import copy
 from datetime import date
 import hashlib
@@ -81,6 +82,79 @@ class SignedEvidenceTests(unittest.TestCase):
                         with self.assertRaises(verifier.Denied):
                             verifier.generate(name, "v" + version + "-windows.1", target)
                     self.assertFalse(target.exists())
+
+    def test_new_pg_repack_tag_denied_when_manifest_cannot_repin_postgresql_license(self):
+        name = "pg_repack"
+        repo = f"pgextwin/{name}"
+        commit = "c" * 40
+        tag = "v1.5.4-windows.1"
+        manifest = {"name": name, "postgresql": {"majors": [15]},
+                    "upstream": {"repository": "reorg/pg_repack", "version": "1.5.4",
+                                 "ref": "ver_1.5.4", "commit": "d" * 40},
+                    "license": {"files": [{"repositoryPath": "COPYRIGHT", "upstreamPath": "COPYRIGHT"}]}}
+        contract = {"extension": name, "contractVersion": 2}
+        release = {"tag_name": tag, "draft": False, "prerelease": False,
+                   "published_at": "2026-11-21T11:30:00Z", "target_commitish": commit}
+        old_tag = "v1.5.3-windows.2"
+        original = json.dumps({
+            "license": "PostgreSQL",
+            "latest": {"releaseTag": old_tag, "publishedAt": "2026-10-20T12:00:00Z"},
+            "releaseInventory": {"current": {"releaseTag": old_tag, "licensesByMajor": {
+                "15": {"name": "PostgreSQL", "evidenceUrls": [
+                    f"https://github.com/{repo}/blob/{'a' * 40}/COPYRIGHT",
+                    f"https://github.com/postgres/postgres/blob/{'b' * 40}/COPYRIGHT",
+                ]},
+            }}},
+        })
+        lifecycle = {"postgresql": [{"major": major, "eol": "2030-01-01"} for major in range(14, 19)]}
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "extensions"
+            directory.mkdir()
+            target = directory / f"{name}.json"
+            target.write_text(original)
+            with (patch.object(verifier, "api", side_effect=[release, {"status": "ahead"}, {
+                      "encoding": "base64", "content": base64.b64encode(json.dumps(lifecycle).encode())}]),
+                  patch.object(verifier, "verify_release_tag"),
+                  patch.object(verifier, "pinned_json", side_effect=[manifest, contract]),
+                  patch.object(verifier, "gh"),
+                  patch.object(verifier, "verify_payload", return_value=({}, {}, 902)),
+                  patch.object(verifier, "verify_main_run"),
+                  patch.object(verifier, "verify_release_attestations"),
+                  patch.object(verifier, "map_verified_release") as mapper):
+                with self.assertRaisesRegex(verifier.Denied,
+                                            "no verified new license source for PG15: postgres/postgres/COPYRIGHT"):
+                    verifier.generate(name, tag, target)
+                mapper.assert_not_called()
+            self.assertEqual(target.read_text(), original)
+
+    def test_rollover_verifies_and_repins_packaging_and_per_major_upstream_license_files(self):
+        _, _, manifest, _, commit = self.make()
+        repo = "pgextwin/pg_hint_plan"
+        upstream = "ossc-db/pg_hint_plan"
+        previous = {str(major): {"name": "BSD", "evidenceUrls": [
+            f"https://github.com/{repo}/blob/{'e' * 40}/NOTICE",
+            f"https://github.com/{upstream}/blob/{'f' * 40}/LICENSE",
+        ]} for major in (14, 15)}
+
+        def load_file(route):
+            path = route.split("/contents/")[1].split("?")[0]
+            return {"type": "file", "path": path, "size": 100}
+
+        with patch.object(verifier, "api", side_effect=load_file) as api:
+            rows = verifier.verified_licenses(repo, commit, manifest, [14, 15], "BSD", previous)
+        for major, upstream_commit in (("14", "a" * 40), ("15", "b" * 40)):
+            self.assertEqual(rows[major]["evidenceUrls"], [
+                f"https://github.com/{repo}/blob/{commit}/LICENSE",
+                f"https://github.com/{repo}/blob/{commit}/NOTICE",
+                f"https://github.com/{upstream}/blob/{upstream_commit}/LICENSE",
+            ])
+            api.assert_any_call(f"repos/{upstream}/contents/LICENSE?ref={upstream_commit}")
+        api.assert_any_call(f"repos/{repo}/contents/NOTICE?ref={commit}")
+        self.assertEqual(api.call_count, 3)
+
+        with patch.object(verifier, "api", return_value={"type": "file", "path": "NOTICE", "size": 0}):
+            with self.assertRaisesRegex(verifier.Denied, "version-specific license file missing"):
+                verifier.verified_licenses(repo, commit, manifest, [14, 15], "BSD", previous)
 
     def test_exact_per_major_upstream_and_download_sha(self):
         root, release, manifest, contract, source = self.make()
