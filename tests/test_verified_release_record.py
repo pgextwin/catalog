@@ -126,6 +126,25 @@ class RecordTests(unittest.TestCase):
         deduped = mapped("hypopg", (switched, *revision[1:]))
         self.assertEqual(deduped["releaseInventory"]["history"], [history])
 
+    def test_rollover_rejects_losing_established_license_evidence(self):
+        name = "pg_repack"
+        current = mapped(name)
+        current["releaseInventory"]["current"]["licensesByMajor"]["15"]["evidenceUrls"].append(
+            f"https://github.com/postgres/postgres/blob/{'d' * 40}/COPYRIGHT")
+        revision = fixture(name)
+        revision[1]["tag_name"] = "v1.5.3-windows.4"
+        with self.assertRaisesRegex(Denied, "established license evidence missing for PG15"):
+            mapped(name, (current, *revision[1:]))
+
+    def test_rollover_rejects_available_old_zip_missing_license_evidence(self):
+        current = mapped("hypopg")
+        current["upstream"]["perPostgresql"] = {"16": {"version": "1.4.2"}}
+        del current["releaseInventory"]["current"]["licensesByMajor"]["16"]
+        revision = fixture("hypopg")
+        revision[1]["tag_name"] = "v1.4.3-windows.4"
+        with self.assertRaisesRegex(Denied, "previous Release v1.4.3-windows.3 lacks license evidence for PG16"):
+            mapped("hypopg", (current, *revision[1:]))
+
     def test_first_release_seed_requires_exact_third_wave_identity(self):
         for name in ("pgtap", "pg_variables", "pg_store_plans"):
             with self.subTest(name=name):

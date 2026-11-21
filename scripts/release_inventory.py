@@ -27,6 +27,10 @@ def license_for(license_info):
     return license_info
 
 
+def license_pins(license_info):
+    return [LICENSE_URL.fullmatch(url).groups() for url in license_for(license_info)["evidenceUrls"]]
+
+
 def release_assets(repo, tag, release):
     release_id = release.get("id")
     if (not isinstance(tag, str) or not ASSET.fullmatch(tag) or

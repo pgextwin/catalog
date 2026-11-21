@@ -27,11 +27,13 @@ else:
     import automatic_publisher_provenance as automatic_provenance
 
 if __package__:
+    from .release_inventory import license_for, license_pins
     from .verified_release_record import (
         INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
     )
 else:
+    from release_inventory import license_for, license_pins
     from verified_release_record import (
         INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
@@ -388,29 +390,43 @@ def deny_catalog_rollback(existing, release):
             "different Release tag shares same publication timestamp")
 
 
-def verified_licenses(repo, source_commit, manifest, active, license_name):
-    """Use the packaging paths matched against upstream by the signed build."""
+def verified_licenses(repo, source_commit, manifest, active, license_name, previous_licenses):
+    """Resolve manifest evidence and re-pin every established license file for the major."""
     config = manifest.get("license", {})
+    sources = source_map(manifest)
+    upstream = manifest["upstream"]["repository"]
     licenses = {}
-    paths = set()
-    for major in map(str, active):
+    files_to_verify = set()
+    for pg_major in active:
+        major = str(pg_major)
         if "perPostgresql" in config:
             files = config["perPostgresql"][major]
         else:
             files = config.get("files", [{"repositoryPath": "LICENSE"}])
-        major_paths = [file["repositoryPath"] for file in files]
-        paths.update(major_paths)
-        licenses[major] = {
-            "name": license_name,
-            "evidenceUrls": [f"https://github.com/{repo}/blob/{source_commit}/{path}" for path in major_paths],
-        }
-    # Some packaging manifests do not run the upstream comparison. Prove
-    # that their pinned packaging evidence actually exists in that case.
-    if config.get("verifyAgainstUpstream", True) is not True:
-        for path in sorted(paths):
-            file = api(f"repos/{repo}/contents/{path}?ref={source_commit}")
-            require(file.get("type") == "file" and file.get("size", 0) > 0,
-                    "version-specific license file missing: " + path)
+        pins = [(repo, source_commit, file["repositoryPath"]) for file in files]
+        # The signed build checks manifest paths when upstream comparison is enabled.
+        if config.get("verifyAgainstUpstream", True) is not True:
+            files_to_verify.update(pins)
+        previous = previous_licenses.get(major)
+        if previous is not None:
+            for origin, _, path in license_pins(previous):
+                if origin.lower() == repo:
+                    pin = (repo, source_commit, path)
+                elif origin.lower() == upstream.lower():
+                    pin = (upstream, sources[pg_major]["commit"], path)
+                else:
+                    raise Denied(f"no verified new license source for PG{major}: {origin}/{path}")
+                pins.append(pin)
+                files_to_verify.add(pin)
+        licenses[major] = license_for({
+            "name": previous["name"] if previous is not None else license_name,
+            "evidenceUrls": [f"https://github.com/{origin}/blob/{commit}/{path}"
+                             for origin, commit, path in dict.fromkeys(pins)],
+        })
+    for origin, commit, path in sorted(files_to_verify):
+        file = api(f"repos/{origin}/contents/{path}?ref={commit}")
+        require(file.get("type") == "file" and file.get("path") == path and file.get("size", 0) > 0,
+                f"version-specific license file missing: {origin}/{path}")
     return licenses
 
 
@@ -493,15 +509,18 @@ def generate(extension, tag, record):
                 if record.is_file() else seed_verified_first_release(manifest, contract))
     deny_catalog_rollback(original, release)
     current = original.get("releaseInventory", {}).get("current", {})
+    previous_licenses = current.get("licensesByMajor", {})
     licenses = {}
     if current.get("releaseTag") == tag:
         prefix = f"https://github.com/{repo}/blob/{source_commit}/"
         licenses = {
-            major: license_info for major, license_info in current["licensesByMajor"].items()
+            major: license_info for major, license_info in previous_licenses.items()
             if any(url.startswith(prefix) for url in license_info["evidenceUrls"])
         }
     unrecorded = [major for major in active if str(major) not in licenses]
-    licenses.update(verified_licenses(repo, source_commit, manifest, unrecorded, original["license"]))
+    if unrecorded:
+        licenses.update(verified_licenses(repo, source_commit, manifest, unrecorded,
+                                          original["license"], previous_licenses))
     mapped = map_verified_release(
         original, release, manifest, contract, assets, sums, source_commit, active,
         licenses_by_major=licenses,
