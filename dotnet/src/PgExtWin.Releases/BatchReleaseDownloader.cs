@@ -146,7 +146,7 @@ public static class BatchReleaseDownloader
                 rows.Add(new BatchPackage(
                     pin.Extension, pin.PgMajor, pin.Tag, pin.CatalogCommit,
                     "pg" + pin.PgMajor + "/" + pin.AssetName,
-                    rehash, file.Length, pin.RepositoryId, pin.ReleaseId, assetId));
+                    rehash, file.Length, pin.RepositoryId, pin.ReleaseId, assetId, pin.Version, pin.License));
             }
             var info = new BatchDownloadInfo(
                 "pgextwin-cli-batch-download/v1",

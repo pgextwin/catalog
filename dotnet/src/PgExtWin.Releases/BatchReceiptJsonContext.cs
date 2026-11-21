@@ -7,7 +7,9 @@ namespace PgExtWin.Releases;
 internal sealed record BatchPackage(
     string Extension, string PgMajor, string ReleaseTag, string CatalogCommit,
     string RelativePath, string Sha256, long Bytes,
-    long RepositoryId, long ReleaseId, long AssetId);
+    long RepositoryId, long ReleaseId, long AssetId,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Version,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ReleasePackageLicense? License);
 
 internal sealed record BatchDownloadInfo(
     string SchemaVersion, string Source, bool ReleaseMetadataVerified,

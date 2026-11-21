@@ -183,5 +183,43 @@
     "repository": "pgextwin/pgtap",
     "path": "config/test-contract.json",
     "commit": "eddfdc8575a19781fabd2120b6cccf475619240b"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v1.3.4-windows.1",
+      "licensesByMajor": {
+        "14": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgtap/blob/eddfdc8575a19781fabd2120b6cccf475619240b/LICENSE"
+          ]
+        },
+        "15": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgtap/blob/eddfdc8575a19781fabd2120b6cccf475619240b/LICENSE"
+          ]
+        },
+        "16": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgtap/blob/eddfdc8575a19781fabd2120b6cccf475619240b/LICENSE"
+          ]
+        },
+        "17": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgtap/blob/eddfdc8575a19781fabd2120b6cccf475619240b/LICENSE"
+          ]
+        },
+        "18": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pgtap/blob/eddfdc8575a19781fabd2120b6cccf475619240b/LICENSE"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }

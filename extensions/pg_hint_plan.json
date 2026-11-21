@@ -216,5 +216,48 @@
     "repository": "pgextwin/pg_hint_plan",
     "path": "config/test-contract.json",
     "commit": "8793f83aad8b601daf4f6575fcea90fa72702994"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v1.8.1-windows.1",
+      "licensesByMajor": {
+        "14": {
+          "name": "BSD-style and PostgreSQL-derived notices",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/COPYRIGHT",
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/pg14/COPYRIGHT.postgresql"
+          ]
+        },
+        "15": {
+          "name": "BSD-style and PostgreSQL-derived notices",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/COPYRIGHT",
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/pg15_16/COPYRIGHT.postgresql"
+          ]
+        },
+        "16": {
+          "name": "BSD-style and PostgreSQL-derived notices",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/COPYRIGHT",
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/pg15_16/COPYRIGHT.postgresql"
+          ]
+        },
+        "17": {
+          "name": "BSD-style and PostgreSQL-derived notices",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/COPYRIGHT",
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/pg17_18/COPYRIGHT.postgresql"
+          ]
+        },
+        "18": {
+          "name": "BSD-style and PostgreSQL-derived notices",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/COPYRIGHT",
+            "https://github.com/pgextwin/pg_hint_plan/blob/8793f83aad8b601daf4f6575fcea90fa72702994/licenses/updates/2026/pg17_18/COPYRIGHT.postgresql"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }

@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import tempfile
@@ -14,6 +13,14 @@ NAMES = ["hypopg","orafce","pg_bigm","pg_cron","pg_hint_plan",
          "pg_stat_monitor","pgaudit","plpgsql_check","set_user","wal2json"]
 SHA = "a" * 40
 D = "b" * 64
+
+
+def latest(entry):
+    return next(r for r in entry["releases"] if r["releaseTag"] == entry["latestReleaseTag"])
+
+
+def zip_count(feed):
+    return sum(len(r["packages"]) for e in feed["extensions"] for r in e["releases"])
 
 
 class SignedFeedTests(unittest.TestCase):
@@ -38,7 +45,14 @@ class SignedFeedTests(unittest.TestCase):
             (self.root / "extensions" / (name + ".json")).write_text(json.dumps({
                 "schemaVersion": 2, "name": name, "repository": "pgextwin/" + name,
                 "architecture": "x64", "latest": {"releaseTag": "v1"},
-                "postgresql": packages,
+                "postgresql": packages, "upstream": {"version": "1.0"},
+                "releaseInventory": {
+                    "current": {"releaseTag": "v1", "licensesByMajor": {
+                        major: {"name": "PostgreSQL",
+                                "evidenceUrls": [f"https://github.com/pgextwin/{name}/blob/{SHA}/LICENSE"]}
+                        for major in packages}},
+                    "history": [],
+                },
             }), encoding="utf-8")
             files = []
             for i, pg in enumerate(packages.values()):
@@ -76,20 +90,18 @@ class SignedFeedTests(unittest.TestCase):
             with self.subTest(extensions=additions):
                 self.include_wave3(*additions)
                 feed = self.generate()
-                self.assertEqual(feed["extensionCount"], 14 + len(additions))
-                self.assertEqual(feed["zipCount"], 5 * (14 + len(additions)))
+                self.assertEqual(len(feed["extensions"]), 14 + len(additions))
+                self.assertEqual(zip_count(feed), 5 * (14 + len(additions)))
                 self.assertFalse(feed["extensionSignatureVerified"])
                 self.assertFalse(feed["publicationAuthorized"])
                 self.assertFalse(feed["installAuthorized"])
-                self.assertEqual(len(feed["catalogSha256"]), 15 + len(additions))
-                self.assertEqual(len(feed["releases"]), 14 + len(additions))
 
     def test_eighteenth_registered_extension_requires_real_index_record_and_release(self):
         self.include_wave3("pgtap", "pg_variables", "pg_store_plans", "new_future")
         feed = self.generate()
-        self.assertEqual(feed["extensionCount"], 18)
-        self.assertEqual(feed["zipCount"], 90)
-        self.assertEqual(len(feed["releases"]), 18)
+        self.assertEqual(len(feed["extensions"]), 18)
+        self.assertEqual(zip_count(feed), 90)
+        self.assertEqual(len(feed["extensions"]), 18)
         self.assertFalse(feed["publicationAuthorized"])
         self.assertFalse(feed["extensionSignatureVerified"])
         # Removing an index entry alone still leaves an inconsistent record inventory.
@@ -128,10 +140,10 @@ class SignedFeedTests(unittest.TestCase):
         self.assertIn("14", historical["postgresql"])
         feed = self.generate()
         self.assertEqual(feed["postgresqlMajors"], ["15", "16", "17", "18"])
-        self.assertEqual(feed["zipCount"], 56)
-        self.assertEqual(len(feed["releases"]), 14)
+        self.assertEqual(zip_count(feed), 56)
+        self.assertEqual(len(feed["extensions"]), 14)
         self.assertEqual(
-            [row["pgMajor"] for row in feed["releases"][0]["packages"]],
+            [row["pgMajor"] for row in latest(feed["extensions"][0])["packages"]],
             ["15", "16", "17", "18"])
         self.assertFalse(feed["publicationAuthorized"])
         self.assertFalse(feed["extensionSignatureVerified"])
@@ -200,6 +212,8 @@ class SignedFeedTests(unittest.TestCase):
         asset = pg18["asset"].replace("-pg18-", "-pg19-")
         url = pg18["downloadUrl"].replace("-pg18-", "-pg19-")
         record["postgresql"]["19"] = {**pg18, "asset": asset, "downloadUrl": url}
+        licenses = record["releaseInventory"]["current"]["licensesByMajor"]
+        licenses["19"] = licenses["18"]
         ready.write_text(json.dumps(record))
         release = self.assets["wal2json"]["release"]
         with self.assertRaisesRegex(ValueError, "does not match public Release"):
@@ -209,18 +223,14 @@ class SignedFeedTests(unittest.TestCase):
         release["assets"].append(original)
 
         feed = build_feed(self.root, SHA, self.load)
-        # The unified feed still pins the exact Catalog bytes of this commit.
-        for path in (unavailable, ready):
-            baseline["catalogSha256"][f"extensions/{path.name}"] = hashlib.sha256(path.read_bytes()).hexdigest()
         self.assertEqual(feed["schemaVersion"], SCHEMA)
         self.assertEqual(feed["catalogCommit"], baseline["catalogCommit"])
-        self.assertEqual(feed["catalogSha256"], baseline["catalogSha256"])
         self.assertEqual(feed["postgresqlMajors"], required)
         self.assertEqual(feed["optionalPostgresqlMajor"], "19")
-        self.assertEqual(feed["zipCount"], baseline["zipCount"] + 1)
-        for old, new in zip(baseline["releases"], feed["releases"], strict=True):
-            packages = new["packages"]
-            self.assertEqual(old, {**new, "packages": packages[:len(required)]})
+        self.assertEqual(zip_count(feed), zip_count(baseline) + 1)
+        for old, new in zip(baseline["extensions"], feed["extensions"], strict=True):
+            packages = latest(new)["packages"]
+            self.assertEqual(latest(old), {**latest(new), "packages": packages[:len(required)]})
             self.assertEqual([p["pgMajor"] for p in packages[len(required):]],
                              ["19"] if new["extension"] == "wal2json" else [])
         workflow = (Path(__file__).resolve().parents[1] /
@@ -254,8 +264,7 @@ class SignedFeedTests(unittest.TestCase):
                              "catalog-feed-v2" in call or "matching-refs" in call or
                              "ref=refs/heads/" in call for call in calls))
 
-        feed["releases"][0]["packages"].pop(0)
-        feed["zipCount"] -= 1
+        latest(feed["extensions"][0])["packages"].pop(0)
         self.assertNotEqual(verify(feed).returncode, 0)
         # A v1-shaped body is no longer a valid published feed.
         legacy = {**baseline, "schemaVersion": "pgextwin-signed-catalog-zip-feed/v1"}
@@ -310,11 +319,9 @@ gh() {
                         record.unlink()
                 index.write_text(json.dumps({"schemaVersion": 2, "extensions": keep}))
                 feed = self.generate()
-                self.assertEqual(feed["extensionCount"], len(keep))
-                self.assertEqual(feed["zipCount"], len(keep) * 5)
-                self.assertEqual([r["extension"] for r in feed["releases"]], keep)
-                self.assertEqual(set(feed["catalogSha256"]),
-                                 {"index.json"} | {"extensions/" + n + ".json" for n in keep})
+                self.assertEqual(len(feed["extensions"]), len(keep))
+                self.assertEqual(zip_count(feed), len(keep) * 5)
+                self.assertEqual([r["extension"] for r in feed["extensions"]], keep)
                 self.assertFalse(feed["extensionSignatureVerified"])
                 self.assertFalse(feed["publicationAuthorized"])
                 self.assertFalse(feed["installAuthorized"])
@@ -323,9 +330,8 @@ gh() {
         additions = ["future_%03d" % i for i in range(113)] + ["x" * 64]
         self.include_wave3(*additions)
         feed = self.generate()
-        self.assertEqual(feed["extensionCount"], 128)
-        self.assertEqual(feed["zipCount"], 128 * 5)
-        self.assertEqual(len(feed["catalogSha256"]), 129)
+        self.assertEqual(len(feed["extensions"]), 128)
+        self.assertEqual(zip_count(feed), 128 * 5)
 
     def test_roster_resource_identifier_and_order_bounds(self):
         index = self.root / "index.json"
@@ -360,7 +366,10 @@ gh() {
 
     def load(self, repo, route):
         name = repo.split("/")[-1]
-        return self.assets[name]["release" if route else "repo"]
+        files = self.assets[name]
+        if route:
+            return files.get(route, files["release"])
+        return files["repo"]
 
     def generate(self):
         return build_feed(self.root, SHA, self.load)
@@ -368,20 +377,18 @@ gh() {
     def test_all_70_signed_feed_claims_not_original_signatures(self):
         feed = self.generate()
         self.assertEqual(feed["schemaVersion"], SCHEMA)
-        self.assertEqual(feed["extensionCount"], 14)
-        self.assertEqual(feed["zipCount"], 70)
+        self.assertEqual(len(feed["extensions"]), 14)
+        self.assertEqual(zip_count(feed), 70)
         self.assertFalse(feed["extensionSignatureVerified"])
         self.assertFalse(feed["publicationAuthorized"])
         self.assertFalse(feed["installAuthorized"])
-        self.assertEqual(len(feed["catalogSha256"]), 15)
-        self.assertEqual(sum(len(a["packages"]) for a in feed["releases"]), 70)
-        self.assertEqual(feed["releases"][0]["releaseId"], 500)
-        self.assertEqual(feed["releases"][0]["packages"][0]["assetId"], 100)
+        self.assertNotIn("catalogSha256", feed)
+        self.assertEqual(latest(feed["extensions"][0])["releaseId"], 500)
+        self.assertEqual(latest(feed["extensions"][0])["packages"][0]["assetId"], 100)
         raw = canonical(feed)
         self.assertEqual(raw, canonical(json.loads(raw)))
-        self.assertEqual(hashlib.sha256(
-            (self.root / "index.json").read_bytes()).hexdigest(),
-            feed["catalogSha256"]["index.json"])
+        self.assertNotIn("downloadUrl", latest(feed["extensions"][0])["packages"][0])
+        self.assertNotIn("checksumsAssetId", latest(feed["extensions"][0]))
 
     def test_reject_missing_or_moved_release(self):
         for field, value in (("draft", True), ("tag_name", "candidate")):
@@ -430,43 +437,114 @@ gh() {
                 self.assertIn("$expectedCount -lt 1 -or $expectedCount -gt 128", workflow)
                 self.assertNotIn("$expectedCount -gt 17", workflow)
 
-    def test_actual_release_note_formatter_tracks_signed_cohort_and_denies_false_claims(self):
+    def add_history(self):
+        path = self.root / "extensions/hypopg.json"
+        data = json.loads(path.read_text())
+        old_tag = "v0"
+        old_asset = "hypopg-v0-pg15-windows-x64.zip"
+        license_info = {"name": "PostgreSQL",
+                        "evidenceUrls": [f"https://github.com/pgextwin/hypopg/blob/{'c' * 40}/LICENSE"]}
+        data["releaseInventory"]["history"] = [{
+            "releaseTag": old_tag, "releaseId": 501, "admission": {"catalogCommit": "d" * 40},
+            "packages": [{"pgMajor": "15", "version": "0.9", "asset": old_asset,
+                          "assetId": 201, "sha256": D, "license": license_info}],
+        }]
+        path.write_text(json.dumps(data))
+        self.assets["hypopg"]["/releases/tags/v0"] = {
+            "id": 501, "tag_name": old_tag, "draft": False, "published_at": "2026-08-01T00:00:00Z",
+            "assets": [{"name": name, "id": ident, "digest": "sha256:" + D, "state": "uploaded",
+                        "browser_download_url": f"https://github.com/pgextwin/hypopg/releases/download/v0/{name}"}
+                       for name, ident in ((old_asset, 201), ("SHA256SUMS.txt", 202))],
+        }
+        return path, data
+
+    def test_history_admission_can_be_revoked_and_tags_are_read_once(self):
+        path, data = self.add_history()
+        calls = []
+
+        def load(repo, route):
+            calls.append((repo, route))
+            return self.load(repo, route)
+
+        before = build_feed(self.root, SHA, load)
+        extension = before["extensions"][0]
+        self.assertEqual([r["releaseTag"] for r in extension["releases"]], ["v0", "v1"])
+        self.assertEqual(extension["releases"][0], data["releaseInventory"]["history"][0])
+        self.assertEqual(latest(extension)["admission"]["catalogCommit"], SHA)
+        self.assertEqual(calls.count(("pgextwin/hypopg", "/releases/tags/v0")), 1)
+        self.assertEqual(calls.count(("pgextwin/hypopg", "/releases/tags/v1")), 1)
+        data["releaseInventory"]["history"].clear()
+        path.write_text(json.dumps(data))
+        calls.clear()
+        after = build_feed(self.root, SHA, load)
+        self.assertEqual([r["releaseTag"] for r in after["extensions"][0]["releases"]], ["v1"])
+        self.assertNotIn(("pgextwin/hypopg", "/releases/tags/v0"), calls)
+
+    def test_history_rejects_incomplete_evidence_wrong_ids_and_duplicate_version(self):
+        path, data = self.add_history()
+        snapshot = data["releaseInventory"]["history"][0]
+        package = snapshot["packages"][0]
+        for target, field, invalid, expected in (
+                (snapshot, "releaseId", 7, "Release ID"),
+                (snapshot["admission"], "catalogCommit", "main", "admission"),
+                (package, "assetId", 202, "public Release"),
+                (package, "license", {"name": "PostgreSQL", "evidenceUrls": []}, "license evidence"),
+                (package, "version", "1.0", "duplicate Catalog package version")):
+            with self.subTest(field=field):
+                original = target[field]
+                target[field] = invalid
+                path.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, expected):
+                    self.generate()
+                target[field] = original
+
+    def test_latest_requires_license_and_prefers_per_pg_version(self):
+        path, data = self.add_history()
+        data["upstream"]["perPostgresql"] = {"15": {"version": "2.4"}}
+        path.write_text(json.dumps(data))
+        current = latest(self.generate()["extensions"][0])
+        self.assertEqual({p["pgMajor"]: p["version"] for p in current["packages"]},
+                         {"14": "1.0", "15": "2.4", "16": "1.0", "17": "1.0", "18": "1.0"})
+        del data["releaseInventory"]["current"]["licensesByMajor"]["15"]
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "license evidence"):
+            self.generate()
+
+    def test_history_does_not_extend_supported_majors(self):
+        path, data = self.add_history()
+        old = data["releaseInventory"]["history"][0]["packages"][0]
+        old["pgMajor"] = "14"
+        path.write_text(json.dumps(data))
+        config = self.root / "config/cli-feed-majors.json"
+        config.write_text(json.dumps({"schemaVersion": 1, "postgresqlMajors": ["15", "16", "17", "18"]}))
+        self.assertEqual([r["releaseTag"] for r in self.generate()["extensions"][0]["releases"]], ["v1"])
+
+    def test_actual_release_note_formatter_tracks_latest_and_total(self):
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github/workflows/cli-signed-catalog-feed.yml").read_text()
-        code = textwrap.dedent(workflow.split("<<'FEED_NOTES_PY'\n", 1)[1].split("          FEED_NOTES_PY\n", 1)[0])
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            source, notes = root / "feed.json", root / "notes.md"
-            for count, majors in ((17, ["14", "15", "16", "17", "18"]),
-                                  (17, ["15", "16", "17", "18"]),
-                                  (18, ["14", "15", "16", "17", "18", "19"])):
-                feed = {"extensionCount": count, "postgresqlMajors": majors,
-                        "zipCount": count * len(majors), "extensionSignatureVerified": False,
-                        "publicationAuthorized": False, "installAuthorized": False}
-                source.write_text(json.dumps(feed))
-                run = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
-                                     text=True, capture_output=True)
-                self.assertEqual(run.returncode, 0, run.stderr)
-                result = notes.read_text()
-                self.assertIn(f"{count} extensions and {count * len(majors)} original ZIPs", result)
-                self.assertIn("PostgreSQL majors " + ", ".join(majors), result)
-                self.assertIn(f"元ZIP計{count * len(majors)}件", result)
-                self.assertLess(result.index("## English"), result.index("## 日本語"))
-                self.assertIn("INTEGRITY_ONLY", result)
-            for change in ({"zipCount": 85}, {"publicationAuthorized": True},
-                           {"postgresqlMajors": ["14", "16"]}):
-                source.write_text(json.dumps({**feed, **change}))
-                notes.unlink(missing_ok=True)
-                run = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
-                                     text=True, capture_output=True)
-                self.assertNotEqual(run.returncode, 0)
-                self.assertFalse(notes.exists())
-            feed.update(postgresqlMajors=["15", "16", "17", "18"],
-                        optionalPostgresqlMajor="19", zipCount=73)
-            source.write_text(json.dumps(feed))
-            subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
-                           check=True, capture_output=True)
-            self.assertIn("PostgreSQL 19 is available for 1 of these extensions.", notes.read_text())
+        code = textwrap.dedent(workflow.split("<<'FEED_NOTES_PY'\n", 1)[1]
+                              .split("          FEED_NOTES_PY\n", 1)[0])
+        self.add_history()
+        source, notes = self.root / "feed.json", self.root / "notes.md"
+        feed = self.generate()
+        source.write_bytes(canonical(feed))
+        result = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
+                                text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        output = notes.read_text()
+        self.assertIn("14 Catalog-approved extensions", output)
+        self.assertIn("70 latest, 71 total including history", output)
+        self.assertIn("PostgreSQL majors 14, 15, 16, 17, 18", output)
+        self.assertIn("元ZIPは最新版70件、履歴を含めて計71件", output)
+        self.assertIn("INTEGRITY_ONLY", output)
+        self.assertLess(output.index("## English"), output.index("## 日本語"))
+
+        source.write_bytes(canonical({**feed, "publicationAuthorized": True}))
+        notes.unlink()
+        result = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
+                                text=True, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(notes.exists())
 
 
 

@@ -188,5 +188,43 @@
     "repository": "pgextwin/pg_qualstats",
     "path": "config/test-contract.json",
     "commit": "b50bcc99eea325fbebc42a9dc32ffa32fc9a722b"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v2.1.4-windows.3",
+      "licensesByMajor": {
+        "15": {
+          "name": "PostgreSQL-style",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+          ]
+        },
+        "16": {
+          "name": "PostgreSQL-style",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+          ]
+        },
+        "17": {
+          "name": "PostgreSQL-style",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+          ]
+        },
+        "18": {
+          "name": "PostgreSQL-style",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+          ]
+        },
+        "19": {
+          "name": "PostgreSQL-style",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }

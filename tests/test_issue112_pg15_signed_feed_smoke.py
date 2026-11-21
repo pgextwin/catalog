@@ -41,6 +41,21 @@ class SignedFeedTransitionSmokeContract(unittest.TestCase):
                 self.assertNotIn("workflow_dispatch:", s)
                 self.assertNotIn("pull_request_target:", s)
 
+    def test_live_smokes_follow_successful_feed_publication(self):
+        anonymous, canary = (self.sources[path] for path in FILES[:2])
+        self.assertIn('workflows: ["Publish Sigstore-attested public Catalog ZIP selection feed"]', canary)
+        self.assertIn("branches: [main]", canary)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", canary)
+        self.assertIn('.name == "publish-metadata-only" and .conclusion == "success"', canary)
+        self.assertEqual(canary.count("if: needs.publication.outputs.ready == 'true'"), 2)
+        self.assertIn("ref: ${{ github.event.workflow_run.head_sha }}", canary)
+        self.assertIn("uses: ./.github/workflows/cli-anonymous-latest.yml", canary)
+        self.assertIn("  workflow_call:", anonymous)
+        self.assertIn("ref: ${{ inputs.source }}", anonymous)
+        for source in (anonymous, canary):
+            self.assertNotIn("  pull_request:", source)
+            self.assertNotIn("  push:", source)
+
     def test_published_exe_acceptance_is_still_genuine_main_only(self):
         s = self.sources[FILES[2]]
         self.assertIn("workflow_dispatch:", s)

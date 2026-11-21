@@ -52,11 +52,11 @@ internal static class CommandHelp
                 Download one named item for the selected PostgreSQL target.
 
                   pgextwin download ITEM [--source external] [--version EXACT] [--pg MAJOR|all] [--category CATEGORY] [--output DIR]
-                  pgextwin download ITEM --source pgextwin --pg MAJOR [--output DIR]
+                  pgextwin download ITEM --source pgextwin --pg MAJOR [--version EXACT] [--output DIR]
                   pgextwin download ITEM --catalog-dir DIR --policy FILE --policy-sha256 HEX --pg MAJOR --output DIR
 
                 Named downloads default to external. Omit --pg to include all recorded majors.
-                --version selects an exact recorded external version. The default is the version marked latest in the Catalog.
+                --version selects an exact recorded version. The default is the version marked latest in the Catalog.
                 Categories are extensions, spatial, tools, and drivers.
                 Use an existing output directory. The default is the current directory.
                 """,
@@ -70,7 +70,7 @@ internal static class CommandHelp
                 With no source or category specified, bulk downloads use the latest signed pgextwin Catalog feed.
                 Use --fixed for the historical pgextwin snapshot.
                 External downloads default to all recorded majors. Categories are extensions, spatial, tools, and drivers.
-                Use download ITEM [--version EXACT] to select one external item.
+                Use download ITEM [--version EXACT] to select one recorded version.
                 Use an existing output directory. The default is the current directory.
                 """,
             "verify" => """

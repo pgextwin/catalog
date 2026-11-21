@@ -201,5 +201,43 @@
     "repository": "pgextwin/pg_partman",
     "path": "config/test-contract.json",
     "commit": "7b84afb37388d0bb0bd8b0cb434977c7bef2c10e"
+  },
+  "releaseInventory": {
+    "current": {
+      "releaseTag": "v5.5.0-windows.2",
+      "licensesByMajor": {
+        "14": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+          ]
+        },
+        "15": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+          ]
+        },
+        "16": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+          ]
+        },
+        "17": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+          ]
+        },
+        "18": {
+          "name": "PostgreSQL",
+          "evidenceUrls": [
+            "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+          ]
+        }
+      }
+    },
+    "history": []
   }
 }
