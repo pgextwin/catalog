@@ -115,6 +115,20 @@ internal static class SignedPublicCatalogFeedTests
         pg19["sha256"] = new string('b', 64);
 
         var hypopgReleases = extensions[0]!["releases"]!.AsArray();
+        var latestHypopgRows = hypopgReleases[1]!["packages"]!.AsArray();
+        var originalPg16 = latestHypopgRows[1]!;
+        latestHypopgRows[1] = Package("hypopg", "16", "1.4.6", 102, CurrentDigest, Commit);
+        var priorRevision = Release("v1.4.5-windows.1", 3, new string('c', 40),
+            [Package("hypopg", "16", "1.4.5", 101, OldDigest, new string('d', 40))]);
+        hypopgReleases.Add(priorRevision);
+        var retainedPg16 = Select("16", "hypopg", "1.4.5").Single();
+        check(Identity(Select("15", "hypopg", "1.4.5").Single()) == Identity(latest) &&
+              Identity(retainedPg16) == ("hypopg", "16", "v1.4.5-windows.1",
+                  "hypopg-1.4.5-pg16-windows-x64.zip", OldDigest, 101),
+            "same-version reissue replaces PG15 while PG16 still selects the prior revision");
+        hypopgReleases.Remove(priorRevision);
+        latestHypopgRows[1] = originalPg16;
+
         var history = hypopgReleases[0]!;
         var historyRow = history["packages"]![0]!;
         historyRow["version"] = "1.4.5";
