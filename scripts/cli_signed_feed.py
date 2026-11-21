@@ -7,10 +7,13 @@ It NEVER promotes a candidate, creates extension Releases, signs, publishes
 or upgrades original ZIP Sigstore trust.
 """
 import argparse
+import base64
+from functools import cache
 import hashlib
 import json
 import os
 import re
+import subprocess
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -58,7 +61,10 @@ def get_repo_json(repo, route, token=None):
         raise ValueError("Unexpected repository")
     if route and not re.fullmatch(r"/releases/tags/[A-Za-z0-9][A-Za-z0-9._-]*", route):
         raise ValueError("Unexpected Release route")
-    url = "https://api.github.com/repos/" + repo + route
+    return get_api_json("https://api.github.com/repos/" + repo + route, token)
+
+
+def get_api_json(url, token):
     request = urllib.request.Request(url, headers={
         "Accept": "application/vnd.github+json",
         "User-Agent": "pgextwin-trusted-feed-generator/1",
@@ -71,6 +77,55 @@ def get_repo_json(repo, route, token=None):
     if not data or len(data) > LIMIT:
         raise ValueError("Invalid GitHub metadata size")
     return strict_object(data.decode("utf-8"))
+
+
+def get_catalog_record(commit, name, token, protected_commits):
+    if not SHA40.fullmatch(commit) or not EXTENSION.fullmatch(name):
+        raise ValueError("Invalid historical Catalog lookup")
+    if commit not in protected_commits():
+        raise ValueError("Historical Catalog admission is outside protected main")
+    path = f"extensions/{name}.json"
+    file = get_api_json(f"https://api.github.com/repos/pgextwin/catalog/contents/{path}?ref={commit}", token)
+    if file.get("type") != "file" or file.get("path") != path or file.get("encoding") != "base64":
+        raise ValueError("Invalid historical Catalog contents response")
+    content = base64.b64decode("".join(file["content"].splitlines()), validate=True)
+    return strict_object(content.decode("utf-8"))
+
+
+def verify_history_admission(name, snapshot, load_admission):
+    tag = snapshot["releaseTag"]
+    commit = snapshot["admission"]["catalogCommit"]
+    if (not isinstance(commit, str) or not SHA40.fullmatch(commit) or
+        not isinstance(tag, str) or not ASSET.fullmatch(tag)):
+        raise ValueError(f"{name}: invalid Catalog Release admission")
+    if load_admission is None:
+        raise ValueError(f"{name}: historical Catalog admission loader required")
+    try:
+        record = load_admission(commit, name)
+    except Exception as exc:
+        raise ValueError(f"{name}: unable to load Catalog admission {commit}: {exc}") from exc
+
+    try:
+        if (record["name"] != name or record["repository"] != "pgextwin/" + name or
+            record["latest"]["releaseTag"] != tag):
+            raise ValueError(f"{name}: Catalog admission does not match historical Release {tag}")
+        licenses = None
+        if "releaseInventory" in record:
+            current = record["releaseInventory"]["current"]
+            if current["releaseTag"] != tag or not isinstance(current["licensesByMajor"], dict):
+                raise ValueError(f"{name}: invalid Catalog admission license inventory for {tag}")
+            licenses = current["licensesByMajor"]
+        for row in snapshot["packages"]:
+            major = row["pgMajor"]
+            pg = record["postgresql"].get(major, {})
+            if (pg.get("available") is not True or pg.get("asset") != row["asset"] or
+                pg.get("sha256") != row["sha256"] or
+                version_for(record["upstream"], major) != row["version"]):
+                raise ValueError(f"{name}: Catalog admission ZIP or version mismatch for {tag} PG{major}")
+            if licenses is not None and license_for(licenses.get(major)) != license_for(row.get("license")):
+                raise ValueError(f"{name}: Catalog admission license evidence mismatch for {tag} PG{major}")
+    except (AttributeError, KeyError, TypeError) as exc:
+        raise ValueError(f"{name}: malformed historical Catalog admission for {tag}") from exc
 
 
 def declared_majors(root):
@@ -98,7 +153,7 @@ def declared_majors(root):
     return tuple(values), optional
 
 
-def build_feed(root, commit, load):
+def build_feed(root, commit, load, *, load_admission=None):
     """Project the protected Catalog's current and approved historical ZIPs."""
     root = Path(root)
     if not SHA40.fullmatch(commit):
@@ -151,6 +206,7 @@ def build_feed(root, commit, load):
         releases = {latest_tag: {"admission": {"catalogCommit": commit}, "packages": latest_packages}}
         tags = {latest_tag}
         for snapshot in inventory["history"]:
+            verify_history_admission(name, snapshot, load_admission)
             tag = snapshot["releaseTag"]
             if tag in tags:
                 raise ValueError("Duplicate Catalog Release tag")
@@ -230,8 +286,17 @@ def main():
     path = Path(opts.output)
     if path.exists() or path.is_symlink():
         raise ValueError("Refuse to overwrite feed output")
+
+    @cache
+    def protected_commits():
+        # Only first-parent commits represent Catalog states accepted on main.
+        return frozenset(subprocess.check_output(
+            ["git", "rev-list", "--first-parent", "refs/remotes/origin/main"],
+            cwd=opts.catalog, text=True).splitlines())
+
     feed = build_feed(opts.catalog, opts.commit,
-                      lambda repo, route: get_repo_json(repo, route, token))
+                      lambda repo, route: get_repo_json(repo, route, token),
+                      load_admission=lambda commit, name: get_catalog_record(commit, name, token, protected_commits))
     data = canonical(feed)
     if len(data) > 2 * 1024 * 1024:
         raise ValueError("Signed Catalog feed exceeds 2MiB reader cap")

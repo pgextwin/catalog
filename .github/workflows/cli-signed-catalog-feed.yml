@@ -31,6 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # Historical admission uses the first-parent history of origin/main.
           persist-credentials: false
       - name: Synthetics and protected Catalog-sized signed-feed plan without publication
         env:
@@ -98,6 +99,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.gate.outputs.source }}
+          fetch-depth: 0 # Historical admission uses the first-parent history of origin/main.
           persist-credentials: false
       - name: Build exact verified Catalog roster feed with independently scoped API token
         env:

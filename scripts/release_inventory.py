@@ -47,8 +47,6 @@ def release_assets(repo, tag, release):
             raise ValueError("Unsafe, duplicate, or moved Release asset")
         used.add(ident)
         assets[asset] = item
-    if "SHA256SUMS.txt" not in assets:
-        raise ValueError("Published checksum asset missing")
     return release_id, assets
 
 

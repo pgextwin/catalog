@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import tempfile
@@ -5,14 +6,17 @@ import subprocess
 import sys
 import textwrap
 import unittest
+from copy import deepcopy
 from pathlib import Path
-from scripts.cli_signed_feed import build_feed, canonical, SCHEMA
+from unittest.mock import patch
+from scripts.cli_signed_feed import build_feed, canonical, get_catalog_record, get_repo_json, SCHEMA
 
 NAMES = ["hypopg","orafce","pg_bigm","pg_cron","pg_hint_plan",
          "pg_ivm","pg_partman","pg_qualstats","pg_repack",
          "pg_stat_monitor","pgaudit","plpgsql_check","set_user","wal2json"]
 SHA = "a" * 40
 D = "b" * 64
+ADMISSION = "d" * 40
 
 
 def latest(entry):
@@ -34,6 +38,7 @@ class SignedFeedTests(unittest.TestCase):
         (self.root / "index.json").write_text(json.dumps(
             {"schemaVersion": 2, "extensions": NAMES}), encoding="utf-8")
         self.assets = {}
+        self.admissions = {}
         for name in NAMES:
             packages = {}
             for major in ("14", "15", "16", "17", "18"):
@@ -372,7 +377,10 @@ gh() {
         return files["repo"]
 
     def generate(self):
-        return build_feed(self.root, SHA, self.load)
+        return build_feed(self.root, SHA, self.load, load_admission=self.load_admission)
+
+    def load_admission(self, commit, name):
+        return self.admissions[commit, name]
 
     def test_all_70_signed_feed_claims_not_original_signatures(self):
         feed = self.generate()
@@ -443,13 +451,21 @@ gh() {
         old_tag = "v0"
         old_asset = "hypopg-v0-pg15-windows-x64.zip"
         license_info = {"name": "PostgreSQL",
-                        "evidenceUrls": [f"https://github.com/pgextwin/hypopg/blob/{'c' * 40}/LICENSE"]}
+                        "evidenceUrls": [f"https://github.com/pgextwin/hypopg/blob/{'c' * 40}/LICENSE",
+                                         f"https://github.com/pgextwin/hypopg/blob/{'c' * 40}/NOTICE"]}
         data["releaseInventory"]["history"] = [{
-            "releaseTag": old_tag, "releaseId": 501, "admission": {"catalogCommit": "d" * 40},
+            "releaseTag": old_tag, "releaseId": 501, "admission": {"catalogCommit": ADMISSION},
             "packages": [{"pgMajor": "15", "version": "0.9", "asset": old_asset,
                           "assetId": 201, "sha256": D, "license": license_info}],
         }]
         path.write_text(json.dumps(data))
+        self.admissions[ADMISSION, "hypopg"] = {
+            "name": "hypopg", "repository": "pgextwin/hypopg", "latest": {"releaseTag": old_tag},
+            "upstream": {"version": "0.8", "perPostgresql": {"15": {"version": "0.9"}}},
+            "postgresql": {"15": {"available": True, "asset": old_asset, "sha256": D}},
+            "releaseInventory": {"current": {"releaseTag": old_tag, "licensesByMajor": {
+                "15": deepcopy(license_info)}}},
+        }
         self.assets["hypopg"]["/releases/tags/v0"] = {
             "id": 501, "tag_name": old_tag, "draft": False, "published_at": "2026-08-01T00:00:00Z",
             "assets": [{"name": name, "id": ident, "digest": "sha256:" + D, "state": "uploaded",
@@ -466,7 +482,7 @@ gh() {
             calls.append((repo, route))
             return self.load(repo, route)
 
-        before = build_feed(self.root, SHA, load)
+        before = build_feed(self.root, SHA, load, load_admission=self.load_admission)
         extension = before["extensions"][0]
         self.assertEqual([r["releaseTag"] for r in extension["releases"]], ["v0", "v1"])
         self.assertEqual(extension["releases"][0], data["releaseInventory"]["history"][0])
@@ -476,7 +492,7 @@ gh() {
         data["releaseInventory"]["history"].clear()
         path.write_text(json.dumps(data))
         calls.clear()
-        after = build_feed(self.root, SHA, load)
+        after = build_feed(self.root, SHA, load, load_admission=self.load_admission)
         self.assertEqual([r["releaseTag"] for r in after["extensions"][0]["releases"]], ["v1"])
         self.assertNotIn(("pgextwin/hypopg", "/releases/tags/v0"), calls)
 
@@ -484,12 +500,13 @@ gh() {
         path, data = self.add_history()
         snapshot = data["releaseInventory"]["history"][0]
         package = snapshot["packages"][0]
+        admitted = self.admissions[ADMISSION, "hypopg"]["upstream"]["perPostgresql"]["15"]
         for target, field, invalid, expected in (
                 (snapshot, "releaseId", 7, "Release ID"),
                 (snapshot["admission"], "catalogCommit", "main", "admission"),
                 (package, "assetId", 202, "public Release"),
                 (package, "license", {"name": "PostgreSQL", "evidenceUrls": []}, "license evidence"),
-                (package, "version", "1.0", "duplicate Catalog package version")):
+                (package, "version", "1.0", "Catalog admission ZIP or version mismatch")):
             with self.subTest(field=field):
                 original = target[field]
                 target[field] = invalid
@@ -497,6 +514,48 @@ gh() {
                 with self.assertRaisesRegex(ValueError, expected):
                     self.generate()
                 target[field] = original
+        package["version"] = admitted["version"] = "1.0"
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "duplicate Catalog package version"):
+            self.generate()
+
+    def test_history_rejects_sha_that_points_to_a_different_catalog_release(self):
+        path, data = self.add_history()
+        other_sha = "e" * 40
+        self.admissions[other_sha, "hypopg"] = json.loads(path.read_text())
+        data["releaseInventory"]["history"][0]["admission"]["catalogCommit"] = other_sha
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "admission does not match historical Release"):
+            self.generate()
+
+    def test_history_rejects_one_missing_license_evidence_url(self):
+        path, data = self.add_history()
+        data["releaseInventory"]["history"][0]["packages"][0]["license"]["evidenceUrls"].pop()
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "admission license evidence mismatch"):
+            self.generate()
+
+    def test_legacy_history_checks_zip_digest_without_version_specific_license_record(self):
+        self.add_history()
+        record = self.admissions[ADMISSION, "hypopg"]
+        del record["releaseInventory"]
+        self.assertEqual(zip_count(self.generate()), 71)
+        record["postgresql"]["15"]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "admission ZIP or version mismatch"):
+            self.generate()
+
+    def test_history_fails_closed_without_a_working_admission_loader(self):
+        self.add_history()
+        with self.assertRaisesRegex(ValueError, "admission loader required"):
+            build_feed(self.root, SHA, self.load)
+        self.admissions.clear()
+        with self.assertRaisesRegex(ValueError, "unable to load Catalog admission"):
+            self.generate()
+
+    def test_history_does_not_require_published_checksum_file(self):
+        self.add_history()
+        self.assets["hypopg"]["/releases/tags/v0"]["assets"].pop()
+        self.assertEqual(zip_count(self.generate()), 71)
 
     def test_latest_requires_license_and_prefers_per_pg_version(self):
         path, data = self.add_history()
@@ -513,7 +572,12 @@ gh() {
     def test_history_does_not_extend_supported_majors(self):
         path, data = self.add_history()
         old = data["releaseInventory"]["history"][0]["packages"][0]
-        old["pgMajor"] = "14"
+        old.update(pgMajor="14", asset=old["asset"].replace("pg15", "pg14"))
+        record = self.admissions[ADMISSION, "hypopg"]
+        record["postgresql"]["14"] = {**record["postgresql"].pop("15"), "asset": old["asset"]}
+        record["upstream"]["perPostgresql"]["14"] = record["upstream"]["perPostgresql"].pop("15")
+        licenses = record["releaseInventory"]["current"]["licensesByMajor"]
+        licenses["14"] = licenses.pop("15")
         path.write_text(json.dumps(data))
         config = self.root / "config/cli-feed-majors.json"
         config.write_text(json.dumps({"schemaVersion": 1, "postgresqlMajors": ["15", "16", "17", "18"]}))
@@ -546,6 +610,24 @@ gh() {
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(notes.exists())
 
+
+class CatalogAdmissionLoaderTests(unittest.TestCase):
+    @patch("scripts.cli_signed_feed.get_api_json")
+    def test_uses_catalog_contents_at_exact_protected_commit(self, api):
+        api.return_value = {"type": "file", "path": "extensions/hypopg.json",
+                            "encoding": "base64", "content": base64.encodebytes(b'{}').decode()}
+        self.assertEqual(get_catalog_record(ADMISSION, "hypopg", "job-token", lambda: {ADMISSION}), {})
+        api.assert_called_once_with(
+            f"https://api.github.com/repos/pgextwin/catalog/contents/extensions/hypopg.json?ref={ADMISSION}",
+            "job-token")
+        api.reset_mock()
+        with self.assertRaisesRegex(ValueError, "outside protected main"):
+            get_catalog_record(ADMISSION, "hypopg", "job-token", lambda: {SHA})
+        api.assert_not_called()
+
+    def test_extension_api_still_denies_contents_routes(self):
+        with self.assertRaisesRegex(ValueError, "Unexpected Release route"):
+            get_repo_json("pgextwin/hypopg", f"/contents/extensions/hypopg.json?ref={ADMISSION}")
 
 
 if __name__ == "__main__":
