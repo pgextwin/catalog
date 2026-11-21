@@ -132,7 +132,7 @@ jobs:
           }
 
       - name: Exercise signed feed v3 selection and trust contracts on Windows
-        run: dotnet run --project dotnet/tests/PgExtWin.Contract.Tests --configuration Release
+        run: dotnet run --project dotnet/tests/PgExtWin.Contract.Tests --configuration Release -- --signed-feed
 
       - name: Smoke-check packaged CLI and negative trust path
         shell: pwsh
