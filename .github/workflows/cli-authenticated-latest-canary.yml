@@ -1,33 +1,53 @@
 name: CLI latest Catalog real Windows GET-only canary
 on:
-  pull_request:
-    paths:
-      - 'dotnet/**'
-      - '.github/workflows/cli-authenticated-latest-canary.yml'
-      - 'scripts/check-cli-signed-feed-receipt.ps1'
-  push:
+  workflow_run:
+    workflows: ["Publish Sigstore-attested public Catalog ZIP selection feed"]
     branches: [main]
-    paths:
-      - 'dotnet/**'
-      - '.github/workflows/cli-authenticated-latest-canary.yml'
-      - 'scripts/check-cli-signed-feed-receipt.ps1'
+    types: [completed]
 
 permissions:
   contents: read
 
 jobs:
+  publication:
+    if: github.repository == 'pgextwin/catalog' && github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      ready: ${{ steps.status.outputs.ready }}
+    steps:
+      - name: Resolve the completed metadata publication job
+        id: status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FEED_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          published="$(gh api --paginate "repos/pgextwin/catalog/actions/runs/$FEED_RUN_ID/jobs" \
+            --jq '.jobs[] | select(.name == "publish-metadata-only" and .conclusion == "success") | .id')"
+          if [[ -n "$published" ]]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  anonymous:
+    needs: publication
+    if: needs.publication.outputs.ready == 'true'
+    uses: ./.github/workflows/cli-anonymous-latest.yml
+    with:
+      source: ${{ github.event.workflow_run.head_sha }}
+
   latest-real-70:
     name: Exact signed-Catalog main metadata and real 70 ZIP Windows E2E (nonpublishing)
-    if: github.repository == 'pgextwin/catalog'
+    needs: publication
+    if: needs.publication.outputs.ready == 'true'
     runs-on: windows-latest
     timeout-minutes: 35
-    permissions:
-      contents: read
-      actions: read
     steps:
       - name: Checkout source without write credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
       - name: Setup pinned .NET SDK
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
