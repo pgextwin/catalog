@@ -1,4 +1,5 @@
 import hashlib
+import io
 import json
 import os
 import tempfile
@@ -6,7 +7,9 @@ import subprocess
 import sys
 import textwrap
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 from scripts.cli_signed_feed import build_feed, canonical, SCHEMA
 
 NAMES = ["hypopg","orafce","pg_bigm","pg_cron","pg_hint_plan",
@@ -227,6 +230,7 @@ class SignedFeedTests(unittest.TestCase):
                     ".github/workflows/cli-signed-catalog-feed.yml").read_text()
         inventory = textwrap.dedent(workflow.split("<<'FEED_INVENTORY_PY'\n", 1)[1]
                                     .split("          FEED_INVENTORY_PY\n", 1)[0])
+        inventory = compile(inventory, "FEED_INVENTORY_PY", "exec")
         artifact = self.root / "verified-catalog-feed"
         artifact.mkdir()
 
@@ -235,13 +239,13 @@ class SignedFeedTests(unittest.TestCase):
                 path.unlink()
             (artifact / "catalog-latest.json").write_bytes(canonical(candidate))
             (artifact / "catalog-latest.sigstore.json").write_text("{}")
-            return subprocess.run([sys.executable, "-c", inventory, str(artifact), SHA],
-                                  text=True, capture_output=True)
+            output = io.StringIO()
+            with patch.object(sys, "argv", ["-", str(artifact), SHA]), redirect_stdout(output):
+                exec(inventory, {"__name__": "__main__"})
+            return output.getvalue()
 
         for candidate in (feed, baseline):
-            verified = verify(candidate)
-            self.assertEqual(verified.returncode, 0, verified.stderr)
-            self.assertEqual(verified.stdout.strip(), "catalog-latest")
+            self.assertEqual(verify(candidate).strip(), "catalog-latest")
 
         calls = self.publish_commands(workflow)
         self.assertIn(f"api --method POST repos/pgextwin/catalog/git/refs "
@@ -256,10 +260,12 @@ class SignedFeedTests(unittest.TestCase):
 
         feed["releases"][0]["packages"].pop(0)
         feed["zipCount"] -= 1
-        self.assertNotEqual(verify(feed).returncode, 0)
+        with self.assertRaises(AssertionError):
+            verify(feed)
         # A v1-shaped body is no longer a valid published feed.
         legacy = {**baseline, "schemaVersion": "pgextwin-signed-catalog-zip-feed/v1"}
-        self.assertNotEqual(verify(legacy).returncode, 0)
+        with self.assertRaises(AssertionError):
+            verify(legacy)
 
         original["digest"] = "sha256:" + "c" * 64
         with self.assertRaisesRegex(ValueError, "does not match public Release"):
@@ -434,19 +440,23 @@ gh() {
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github/workflows/cli-signed-catalog-feed.yml").read_text()
         code = textwrap.dedent(workflow.split("<<'FEED_NOTES_PY'\n", 1)[1].split("          FEED_NOTES_PY\n", 1)[0])
+        formatter = compile(code, "FEED_NOTES_PY", "exec")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             source, notes = root / "feed.json", root / "notes.md"
+
+            def render(feed):
+                source.write_text(json.dumps(feed), encoding="utf-8")
+                with patch.object(sys, "argv", ["-", str(source), str(notes)]):
+                    exec(formatter, {"__name__": "__main__"})
+
             for count, majors in ((17, ["14", "15", "16", "17", "18"]),
                                   (17, ["15", "16", "17", "18"]),
                                   (18, ["14", "15", "16", "17", "18", "19"])):
                 feed = {"extensionCount": count, "postgresqlMajors": majors,
                         "zipCount": count * len(majors), "extensionSignatureVerified": False,
                         "publicationAuthorized": False, "installAuthorized": False}
-                source.write_text(json.dumps(feed))
-                run = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
-                                     text=True, capture_output=True)
-                self.assertEqual(run.returncode, 0, run.stderr)
+                render(feed)
                 result = notes.read_text()
                 self.assertIn(f"{count} extensions and {count * len(majors)} original ZIPs", result)
                 self.assertIn("PostgreSQL majors " + ", ".join(majors), result)
@@ -455,17 +465,13 @@ gh() {
                 self.assertIn("INTEGRITY_ONLY", result)
             for change in ({"zipCount": 85}, {"publicationAuthorized": True},
                            {"postgresqlMajors": ["14", "16"]}):
-                source.write_text(json.dumps({**feed, **change}))
                 notes.unlink(missing_ok=True)
-                run = subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
-                                     text=True, capture_output=True)
-                self.assertNotEqual(run.returncode, 0)
+                with self.assertRaises(AssertionError):
+                    render({**feed, **change})
                 self.assertFalse(notes.exists())
             feed.update(postgresqlMajors=["15", "16", "17", "18"],
                         optionalPostgresqlMajor="19", zipCount=73)
-            source.write_text(json.dumps(feed))
-            subprocess.run([sys.executable, "-c", code, str(source), str(notes)],
-                           check=True, capture_output=True)
+            render(feed)
             self.assertIn("PostgreSQL 19 is available for 1 of these extensions.", notes.read_text())
 
 

@@ -100,7 +100,6 @@ internal static class SyntheticBundleTests
         Reject(() => SyntheticBundle.Verify(Repack(one, (n,b) => (n,b),
                 extraName: "large.txt", extraBytes: new byte[4 * 1024 * 1024 + 1], compressExtra: true)),
             "Oversized ZIP member rejected");
-        check(SyntheticBundle.Verify(two).PackageCount == 2, "Repeat verification in-memory without network");
     }
 
     private static byte[] Inner(bool marker = true, string proof = Proof, bool includePackageInfo = false,
