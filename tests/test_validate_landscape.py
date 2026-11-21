@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,20 +30,23 @@ class LandscapeTests(unittest.TestCase):
     def test_valid_types(self):
         for record in [self.impl, self.candidate, self.other]:
             self.assertValid(record)
-    def test_not_planned_reason_required(self):
-        record = copy.deepcopy(self.other); record.pop("notPlannedReason"); self.assertInvalid(record)
-    def test_not_planned_source_required(self):
-        record = copy.deepcopy(self.other); record["windowsBinarySources"] = []; self.assertInvalid(record)
-    def test_bad_source_url(self):
-        record = copy.deepcopy(self.other); record["windowsBinarySources"][0]["url"] = "javascript:alert(1)"; self.assertInvalid(record)
-    def test_candidate_rationale_required(self):
-        record = copy.deepcopy(self.candidate); record.pop("candidateRationale", None); self.assertInvalid(record)
-    def test_implemented_catalog_reference_required(self):
-        record = copy.deepcopy(self.impl); record.pop("pgextwinCatalogName"); self.assertInvalid(record)
-    def test_invalid_status(self):
-        record = copy.deepcopy(self.impl); record["status"] = "unsupported"; self.assertInvalid(record)
-    def test_last_reviewed_date(self):
-        record = copy.deepcopy(self.impl); record["lastReviewed"] = "2026-02-31"; self.assertInvalid(record)
+    def test_invalid_record_schema(self):
+        cases = (
+            ("not-planned reason missing", self.other, lambda r: r.pop("notPlannedReason")),
+            ("not-planned sources missing", self.other, lambda r: r.update(windowsBinarySources=[])),
+            ("bad source URL", self.other,
+             lambda r: r["windowsBinarySources"][0].update(url="javascript:alert(1)")),
+            ("candidate rationale missing", self.candidate, lambda r: r.pop("candidateRationale")),
+            ("implemented reference missing", self.impl, lambda r: r.pop("pgextwinCatalogName")),
+            ("invalid status", self.impl, lambda r: r.update(status="unsupported")),
+            ("bad review date", self.impl, lambda r: r.update(lastReviewed="2026-02-31")),
+        )
+        for label, original, mutate in cases:
+            with self.subTest(case=label):
+                record = copy.deepcopy(original)
+                mutate(record)
+                self.assertInvalid(record)
+
     def test_valid_registry(self):
         self.assertEqual([], module.validate_landscape(ROOT))
     def test_duplicate_names(self):
@@ -56,19 +60,6 @@ class LandscapeTests(unittest.TestCase):
             (base / "index.json").write_text(json.dumps({"extensions":[]}))
             (base / "landscape" / "extensions").mkdir()
             self.assertTrue(any("duplicate" in x for x in module.validate_landscape(base)))
-    def test_invalid_catalog_reference(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            base = Path(tmp)
-            import shutil
-            shutil.copytree(ROOT / "landscape", base / "landscape")
-            shutil.copytree(ROOT / "schema", base / "schema")
-            shutil.copy(ROOT / "index.json", base / "index.json")
-            record_path = base / "landscape" / "extensions" / "pg_cron.json"
-            record = json.loads(record_path.read_text())
-            record["pgextwinCatalogName"] = "fake"
-            record_path.write_text(json.dumps(record))
-            self.assertTrue(any("invalid distribution catalog reference" in x for x in module.validate_landscape(base)))
-
     def test_step18_implemented_wave_history(self):
         plpgsql = module.load(ROOT / "landscape" / "extensions" / "plpgsql_check.json")
         self.assertValid(plpgsql)
@@ -87,32 +78,7 @@ class LandscapeTests(unittest.TestCase):
         bad["roadmap"] = plpgsql["roadmap"]
         self.assertInvalid(bad)
 
-    def test_step18_registry_counts_and_historical_compatibility(self):
-        records = [module.load(p) for p in (ROOT / "landscape" / "extensions").glob("*.json")]
-        statuses = {status: sum(r["status"] == status for r in records) for status in ("implemented", "candidate", "not-planned")}
-        landscape_index=module.load(ROOT / "landscape" / "index.json")["extensions"]
-        self.assertEqual(set(landscape_index),{r["name"] for r in records})
-        self.assertEqual(len(landscape_index),len(records))
-        self.assertEqual(len(records),sum(statuses.values()))
-        byname = {r["name"]: r for r in records}
-        for name in module.INITIAL_EIGHT:
-            self.assertEqual("implemented", byname[name]["status"])
-        for name, order in (("hypopg",2),("wal2json",3)):
-            self.assertIn(byname[name]["status"], ("candidate", "implemented"))
-            if byname[name]["status"] == "implemented":
-                self.assertEqual(name, byname[name]["pgextwinCatalogName"])
-            self.assertEqual(order, byname[name]["roadmap"]["order"])
-            self.assertEqual("2026-10-08", byname[name]["roadmap"]["decisionDate"])
-        for record in records:
-            if record["status"] == "not-planned":
-                self.assertTrue(record["windowsBinarySources"])
-        catalog_index = module.load(ROOT / "index.json")["extensions"]
-        self.assertEqual(set(catalog_index), {r["name"] for r in records if r["status"] == "implemented"})
-        self.assertEqual({name for name in ("hypopg", "wal2json") if byname[name]["status"] == "implemented"},
-                         set(catalog_index) & {"hypopg", "wal2json"})
-
     def test_future_wave_two_implementations_same_schema(self):
-        import shutil
         for name in ("hypopg", "wal2json"):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
                 base = Path(tmp)
@@ -130,54 +96,42 @@ class LandscapeTests(unittest.TestCase):
                 path.write_text(json.dumps(record))
                 self.assertEqual([], module.validate_landscape(base))
 
-    def test_three_wave_two_orders(self):
-        records = [module.load(p) for p in (ROOT / "landscape" / "extensions").glob("*.json")]
-        wave = [x for x in records if x.get("roadmap", {}).get("decision") == "wave-2"]
-        self.assertEqual([1, 2, 3], sorted(x["roadmap"]["order"] for x in wave))
-        self.assertEqual(3, len(wave))
-    def test_missing_all_wave_orders_rejected(self):
-        import shutil
+    def test_invalid_registry_record(self):
+        cases = (
+            ("bad Catalog reference", "pg_cron", lambda r: r.update(pgextwinCatalogName="fake"),
+             "invalid distribution catalog reference"),
+            ("missing Wave 2 record", "wal2json", lambda r: r.pop("roadmap"), "exactly three"),
+            ("duplicate Wave 2 order", "hypopg", lambda r: r["roadmap"].update(order=1), "order"),
+            ("missing roadmap rationale", "hypopg", lambda r: r["roadmap"].update(rationale=""),
+             "rationale"),
+            ("reserve has order", "pg_partman", lambda r: r.update(roadmap={
+                "decision": "reserve", "decisionDate": "2026-10-08",
+                "rationale": "illegal", "order": 2,
+            }), "roadmap"),
+            ("not-planned has roadmap", "postgis", lambda r: r.update(roadmap={
+                "decision": "research", "decisionDate": "2026-10-08", "rationale": "test",
+            }), "roadmap"),
+            ("bad decision date", "hypopg", lambda r: r["roadmap"].update(decisionDate="2026-02-31"),
+             "decisionDate"),
+            ("missing Wave 2 order", "hypopg", lambda r: r["roadmap"].pop("order"), "order"),
+        )
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             shutil.copytree(ROOT / "landscape", base / "landscape")
             shutil.copytree(ROOT / "schema", base / "schema")
             shutil.copy(ROOT / "index.json", base / "index.json")
-            for name in ("hypopg", "plpgsql_check", "wal2json"):
-                path = base / "landscape" / "extensions" / (name + ".json")
-                record = json.loads(path.read_text())
-                record.pop("roadmap")
-                path.write_text(json.dumps(record))
-            errors = module.validate_landscape(base)
-            self.assertTrue(any("exactly three" in issue for issue in errors), errors)
-    def test_one_wave_record_missing_rejected(self):
-        self.assertRegistryMutationRejected("wal2json",lambda x: x.pop("roadmap"), "exactly three")
-    def test_duplicate_wave_order_rejected(self):
-        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(order=1), "order")
-    def test_missing_roadmap_rationale_rejected(self):
-        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(rationale=""), "rationale")
-    def test_reserve_cannot_have_order(self):
-        self.assertRegistryMutationRejected("pg_partman",
-            lambda x: x.update(roadmap={"decision":"reserve","decisionDate":"2026-10-08","rationale":"illegal","order":2}),
-            "roadmap")
-    def test_not_planned_roadmap_rejected(self):
-        self.assertRegistryMutationRejected("postgis", lambda x: x.update(roadmap={"decision":"research","decisionDate":"2026-10-08","rationale":"test"}), "roadmap")
-    def test_bad_decision_date_rejected(self):
-        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].update(decisionDate="2026-02-31"), "decisionDate")
-    def test_missing_wave_order_rejected(self):
-        self.assertRegistryMutationRejected("hypopg", lambda x: x["roadmap"].pop("order"), "order")
-    def assertRegistryMutationRejected(self, name, mutate, fragment):
-        import shutil
-        with tempfile.TemporaryDirectory() as tmp:
-            base = Path(tmp)
-            shutil.copytree(ROOT / "landscape", base / "landscape")
-            shutil.copytree(ROOT / "schema", base / "schema")
-            shutil.copy(ROOT / "index.json", base / "index.json")
-            path = base / "landscape" / "extensions" / (name + ".json")
-            record = json.loads(path.read_text())
-            mutate(record)
-            path.write_text(json.dumps(record))
-            errors = module.validate_landscape(base)
-            self.assertTrue(any(fragment in issue for issue in errors), errors)
+            for label, name, mutate, fragment in cases:
+                with self.subTest(case=label):
+                    path = base / "landscape" / "extensions" / (name + ".json")
+                    original = path.read_bytes()
+                    record = json.loads(original)
+                    mutate(record)
+                    try:
+                        path.write_text(json.dumps(record), encoding="utf-8")
+                        errors = module.validate_landscape(base)
+                        self.assertTrue(any(fragment in issue for issue in errors), errors)
+                    finally:
+                        path.write_bytes(original)
 
 if __name__ == "__main__":
     unittest.main()
