@@ -85,7 +85,7 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
             "@('extension','pgMajor','upstreamVersion','license','assetName','originalSha256')",
             '$row.$field -isnot [string]', '[string]::IsNullOrWhiteSpace($row.$field)',
             '$row.licenseEvidence -isnot [array]', '$row.licenseEvidence.Count -lt 1',
-            '$row.latest -isnot [bool]', "$row.pgMajor -cnotin @('14','15','16','17','18')",
+            '$row.latest -isnot [bool]', "$row.pgMajor -cnotin @('14','15','16','17','18','19')",
             "[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)",
             "$identity=$row.extension + ':' + $row.pgMajor + ':' + $row.upstreamVersion",
             'if (-not $identities.Add($identity)) { throw',

@@ -22,6 +22,9 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
     internal const string StandaloneProvider = "standalone";
     internal const string OsgeoProvider = "osgeo";
 
+    internal static bool IsExternalZipMajor(string? major) =>
+        major is "14" or "15" or "16" or "17" or "18" or "19";
+
     // Direct HTTPS provider assets use no synthetic GitHub identities.
     internal static bool IsCybertec(ExternalOriginalPin pin) =>
         pin.SourceRepo == "cybertec-postgresql/" + pin.Extension &&
@@ -35,7 +38,7 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
 
     private static bool IsOsgeoBundle(ExternalOriginalPin pin) =>
         pin.Extension == "postgis" && pin.SourceRepo == "postgis/postgis" &&
-        pin.PgMajor is "15" or "16" or "17" or "18" &&
+        pin.PgMajor != "14" && // ValidatePin checks the shared range; OSGeo starts at PG15.
         pin.RepositoryId == 0 && pin.ReleaseId == 0 && pin.AssetId == 0 &&
         OsgeoVersion.IsMatch(pin.Tag) &&
         pin.AssetName == $"postgis-bundle-pg{pin.PgMajor}-{pin.Tag}x64.zip" &&
@@ -92,7 +95,7 @@ internal sealed class ExternalProviderAssetTransport : IDisposable
             _ => false
         };
         if (!Extension.IsMatch(pin.Extension) ||
-            !Regex.IsMatch(pin.PgMajor, @"\A1[4-8]\z") ||
+            !IsExternalZipMajor(pin.PgMajor) ||
             !Repo.IsMatch(pin.SourceRepo) ||
             pin.SourceRepo.StartsWith("pgextwin/", StringComparison.OrdinalIgnoreCase) ||
             !PinnedReleaseSelector.SafeAssetName(pin.Tag) ||
