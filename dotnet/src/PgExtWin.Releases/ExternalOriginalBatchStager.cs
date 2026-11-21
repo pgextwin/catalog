@@ -159,7 +159,8 @@ internal static class ExternalOriginalBatchStager
     private static void ValidateBatchPins(IReadOnlyList<ExternalOriginalPin> pins, string pgSelection,
         bool standaloneSelection)
     {
-        if ((!standaloneSelection && pgSelection is not ("14" or "15" or "16" or "17" or "18" or "all")) ||
+        if ((!standaloneSelection && pgSelection != "all" &&
+                !ExternalProviderAssetTransport.IsExternalZipMajor(pgSelection)) ||
             pins.Count is < 1 or > 1000)
             throw new InvalidDataException("Invalid external batch selection");
 

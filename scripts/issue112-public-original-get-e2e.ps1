@@ -30,15 +30,15 @@ if ($standalone.schemaVersion -cne 'pgextwin-standalone-get/v1' -or
 $identities=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $selectedPaths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $expected=@(foreach ($row in $manifest.records) {
-    # SelectDirect validates every row, including non-latest historical versions.
+    # Match ValidatePin's external ZIP major range for every row, including historical versions.
     foreach ($field in @('extension','pgMajor','upstreamVersion','license','assetName','originalSha256')) {
         if ($row.$field -isnot [string] -or [string]::IsNullOrWhiteSpace($row.$field)) {
             throw "Missing exact-version direct record field: $field"
         }
     }
     if ($row.licenseEvidence -isnot [array] -or $row.licenseEvidence.Count -lt 1 -or
-        $row.latest -isnot [bool] -or $row.pgMajor -cnotin @('14','15','16','17','18')) {
-        throw 'Direct record license evidence/latest/PG14-18 scope invalid'
+        $row.latest -isnot [bool] -or $row.pgMajor -cnotin @('14','15','16','17','18','19')) {
+        throw 'Direct record license evidence/latest/PG14-19 scope invalid'
     }
     $identity=$row.extension + ':' + $row.pgMajor + ':' + $row.upstreamVersion
     if (-not $identities.Add($identity)) { throw "Duplicate direct identity: $identity" }

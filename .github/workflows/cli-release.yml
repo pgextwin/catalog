@@ -229,11 +229,15 @@ jobs:
 
           Windows x64 CLI $env:VERSION downloads original extensions, spatial bundles, tools, and database drivers without requiring a PostgreSQL installation. Use ``list --category spatial`` to browse or ``download psqlodbc`` to download one item. Use ``download-all --source external`` for a batch and ``--category`` or ``--pg`` to filter it. Each original is checked against its Catalog SHA-256 and exact size. The CLI leaves the files intact.
 
+          Once the PostgreSQL 19 OSGeo bundle (PostGIS 3.7.0 and pgRouting 4.0.1) is added to the Catalog, listing or downloading external extensions and spatial bundles requires CLI v0.5.0 or later. After the switch, v0.4.0 fails to read the external catalog even with ``--pg 18``. Tool and driver downloads without an explicit category are also affected. Update ``pgextwin.exe`` before the switch and confirm with ``pgextwin --version``. Once the bundle is listed, ``pgextwin download postgis --pg 19`` and ``pgextwin download pgrouting --pg 19`` both get the same ZIP.
+
           ``download-all --pg 18`` uses the signed pgextwin feed. ``verify external`` checks separately obtained ZIPs against a local review ledger.
 
           ## 日本語
 
           Windows x64 CLI $env:VERSION は、PostgreSQLが入っていないPCでも、拡張機能、空間拡張バンドル、ツール、ドライバーの原本を取得できます。``list --category spatial`` で一覧を表示し、``download psqlodbc`` で個別に取得できます。一括取得には ``download-all --source external`` を使い、``--category`` や ``--pg`` で対象を絞り込みます。各ファイルのSHA-256と正確なバイト数を照合し、原本のまま保存します。
+
+          PostgreSQL 19 向けの OSGeo バンドル（PostGIS 3.7.0、pgRouting 4.0.1）がカタログに登録されると、外部拡張・空間バンドルの一覧表示や取得には CLI v0.5.0 以降が必要になります。切替後は v0.4.0 で ``--pg 18`` を指定しても、外部カタログの読み込みに失敗します。カテゴリを省略したツール・ドライバーの取得も対象です。切替前に ``pgextwin.exe`` を更新し、``pgextwin --version`` で確認してください。登録後は ``pgextwin download postgis --pg 19`` と ``pgextwin download pgrouting --pg 19`` のどちらでも同じ ZIP を取得できます。
 
           ``download-all --pg 18`` は署名付きpgextwinフィードを使います。``verify external`` は、別途取得したZIPをローカルの確認用台帳と照合します。
           "@ | Set-Content $notes -Encoding utf8
