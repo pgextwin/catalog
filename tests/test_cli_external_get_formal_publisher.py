@@ -40,7 +40,7 @@ class FormalPublisher(unittest.TestCase):
 
     def test_real_policy_requires_same_run_owner_approval(self):
         policy = json.loads(FILE.read_text())
-        version = "0.5.0"
+        version = "0.6.0"
         self.assertEqual(policy["environmentId"], 26611532853)
         self.assertTrue(MOD.eligible(policy, version))
         with self.assertRaises(MOD.Denied):
