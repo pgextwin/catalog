@@ -41,6 +41,15 @@ The existing live P1 read-only audit continues its own live-reader tests.
 
 ## Checkout-depth decision
 
+The CLI now obtains pgextwin builds through the signed feed. The fixed
+bootstrap and its Git-object test have been removed, so the .NET OSGeo
+job uses the default shallow checkout. Validate still fetches full history
+for Python's offline inventory and ledger admission tests. The history and
+signed-feed publishing workflows also use full history for their own
+Git-object and admission checks.
+
+### R04 findings before the CLI migration
+
 **Keep `fetch-depth: 0` in normal validate.** After separating the Python Git-tree
 checks, the normal `.NET synthetic contract tests (offline)` step still executes
 `TrustedBootstrapTests.RunAsync`. That test calls `GitOriginal` -> `git show
@@ -74,10 +83,6 @@ only an index entry, adding an unregistered entry, or losing a selected package
 still fails. No signature, fetched-byte, admission, or per-version license
 verification was changed. Canonical/golden and hostile tamper tests remain.
 
-The explicitly frozen `--fixed` policy/snapshot still means that exact historical
-snapshot. Its batch guard retains its own 14-entry count, decoupled from the
-current authorized roster minimum so the legacy path continues to work.
-
 ## Local validation
 
 Python 3.12.3 (`python3`; workflows pin Python 3.13), .NET SDK 11.0.100:
@@ -89,8 +94,3 @@ Python 3.12.3 (`python3`; workflows pin Python 3.13), .NET SDK 11.0.100:
 - Affected live P1 ledger/fleet/source/batch tests, retirement guard,
   nonauthorization boundary and feed-producer tests also passed individually.
 - Changed workflow YAML parsed successfully; `git diff --check` passed.
-
-Deferred: normal-job shallow checkout, blocked by the live bootstrap Git-object
-consumer above. Live historical policy inputs and their tests intentionally
-remain in normal CI; none were mechanically retired. No other phase-B work is
-deferred. Windows packaging and remote audits remain covered by existing CI.

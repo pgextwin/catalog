@@ -53,9 +53,9 @@ internal static class CommandHelp
 
                   pgextwin download ITEM [--source external] [--version EXACT] [--pg MAJOR|all] [--category CATEGORY] [--output DIR]
                   pgextwin download ITEM --source pgextwin --pg MAJOR [--version EXACT] [--output DIR]
-                  pgextwin download ITEM --catalog-dir DIR --policy FILE --policy-sha256 HEX --pg MAJOR --output DIR
 
                 Named downloads default to external. Omit --pg to include all recorded majors.
+                pgextwin downloads use the signed Catalog feed.
                 --version selects an exact recorded version. The default is the version marked latest in the Catalog.
                 Categories are extensions, spatial, tools, and drivers.
                 Use an existing output directory. The default is the current directory.
@@ -63,12 +63,10 @@ internal static class CommandHelp
             "download-all" => """
                 Download a selection of packages in bulk.
 
-                  pgextwin download-all [--source pgextwin] --pg MAJOR|all [--output DIR] [--latest|--fixed]
+                  pgextwin download-all [--source pgextwin] --pg MAJOR|all [--output DIR] [--latest]
                   pgextwin download-all --source external [--pg MAJOR|all] [--category CATEGORY] [--output DIR]
-                  pgextwin download-all --catalog-dir DIR --policy FILE --policy-sha256 HEX --pg MAJOR|all --output DIR
 
                 With no source or category specified, bulk downloads use the latest signed pgextwin Catalog feed.
-                Use --fixed for the historical pgextwin snapshot.
                 External downloads default to all recorded majors. Categories are extensions, spatial, tools, and drivers.
                 Use download ITEM [--version EXACT] to select one recorded version.
                 Use an existing output directory. The default is the current directory.

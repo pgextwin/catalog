@@ -6,6 +6,12 @@ Use `pgextwin download hypopg --source pgextwin --pg 15` to get the newest appro
 
 `pgextwin download-all --pg all` selects the latest approved ZIP for every extension and supported PostgreSQL major. Use `--pg MAJOR` for a single major. The default bulk mode is `--latest`. `--fixed` selects the historical snapshot. Internal `--version` requires a named download from the signed feed.
 
+
+The signed feed supplies pgextwin builds for its approved PostgreSQL cohort,
+starting at PG15. For external originals, select an item with
+`pgextwin download postgis --source external --pg 18`. Independently pinned
+local policies are inputs to `pgextwin verify report`.
+
 Automatic downloads require CLI v0.6.0 once the v3 feed becomes the public latest. CLI v0.4.0 and v0.5.0 read the previous v2 format.
 
 A protected-main signed-feed publisher runs only after an independently verified exact-main `Validate catalog` push SUCCESS. A GitHub Actions OIDC signer signs `catalog-latest.json` using Sigstore; a separate write-scoped job cryptographically validates the original signed bytes before create-only Release publication as the repository's latest Release.

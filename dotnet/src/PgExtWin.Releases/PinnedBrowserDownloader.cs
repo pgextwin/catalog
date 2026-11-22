@@ -15,6 +15,7 @@ namespace PgExtWin.Releases;
 /// </summary>
 public sealed class PinnedBrowserDownloader : IDisposable
 {
+    internal const long MaxAssetBytes = 64 * 1024 * 1024;
     private readonly HttpClient http;
     public PinnedBrowserDownloader(HttpMessageHandler? handler = null)
     {
@@ -66,7 +67,7 @@ public sealed class PinnedBrowserDownloader : IDisposable
             if (media is "application/json" or "text/html" or "text/plain")
                 throw new InvalidDataException("GitHub browser asset is not ZIP bytes");
             if (response.Content.Headers.ContentLength is long length &&
-                (length < 4 || length > ReadOnlyReleaseDownloader.MaxAssetBytes))
+                (length < 4 || length > MaxAssetBytes))
                 throw new InvalidDataException("ZIP browser Content-Length exceeds bound");
             await using var file = new FileStream(temp, FileMode.CreateNew,
                 FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous);
@@ -82,7 +83,7 @@ public sealed class PinnedBrowserDownloader : IDisposable
                     var n = await stream.ReadAsync(bytes.AsMemory(0, bytes.Length),
                         cancellationToken);
                     if (n == 0) break;
-                    if (count + n > ReadOnlyReleaseDownloader.MaxAssetBytes)
+                    if (count + n > MaxAssetBytes)
                         throw new InvalidDataException("ZIP exceeds 64MiB download cap");
                     hash.AppendData(bytes, 0, n);
                     await file.WriteAsync(bytes.AsMemory(0, n), cancellationToken);

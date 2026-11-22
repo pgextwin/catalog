@@ -97,9 +97,7 @@ if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
         feedMajors.All(major => record.Versions.Any(version => version.Major == major))),
         "actual local Catalog covers all configured feed majors");
 }
-await ReleaseHttpTests.RunAsync(Check);
 await BatchDownloadTests.RunAsync(Check);
-await TrustedBootstrapTests.RunAsync(Check);
 await AuthenticatedCatalogHeadTests.RunAsync(Check);
 await SignedPublicCatalogFeedTests.RunAsync(Check);
 await PinnedBrowserDownloadTests.RunAsync(Check);

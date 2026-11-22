@@ -11,70 +11,16 @@ namespace PgExtWin.Releases;
 /// </summary>
 public static class BatchReleaseDownloader
 {
-    // Historical --fixed / external local policy remains usable for PG14.
-    // Latest mode passes the independently verified signed feed's majors.
-    private const int LegacyFixedExtensionCount = 14;
-    private static readonly string[] LegacyFixedMajors = ["14", "15", "16", "17", "18"];
     public sealed record BatchResult(string Directory, int Count, long Bytes,
         string VerificationLevel = "INTEGRITY_ONLY");
 
-    public static async Task<BatchResult> RunAsync(
-        string catalogDirectory, string policyFile, string policyDigest,
-        string pgSelection, string outputParent, ReadOnlyReleaseDownloader downloader,
-        CancellationToken cancellationToken = default, bool usePinnedBrowserTransport = false,
-        Action<string>? progress = null)
-    {
-        if (pgSelection != "all" && !LegacyFixedMajors.Contains(pgSelection, StringComparer.Ordinal))
-            throw new InvalidDataException("Unsupported historical fixed batch PG selection");
-        var records = CatalogReader.LoadLocal(catalogDirectory);
-        // --fixed preserves its embedded historical policy snapshot. Its count
-        // is independent of the current authenticated index/feed roster limits.
-        if (records.Count != LegacyFixedExtensionCount ||
-            records.Select(r => r.Name).Distinct(StringComparer.Ordinal).Count() !=
-                LegacyFixedExtensionCount)
-            throw new InvalidDataException("Batch requires an intact 14-extension Catalog");
-        var majors = pgSelection == "all" ? LegacyFixedMajors : new[] { pgSelection };
-        var pins = new List<ReleasePins>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var major in majors)
-        {
-            foreach (var record in records.OrderBy(r => r.Name, StringComparer.Ordinal))
-            {
-                var pin = PinnedReleaseSelector.FromLocalFiles(
-                    catalogDirectory, policyFile, policyDigest, record.Name, major);
-                if (pin.PgMajor != major || pin.Extension != record.Name ||
-                    !seen.Add("pg" + major + "/" + pin.AssetName))
-                    throw new InvalidDataException("Batch contains substituted or duplicate ZIP entry");
-                pins.Add(pin);
-            }
-        }
-        if (pins.Count != records.Count * majors.Length)
-            throw new InvalidDataException("Incomplete batch selection");
-        // In one-line mode only, original ZIP bytes are fetched from the exact
-        // fixed GitHub browser URLs instead of mutable/rate-limited REST calls.
-        // Numeric IDs remain pinned by the cryptographically hashed baked policy
-        // but are explicitly NOT asserted to have been re-queried from the API.
-        using var browser = usePinnedBrowserTransport ? new PinnedBrowserDownloader() : null;
-        return await StageAsync(pins, pgSelection, outputParent,
-            (pin, folder, token) => usePinnedBrowserTransport
-                ? browser!.DownloadAsync(pin, folder, token, progress)
-                : downloader.DownloadAsync(pin, folder, token),
-            cancellationToken, metadataVerified: !usePinnedBrowserTransport,
-            progress: progress);
-    }
-
-    // Pure transaction adapter: production always calls the existing strict
-    // Release downloader; tests supply only synthetic bytes and receipts.
     public static async Task<BatchResult> StageAsync(
         IReadOnlyList<ReleasePins> pins, string pgSelection, string outputParent,
         Func<ReleasePins, string, CancellationToken, Task<DownloadReceipt>> downloadOne,
-        CancellationToken cancellationToken = default, bool metadataVerified = true,
-        string? sourceOverride = null, Action<string>? progress = null,
-        IReadOnlyList<string>? approvedMajors = null)
+        IReadOnlyList<string> approvedMajors, CancellationToken cancellationToken = default,
+        Action<string>? progress = null)
     {
-        // Only the Sigstore-verified feed caller supplies a forward PG cohort.
-        // Legacy pinned policy and synthetic callers remain PG14-18 by default.
-        var accepted = approvedMajors?.ToArray() ?? LegacyFixedMajors;
+        var accepted = approvedMajors.ToArray();
         if (accepted.Length is < 1 or > 12 ||
             accepted.Any(x => !int.TryParse(x, out var n) || n < 14 || n > 32 ||
                               n.ToString(System.Globalization.CultureInfo.InvariantCulture) != x) ||
@@ -133,7 +79,7 @@ public static class BatchReleaseDownloader
                     throw new InvalidDataException("Batch download receipt identity mismatch");
                 var file = new FileInfo(expected);
                 if (!file.Exists || (file.Attributes & FileAttributes.ReparsePoint) != 0 ||
-                    file.Length <= 0 || file.Length > ReadOnlyReleaseDownloader.MaxAssetBytes ||
+                    file.Length <= 0 || file.Length > PinnedBrowserDownloader.MaxAssetBytes ||
                     file.Length != receipt.Size)
                     throw new InvalidDataException("Invalid batch ZIP size or link");
                 await using var stream = new FileStream(expected, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -150,10 +96,8 @@ public static class BatchReleaseDownloader
             }
             var info = new BatchDownloadInfo(
                 "pgextwin-cli-batch-download/v1",
-                sourceOverride ?? (metadataVerified
-                    ? "EXTERNALLY_PINNED_LOCAL_CATALOG"
-                    : "CLI_PINNED_HISTORICAL_CANDIDATE_POLICY"),
-                metadataVerified, "INTEGRITY_ONLY",
+                "SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS",
+                ReleaseMetadataVerified: false, "INTEGRITY_ONLY",
                 SignatureVerified: false, ProvenanceVerified: false,
                 PublicationAuthorized: false, DistributionAuthorized: false,
                 InstallAuthorized: false, rows.Count, rows);

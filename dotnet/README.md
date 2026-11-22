@@ -7,10 +7,19 @@ each file. pgextwin downloads use the signed Catalog feed. See the
 categories, and release links.
 
 `list` and `search TERM` discover available packages. Use `download ITEM`
-for one named package and add `--version EXACT` to select a specific external
-version. Use `download-all` for bulk selections and pass `--source external`
-to select external packages. Run `pgextwin --help` for the command overview or
-`pgextwin COMMAND --help` for detailed usage in builds with command help.
+to select one named package and `--version EXACT` to select a recorded version.
+Named downloads default to external provider packages. Use `--source pgextwin`
+and select one PostgreSQL major to download a named pgextwin build from the
+signed Catalog feed. Bulk downloads default to the same feed. Use
+`download-all --source external` to select external packages in bulk.
+
+```powershell
+pgextwin download postgis --source external --pg 18
+pgextwin download hypopg --source pgextwin --pg 15 --version 1.4.4
+pgextwin download-all --pg all
+```
+
+Run `pgextwin COMMAND --help` for command usage.
 
 ```bash
 dotnet build dotnet/PgExtWin.slnx --configuration Release
@@ -19,11 +28,10 @@ dotnet run --project dotnet/src/PgExtWin.Cli -- list --category drivers
 dotnet run --project dotnet/src/PgExtWin.Cli -- search cron --catalog-dir .
 ```
 
-Local browsing with `--catalog-dir` shows unsigned metadata. For the advanced
-local-policy download mode, supply `--catalog-dir`, `--policy`, an independently
-authenticated `--policy-sha256`, `--pg`, and `--output`. The legacy
-`verify-external-all` and `verify-report` spellings remain usable as aliases for
-`verify external` and `verify report`.
+`list` and `search` accept `--catalog-dir` for browsing unsigned local metadata.
+`verify report` uses a separately pinned local policy to authenticate a report.
+The `verify-external-all` and `verify-report` spellings remain available as
+aliases for `verify external` and `verify report`.
 
 ## PR-3: synthetic-only offline ZIP fixture laboratory
 
@@ -137,6 +145,8 @@ verification, R3 bundles and R7 publication remain gated.
 
 Only synthetic ephemeral signing keys and synthetic files are used in CI.
 The CLI public binary and any real extension Release are not published.
+
+The versioned sections below describe the commands in those published versions.
 
 ## v0.2.0 — fetch all original ZIPs for one or five PostgreSQL majors
 
