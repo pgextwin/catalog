@@ -21,6 +21,11 @@ internal static class ExternalDirectGetTests
         }
     }
 
+    private static IReadOnlyList<ExternalOriginalPin> Select(byte[] records, string major,
+        string? item = null, string? version = null) =>
+        ExternalSignedCatalogCohort.SelectDownloads(
+            ExternalSignedCatalogCohort.ParseDownloads(records, standalone: false), major, item, version);
+
     public static async Task RunAsync(Action<bool, string> check)
     {
         using var memory = new MemoryStream();
@@ -48,21 +53,21 @@ internal static class ExternalDirectGetTests
             ["schemaVersion"] = "pgextwin-external-direct-get/v1", ["records"] = rows
         };
         byte[] Bytes() => Encoding.UTF8.GetBytes(doc.ToJsonString());
-        var latestPins = ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all");
+        var latestPins = Select(Bytes(), "all");
         check(latestPins.Count == 2, "Relaxed bulk fetch selects latest on all recorded PG majors");
-        check(ExternalSignedCatalogCohort.SelectDirect(Bytes(), "18", "pg_crash", "0.2")
+        check(Select(Bytes(), "18", "pg_crash", "0.2")
             .Single().Tag == "v0.2", "Exact historical version selection does not use filename guessing");
         foreach (var selection in new[] { ("18", "0.3.0"), ("14", "0.3"), ("19", "0.3") })
         {
             var denied = false;
-            try { ExternalSignedCatalogCohort.SelectDirect(Bytes(), selection.Item1, "pg_crash", selection.Item2); }
+            try { Select(Bytes(), selection.Item1, "pg_crash", selection.Item2); }
             catch (InvalidDataException) { denied = true; }
             check(denied, "Absent exact version or unsupported major fails before provider GET");
         }
         var license = rows[0]!["licenseEvidence"]!.DeepClone();
         rows[0]!["licenseEvidence"] = new JsonArray();
         var missingLicenseDenied = false;
-        try { ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all"); }
+        try { Select(Bytes(), "all"); }
         catch (InvalidDataException) { missingLicenseDenied = true; }
         check(missingLicenseDenied, "Missing exact-version license bookkeeping is rejected");
         rows[0]!["licenseEvidence"] = license;
@@ -95,8 +100,8 @@ internal static class ExternalDirectGetTests
                 var denied = false;
                 try
                 {
-                    var result = await ExternalSignedCatalogCohort.StageDirectAsync("all", parent,
-                        handler: network, requestedExtension: "pg_crash");
+                    var result = await ExternalSignedCatalogCohort.DownloadAsync("all", parent,
+                        category: "extensions", item: "pg_crash", handler: network);
                     check(result.Count == 2 && result.Bytes == 2 * original.Length,
                         "Two unsigned provider originals commit in one existing atomic batch");
                     foreach (var pin in latestPins)
@@ -129,17 +134,17 @@ internal static class ExternalDirectGetTests
             row["originalProviderUrl"] = $"https://download-cache.osgeo.org/postgis/windows/pg{pg}/{name}";
             rows.Add(row);
         }
-        var bundles = ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all");
+        var bundles = Select(Bytes(), "all");
         check(bundles.Count == 2 &&
-            bundles.SequenceEqual(ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all", "postgis")) &&
-            bundles.SequenceEqual(ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all", "pgrouting", "4.0.1")) &&
-            ExternalSignedCatalogCohort.SelectDirect(Bytes(), "all", "postgis", "3.6.2")
+            bundles.SequenceEqual(Select(Bytes(), "all", "postgis")) &&
+            bundles.SequenceEqual(Select(Bytes(), "all", "pgrouting", "4.0.1")) &&
+            Select(Bytes(), "all", "postgis", "3.6.2")
                 .Single() == bundles[0],
             "PostGIS, pgRouting and bulk select the same bundles using their own versions");
         foreach (var extension in new[] { "postgis", "pgrouting" })
         {
             var denied = false;
-            try { ExternalSignedCatalogCohort.SelectDirect(Bytes(), "18", extension, "4.0.2"); }
+            try { Select(Bytes(), "18", extension, "4.0.2"); }
             catch (InvalidDataException) { denied = true; }
             check(denied, "OSGeo selection rejects an unregistered extension version");
         }
@@ -154,6 +159,9 @@ internal static class ExternalDirectGetTests
                     var url = request.RequestUri!.AbsoluteUri;
                     if (url == "https://raw.githubusercontent.com/pgextwin/catalog/main/external/direct-get.json")
                         return new(HttpStatusCode.OK) { Content = new ByteArrayContent(Bytes()) };
+                    if (url == "https://raw.githubusercontent.com/pgextwin/catalog/main/external/standalone-get.json")
+                        return new(HttpStatusCode.OK) { Content = new StringContent(
+                            """{"schemaVersion":"pgextwin-standalone-get/v1","records":[]}""") };
                     if (!bundles.Any(pin => pin.OriginalProviderUrl == url))
                         throw new Exception("Unexpected OSGeo provider request: " + url);
                     if (redirect && url == bundles[1].OriginalProviderUrl)
@@ -167,7 +175,7 @@ internal static class ExternalDirectGetTests
                 var denied = false;
                 try
                 {
-                    var result = await ExternalSignedCatalogCohort.StageDirectAsync("all", parent,
+                    var result = await ExternalSignedCatalogCohort.DownloadAsync("all", parent,
                         handler: network);
                     check(result.Count == 2 && result.Bytes == 2 * original.Length &&
                         Directory.EnumerateFiles(result.Directory, "*.zip", SearchOption.AllDirectories).Count() == 2,
@@ -177,7 +185,7 @@ internal static class ExternalDirectGetTests
                 catch (HttpRequestException) { denied = true; }
                 check(denied == redirect && !Directory.EnumerateFileSystemEntries(parent).Any(),
                     "OSGeo redirect rejects the whole batch and leaves no output");
-                check(network.Requests.Skip(1).SequenceEqual(bundles.Select(pin => pin.OriginalProviderUrl)),
+                check(network.Requests.Skip(2).SequenceEqual(bundles.Select(pin => pin.OriginalProviderUrl)),
                     "OSGeo sends one GET per original, without a redirect or metadata request");
             }
         }
@@ -186,21 +194,21 @@ internal static class ExternalDirectGetTests
         if (File.Exists("external/direct-get.json"))
         {
             var actual = File.ReadAllBytes("external/direct-get.json");
-            var pins = ExternalSignedCatalogCohort.SelectDirect(actual, "all");
+            var pins = Select(actual, "all");
             foreach (var extension in new[] { "pglogical", "pg_crash" })
                 check(pins.Count(pin => pin.Extension == extension) == 4,
                     "Catalog latest external support covers PG15–18: " + extension);
-            var pg14 = ExternalSignedCatalogCohort.SelectDirect(actual, "14");
+            var pg14 = Select(actual, "14");
             check(pg14.Select(pin => pin.Extension).Order(StringComparer.Ordinal)
                 .SequenceEqual(new[] { "oracle_fdw", "pgvector" }) && pg14.All(pins.Contains),
                 "Previously available PG14 originals are included in both PG14 and all");
-            check(ExternalSignedCatalogCohort.SelectDirect(actual, "14", "oracle_fdw", "2.9.0")
+            check(Select(actual, "14", "oracle_fdw", "2.9.0")
                 .Single().AssetId == 442625883 &&
-                ExternalSignedCatalogCohort.SelectDirect(actual, "14", "pgvector", "0.8.7")
+                Select(actual, "14", "pgvector", "0.8.7")
                 .Single().AssetId == 661612126,
                 "PG14 exact-version selection preserves both previously published asset pins");
-            var postgis = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "postgis");
-            var pgrouting = ExternalSignedCatalogCohort.SelectDirect(actual, "all", "pgrouting", "4.0.1");
+            var postgis = Select(actual, "all", "postgis");
+            var pgrouting = Select(actual, "all", "pgrouting", "4.0.1");
             check(postgis.Count == 5 && postgis.SequenceEqual(pgrouting) &&
                 postgis.SequenceEqual(pins.Where(pin => pin.Provider == ExternalProviderAssetTransport.OsgeoProvider)) &&
                 postgis.Single(pin => pin.PgMajor == "15").OriginalBytes == 123_986_945 &&

@@ -17,11 +17,6 @@ jobs:
       - name: Check out catalog
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Still required by normal .NET TrustedBootstrapTests.GitOriginal:
-          # the live --fixed bootstrap verifies policy-pinned historical bytes.
-          # Python sealed-tree re-proof now lives in catalog-history.yml.
-          # See docs/r04-catalog-history-suite.md before reducing this depth.
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python

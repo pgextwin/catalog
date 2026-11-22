@@ -37,9 +37,10 @@ internal static class BatchDownloadTests
                     path, pin.AssetSha256, bytes.Length,
                     pin.RepositoryId, pin.ReleaseId, pin.AssetIds[pin.AssetName]));
             }
+            string[] feedMajors = ["15", "16", "17", "18"];
             var diagnostics = new List<string>();
             var result = await BatchReleaseDownloader.StageAsync(
-                all, "18", root, Download, progress: diagnostics.Add);
+                all, "18", root, Download, feedMajors, progress: diagnostics.Add);
             check(diagnostics.Count(x => x.StartsWith("ZIP_START ", StringComparison.Ordinal)) == 2 &&
                   diagnostics.Count(x => x.StartsWith("ZIP_VERIFIED ", StringComparison.Ordinal)) == 2 &&
                   diagnostics[0] == "BATCH_START pg=18 zip_count=2 trust=INTEGRITY_ONLY" &&
@@ -83,7 +84,7 @@ internal static class BatchDownloadTests
                 Directory.CreateDirectory(outDir);
                 File.WriteAllText(Path.Combine(outDir, "existing.txt"), "KEEP");
                 var failed = false;
-                try { await BatchReleaseDownloader.StageAsync(pins, major, outDir, operation); }
+                try { await BatchReleaseDownloader.StageAsync(pins, major, outDir, operation, feedMajors); }
                 catch (Exception e) when (e is InvalidDataException or IOException or
                         ArgumentException or OperationCanceledException or HttpRequestException) { failed = true; }
                 check(failed && Directory.GetDirectories(outDir).Length == 0 &&
@@ -117,7 +118,7 @@ internal static class BatchDownloadTests
             await Deny("Invalid ZIP basename traversal", new[] { a with { AssetName = "../escape.zip" } }, "18", Download);
             {
                 var repeatRejected = false;
-                try { await BatchReleaseDownloader.StageAsync(all, "18", root, Download); }
+                try { await BatchReleaseDownloader.StageAsync(all, "18", root, Download, feedMajors); }
                 catch (IOException) { repeatRejected = true; }
                 check(repeatRejected &&
                       File.Exists(Path.Combine(result.Directory, "pg18", a.AssetName)) &&
@@ -130,37 +131,35 @@ internal static class BatchDownloadTests
             var multiDir = Path.Combine(root, "cross-major");
             Directory.CreateDirectory(multiDir);
             var multi = await BatchReleaseDownloader.StageAsync(
-                new[] { Pin("pg_cron", "14"), Pin("pg_cron", "18") }, "all", multiDir, Download);
+                new[] { Pin("pg_cron", "15"), Pin("pg_cron", "18") }, "all", multiDir, Download, feedMajors);
             check(multi.Count == 2 &&
-                  File.Exists(Path.Combine(multi.Directory, "pg14", Pin("pg_cron", "14").AssetName)) &&
+                  File.Exists(Path.Combine(multi.Directory, "pg15", Pin("pg_cron", "15").AssetName)) &&
                   File.Exists(Path.Combine(multi.Directory, "pg18", Pin("pg_cron", "18").AssetName)),
                   "Batch --pg all segregates original ZIPs by PostgreSQL version");
 
-            // Functional regression: the signed live Catalog can grow from 14
-            // to 17 entries (85 ZIPs) without changing the historical fixed-14 path.
+            // The signed feed determines the fleet size and major cohort.
             var fleetParent = Path.Combine(root, "expanded-signed-fleet");
             Directory.CreateDirectory(fleetParent);
             var fleetPins = Enumerable.Range(0, 17)
-                .SelectMany(n => new[] { "14", "15", "16", "17", "18" }
+                .SelectMany(n => feedMajors
                     .Select(m => Pin("signedext" + n, m))).ToArray();
             var fleet = await BatchReleaseDownloader.StageAsync(
-                fleetPins, "all", fleetParent, Download);
+                fleetPins, "all", fleetParent, Download, feedMajors);
             using (var receipt = JsonDocument.Parse(File.ReadAllText(
                        Path.Combine(fleet.Directory, "DOWNLOAD-INFO.json"))))
-                check(fleet.Count == 85 &&
-                      receipt.RootElement.GetProperty("zipCount").GetInt32() == 85 &&
-                      receipt.RootElement.GetProperty("packages").GetArrayLength() == 85 &&
+                check(fleet.Count == 68 &&
+                      receipt.RootElement.GetProperty("zipCount").GetInt32() == 68 &&
+                      receipt.RootElement.GetProperty("packages").GetArrayLength() == 68 &&
                       !receipt.RootElement.GetProperty("signatureVerified").GetBoolean(),
-                      "Original signed-Catalog fleet 17 x PG14-18 stages 85 integrity-only ZIPs");
-            // The signed-feed cohort excludes historical PG14 while local
-            // pinned --fixed remains eligible to download the original PG14 ZIP.
+                      "Original signed-Catalog fleet 17 x PG15-18 stages 68 integrity-only ZIPs");
+            // Historical PG14 pins are outside the signed-feed cohort.
             var currentParent = Path.Combine(root, "pg15-18-signed-feed");
             Directory.CreateDirectory(currentParent);
-            var currentPins = new[] { "15", "16", "17", "18" }
+            var currentPins = feedMajors
                 .Select(pg => Pin("pg_cron", pg)).ToArray();
             var currentBatch = await BatchReleaseDownloader.StageAsync(
                 currentPins, "all", currentParent, Download,
-                approvedMajors: ["15", "16", "17", "18"]);
+                approvedMajors: feedMajors);
             check(currentBatch.Count == 4 &&
                   !Directory.Exists(Path.Combine(currentBatch.Directory, "pg14")) &&
                   File.Exists(Path.Combine(currentBatch.Directory, "pg18", currentPins[^1].AssetName)),
@@ -170,7 +169,7 @@ internal static class BatchDownloadTests
             {
                 await BatchReleaseDownloader.StageAsync(
                     new[] { Pin("pg_cron", "14") }, "14", currentParent, Download,
-                    approvedMajors: ["15", "16", "17", "18"]);
+                    approvedMajors: feedMajors);
             }
             catch (InvalidDataException) { eolDenied = true; }
             check(eolDenied, "PG14 denied by signed cohort even though historical pin exists");
@@ -179,10 +178,10 @@ internal static class BatchDownloadTests
             var expandedRoot = Path.Combine(root, "signed-fleet-18");
             Directory.CreateDirectory(expandedRoot);
             var expanded = await BatchReleaseDownloader.StageAsync(
-                fleetPins.Concat(new[] { "14", "15", "16", "17", "18" }
+                fleetPins.Concat(feedMajors
                     .Select(pg => Pin("signedext17", pg))).ToArray(),
-                "all", expandedRoot, Download);
-            check(expanded.Count == 90, "Signer-approved 18th extension capacity is not hardcoded at 17");
+                "all", expandedRoot, Download, feedMajors);
+            check(expanded.Count == 72, "Signer-approved 18th extension capacity is not hardcoded at 17");
             await Deny("Reject fleet resource ceiling above 128 identities",
                 Enumerable.Range(0, 129).Select(n => Pin("synthetic" + n, "18")).ToArray(),
                 "18", Download);

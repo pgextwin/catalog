@@ -37,15 +37,6 @@ internal static class ExternalProviderIsolationTests
                 snapshot);
             foreach (var pin in new[] { oracle, oracle with { Extension = "oracle_fdw" }, community })
             {
-                var apiHandler = new RejectAllNetwork();
-                using (var api = new ReadOnlyReleaseDownloader(apiHandler))
-                {
-                    var denied = false;
-                    try { await api.DownloadAsync(pin, destination); }
-                    catch (InvalidDataException) { denied = true; }
-                    check(denied && apiHandler.Requests == 0,
-                        "Native REST transport denies external source/naming without GET: " + pin.Extension);
-                }
                 var browserHandler = new RejectAllNetwork();
                 using (var browser = new PinnedBrowserDownloader(browserHandler))
                 {

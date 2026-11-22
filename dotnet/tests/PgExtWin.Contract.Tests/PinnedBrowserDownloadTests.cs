@@ -91,12 +91,12 @@ internal static class PinnedBrowserDownloadTests
             var batch = await BatchReleaseDownloader.StageAsync(
                 new[] { pin }, "18", dest,
                 (p, folder, token) => browser.DownloadAsync(p, folder, token),
-                metadataVerified: false);
+                approvedMajors: ["18"]);
             using var manifest = JsonDocument.Parse(File.ReadAllText(
                 Path.Combine(batch.Directory, "DOWNLOAD-INFO.json")));
             var record = manifest.RootElement;
             check(!record.GetProperty("releaseMetadataVerified").GetBoolean() &&
-                record.GetProperty("source").GetString() == "CLI_PINNED_HISTORICAL_CANDIDATE_POLICY" &&
+                record.GetProperty("source").GetString() == "SIGSTORE_SIGNED_CATALOG_FEED_ORIGINAL_ZIPS" &&
                 record.GetProperty("verificationLevel").GetString() == "INTEGRITY_ONLY" &&
                 !record.GetProperty("signatureVerified").GetBoolean(),
                 "API-free manifest does not misrepresent live REST ID verification or original signatures");

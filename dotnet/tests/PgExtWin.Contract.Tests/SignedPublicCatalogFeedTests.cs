@@ -316,13 +316,17 @@ internal static class SignedPublicCatalogFeedTests
         var bulk = await InvokeCliAsync("download-all", "--pg", "15", "--version", "1.4.4");
         check(bulk.ExitCode == 2 && bulk.Error.Contains("--version requires download ITEM --source pgextwin"),
             "internal bulk exact version is an input error before network");
-        var fixedMode = await InvokeCliAsync("download-all", "--fixed", "--pg", "15", "--version", "1.4.4");
-        check(fixedMode.ExitCode == 2 && fixedMode.Error.Contains("--version requires download ITEM --source pgextwin"),
-            "fixed bulk exact version is an input error before network");
+        var fixedMode = await InvokeCliAsync("download-all", "--fixed", "--pg", "14");
+        check(fixedMode.ExitCode == 2 && fixedMode.Error.Contains("Unknown option: --fixed"),
+            "fixed PG14 retrieval is no longer accepted");
         var local = await InvokeCliAsync("download", "hypopg", "--source", "pgextwin", "--pg", "15",
-            "--version", "1.4.4", "--catalog-dir", ".");
-        check(local.ExitCode == 2 && local.Error.Contains("--version requires download ITEM --source pgextwin"),
-            "local pinned policy does not accept an exact version");
+            "--catalog-dir", ".", "--policy", "policy.json", "--policy-sha256", new string('a', 64));
+        check(local.ExitCode == 2 && local.Error.Contains("Unexpected/duplicate --catalog-dir"),
+            "download refuses local catalog policy options");
+        var legacyExternal = await InvokeCliAsync("download-all", "--source", "external",
+            "--extension", "postgis", "--pg", "15");
+        check(legacyExternal.ExitCode == 2 && legacyExternal.Error.Contains("Unknown option: --extension"),
+            "external item selection requires download ITEM");
         var all = await InvokeCliAsync("download", "hypopg", "--source", "pgextwin", "--pg", "all", "--version", "1.4.4");
         check(all.ExitCode == 2 && all.Error.Contains("download requires --pg MAJOR"),
             "internal named exact selection requires one major");

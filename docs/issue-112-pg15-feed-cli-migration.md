@@ -61,10 +61,10 @@ workflow expectations were updated, **not** that the real Windows jobs passed.
 
 ## Independent legacy *published EXE* rollback acceptance
 
-The [read-only rollback E2E workflow](../.github/workflows/issue112-cli-legacy-rollback-e2e.yml)
-tests the exact, previously published v0.3.13 and v0.3.14 Windows EXE
+The [archived read-only rollback E2E workflow](https://github.com/pgextwin/catalog/blob/3fcc8119325cd9da53927c80d731be544f91ed55/.github/workflows/issue112-cli-legacy-rollback-e2e.yml)
+tested the exact, previously published v0.3.13 and v0.3.14 Windows EXE
 bytes with fixed per-release SHA256, size, immutable tag and release
-commit. It additionally runs genuine Sigstore verification on each
+commit. It required genuine Sigstore verification on each
 EXE's original producer claim. No synthetic or private build may
 substitute for those released EXEs.
 

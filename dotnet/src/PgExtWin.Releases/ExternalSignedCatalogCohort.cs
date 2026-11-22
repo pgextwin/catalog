@@ -139,32 +139,6 @@ public static class ExternalSignedCatalogCohort
         return output.ToArray();
     }
 
-    // External policy (2026-11-17): reviewed exact-version license + byte pins,
-    // direct provider GET. No Build admission, Sigstore or native-feed trust path.
-    public static async Task<BatchReleaseDownloader.BatchResult> StageDirectAsync(
-        string pgSelection, string outputParent, CancellationToken token = default,
-        HttpMessageHandler? handler = null,
-        string? requestedExtension = null, string? requestedVersion = null)
-    {
-        if (!Directory.Exists(outputParent))
-            throw new DirectoryNotFoundException("External batch output directory missing");
-        using var owned = handler is null ? new SocketsHttpHandler
-        {
-            AllowAutoRedirect = false,
-            UseCookies = false,
-            AutomaticDecompression = DecompressionMethods.None
-        } : null;
-        var sharedHandler = handler ?? owned!;
-        using var http = new HttpClient(sharedHandler, disposeHandler: false)
-        { Timeout = TimeSpan.FromMinutes(3) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("pgextwin-external-direct-get/1");
-        var records = await ReadAsync(http, DirectUrl, token);
-        var pins = SelectDirect(records, pgSelection, requestedExtension, requestedVersion);
-        using var transport = new ExternalProviderAssetTransport(sharedHandler);
-        return await ExternalOriginalBatchStager.StageAsync(pins, pgSelection,
-            outputParent, transport.DownloadAsync, token);
-    }
-
     public static async Task<IReadOnlyList<ExternalDownloadItem>> ListDownloadsAsync(
         string pgSelection, string? category, string? query, CancellationToken token = default,
         HttpMessageHandler? handler = null)
@@ -221,16 +195,7 @@ public static class ExternalSignedCatalogCohort
         return records.Where(x => category is null || x.Item.Category == category).ToArray();
     }
 
-    internal static IReadOnlyList<ExternalOriginalPin> SelectDirect(byte[] records,
-        string pgSelection, string? requestedExtension = null, string? requestedVersion = null)
-    {
-        if (pgSelection != "all" && !ExternalProviderAssetTransport.IsExternalZipMajor(pgSelection))
-            throw new InvalidDataException("Expected PG14–19/all");
-        return SelectDownloads(ParseDownloads(records, standalone: false),
-            pgSelection, requestedExtension, requestedVersion);
-    }
-
-    private static IReadOnlyList<ExternalOriginalPin> SelectDownloads(
+    internal static IReadOnlyList<ExternalOriginalPin> SelectDownloads(
         IReadOnlyList<DownloadRecord> records, string pgSelection, string? item, string? version)
     {
         if (version is not null && item is null)
@@ -245,7 +210,7 @@ public static class ExternalSignedCatalogCohort
         return pins;
     }
 
-    private static IReadOnlyList<DownloadRecord> ParseDownloads(byte[] bytes, bool standalone)
+    internal static IReadOnlyList<DownloadRecord> ParseDownloads(byte[] bytes, bool standalone)
     {
         using var doc = StrictJson.Parse(bytes);
         var root = doc.RootElement;
@@ -311,7 +276,7 @@ public static class ExternalSignedCatalogCohort
         return records;
     }
 
-    private sealed record DownloadRecord(ExternalDownloadItem Item, ExternalOriginalPin Pin);
+    internal sealed record DownloadRecord(ExternalDownloadItem Item, ExternalOriginalPin Pin);
 
     public static async Task<BatchReleaseDownloader.BatchResult> StageLatestVerifiedAsync(
         string pgSelection, string outputParent, CancellationToken token = default,

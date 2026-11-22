@@ -206,10 +206,10 @@ jobs:
             $denial = & $exe list --catalog-dir $missing --pg 18 2>&1 | Out-String
             if ($LASTEXITCODE -ne 2 -or $denial -notmatch 'DENY:') { throw 'Malformed Catalog was not fail-closed' }
             $downloadDenial = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
-            if ($LASTEXITCODE -ne 2 -or $downloadDenial -notmatch 'DENY:') { throw 'Download missing independent policy did not fail closed' }
+            if ($LASTEXITCODE -ne 2 -or $downloadDenial -notmatch 'DENY:') { throw 'Download accepted a local Catalog directory' }
             $invalidFormat = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --format yaml 2>&1 | Out-String
             if ($LASTEXITCODE -ne 2 -or $invalidFormat -notmatch 'DENY:') { throw 'Unknown output format was accepted' }
-            $downloadJson = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE --format json 2>&1 | Out-String
+            $downloadJson = & $exe download pg_cron --source pgextwin --pg 18 --format json 2>&1 | Out-String
             if ($LASTEXITCODE -ne 2 -or $downloadJson -notmatch 'DENY:') { throw 'JSON output incorrectly allowed on download' }
             $reportDenial = & $exe verify-report pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
             if ($LASTEXITCODE -ne 2 -or $reportDenial -notmatch 'DENY:') { throw 'Unauthenticated report was not rejected' }
