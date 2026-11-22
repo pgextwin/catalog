@@ -49,7 +49,7 @@ FIRST_RELEASE_SIGNER_SHA = "5756b3c5136a8bf4db710016cfe97555f0a71c6d"
 FIRST_RELEASE_SIGNER_PINS = {
     "odbc_fdw": "d6199f906e5e60fb9740479e37319e676f74ee2e",
     "pg_failover_slots": "89b2b8d49d1c09827307ce5d5c77beee3fa8641b",
-    "pg_permissions": "d62bbd49372f836123a9b005cf8f91e8e4e4fb6d",
+    "pg_permissions": "4558c82c28b0814e60f35c6e5e5f8ee1025a5754",
     "pg_profile": "c8b8a3cfad9734872ae9ceb8e305135a5d13e4a1",
     "pg_show_plans": "9be737c9126bb0b91b3a412ab97aa1b61fe88503",
     "pg_squeeze": "cb95fa6489df29853292dc3709ac13f00c1de9d0",
