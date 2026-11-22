@@ -14,6 +14,10 @@ import unittest
 
 from scripts import automatic_publisher_provenance as p
 from scripts import verify_signed_fleet_release as release
+from tests.test_owner_signed_catalog_release import (
+    fixture as owner_signed_fixture,
+    verify_case as verify_owner_signed_case,
+)
 import importlib.util
 TEST_FILE=Path(__file__).resolve().parent/"test_verify_signed_fleet_release.py"
 TEST_SPEC=importlib.util.spec_from_file_location("auto_source_fixture",TEST_FILE)
@@ -100,6 +104,57 @@ def verify(got):
     return result,called
 
 class PublicAutoOrigin(unittest.TestCase):
+    def test_owner_signed_selector_and_isolated_publisher_prove_admission(self):
+        item = owner_signed_fixture("Select protected owner formal-source request (DENY)")
+        selector = item["jobs"]["jobs"][0]
+        item["jobs"]["jobs"].append(dict(
+            selector, id=3, conclusion="skipped",
+            name="Publisher independently reverify genuine owner signed source (DENY)",
+        ))
+        item["jobs"]["total_count"] = len(item["jobs"]["jobs"])
+        result = verify_owner_signed_case(item)
+        self.assertEqual(result["status"],
+                         "INDEPENDENT_OWNER_MAIN_SIGNING_PUBLISHER_LIVE_MATCH")
+        self.assertTrue(result["sigstoreReleaseBytesMustBeVerifiedSeparately"])
+
+    def test_owner_signed_selector_requires_unique_success_in_original_attempt(self):
+        item = owner_signed_fixture(p.OWNER_SELECT_JOB)
+        selector, publisher = item["jobs"]["jobs"]
+        cases = {
+            "missing": [],
+            "failed": [dict(selector, conclusion="failure")],
+            "skipped": [dict(selector, conclusion="skipped")],
+            "in progress": [dict(selector, status="in_progress")],
+            "duplicate": [selector, dict(selector, id=3)],
+            "both admission job names": [selector, dict(selector, id=3, name=p.OWNER_ADMIT_JOB)],
+            "wrong Run": [dict(selector, run_id=selector["run_id"] + 1)],
+            "wrong attempt": [dict(selector, run_attempt=2)],
+            "wrong head": [dict(selector, head_sha="e" * 40)],
+        }
+        for case, admissions in cases.items():
+            jobs = [*admissions, publisher]
+            item["jobs"] = {"jobs": jobs, "total_count": len(jobs)}
+            with self.subTest(case=case), self.assertRaisesRegex(
+                p.Denied, "no same-original-Run independent owner signed source admission"
+            ):
+                verify_owner_signed_case(item)
+
+    def test_owner_signed_selector_still_requires_successful_isolated_publisher(self):
+        item = owner_signed_fixture(p.OWNER_SELECT_JOB)
+        selector, publisher = item["jobs"]["jobs"]
+        cases = {
+            "missing": [],
+            "failed": [dict(publisher, conclusion="failure")],
+            "skipped": [dict(publisher, conclusion="skipped")],
+        }
+        for case, publishers in cases.items():
+            jobs = [selector, *publishers]
+            item["jobs"] = {"jobs": jobs, "total_count": len(jobs)}
+            with self.subTest(case=case), self.assertRaisesRegex(
+                p.Denied, "no exactly matched successful independent Publisher matrix job"
+            ):
+                verify_owner_signed_case(item)
+
     def test_distinct_real_run_links_structurally_valid(self):
         result,called=verify(events())
         self.assertEqual(result["status"],
