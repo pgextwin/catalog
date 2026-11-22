@@ -88,8 +88,9 @@ def resolve(api, env, event):
             and event.get("after") == sha and event.get("ref") == "refs/heads/main"
             and human(event.get("sender")) and env.get("GITHUB_ACTOR") == "ShutenOishi"
             and event.get("created") is False and event.get("deleted") is False
-            and type(event.get("commits")) is list and len(event["commits"]) == 1
-            and event["commits"][0].get("id") == sha, "not one authenticated human main commit")
+            and type(event.get("commits")) is list
+            and all(type(item) is dict and type(item.get("id")) is str for item in event["commits"])
+            and sha in {item["id"] for item in event["commits"]}, "not an authenticated human main push")
     run = api.get(REPO,"actions/runs/"+env["GITHUB_RUN_ID"])
     require(type(run.get("id")) is int and run["id"] == int(env["GITHUB_RUN_ID"])
             and run.get("repository",{}).get("full_name") == REPO and run.get("head_branch") == "main"
@@ -99,12 +100,13 @@ def resolve(api, env, event):
     branch = api.get(REPO,"branches/main")
     require(branch.get("protected") is True and branch.get("commit",{}).get("sha") == sha, "main stale/unprotected")
     commit = api.get(REPO,"commits/"+sha)
-    require(commit.get("sha") == sha and len(commit.get("parents", [])) == 1
+    parents = commit.get("parents")
+    require(commit.get("sha") == sha and type(parents) is list and len(parents) in (1, 2)
             and type(event.get("before")) is str and SHA.fullmatch(event["before"])
-            and commit["parents"][0].get("sha") == event["before"]
+            and parents[0].get("sha") == event["before"]
             and commit.get("commit",{}).get("verification",{}).get("verified") is True
             and commit.get("commit",{}).get("verification",{}).get("reason") == "valid"
-            and commit.get("committer",{}).get("login") == "web-flow", "signed squash identity missing")
+            and commit.get("committer",{}).get("login") == "web-flow", "signed GitHub merge identity missing")
     files = commit.get("files")
     require(type(files) is list, "commit files unavailable")
     selected = [f for f in files if str(f.get("filename", "")).startswith(PREFIX)
@@ -127,6 +129,12 @@ def resolve(api, env, event):
                 [(f.get("filename"),f.get("sha"),f.get("status")) for f in files], "request PR/commit blobs differ")
     head = pr.get("head",{}).get("sha", "")
     require(SHA.fullmatch(head), "invalid request head")
+    pushed = [item["id"] for item in event["commits"]]
+    if len(parents) == 2:
+        require(parents[1].get("sha") == head and len(pushed) == 2 and set(pushed) == {head, sha},
+                "request merge must contain the exact validated PR head")
+    else:
+        require(pushed == [sha], "request squash must contain one authenticated main commit")
     checks = api.get(REPO,"commits/"+head+"/check-runs?per_page=100")
     require(type(checks.get("check_runs")) is list and checks.get("total_count") == len(checks["check_runs"]), "CI pagination")
     rules = branch.get("protection",{}).get("required_status_checks",{}).get("checks")
