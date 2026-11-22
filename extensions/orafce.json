@@ -193,48 +193,5 @@
     "repository": "pgextwin/orafce",
     "path": "config/test-contract.json",
     "commit": "3a3a4469580b585d417837aa844c4d4d1d75fbf6"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v4.17.1-windows.2",
-      "licensesByMajor": {
-        "15": {
-          "name": "0BSD",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
-          ]
-        },
-        "16": {
-          "name": "0BSD",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
-          ]
-        },
-        "17": {
-          "name": "0BSD",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
-          ]
-        },
-        "18": {
-          "name": "0BSD",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
-          ]
-        },
-        "19": {
-          "name": "0BSD",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
-            "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }

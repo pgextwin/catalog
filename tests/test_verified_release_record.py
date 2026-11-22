@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """No-network tests for mapping a pre-verified formal Windows Release to Catalog v2."""
 import copy
+from pathlib import Path
 import unittest
+from scripts import package_ledger
 from scripts.verified_release_record import INTAKE_ALLOWED, Denied, majors, tag_for, map_verified_release, seed_verified_first_release
 
 REFS={
@@ -128,6 +130,37 @@ class RecordTests(unittest.TestCase):
         switched["releaseInventory"]["history"].append(stale_duplicate)
         deduped = mapped("hypopg", (switched, *revision[1:]))
         self.assertEqual(deduped["releaseInventory"]["history"], [history])
+
+    def test_ledger_rollover_uses_stored_asset_ids_and_preserves_licenses(self):
+        name = "pgaudit"
+        previous = package_ledger.read_record(
+            Path(__file__).resolve().parents[1] / "packages" / f"{name}.json")
+        current = package_ledger.current_release(previous)
+        record = package_ledger.website_record(previous)
+        _, release, ext, contract, assets, sums = fixture(name)
+        release.update(id=current["releaseId"] + 100, assets=[])
+        for idx, asset in enumerate(assets.values(), 1):
+            release["assets"].append({**asset, "id": idx})
+        # Rebuild the same version for PG15 and change the rest. The old PG15
+        # package is replaced, while the others retain their pins.
+        pg15 = next(row for row in current["packages"] if row["pgMajor"] == "15")
+        ext["upstream"]["perPostgresql"]["15"]["version"] = pg15["version"]
+        requested = [15, 16, 17, 18]
+        assets = {key: value for key, value in assets.items() if "-pg14-" not in key}
+        sums = {key: sums[key] for key in assets}
+        release["assets"] = [asset for asset in release["assets"] if asset["name"] in assets]
+        repo_id = previous["repositoryId"]
+        admission = "a" * 40
+        mapped = map_verified_release(
+            record, release, ext, contract, assets, sums, "c" * 40, requested,
+            licenses_by_major=licenses(name, requested), repository_id=repo_id,
+            previous_ledger=previous, previous_admission=lambda: admission)
+        new_current = package_ledger.current_release(mapped)
+        self.assertEqual(new_current["releaseId"], release["id"])
+        self.assertEqual([row["pgMajor"] for row in new_current["packages"]], list(map(str, requested)))
+        retired = next(r for r in mapped["releases"] if r["releaseId"] == current["releaseId"])
+        self.assertEqual(retired["admission"], {"catalogCommit": admission})
+        self.assertEqual(retired["packages"], [row for row in current["packages"] if row != pg15])
 
     def test_rollover_rejects_losing_established_license_evidence(self):
         name = "pg_repack"

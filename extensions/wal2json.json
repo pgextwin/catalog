@@ -187,43 +187,5 @@
     "repository": "pgextwin/wal2json",
     "path": "config/test-contract.json",
     "commit": "dc3ea9aebcc7a89776198e57132127c583dbb25d"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v2.7-windows.2",
-      "licensesByMajor": {
-        "15": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/wal2json/blob/dc3ea9aebcc7a89776198e57132127c583dbb25d/LICENSE"
-          ]
-        },
-        "16": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/wal2json/blob/dc3ea9aebcc7a89776198e57132127c583dbb25d/LICENSE"
-          ]
-        },
-        "17": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/wal2json/blob/dc3ea9aebcc7a89776198e57132127c583dbb25d/LICENSE"
-          ]
-        },
-        "18": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/wal2json/blob/dc3ea9aebcc7a89776198e57132127c583dbb25d/LICENSE"
-          ]
-        },
-        "19": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/wal2json/blob/dc3ea9aebcc7a89776198e57132127c583dbb25d/LICENSE"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }

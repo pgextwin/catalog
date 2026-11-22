@@ -218,14 +218,15 @@ def inspect_pr(pr, files, commits, *, proposer_login, proposer_id, initial=False
             and (head.get("repo") or {}).get("full_name") == REPO
             and pr.get("commits") == 1, "Catalog PR not from dedicated proposer App")
     path = "extensions/" + name + ".json"
+    ledger_path = "packages/" + name + ".json"
     require(type(files) is list, "Catalog PR file inventory unavailable")
     actual = {row.get("filename"): row.get("status") for row in files}
     require(len(actual) == len(files), "duplicate Catalog PR file paths")
     # First Release requires initial index/landscape changes and remains a
     # manual protected-merge decision even when the runtime opt-in is true.
     require(initial is False, "first Catalog Release auto-merge forbidden")
-    require(actual == {path: "modified"},
-            "existing Catalog PR is not record-only")
+    require(actual in ({ledger_path: "modified"}, {ledger_path: "modified", path: "modified"}),
+            "existing Catalog PR is not ledger/view only")
     expected = "catalog: verified operator release " + name + " " + tag
     require(type(commits) is list and len(commits) == 1
             and (commits[0].get("commit") or {}).get("message", "").split("\n")[0] == expected,
@@ -317,47 +318,34 @@ def verify_record(name, tag, head_sha, *, read_token, files=None):
             and type(read_token) is str and len(read_token) > 10,
             "unsigned verifier input or read token missing")
     path = "extensions/" + name + ".json"
-    initial = not Path(path).is_file()
-    require(not initial, "first Catalog Release signed verification cannot authorize auto-merge")
+    ledger_path = "packages/" + name + ".json"
+    require(Path(path).is_file() and Path(ledger_path).is_file(),
+            "first Catalog Release signed verification cannot authorize auto-merge")
+    changed = set()
     with tempfile.TemporaryDirectory() as directory:
         temp = Path(directory)
-        (temp / "extensions").mkdir()
-        candidate = temp / path
-        if not initial:
-            candidate.write_bytes(Path(path).read_bytes())
+        for item in (path, ledger_path):
+            candidate = temp / item
+            candidate.parent.mkdir()
+            candidate.write_bytes(Path(item).read_bytes())
         env = dict(os.environ, GH_TOKEN=read_token)
         run = subprocess.run(
             (sys.executable, str(ROOT / "scripts" / "verify_signed_fleet_release.py"),
              "--extension", name, "--release-tag", tag, "--record-output", path),
             cwd=temp, env=env, text=True, capture_output=True
         )
-        require(run.returncode == 0 and candidate.is_file(),
+        require(run.returncode == 0,
                 "fresh signed public Release verification DENY: " + run.stderr[:300])
-        verified = json.loads(candidate.read_text(encoding="utf-8"))
-    if not initial:
-        original = json.loads(Path(path).read_text(encoding="utf-8"))
-        require(verified != original, "signed Release already in Catalog/no-op")
-    proposed = unpack_content(api("repos/" + REPO + "/contents/" + path +
-                                  "?ref=" + head_sha))
-    require(proposed == verified, "PR record differs from independently signed public bytes")
-    if initial:
-        expected = first_release_projection(name, verified)
-        # The Landscape index may already register the extension as a prospect:
-        # then the proposer must NOT invent a no-op fourth diff.
-        changed = {path, "index.json", "landscape/extensions/" + name + ".json"}
-        old_li = json.loads(Path("landscape/index.json").read_text(encoding="utf-8"))
-        if expected["landscape/index.json"] != old_li:
-            changed.add("landscape/index.json")
-        if files is not None:
-            require({entry.get("filename") for entry in files} == changed,
-                    "first-intake PR file set differs from protected projection")
-        for item in expected:
-            if item not in changed:
-                continue
-            from_pr = unpack_content(api("repos/" + REPO + "/contents/" + item +
-                                         "?ref=" + head_sha))
-            require(from_pr == expected[item],
-                    "first-intake index/landscape differs from protected projection")
+        for item in (path, ledger_path):
+            verified = json.loads((temp / item).read_text(encoding="utf-8"))
+            if verified != json.loads(Path(item).read_text(encoding="utf-8")):
+                changed.add(item)
+            proposed = unpack_content(api(f"repos/{REPO}/contents/{item}?ref={head_sha}"))
+            require(proposed == verified, "PR record differs from independently signed public bytes")
+    require(ledger_path in changed, "signed Release already in Catalog/no-op")
+    if files is not None:
+        require(changed == {entry.get("filename") for entry in files},
+                "PR file set differs from independently verified ledger/view changes")
 
 
 def eligible_existing_record_prs(selected):
@@ -379,9 +367,10 @@ def eligible_existing_record_prs(selected):
         match = BRANCH.fullmatch(branch)
         require(match is not None, "unknown automated Catalog PR branch")
         name = match.group(1)
-        exists = (Path("extensions") / (name + ".json")).is_file()
+        exists = (Path("packages") / (name + ".json")).is_file()
+        view_exists = (Path("extensions") / (name + ".json")).is_file()
         indexed = name in names
-        require(exists == indexed,
+        require(exists == indexed == view_exists,
                 "protected Catalog index and current record disagree")
         if exists:
             eligible.append(pr)
@@ -474,8 +463,8 @@ def perform(config_path, dry_run=False):
         return
     result = json.loads(gh("api", "-X", "PUT", "repos/" + REPO +
                           "/pulls/" + str(number) + "/merge",
-                          "-f", "sha=" + sha, "-f", "merge_method=squash"))
-    require(result.get("merged") is True, "GitHub protected squash merge denied")
+                          "-f", "sha=" + sha, "-f", "merge_method=merge"))
+    require(result.get("merged") is True, "GitHub protected merge commit denied")
     print("VERIFIED_SIGNED_CATALOG_AUTOMERGE_COMPLETED", name, tag, number)
 
 

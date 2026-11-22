@@ -67,8 +67,8 @@ def pr_fixture(name=NAME, tag=TAG):
                  "repo": {"full_name": "pgextwin/catalog"}},
         "base": {"ref": "main"}, "commits": 1
     }
-    files = [{"filename": "extensions/" + name + ".json",
-              "status": "modified"}]
+    files = [{"filename": directory + "/" + name + ".json", "status": "modified"}
+             for directory in ("extensions", "packages")]
     commits = [{"commit": {"message": "catalog: verified operator release " + name + " " + tag}}]
     return pr, files, commits
 
@@ -306,6 +306,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             lambda p,f,c: f.append({"filename": ".github/workflows/validate.yml",
                                     "status": "modified"}),
             lambda p,f,c: f[0].update(status="added"),
+            lambda p,f,c: f.pop(),  # A Website-only change has no ledger update.
             lambda p,f,c: c[0]["commit"].update(message="catalog: propose " + NAME + " " + TAG),
             lambda p,f,c: p["head"].update(ref="auto-catalog/evil-v1.0-windows.1"),
             lambda p,f,c: p["head"].update(ref="auto-catalog/" + NAME + "-../bad"),
@@ -322,6 +323,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         first_path = "extensions/pgtap.json"
         landscape_path = "landscape/extensions/pgtap.json"
         valid_first = [{"filename": first_path, "status": "added"},
+                       {"filename": "packages/pgtap.json", "status": "added"},
                        {"filename": "index.json", "status": "modified"},
                        {"filename": landscape_path, "status": "modified"}]
         for changed in (valid_first,
@@ -333,7 +335,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                     mod.AutoMergeDenied, "first Catalog Release auto-merge forbidden"):
                 mod.inspect_pr(p, changed, c, proposer_login=local()["expectedProposerLogin"],
                                proposer_id=local()["expectedProposerBotId"], initial=True)
-        # Existing record remains eligible only for its exact one-file modification.
+        # Existing record requires a ledger change and allows the corresponding view.
         p, f, c = pr_fixture("pg_cron", "v1.0.0-windows.1")
         mod.inspect_pr(p, f, c, proposer_login=local()["expectedProposerLogin"],
                        proposer_id=local()["expectedProposerBotId"], initial=False)
@@ -347,6 +349,8 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             root = Path(t)
             (root/"extensions").mkdir()
             (root/"extensions"/"pg_cron.json").write_text("{}")
+            (root/"packages").mkdir()
+            (root/"packages"/"pg_cron.json").write_text("{}")
             (root/"index.json").write_text(json.dumps({
                 "schemaVersion": 2, "extensions": ["pg_cron"]}))
             before = os.getcwd()
@@ -455,13 +459,20 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         existing = json.loads(record_path.read_text())
         revised = copy.deepcopy(existing)
         revised["latest"] = {"releaseTag": TAG}
-        encoded = base64.b64encode(json.dumps(revised).encode()).decode()
+        ledger_path = ROOT / "packages" / record_path.name
+        revised_ledger = json.loads(ledger_path.read_text())
+        revised_ledger["latestReleaseId"] += 1
+        encoded = {
+            directory: base64.b64encode(json.dumps(doc).encode()).decode()
+            for directory, doc in (("extensions", revised), ("packages", revised_ledger))
+        }
         seen = []
 
         def fake_run(argv, cwd, env, text, capture_output):
             seen.append((argv, env.get("GH_TOKEN")))
             path = Path(cwd) / "extensions" / (NAME + ".json")
             path.write_text(json.dumps(revised))
+            (Path(cwd) / "packages" / path.name).write_text(json.dumps(revised_ledger))
             return Mock(returncode=0, stderr="")
 
         old_cwd = os.getcwd()
@@ -469,7 +480,8 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             os.chdir(ROOT)
             with patch.object(mod.subprocess, "run", side_effect=fake_run), \
                  patch.object(mod, "api",
-                              return_value={"encoding": "base64", "content": encoded}):
+                              side_effect=lambda path: {"encoding": "base64",
+                                  "content": encoded[path.split("/contents/")[1].split("/")[0]]}):
                 mod.verify_record(NAME, TAG, SHA, read_token="r"*32)
             self.assertEqual(len(seen), 1)
             self.assertEqual(seen[0][1], "r"*32)

@@ -11,6 +11,9 @@ on:
       - "config/cli-feed-majors.json"
       - "scripts/cli_signed_feed.py"
       - "scripts/release_inventory.py"
+      - "scripts/package_ledger.py"
+      - "packages/*.json"
+      - "index.json"
       - "extensions/*.json"
       - "tests/test_cli_signed_feed.py"
       - ".github/workflows/cli-signed-catalog-feed.yml"
@@ -34,8 +37,6 @@ jobs:
           fetch-depth: 0 # Historical admission uses the first-parent history of origin/main.
           persist-credentials: false
       - name: Synthetics and protected Catalog-sized signed-feed plan without publication
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_cli_signed_feed.py' -v
@@ -76,7 +77,7 @@ jobs:
             any(.files[]?;
                 .filename == "config/cli-feed-majors.json" or
                 .filename == "index.json" or
-                (.filename | test("^extensions/[^/]+[.]json$")))
+                (.filename | test("^packages/[^/]+[.]json$")))
           ' <<< "$commit" >/dev/null; then
             echo "CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE NO_COHORT_CHANGE HEAD=$RUN_SHA PUBLISH_DENY"
             exit 0
@@ -101,9 +102,8 @@ jobs:
           ref: ${{ needs.gate.outputs.source }}
           fetch-depth: 0 # Historical admission uses the first-parent history of origin/main.
           persist-credentials: false
-      - name: Build exact verified Catalog roster feed with independently scoped API token
+      - name: Project exact protected package ledger and Git admissions
         env:
-          GH_TOKEN: ${{ github.token }}
           SOURCE: ${{ needs.gate.outputs.source }}
         run: |
           set -euo pipefail

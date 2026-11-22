@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "name": "hypopg",
+  "displayName": "HypoPG",
+  "description": "Hypothetical index planning without creating indexes",
+  "repository": "pgextwin/hypopg",
+  "license": "PostgreSQL",
+  "architecture": "x64",
+  "runtime": {
+    "sharedPreloadLibraries": [],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "optional",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "hypothetical-index-changes-plan",
+        "description": "Create a hypothetical index in the same backend, verify EXPLAIN changes from Seq Scan to Index Scan with no physical index, and verify reset restores the baseline.",
+        "evidence": [
+          "sql-result",
+          "query-plan"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/hypopg",
+    "path": "config/test-contract.json",
+    "commit": "62158f77bf1d1f369ca9ad5486833890a7b11003"
+  },
+  "upstream": {
+    "repository": "HypoPG/hypopg"
+  },
+  "repositoryId": 1412861605,
+  "latestReleaseId": 452400206,
+  "unavailableMajors": [
+    "14"
+  ],
+  "releases": [
+    {
+      "releaseTag": "v1.4.4-windows.1",
+      "releaseId": 424739121,
+      "admission": {
+        "catalogCommit": "edb355a78558aa0e848861de04ba6dd406117b18"
+      },
+      "packages": [
+        {
+          "pgMajor": "15",
+          "version": "1.4.4",
+          "asset": "hypopg-1.4.4-pg15-windows-x64.zip",
+          "assetId": 679393427,
+          "sha256": "12bba2aec37a46b191f63eba624bbe9ddd168baabaf8d622fb8f5f55fdf88ba9",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/hypopg/blob/771ef1c84db382d070b22d03c22be142f24c7fee/LICENSE"
+            ]
+          }
+        }
+      ],
+      "legacyInventoryCommit": "34da9eb5f08491b37859cf834fd9a833440ba3fe"
+    },
+    {
+      "releaseTag": "v1.4.5-windows.2",
+      "releaseId": 452400206,
+      "publishedAt": "2026-11-20T07:45:22Z",
+      "checksumsAsset": "SHA256SUMS.txt",
+      "packages": [
+        {
+          "pgMajor": "15",
+          "version": "1.4.5",
+          "asset": "hypopg-1.4.5-pg15-windows-x64.zip",
+          "assetId": 770933732,
+          "sha256": "540141c9ac9d2fb5b230589e47ef3ee0ac4beba638504083600ec84d21286ab4",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/hypopg/blob/62158f77bf1d1f369ca9ad5486833890a7b11003/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg15-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg15-windows-x64.spdx.json",
+              "sha256": "d6fc6be97b1d3ec21a563e0879eea76889f95dc95f31fd2dd498c8077220a451"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg15-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "9538020842dd153df7b277036d9060d9b63d9bfc3339a444e8e87cab066d9898"
+            }
+          }
+        },
+        {
+          "pgMajor": "16",
+          "version": "1.4.5",
+          "asset": "hypopg-1.4.5-pg16-windows-x64.zip",
+          "assetId": 770933764,
+          "sha256": "d7fe575b56b0cd03d28d3009ccbf2eef6d7a90e14c5cc3f3d9a40ce48ff68f48",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/hypopg/blob/62158f77bf1d1f369ca9ad5486833890a7b11003/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg16-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg16-windows-x64.spdx.json",
+              "sha256": "2d9c81460f2fc1266f513204dfd911ae9d328c7d349187c61977d43c7592b355"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg16-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "d78d33ece8f5c0ba180431804539e2f7959a1fceebab2f74b3a63e35f417307b"
+            }
+          }
+        },
+        {
+          "pgMajor": "17",
+          "version": "1.4.5",
+          "asset": "hypopg-1.4.5-pg17-windows-x64.zip",
+          "assetId": 770933765,
+          "sha256": "225659f0986cea426a90caf1ee1f0f8b3418809b843b0f8f90a84c9c4541bbe9",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/hypopg/blob/62158f77bf1d1f369ca9ad5486833890a7b11003/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg17-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg17-windows-x64.spdx.json",
+              "sha256": "6c09022f03752f97d15948a22a608f5ed2b78336076a9b2747a860b016d9a042"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg17-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "5a762671f2738f8cec1c537670c1718ccfde24592599f90d8775082aa7f7203d"
+            }
+          }
+        },
+        {
+          "pgMajor": "18",
+          "version": "1.4.5",
+          "asset": "hypopg-1.4.5-pg18-windows-x64.zip",
+          "assetId": 770933784,
+          "sha256": "e5df80672731765ead6305c66aa284526a568bca5749f6bde1660e0685680d6f",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/hypopg/blob/62158f77bf1d1f369ca9ad5486833890a7b11003/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg18-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg18-windows-x64.spdx.json",
+              "sha256": "363b8cc17854437a1e8f1f18bf933dddc2b78765307a5e86483e3d5e13e63850"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg18-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "9eeb00933765a0ddef0a12f8c203431878165024ccb7441f38a97b12fb01001f"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "1.4.5",
+          "asset": "hypopg-1.4.5-pg19-windows-x64.zip",
+          "assetId": 770933819,
+          "sha256": "7ea852ca37d27341ab9742ef10eef8f7f0c23a8ac88bfeae783b9f5614a6ce30",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/hypopg/blob/62158f77bf1d1f369ca9ad5486833890a7b11003/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg19-windows-x64.spdx.json",
+              "sha256": "7a3afa62d9d270f0b9fc81245a0ba42974297f942d02b9047608e91bb5215f63"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "hypopg-1.4.5-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/hypopg/releases/download/v1.4.5-windows.2/hypopg-1.4.5-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "f97706d72b5987667e120b2b38ecd64761373723348539e7a561857cecf4c9e5"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

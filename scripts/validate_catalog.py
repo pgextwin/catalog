@@ -11,10 +11,20 @@ import urllib.parse
 import urllib.request
 from pathlib import Path, PurePosixPath
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
+from referencing import Registry, Resource
+
+try:
+    from scripts import package_ledger
+    from scripts.release_inventory import match_zip, release_assets
+except ModuleNotFoundError:
+    import package_ledger
+    from release_inventory import match_zip, release_assets
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION_SCHEMA_PATH = ROOT / "schema" / "extension.schema.json"
+LEDGER_SCHEMA_PATH = ROOT / "schema" / "package-ledger.schema.json"
+LEDGER_DIR = ROOT / package_ledger.DIRECTORY
 INDEX_SCHEMA_PATH = ROOT / "schema" / "index.schema.json"
 INDEX_PATH = ROOT / "index.json"
 EXTENSIONS_DIR = ROOT / "extensions"
@@ -369,7 +379,7 @@ def read_public_release_checksums(repository, tag, checksums_asset):
         raise ValueError("actual published checksums asset SHA256 differs from GitHub release")
     return parse_checksums(raw)
 
-def verify_release(record, token):
+def verify_release(record, token, pinned=None):
     repository = record["repository"]
     latest = record["latest"]
     tag = latest["releaseTag"]
@@ -405,6 +415,15 @@ def verify_release(record, token):
         )
 
     assets = {asset.get("name"): asset for asset in release.get("assets", [])}
+    if pinned is not None:
+        try:
+            release_id, release_inventory = release_assets(repository, tag, release)
+            if release_id != pinned["releaseId"]:
+                raise ValueError("ledger Release ID differs from public Release")
+            for package in pinned["packages"]:
+                match_zip(repository, tag, package["pgMajor"], package, release_inventory)
+        except ValueError as exc:
+            errors.append(f"ledger Release/ZIP pins: {exc}")
     checksums_name = latest["checksumsAsset"]
     checksums_asset = assets.get(checksums_name)
     if not checksums_asset:
@@ -472,8 +491,13 @@ def verify_release(record, token):
 def validate_catalog(verify_remote=False):
     extension_schema = load_json(EXTENSION_SCHEMA_PATH)
     index_schema = load_json(INDEX_SCHEMA_PATH)
+    ledger_schema = load_json(LEDGER_SCHEMA_PATH)
+    registry = Registry().with_resource(extension_schema["$id"], Resource.from_contents(extension_schema))
+    ledger_validator = Draft202012Validator(ledger_schema, registry=registry,
+                                            format_checker=FormatChecker())
     Draft202012Validator.check_schema(extension_schema)
     Draft202012Validator.check_schema(index_schema)
+    Draft202012Validator.check_schema(ledger_schema)
 
     index = load_json(INDEX_PATH)
     errors = schema_errors(index_schema, index, "index.json")
@@ -486,6 +510,8 @@ def validate_catalog(verify_remote=False):
         names = []
 
     records = {}
+    if sorted(path.stem for path in LEDGER_DIR.glob("*.json")) != sorted(names):
+        errors.append("packages/ inventory differs from index.json")
     for name in names:
         path = EXTENSIONS_DIR / f"{name}.json"
         if not path.is_file():
@@ -493,7 +519,19 @@ def validate_catalog(verify_remote=False):
             continue
 
         record = load_json(path)
-        records[name] = record
+        try:
+            ledger_path = LEDGER_DIR / f"{name}.json"
+            ledger = package_ledger.read_record(ledger_path)
+            ledger_validator.validate(ledger)
+            if record != package_ledger.website_record(ledger):
+                raise ValueError("stale Website projection")
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            errors.append(f"packages/{name}.json: {exc}")
+            continue
+        except ValidationError as exc:
+            errors.append(f"packages/{name}.json:{json_path(exc.path)}: {exc.message}")
+            continue
+        records[name] = (record, package_ledger.current_release(ledger))
         errors.extend(
             schema_errors(extension_schema, record, str(path.relative_to(ROOT)))
         )
@@ -512,7 +550,7 @@ def validate_catalog(verify_remote=False):
 
     if verify_remote:
         token = os.environ.get("GITHUB_TOKEN")
-        for name, record in records.items():
+        for name, (record, pinned) in records.items():
             try:
                 source_errors = verify_capability_source(record, token)
                 errors.extend(
@@ -525,7 +563,7 @@ def validate_catalog(verify_remote=False):
                 )
 
             try:
-                release_errors = verify_release(record, token)
+                release_errors = verify_release(record, token, pinned)
                 errors.extend(
                     f"extensions/{name}.json: remote release verification: {message}"
                     for message in release_errors

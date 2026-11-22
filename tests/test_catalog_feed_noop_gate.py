@@ -33,14 +33,15 @@ class CatalogFeedPublicationGate(unittest.TestCase):
             ["metadata/issue311-r09-shadow-nonpublishing.json"],
             ["tests/test_issue311_r09_shadow_contract.py", ".github/workflows/issue311-r09-shadow-preview.yml"],
             ["README.md", "docs/cli-feed.md"],
-            ["extensions/orafce.json/extra"],
-            ["extensions/orafce.txt"],
+            ["packages/orafce.json/extra"],
+            ["packages/orafce.txt"],
+            ["extensions/orafce.json"],
         ):
             with self.subTest(paths=paths):
                 self.assertFalse(self.accepted(paths))
 
     def test_genuine_catalog_record_change_still_eligible_for_existing_full_gate(self):
-        for paths in (["index.json"], ["extensions/orafce.json"], ["extensions/pg_bigm.json", "README.md"]):
+        for paths in (["index.json"], ["packages/orafce.json"], ["packages/pg_bigm.json", "README.md"]):
             with self.subTest(paths=paths):
                 self.assertTrue(self.accepted(paths))
 

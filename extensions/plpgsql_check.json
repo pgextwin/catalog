@@ -188,43 +188,5 @@
     "repository": "pgextwin/plpgsql_check",
     "path": "config/test-contract.json",
     "commit": "573b4e204b56aa4f3ef7d3d9099e9314876041e5"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v2.11.0-windows.1",
-      "licensesByMajor": {
-        "15": {
-          "name": "MIT",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/plpgsql_check/blob/573b4e204b56aa4f3ef7d3d9099e9314876041e5/LICENSE"
-          ]
-        },
-        "16": {
-          "name": "MIT",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/plpgsql_check/blob/573b4e204b56aa4f3ef7d3d9099e9314876041e5/LICENSE"
-          ]
-        },
-        "17": {
-          "name": "MIT",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/plpgsql_check/blob/573b4e204b56aa4f3ef7d3d9099e9314876041e5/LICENSE"
-          ]
-        },
-        "18": {
-          "name": "MIT",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/plpgsql_check/blob/573b4e204b56aa4f3ef7d3d9099e9314876041e5/LICENSE"
-          ]
-        },
-        "19": {
-          "name": "MIT",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/plpgsql_check/blob/573b4e204b56aa4f3ef7d3d9099e9314876041e5/LICENSE"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }

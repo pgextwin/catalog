@@ -1,0 +1,288 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_partman",
+  "displayName": "pg_partman",
+  "description": "Time-based and ID-based partition maintenance; optional BGW DLL included. SQL features work without preload.",
+  "repository": "pgextwin/pg_partman",
+  "license": "PostgreSQL",
+  "architecture": "x64",
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "pg_partman_bgw"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "optional",
+      "backgroundWorker": true,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "covered",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "partition-maintenance-routing",
+        "description": "Create and maintain a time-partitioned parent, verify routed INSERTs and child partitions",
+        "evidence": [
+          "sql-result"
+        ]
+      },
+      {
+        "id": "sql-without-preload",
+        "description": "Verify SQL partition routing remains functional without loading the optional BGW DLL.",
+        "evidence": [
+          "sql-result"
+        ]
+      },
+      {
+        "id": "bgw-automatic-partition-replenishment",
+        "description": "Preload optional Windows background worker and verify an unprivileged maintenance role automatically replenishes a deliberately removed partition on PostgreSQL 14–18.",
+        "evidence": [
+          "background-worker-side-effect",
+          "sql-result",
+          "server-log"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_partman",
+    "path": "config/test-contract.json",
+    "commit": "930031e2b24f694cd0861b03040b8f3f81286b2c"
+  },
+  "upstream": {
+    "repository": "pgpartman/pg_partman"
+  },
+  "repositoryId": 1413245197,
+  "latestReleaseId": 454095066,
+  "unavailableMajors": [
+    "14"
+  ],
+  "releases": [
+    {
+      "releaseTag": "v5.5.0-windows.2",
+      "releaseId": 409245095,
+      "admission": {
+        "catalogCommit": "561e1d3947c963d8fd919b9f8d7ef97aca66276f"
+      },
+      "packages": [
+        {
+          "pgMajor": "14",
+          "version": "5.5.0",
+          "asset": "pg_partman-v5.5.0-pg14-windows-x64.zip",
+          "sha256": "1df345b0e2b82d534454d71d1412148d02f386a4eadcdb7973dee98f13de71f7",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+            ]
+          },
+          "assetId": 629154274
+        },
+        {
+          "pgMajor": "15",
+          "version": "5.5.0",
+          "asset": "pg_partman-v5.5.0-pg15-windows-x64.zip",
+          "sha256": "905d1cee60976ebca5302c9d20b2528d614c89e845d8e22fc39558e79d27955c",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+            ]
+          },
+          "assetId": 629154275
+        },
+        {
+          "pgMajor": "16",
+          "version": "5.5.0",
+          "asset": "pg_partman-v5.5.0-pg16-windows-x64.zip",
+          "sha256": "01192599c712ed1becffc6b7c2254d50a289725e92529d58acd3cf5c68c12409",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+            ]
+          },
+          "assetId": 629154279
+        },
+        {
+          "pgMajor": "17",
+          "version": "5.5.0",
+          "asset": "pg_partman-v5.5.0-pg17-windows-x64.zip",
+          "sha256": "e6be80019386413164e5ae243a06f551adbc6a796753383faa61a543103b334d",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+            ]
+          },
+          "assetId": 629154277
+        },
+        {
+          "pgMajor": "18",
+          "version": "5.5.0",
+          "asset": "pg_partman-v5.5.0-pg18-windows-x64.zip",
+          "sha256": "1728a2cae7ca648b6e5eab6a18a00628a5e34867a752da905b79f8bf94f99b15",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/7b84afb37388d0bb0bd8b0cb434977c7bef2c10e/LICENSE.txt"
+            ]
+          },
+          "assetId": 629154273
+        }
+      ],
+      "legacyInventoryCommit": "34da9eb5f08491b37859cf834fd9a833440ba3fe"
+    },
+    {
+      "releaseTag": "v5.5.1-windows.1",
+      "releaseId": 454095066,
+      "publishedAt": "2026-11-22T00:49:16Z",
+      "checksumsAsset": "SHA256SUMS.txt",
+      "packages": [
+        {
+          "pgMajor": "15",
+          "version": "5.5.1",
+          "asset": "pg_partman-v5.5.1-pg15-windows-x64.zip",
+          "assetId": 777384610,
+          "sha256": "beb38810c6b4c6c5d0dd896c473923b5a8be3a321fc70383b22aac49cebf4c53",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/930031e2b24f694cd0861b03040b8f3f81286b2c/LICENSE.txt"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg15-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg15-windows-x64.spdx.json",
+              "sha256": "32e26a54024ea7a78304255864751cece49db41a066d7643c5064233d66f0bd0"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg15-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "2e793f842c485f91d1903015cc3bd3849df69c8f66c35d1e9d61079206250a10"
+            }
+          }
+        },
+        {
+          "pgMajor": "16",
+          "version": "5.5.1",
+          "asset": "pg_partman-v5.5.1-pg16-windows-x64.zip",
+          "assetId": 777384633,
+          "sha256": "5ba41f110443bd975fe46351622db4a12d57702c29cd6b311f29536652460ccb",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/930031e2b24f694cd0861b03040b8f3f81286b2c/LICENSE.txt"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg16-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg16-windows-x64.spdx.json",
+              "sha256": "e621c5cebeed4d689e68d6bebba5e111fbd8b52cc690ef230b22fab1b9554212"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg16-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "4ccfaf8f0137c6686818eff90ca9a00d305fb0a9c355d069de17fa6dc2e32cf5"
+            }
+          }
+        },
+        {
+          "pgMajor": "17",
+          "version": "5.5.1",
+          "asset": "pg_partman-v5.5.1-pg17-windows-x64.zip",
+          "assetId": 777384635,
+          "sha256": "8e02823767e4223051e2fc4872ad5c0e9a3dc68c44090b4f9bfe9f8661a7ead2",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/930031e2b24f694cd0861b03040b8f3f81286b2c/LICENSE.txt"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg17-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg17-windows-x64.spdx.json",
+              "sha256": "a7321098f5a10efc5857c03879a6a968ef7224264ce94972976cb94bd352c590"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg17-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "37f8345a5633d5801dbe8732e53e0fbb794e91ed883b6d2ffa835a027e2c5df0"
+            }
+          }
+        },
+        {
+          "pgMajor": "18",
+          "version": "5.5.1",
+          "asset": "pg_partman-v5.5.1-pg18-windows-x64.zip",
+          "assetId": 777384649,
+          "sha256": "69ccfa23f873db151ba75eb8a507d674cf749e2ebf991bf86cd603967760a2d2",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_partman/blob/930031e2b24f694cd0861b03040b8f3f81286b2c/LICENSE.txt"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg18-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg18-windows-x64.spdx.json",
+              "sha256": "ba2bd9916e36dfec89d4d61ef65fb906bdc623da3f2eccd3b0bd8fa45abbf5cb"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_partman-v5.5.1-pg18-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "b9bedc808561bcbd2e1ffb76220ff11cdf59ea146b9935c35bb2ca0537bdab40"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

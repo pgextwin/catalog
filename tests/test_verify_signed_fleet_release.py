@@ -12,6 +12,7 @@ from unittest.mock import patch
 from zipfile import ZipFile
 
 from scripts import verify_signed_fleet_release as verifier
+from scripts import package_ledger
 
 
 def sha(data):
@@ -95,23 +96,24 @@ class SignedEvidenceTests(unittest.TestCase):
         contract = {"extension": name, "contractVersion": 2}
         release = {"tag_name": tag, "draft": False, "prerelease": False,
                    "published_at": "2026-11-21T11:30:00Z", "target_commitish": commit}
-        old_tag = "v1.5.3-windows.2"
-        original = json.dumps({
-            "license": "PostgreSQL",
-            "latest": {"releaseTag": old_tag, "publishedAt": "2026-10-20T12:00:00Z"},
-            "releaseInventory": {"current": {"releaseTag": old_tag, "licensesByMajor": {
-                "15": {"name": "PostgreSQL", "evidenceUrls": [
-                    f"https://github.com/{repo}/blob/{'a' * 40}/COPYRIGHT",
-                    f"https://github.com/postgres/postgres/blob/{'b' * 40}/COPYRIGHT",
-                ]},
-            }}},
-        })
+        root = Path(__file__).resolve().parents[1]
+        old_ledger = package_ledger.read_record(root / "packages" / f"{name}.json")
+        old = package_ledger.current_release(old_ledger)
+        old["publishedAt"] = "2026-10-20T12:00:00Z"
+        for row in old["packages"]:
+            if row["pgMajor"] == "15":
+                row["license"]["evidenceUrls"].append(
+                    f"https://github.com/postgres/postgres/blob/{'b' * 40}/COPYRIGHT")
+        original = package_ledger.json_bytes(package_ledger.website_record(old_ledger))
         lifecycle = {"postgresql": [{"major": major, "eol": "2030-01-01"} for major in range(14, 19)]}
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp) / "extensions"
             directory.mkdir()
             target = directory / f"{name}.json"
-            target.write_text(original)
+            target.write_bytes(original)
+            ledger_path = directory.parent / "packages" / target.name
+            ledger_path.parent.mkdir()
+            ledger_path.write_bytes(package_ledger.json_bytes(old_ledger))
             with (patch.object(verifier, "api", side_effect=[release, {"status": "ahead"}, {
                       "encoding": "base64", "content": base64.b64encode(json.dumps(lifecycle).encode())}]),
                   patch.object(verifier, "verify_release_tag"),
@@ -125,7 +127,7 @@ class SignedEvidenceTests(unittest.TestCase):
                                             "no verified new license source for PG15: postgres/postgres/COPYRIGHT"):
                     verifier.generate(name, tag, target)
                 mapper.assert_not_called()
-            self.assertEqual(target.read_text(), original)
+            self.assertEqual(target.read_bytes(), original)
 
     def test_rollover_verifies_and_repins_packaging_and_per_major_upstream_license_files(self):
         _, _, manifest, _, commit = self.make()

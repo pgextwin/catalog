@@ -195,43 +195,5 @@
     "repository": "pgextwin/pg_ivm",
     "path": "config/test-contract.json",
     "commit": "a1914dcbd9e5384adb995052d3accce32a14474a"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v1.17-windows.2",
-      "licensesByMajor": {
-        "15": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_ivm/blob/a1914dcbd9e5384adb995052d3accce32a14474a/LICENSE"
-          ]
-        },
-        "16": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_ivm/blob/a1914dcbd9e5384adb995052d3accce32a14474a/LICENSE"
-          ]
-        },
-        "17": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_ivm/blob/a1914dcbd9e5384adb995052d3accce32a14474a/LICENSE"
-          ]
-        },
-        "18": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_ivm/blob/a1914dcbd9e5384adb995052d3accce32a14474a/LICENSE"
-          ]
-        },
-        "19": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_ivm/blob/a1914dcbd9e5384adb995052d3accce32a14474a/LICENSE"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }

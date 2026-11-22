@@ -28,7 +28,7 @@ tag, Release, source policy, or runtime variable.
 `verified-release-auto-merge.json`, and `PGEXTWIN_CATALOG_AUTOMERGE_ENABLED`
 must separately agree before the merge job can act. Existing exact-head native
 App15368 checks, genuine signed public Release verification, scoped App checks,
-expected-head squash, first-intake path restrictions and branch protection are
+expected-head merge commit, first-intake path restrictions and branch protection are
 unchanged. The read-only scope proof cannot satisfy these publication gates.
 
 ## Protected local policy activation

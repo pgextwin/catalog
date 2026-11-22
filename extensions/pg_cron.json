@@ -189,43 +189,5 @@
     "repository": "pgextwin/pg_cron",
     "path": "config/test-contract.json",
     "commit": "71b000736fcc9853c3f835ab809234ad7fb795b4"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v1.6.8-windows.3",
-      "licensesByMajor": {
-        "15": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_cron/blob/71b000736fcc9853c3f835ab809234ad7fb795b4/LICENSE"
-          ]
-        },
-        "16": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_cron/blob/71b000736fcc9853c3f835ab809234ad7fb795b4/LICENSE"
-          ]
-        },
-        "17": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_cron/blob/71b000736fcc9853c3f835ab809234ad7fb795b4/LICENSE"
-          ]
-        },
-        "18": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_cron/blob/71b000736fcc9853c3f835ab809234ad7fb795b4/LICENSE"
-          ]
-        },
-        "19": {
-          "name": "PostgreSQL-style",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_cron/blob/71b000736fcc9853c3f835ab809234ad7fb795b4/LICENSE"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }

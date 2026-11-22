@@ -183,43 +183,5 @@
     "repository": "pgextwin/pg_variables",
     "path": "config/test-contract.json",
     "commit": "3b9b3ae3196d2298a627161e883cd7e35642dadd"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v1.2.1-windows.1",
-      "licensesByMajor": {
-        "14": {
-          "name": "PostgreSQL",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_variables/blob/3b9b3ae3196d2298a627161e883cd7e35642dadd/LICENSE"
-          ]
-        },
-        "15": {
-          "name": "PostgreSQL",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_variables/blob/3b9b3ae3196d2298a627161e883cd7e35642dadd/LICENSE"
-          ]
-        },
-        "16": {
-          "name": "PostgreSQL",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_variables/blob/3b9b3ae3196d2298a627161e883cd7e35642dadd/LICENSE"
-          ]
-        },
-        "17": {
-          "name": "PostgreSQL",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_variables/blob/3b9b3ae3196d2298a627161e883cd7e35642dadd/LICENSE"
-          ]
-        },
-        "18": {
-          "name": "PostgreSQL",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_variables/blob/3b9b3ae3196d2298a627161e883cd7e35642dadd/LICENSE"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }
