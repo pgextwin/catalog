@@ -81,12 +81,10 @@ release is claimed. P1 BLOCKED; P2 NO-GO; formal distribution DENY.
 
 ## Windows self-contained CLI publish-readiness smoke (nonpublishing)
 
-See [public CLI release plan](../docs/cli-public-release-plan.md). The PR-only
-`cli-windows-package-smoke` job produces a **private, ephemeral**
-`win-x64` self-contained single-file `pgextwin.exe`, prints its SHA256/size,
-runs actual Windows help/list/search (PG18) and DENY/exit-2 negative paths.
-It does not upload an Actions Artifact or create any tag, signed binary,
-Release, public download, installer or bundle.
+For relevant PRs, `cli-candidate.yml` builds a private, self-contained
+single-file `win-x64` `pgextwin.exe`, prints its SHA256 and size, and stores it
+as a one-day Actions artifact. A fresh Windows runner rehashes the artifact
+and exercises help, PG18 list and search, and DENY paths with exit code 2.
 
 This is compile/runtime evidence only. No trusted online/offline `verify`,
 bundle creation, `install`, source Sigstore acceptance or public CLI signing is

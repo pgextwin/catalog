@@ -406,16 +406,19 @@ class Tests(unittest.TestCase):
 
     def test_integration_is_required_in_catalog_validate_job(self):
         workflow = (ROOT / ".github/workflows/validate.yml").read_text("utf-8")
-        # Existing required validate job has no PyYAML; no new dependency.
-        self.assertIn(
-            "run: python scripts/validate_public_get_pin.py --catalog .",
-            workflow)
+        command = "python scripts/validate_public_get_pin.py --catalog ."
+        self.assertIn("run: " + command, workflow)
         self.assertIn("GH_TOKEN: "+chr(36)+"{{ github.token }}", workflow)
-        linux_job, windows_job = workflow.split("  cli-windows-package-smoke:", 1)
-        self.assertEqual(
-            linux_job.count("scripts/validate_public_get_pin.py --catalog ."), 1)
-        self.assertEqual(
-            windows_job.count("scripts/validate_public_get_pin.py --catalog ."), 1)
+        self.assertEqual(workflow.count(command), 1)
+        self.assertNotIn("windows-latest", workflow)
+        candidate = (ROOT / ".github/workflows/cli-candidate.yml").read_text("utf-8")
+        pr_paths = candidate.split("  pull_request:", 1)[1].split("permissions:", 1)[0]
+        for path in (".gitattributes", "external/signed-direct-get/**",
+                     "scripts/validate_public_get_pin.py"):
+            self.assertIn(f"- '{path}'", pr_paths)
+        self.assertNotIn("'extensions/**'", pr_paths)
+        self.assertEqual(candidate.count(command), 1)
+        self.assertIn("git hash-object --no-filters -- $file", candidate)
 
 if __name__ == "__main__":
     unittest.main()
