@@ -31,7 +31,9 @@ SHA = re.compile(r"^[0-9a-f]{40}$")
 BRANCH = re.compile(
     r"^auto-catalog/([a-z][a-z0-9_]{1,63})-(v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\.[1-9][0-9]*)$"
 )
-REQUIRED_CHECKS = frozenset({"validate", "cli-windows-package-smoke"})
+# inspect_pr limits auto-merge to the existing package ledger and its view.
+# These paths do not trigger the Windows CLI smoke in cli-candidate.yml.
+REQUIRED_CHECKS = frozenset({"validate"})
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -259,7 +261,7 @@ def validate_checks(payload, sha):
             continue
         require(name not in matched, "duplicate required status check name")
         matched[name] = run
-    require(set(matched) == REQUIRED_CHECKS, "required native Windows Catalog checks missing")
+    require(set(matched) == REQUIRED_CHECKS, "required native Catalog checks missing")
     for run in matched.values():
         require(run.get("head_sha") == sha and run.get("status") == "completed"
                 and run.get("conclusion") == "success"
