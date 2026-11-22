@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from dataclasses import dataclass
 from datetime import date, datetime
 import hashlib
 import json
@@ -59,6 +60,16 @@ SPDX = "https://spdx.dev/Document/v2.3"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 SUM_LINE = re.compile(r"^([0-9a-f]{64})  (?:\./)?([A-Za-z0-9_.-]+)$")
+
+
+@dataclass(frozen=True)
+class DownloadedPackage:
+    zip_path: Path
+    zip_sha: str
+    info: dict
+    spdx_path: Path
+    spdx_sha: str
+    spdx: dict
 
 
 def gh(*args):
@@ -191,9 +202,9 @@ def verify_release_tag(repo, tag, source_commit):
 
 def verify_payload(folder, release, manifest, contract, source_commit, active, *,
                    expected_event="workflow_dispatch"):
+    """Validate downloaded bytes and read metadata for the signature checks."""
     require(expected_event in ("workflow_dispatch", "push", "issue_comment"),
             "unrecognized formal signed source event")
-    """Validate downloaded bytes and ZIP metadata; attestations are checked by caller."""
     name = manifest["name"]
     repo = "pgextwin/" + name
     files = {p.name: p for p in folder.iterdir() if p.is_file()}
@@ -203,34 +214,39 @@ def verify_payload(folder, release, manifest, contract, source_commit, active, *
     asset_map = {a["name"]: a for a in assets}
     require(set(files) == set(asset_map) and "SHA256SUMS.txt" in files,
             "downloaded assets do not match published Release")
-    lines = files["SHA256SUMS.txt"].read_text(encoding="utf-8-sig").splitlines()
+    checksums = files["SHA256SUMS.txt"].read_bytes()
+    checksum_asset = asset_map["SHA256SUMS.txt"]
+    require(type(checksum_asset.get("size")) is int
+            and 0 < len(checksums) == checksum_asset["size"] <= 1024 * 1024,
+            "invalid published checksums asset size")
+    checksum_sha = hashlib.sha256(checksums).hexdigest()
+    verify_asset_digest(checksum_asset, checksum_sha)
     sums = {}
-    for line in lines:
+    for line in checksums.decode("utf-8-sig").splitlines():
         match = SUM_LINE.fullmatch(line)
         require(match is not None and match.group(2) not in sums,
                 "malformed/duplicate checksum")
         sums[match.group(2)] = match.group(1)
     require(set(sums) == set(files) - {"SHA256SUMS.txt"},
             "partial or extra SHA256SUMS entry")
-    for fn, path in files.items():
-        a = asset_map[fn]
-        require(a.get("state") == "uploaded"
-                and a.get("digest") == "sha256:" + digest(path),
-                "GitHub digest or downloaded bytes changed: " + fn)
-        if fn != "SHA256SUMS.txt":
-            require(digest(path) == sums[fn], "checksum file differs: " + fn)
     src = source_map(manifest)
-    expected = {"SHA256SUMS.txt"}
+    stems = {major: f"{name}-{src[major]['ref']}-pg{major}-windows-x64"
+             for major in active}
+    expected = {"SHA256SUMS.txt"} | {stem + suf for stem in stems.values() for suf in SUFFIXES}
+    require(set(files) == expected,
+            "missing/extra PG-major Release assets")
+
+    digests = {"SHA256SUMS.txt": checksum_sha}
+    packages = []
     run_id = None
-    for major in active:
+    for major, stem in stems.items():
         source = dict(src[major], repository=INTAKE_ALLOWED[name])
-        stem = name + "-" + source["ref"] + "-pg" + str(major) + "-windows-x64"
-        expected.update(stem + suf for suf in SUFFIXES)
         zip_path = files[stem + ".zip"]
+        zip_sha = digest(zip_path)
+        verify_asset_digest(asset_map[zip_path.name], zip_sha, sums)
+        digests[zip_path.name] = zip_sha
         with ZipFile(zip_path) as zf:
-            require(zf.namelist().count("PACKAGE-INFO.json") == 1,
-                    "missing or duplicate immutable package metadata")
-            pkg = json.loads(zf.read("PACKAGE-INFO.json").decode("utf-8-sig"))
+            pkg = read_package_info(zf)
             # Optional pg_partman BGW must never be asserted without an actual DLL.
             if name == "pg_partman":
                 bgw = contract["runtimeRequirements"].get("backgroundWorker")
@@ -246,13 +262,40 @@ def verify_payload(folder, release, manifest, contract, source_commit, active, *
                                      expected_event=expected_event)
         run_id = run_id or ident
         require(run_id == ident, "mixed build workflow run IDs")
-        spdx = json.loads(files[stem + ".spdx.json"].read_text(encoding="utf-8-sig"))
-        grype = json.loads(files[stem + ".vulnerabilities.json"].read_text(encoding="utf-8-sig"))
-        require(spdx.get("spdxVersion") == "SPDX-2.3"
-                and isinstance(grype.get("matches"), list), "invalid SPDX or Grype report")
-    require(set(files) == expected, "missing/extra PG-major Release assets")
-    return asset_map, sums, run_id
+        spdx_path = files[stem + ".spdx.json"]
+        spdx, spdx_sha = read_verified_report(spdx_path, asset_map, sums,
+                                              object_pairs_hook=unique_json_keys)
+        grype_path = files[stem + ".vulnerabilities.json"]
+        grype, grype_sha = read_verified_report(grype_path, asset_map, sums)
+        require(type(spdx) is dict and spdx.get("spdxVersion") == "SPDX-2.3"
+                and type(grype) is dict and isinstance(grype.get("matches"), list),
+                "invalid SPDX or Grype report")
+        digests[spdx_path.name] = spdx_sha
+        digests[grype_path.name] = grype_sha
+        packages.append(DownloadedPackage(zip_path, zip_sha, pkg, spdx_path, spdx_sha, spdx))
+    return asset_map, digests, run_id, packages
 
+
+def verify_asset_digest(asset, sha, sums=None):
+    name = asset["name"]
+    require(asset.get("state") == "uploaded" and asset.get("digest") == "sha256:" + sha,
+            "GitHub digest or downloaded bytes changed: " + name)
+    if sums is not None:
+        require(sha == sums[name], "checksum file differs: " + name)
+
+
+def read_verified_report(path, assets, sums, *, object_pairs_hook=None):
+    raw = path.read_bytes()
+    sha = hashlib.sha256(raw).hexdigest()
+    verify_asset_digest(assets[path.name], sha, sums)
+    return json.loads(raw.decode("utf-8-sig"), object_pairs_hook=object_pairs_hook), sha
+
+
+def read_package_info(archive):
+    require(archive.namelist().count("PACKAGE-INFO.json") == 1,
+            "missing or duplicate immutable package metadata")
+    return json.loads(archive.read("PACKAGE-INFO.json").decode("utf-8-sig"),
+                      object_pairs_hook=unique_json_keys)
 
 
 def unique_json_keys(pairs):
@@ -305,21 +348,12 @@ def validate_verified_attestation(raw, *, predicate, zip_name, zip_sha,
                 "signed SLSA provenance predicate missing")
 
 
-def signer_sha_from_package(zip_path, repo):
+def signer_sha_from_package(info, repo):
     """Claimed signer commit from the immutable, SHA256-verified public ZIP.
 
     Not an independent signer approval. Cryptographic identity is verified by
     the pinned GitHub CLI --signer-workflow / --signer-digest combination.
     """
-    try:
-        with ZipFile(zip_path) as archive:
-            require(archive.namelist().count("PACKAGE-INFO.json") == 1,
-                    "missing/duplicate Release package identity")
-            info = json.loads(archive.read("PACKAGE-INFO.json")
-                              .decode("utf-8-sig"),
-                              object_pairs_hook=unique_json_keys)
-    except (BadZipFile, ValueError, KeyError, UnicodeError) as exc:
-        raise Denied("untrusted public Release package metadata") from exc
     build = info.get("buildInfrastructure") if type(info) is dict else None
     require(type(build) is dict
             and build.get("repository") == "pgextwin/build"
@@ -334,7 +368,7 @@ def signer_sha_from_package(zip_path, repo):
     return build["commit"]
 
 
-def verify_release_attestations(zip_path, spdx_path, *, repo, source_commit):
+def verify_release_attestations(package, *, repo, source_commit):
     """Verify that two signer-pinned claims match the downloaded public bytes.
 
     Catalog-only read and verification; no PUBLISH or Release write. Historical
@@ -343,30 +377,24 @@ def verify_release_attestations(zip_path, spdx_path, *, repo, source_commit):
     require(isinstance(source_commit, str) and HEX40.fullmatch(source_commit)
             and repo in {"pgextwin/" + n for n in INTAKE_ALLOWED},
             "untrusted signed Release signer/source identity")
-    signer_sha = signer_sha_from_package(zip_path, repo)
-    zip_sha, spdx_sha = digest(zip_path), digest(spdx_path)
-    try:
-        signed_spdx = json.loads(spdx_path.read_text(encoding="utf-8-sig"),
-                                 object_pairs_hook=unique_json_keys)
-    except (ValueError, TypeError) as exc:
-        raise Denied("unreadable/duplicate-key published SPDX") from exc
-    require(type(signed_spdx) is dict
-            and signed_spdx.get("spdxVersion") == "SPDX-2.3",
-            "invalid public SPDX identity")
+    signer_sha = signer_sha_from_package(package.info, repo)
     for predicate in (PROVENANCE, SPDX):
         # gh performs the cryptographic verification. Each pinned flag is a
         # trust constraint; do not accept the JSON result without zero exit.
         verified = gh(
-            "attestation", "verify", str(zip_path), "--repo", repo,
+            "attestation", "verify", str(package.zip_path), "--repo", repo,
             "--signer-workflow", SIGNER, "--signer-digest", signer_sha,
             "--source-digest", source_commit, "--source-ref", "refs/heads/main",
             "--predicate-type", predicate, "--format", "json")
         validate_verified_attestation(
-            verified, predicate=predicate, zip_name=zip_path.name,
-            zip_sha=zip_sha, expected_spdx=signed_spdx if predicate == SPDX
+            verified, predicate=predicate, zip_name=package.zip_path.name,
+            zip_sha=package.zip_sha, expected_spdx=package.spdx if predicate == SPDX
             else None)
-        require(digest(zip_path) == zip_sha and digest(spdx_path) == spdx_sha,
-                "public ZIP/SPDX bytes changed during signature verification")
+    # Each verified statement binds the originally downloaded ZIP digest.
+    # Recheck both local files once after the external verification boundary.
+    require(digest(package.zip_path) == package.zip_sha
+            and digest(package.spdx_path) == package.spdx_sha,
+            "public ZIP/SPDX bytes changed during signature verification")
     return signer_sha
 
 
@@ -484,9 +512,9 @@ def generate(extension, tag, record):
     with tempfile.TemporaryDirectory() as tmp:
         gh("release", "download", tag, "--repo", repo, "--dir", tmp)
         folder = Path(tmp)
-        assets, sums, run_id = verify_payload(folder, release, manifest, contract,
-                                               source_commit, active,
-                                               expected_event=original_event)
+        assets, digests, run_id, packages = verify_payload(
+            folder, release, manifest, contract, source_commit, active,
+            expected_event=original_event)
         if auto_marker is None:
             verify_main_run(repo, run_id, source_commit)
         else:
@@ -494,11 +522,9 @@ def generate(extension, tag, record):
                 release=release, repository=repo, tag=tag, sha=source_commit,
                 source_run_id=run_id, marker=auto_marker, api=api)
         signer_sha = None
-        for major in active:
-            stem = extension + "-" + source_map(manifest)[major]["ref"] + "-pg" + str(major) + "-windows-x64"
+        for package in packages:
             actual_sha = verify_release_attestations(
-                folder / (stem + ".zip"), folder / (stem + ".spdx.json"),
-                repo=repo, source_commit=source_commit)
+                package, repo=repo, source_commit=source_commit)
             if signer_sha is None:
                 signer_sha = actual_sha
             require(signer_sha == actual_sha,
@@ -522,7 +548,7 @@ def generate(extension, tag, record):
         licenses.update(verified_licenses(repo, source_commit, manifest, unrecorded,
                                           original["license"], previous_licenses))
     mapped = map_verified_release(
-        original, release, manifest, contract, assets, sums, source_commit, active,
+        original, release, manifest, contract, assets, digests, source_commit, active,
         licenses_by_major=licenses,
         load_previous=lambda old_tag: previous_release_admission(extension, repo, old_tag))
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,

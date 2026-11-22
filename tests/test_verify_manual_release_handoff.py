@@ -37,7 +37,7 @@ class ManualCatalogHandoff(unittest.TestCase):
         steps = (
             "Run fail-closed offline verifier tests",
             "Independently verify immutable manual signed Release",
-            "Validate verified proposed Catalog record and immutable public sources",
+            "Validate proposed Catalog and Landscape locally",
             "Report no-App GitHub-only protected PR handoff",
             "Store proposed verified Catalog record (not a PR)",
         )
@@ -48,8 +48,8 @@ class ManualCatalogHandoff(unittest.TestCase):
         self.assertIn("--release-tag \"$RELEASE_TAG\"", WORKFLOW)
         self.assertIn('--record-output "extensions/$EXTENSION.json"', WORKFLOW)
         self.assertIn("python scripts/validate_landscape.py", WORKFLOW)
-        self.assertIn("python scripts/validate_catalog.py --verify-remote", WORKFLOW)
-        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", WORKFLOW)
+        self.assertIn("python scripts/validate_catalog.py\n", WORKFLOW)
+        self.assertNotIn("--verify-remote", WORKFLOW)
         self.assertIn("name: verified-manual-release-record", WORKFLOW)
         self.assertIn("if-no-files-found: error", WORKFLOW)
         self.assertIn("native protected Catalog PR CI at the exact head", WORKFLOW)
@@ -60,8 +60,8 @@ class ManualCatalogHandoff(unittest.TestCase):
             "not an existing publicly published stable Release",
             "formal Promotion did not finish successfully",
             'verified = gh(',
-            '"attestation", "verify", str(zip_path)',
-            "verify_payload(folder, release, manifest, contract",
+            '"attestation", "verify", str(package.zip_path)',
+            "folder, release, manifest, contract, source_commit, active,",
             "deny_catalog_rollback(original, release)",
             "recordChanged",
         ):

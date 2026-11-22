@@ -47,6 +47,21 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
         self.spdx.write_text(json.dumps(self.document), encoding="utf-8")
         self.digest = verifier.digest(self.zip)
 
+    def package_info(self):
+        with ZipFile(self.zip) as archive:
+            return verifier.read_package_info(archive)
+
+    def verify(self, *, repo=None, source_commit=None):
+        spdx_sha = verifier.digest(self.spdx)
+        asset = {"name": self.spdx.name, "state": "uploaded", "digest": "sha256:" + spdx_sha}
+        spdx, _ = verifier.read_verified_report(
+            self.spdx, {self.spdx.name: asset}, {self.spdx.name: spdx_sha},
+            object_pairs_hook=verifier.unique_json_keys)
+        package = verifier.DownloadedPackage(
+            self.zip, self.digest, self.package_info(), self.spdx, spdx_sha, spdx)
+        return verifier.verify_release_attestations(
+            package, repo=repo or self.repo, source_commit=source_commit or self.commit)
+
     def attested(self, predicate, *, signed_spdx=None, zip_name=None, zip_sha=None):
         return [{
             "verificationResult": {
@@ -96,9 +111,7 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
                 self.prepare(extension, signer=sha)
                 with patch.object(verifier, "gh",
                                   side_effect=self.signed_output) as gh:
-                    result = verifier.verify_release_attestations(
-                        self.zip, self.spdx, repo=self.repo,
-                        source_commit=self.commit)
+                    result = self.verify()
                 self.assertEqual(result, sha)
                 self.assertEqual(gh.call_count, 2)
                 self.assertEqual(
@@ -111,18 +124,14 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
         with patch.object(verifier, "gh",
                           side_effect=self.signed_output) as gh:
             self.assertEqual(
-                verifier.verify_release_attestations(
-                    self.zip, self.spdx, repo=self.repo,
-                    source_commit=self.commit), "c" * 40)
+                self.verify(), "c" * 40)
             self.assertEqual(gh.call_count, 2)
         for extension in verifier.FIRST_RELEASE_SOURCES:
             with self.subTest(extension=extension):
                 self.prepare(extension, signer="c" * 40)
                 with patch.object(verifier, "gh") as gh:
                     with self.assertRaises(verifier.Denied):
-                        verifier.verify_release_attestations(
-                            self.zip, self.spdx, repo=self.repo,
-                            source_commit=self.commit)
+                        self.verify()
                     gh.assert_not_called()
 
     def test_signed_spdx_must_equal_public_file_even_if_all_hashes_match(self):
@@ -178,22 +187,19 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
             with self.subTest(repo=repo, sha=sha):
                 with patch.object(verifier, "gh") as gh:
                     with self.assertRaises(verifier.Denied):
-                        verifier.verify_release_attestations(
-                            self.zip, self.spdx, repo=repo, source_commit=sha)
+                        self.verify(repo=repo, source_commit=sha)
                     gh.assert_not_called()
         self.spdx.write_text(
             '{"spdxVersion":"SPDX-2.3","spdxVersion":"SPDX-2.3"}')
         with patch.object(verifier, "gh") as gh:
             with self.assertRaises(verifier.Denied):
-                verifier.verify_release_attestations(
-                    self.zip, self.spdx, repo=self.repo,
-                    source_commit=self.commit)
+                self.verify()
             gh.assert_not_called()
 
     def test_cross_major_wrong_signer_metadata_rejected(self):
         self.prepare("orafce", signer="b" * 40)
         self.assertEqual(
-            verifier.signer_sha_from_package(self.zip, self.repo), "b" * 40)
+            verifier.signer_sha_from_package(self.package_info(), self.repo), "b" * 40)
         for changed in (
             {"repository": "attacker/build", "commit": "b" * 40,
              "workflow": ".github/workflows/build-extension-attested.yml"},
@@ -207,7 +213,7 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
                     archive.writestr("PACKAGE-INFO.json", json.dumps({
                         "schemaVersion": 1, "buildInfrastructure": changed}))
                 with self.assertRaises(verifier.Denied):
-                    verifier.signer_sha_from_package(self.zip, self.repo)
+                    verifier.signer_sha_from_package(self.package_info(), self.repo)
 
     def test_mutation_during_attestation_denied(self):
         def mutate(*args):
@@ -217,16 +223,12 @@ class SignedReleaseEvidenceParity(unittest.TestCase):
             return self.signed_output(*args)
         with patch.object(verifier, "gh", side_effect=mutate):
             with self.assertRaises(verifier.Denied):
-                verifier.verify_release_attestations(
-                    self.zip, self.spdx, repo=self.repo,
-                    source_commit=self.commit)
+                self.verify()
 
     def test_gh_error_and_zero_mock_trust_never_authorize_release(self):
         with patch.object(verifier, "gh", side_effect=verifier.Denied("403")):
             with self.assertRaises(verifier.Denied):
-                verifier.verify_release_attestations(
-                    self.zip, self.spdx, repo=self.repo,
-                    source_commit=self.commit)
+                self.verify()
 
     def test_one_uniform_verifier_in_actual_catalog_ingestion(self):
         source = (Path(__file__).resolve().parents[1] /

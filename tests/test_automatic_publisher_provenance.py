@@ -254,12 +254,12 @@ class PublicAutoOrigin(unittest.TestCase):
             (folder/"SHA256SUMS.txt").write_text(
                 "".join(f"{sha}  {name}\n" for name,sha in sorted(sums.items())))
             signed["assets"]=[
-                {"name":file.name,"state":"uploaded",
+                {"name":file.name,"state":"uploaded","size":file.stat().st_size,
                  "digest":"sha256:"+release.digest(file)}
                 for file in folder.iterdir()]
             with self.assertRaises(release.Denied):
                 release.verify_payload(folder,signed,manifest,contract,commit,[14,15])
-            got,_,run=release.verify_payload(
+            got,_,run,_=release.verify_payload(
                 folder,signed,manifest,contract,commit,[14,15],
                 expected_event="push")
             self.assertEqual(run,SRC_RUN)
