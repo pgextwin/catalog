@@ -72,6 +72,24 @@ class CatalogChatRequestTests(unittest.TestCase):
         self.assertIsNone(m.resolve(api,env,event))
         self.assertFalse(any("releases" in path for repo,path in api.calls))
 
+    def test_signed_merge_commit_without_request_is_noop(self):
+        env, event, data = fixture(False)
+        event["commits"].insert(0, {"id": HEAD})
+        data[(m.REPO, "commits/" + SHA)]["parents"].append({"sha": HEAD})
+        api = Fake(data)
+        self.assertIsNone(m.resolve(api, env, event))
+        self.assertFalse(any("releases" in path for _, path in api.calls))
+
+    def test_signed_request_merge_must_contain_the_validated_pr_head(self):
+        env, event, data = fixture()
+        event["commits"].insert(0, {"id": HEAD})
+        parents = data[(m.REPO, "commits/" + SHA)]["parents"]
+        parents.append({"sha": HEAD})
+        self.assertEqual(m.resolve(Fake(data), env, event), request())
+        parents[1]["sha"] = "d" * 40
+        with self.assertRaisesRegex(m.Denied, "exact validated PR head"):
+            m.resolve(Fake(data), env, event)
+
     def test_closed_schema_rejects_unknown_duplicate_missing_bot_and_publish(self):
         for field,value in (("extra",1),("confirmCatalog","PUBLISH"),("extension","evil"),
                             ("releaseId",True),("releaseId",0),("catalogBaseSha","old"),

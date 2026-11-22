@@ -14,9 +14,9 @@ Release ID), `catalogBaseSha` (fresh full main SHA), `operatorLogin`
 (`ShutenOishi`) and `confirmCatalog` (`VERIFY_PUBLIC_RELEASE`). Do not create a
 placeholder or a request for a candidate ZIP.
 
-Run the existing required `validate` at the exact PR head, then safely squash
-merge. The main-push workflow independently verifies actual human identities,
-signature/single-parent merge, exact PR/blob and App15368 head CI, current main
+Run the existing required `validate` at the exact PR head, then use a merge
+commit. The main-push workflow independently verifies the human identities,
+signed merge and PR head, exact PR/blob and App15368 head CI, current main
 and public Release ID. It delegates every ZIP/SHA256/SPDX/Grype/SLSA/SPDX/source/
 PG check to the existing genuine public signed-Release verifier, and rechecks
 the stable Release/asset identity snapshot before exposing a record artifact. Invalid, missing,
