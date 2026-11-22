@@ -58,6 +58,7 @@ OWNER_SIGNING_ISSUES={
     "pgextwin/pg_bigm":73,
     "pgextwin/pg_stat_monitor":47,
     "pgextwin/pgaudit":60,
+    "pgextwin/pg_partman": 54,
 }
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),
