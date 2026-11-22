@@ -129,7 +129,7 @@ static async Task<int> RunAsync(string[] args)
         if (command == "verify-external-all")
         {
             if (reviewLedger is null || inputDir is null || pg is null ||
-                sourceGroup is not null)
+                sourceGroup is not null || format is not null)
                 throw new ArgumentException("verify external requires --ledger, --input-dir and --pg");
             // Local-only ZIP integrity verification. No network or source admission.
             var verified = ExternalOriginalZipBatch.VerifyLocal(reviewLedger, inputDir, pg);
