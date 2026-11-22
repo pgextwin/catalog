@@ -42,9 +42,10 @@ The existing live P1 read-only audit continues its own live-reader tests.
 ## Checkout-depth decision
 
 The CLI now obtains pgextwin builds through the signed feed. The fixed
-bootstrap and its Git-object test have been removed, so normal Validate
-and the .NET OSGeo job use the default shallow checkout. The history and
-signed-feed publishing workflows still use full history for their own
+bootstrap and its Git-object test have been removed, so the .NET OSGeo
+job uses the default shallow checkout. Validate still fetches full history
+for Python's offline inventory and ledger admission tests. The history and
+signed-feed publishing workflows also use full history for their own
 Git-object and admission checks.
 
 ### R04 findings before the CLI migration
