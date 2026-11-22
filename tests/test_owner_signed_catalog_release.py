@@ -16,7 +16,7 @@ REQUEST=6590781546
 TAG="v2.10.16-windows.1"
 OWNER={"login":"ShutenOishi","id":27071164,"type":"User"}
 
-def fixture():
+def fixture(admission_job=p.OWNER_ADMIT_JOB):
     owner={"login":"ShutenOishi","id":27071164,"type":"User"}
     marker={"schemaVersion":1,"authorizationMode":"owner-signed-main-issue-comment",
             "repository":REPO,"releaseTag":TAG,"packagingCommit":SHA,
@@ -50,7 +50,7 @@ def fixture():
     publishing=comment(REQUEST,f"/pgextwin publish-owner-source {REPO} {SRC}",
                        "pgextwin/build",311,"2026-11-02T17:55:00Z")
     jobs={"total_count":2,"jobs":[
-        {"id":1,"name":p.OWNER_ADMIT_JOB,"run_id":PUB,
+        {"id":1,"name":admission_job,"run_id":PUB,
          "run_attempt":1,"head_sha":PUBSHA,
          "status":"completed","conclusion":"success"},
         {"id":2,"name":p.OWNER_PUBLISH_JOB,"run_id":PUB,
@@ -79,10 +79,12 @@ def verify_case(x, repository=REPO):
 
 class OwnerSignedCatalogTests(TestCase):
     def test_authentic_source_and_distinct_publisher_is_only_locator(self):
-        result=verify_case(fixture())
-        self.assertEqual(result["status"],
-                         "INDEPENDENT_OWNER_MAIN_SIGNING_PUBLISHER_LIVE_MATCH")
-        self.assertTrue(result["sigstoreReleaseBytesMustBeVerifiedSeparately"])
+        for admission_job in (p.OWNER_ADMIT_JOB, p.OWNER_SELECT_JOB):
+            with self.subTest(admission_job=admission_job):
+                result=verify_case(fixture(admission_job))
+                self.assertEqual(result["status"],
+                                 "INDEPENDENT_OWNER_MAIN_SIGNING_PUBLISHER_LIVE_MATCH")
+                self.assertTrue(result["sigstoreReleaseBytesMustBeVerifiedSeparately"])
 
     def test_original_signer_publisher_spoof_or_replay_denied(self):
         mutations=[
@@ -105,11 +107,12 @@ class OwnerSignedCatalogTests(TestCase):
             lambda x:x["jobs"]["jobs"][1].update(name=p.PUBLISH_JOB+" (plpgsql_check)"),
             lambda x:x["release"].update(draft=True),
         ]
-        for i,mutate in enumerate(mutations):
-            x=fixture()
-            mutate(x)
-            with self.subTest(i=i),self.assertRaises(p.Denied):
-                verify_case(x)
+        for admission_job in (p.OWNER_ADMIT_JOB, p.OWNER_SELECT_JOB):
+            for i,mutate in enumerate(mutations):
+                x=fixture(admission_job)
+                mutate(x)
+                with self.subTest(admission_job=admission_job, i=i),self.assertRaises(p.Denied):
+                    verify_case(x)
 
     def test_set_user_owner_signer_bound_to_exact_issue_60_and_immutable_original(self):
         repo="pgextwin/set_user"

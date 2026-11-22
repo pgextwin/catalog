@@ -32,6 +32,7 @@ PUBLISHER=".github/workflows/publisher-candidate-intake.yml"
 PUBLISH_JOB="Isolated Publisher App signed formal Release (create only)"
 OWNER_PUBLISH_JOB="Isolated original owner signed-main formal Publisher (create only)"
 OWNER_ADMIT_JOB="Authenticate owner formal-source request and reverify original (DENY)"
+OWNER_SELECT_JOB="Select protected owner formal-source request (DENY)"
 OWNER_LOGIN="ShutenOishi"
 OWNER_ID=27071164
 # Protected, source-specific sign-main issue binding. No generic owner-comments.
@@ -239,8 +240,12 @@ def verify(*,release,repository,tag,sha,source_run_id,marker,api):
     matching=[job for job in jobs["jobs"]
               if type(job) is dict and job.get("name")==exact_job]
     if owner_signed:
+        # After build #642, the selector authenticates the protected request.
+        # The required successful isolated Publisher below depends on that
+        # selection and independently reverifies the original bytes before create.
         admissions=[job for job in jobs["jobs"]
-                    if type(job) is dict and job.get("name")==OWNER_ADMIT_JOB]
+                    if type(job) is dict and
+                    job.get("name") in (OWNER_ADMIT_JOB, OWNER_SELECT_JOB)]
         require(len(admissions)==1
                 and admissions[0].get("run_id")==pub_id
                 and type(admissions[0].get("run_attempt")) is int
