@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Issue #75: strict shared signed Catalog auto-merge negative tests (offline)."""
 import base64
+from contextlib import chdir
 import copy
 import importlib.util
 import json
@@ -21,6 +22,7 @@ TAG = "v2.10.15-windows.2"
 SHA = "a" * 40
 NAME = "plpgsql_check"
 BRANCH = "auto-catalog/" + NAME + "-" + TAG
+WINDOWS_SMOKE = "Independent Windows CLI runtime and hash verification"
 
 
 def local():
@@ -81,11 +83,11 @@ def run_fixture():
     }
 
 
-def checks():
-    return {"total_count": 2, "check_runs": [
+def checks(*names):
+    return {"total_count": len(names), "check_runs": [
         {"name": name, "head_sha": SHA, "status": "completed",
          "conclusion": "success", "app": {"id": 15368}}
-        for name in sorted(mod.REQUIRED_CHECKS)
+        for name in names
     ]}
 
 
@@ -423,7 +425,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             finally:
                 os.chdir(previous)
 
-    def test_exact_native_ci_latest_attempt_and_app(self):
+    def test_exact_native_ci_latest_attempt(self):
         mod.validate_run([run_fixture()], SHA, BRANCH)
         original = run_fixture()
         tests = [
@@ -439,19 +441,92 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                 "conclusion": "failure"}
         with self.assertRaises(mod.AutoMergeDenied):
             mod.validate_run([original, fail], SHA, BRANCH)
-        mod.validate_checks(checks(), SHA)
+
+    def test_exact_head_validate_requires_success_from_actions_app(self):
+        mod.validate_checks(checks("validate"), SHA)
         for mutate in (
             lambda c: c["check_runs"][0]["app"].update(id=11),
             lambda c: c["check_runs"][0].update(status="in_progress", conclusion=None),
-            lambda c: c["check_runs"].pop(),
+            lambda c: c["check_runs"][0].update(conclusion="skipped"),
             lambda c: c["check_runs"][0].update(head_sha="b"*40),
-            lambda c: c["check_runs"][0].update(name="validate"),
             lambda c: c.update(total_count=101),
         ):
-            obj = checks()
+            obj = checks("validate")
             mutate(obj)
             with self.subTest(mutate=mutate), self.assertRaises(mod.AutoMergeDenied):
                 mod.validate_checks(obj, SHA)
+
+    def test_missing_or_duplicate_validate_is_denied(self):
+        for names in ((), ("pr-readonly-dryrun",), (WINDOWS_SMOKE,)):
+            with self.subTest(names=names), self.assertRaisesRegex(
+                    mod.AutoMergeDenied, "required native Catalog checks missing"):
+                mod.validate_checks(checks(*names), SHA)
+        with self.assertRaisesRegex(mod.AutoMergeDenied, "duplicate required status check name"):
+            mod.validate_checks(checks("validate", "validate"), SHA)
+
+    def test_merge_controller_requires_record_scope_and_validate(self):
+        pr, files, commits = pr_fixture()
+        main_sha = "b" * 40
+        pr.update(base={"ref": "main", "sha": main_sha}, mergeable=True, mergeable_state="clean")
+        repo = "repos/pgextwin/catalog"
+        pull = f"{repo}/pulls/{pr['number']}"
+        file_path = f"{pull}/files?per_page=100"
+        check_path = f"{repo}/commits/{SHA}/check-runs?per_page=100"
+        responses = {
+            "repos/pgextwin/build/contents/metadata/manual-release-downstream.json?ref=main": {
+                "encoding": "base64", "content": base64.b64encode(json.dumps(central()).encode()).decode(),
+            },
+            f"{repo}/branches/main": {"name": "main", "protected": True, "commit": {"sha": main_sha}},
+            f"{repo}/pulls?state=open&base=main&per_page=100": [pr],
+            pull: pr,
+            f"{pull}/commits?per_page=100": commits,
+            f"{repo}/actions/workflows/validate.yml/runs?per_page=100&branch={BRANCH}": {
+                "workflow_runs": [run_fixture()],
+            },
+        }
+        env = {
+            "GITHUB_REPOSITORY": mod.REPO, "GITHUB_REF": "refs/heads/main",
+            "GITHUB_EVENT_NAME": "workflow_run", "GITHUB_SHA": main_sha,
+            "GH_TOKEN": "write-credential", "GH_READ_TOKEN": "read-credential",
+            "PGEXTWIN_CATALOG_AUTOMERGE_ENABLED": "true",
+        }
+        scope_error = "not ledger/view only"
+        cli = {"filename": "dotnet/src/PgExtWin.Cli/Program.cs", "status": "modified"}
+        ledger_code = {"filename": "scripts/package_ledger.py", "status": "modified"}
+        workflow = {"filename": ".github/workflows/cli-candidate.yml", "status": "modified"}
+        cases = (
+            (files, ("validate",), None),
+            ([files[1]], ("validate",), None),
+            (files, ("pr-readonly-dryrun",), "required native Catalog checks missing"),
+            (files + [cli], ("validate",), scope_error),
+            (files + [cli], ("validate", WINDOWS_SMOKE), scope_error),
+            (files + [ledger_code], ("validate",), scope_error),
+            (files + [workflow], ("validate",), scope_error),
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            config = Path(temp) / "config.json"
+            config.write_text(json.dumps(local()))
+            with chdir(ROOT), patch.dict(os.environ, env), patch.object(mod, "check_app_scope"):
+                for changed, names, error in cases:
+                    with self.subTest(files=changed, checks=names), \
+                         patch.object(mod, "api", side_effect=responses.__getitem__) as api, \
+                         patch.object(mod, "verify_record") as verify, \
+                         patch.object(mod, "gh", return_value='{"merged": true}') as gh:
+                        responses[file_path] = changed
+                        responses[check_path] = checks(*names)
+                        if error is None:
+                            mod.perform(config)
+                            verify.assert_called_once_with(
+                                NAME, TAG, SHA, read_token=env["GH_READ_TOKEN"], files=changed)
+                            gh.assert_called_once_with("api", "-X", "PUT", f"{pull}/merge",
+                                                       "-f", f"sha={SHA}", "-f", "merge_method=merge")
+                        else:
+                            with self.assertRaisesRegex(mod.AutoMergeDenied, error):
+                                mod.perform(config)
+                            verify.assert_not_called()
+                            gh.assert_not_called()
+                        self.assertEqual(check_path in [call.args[0] for call in api.call_args_list],
+                                         error != scope_error)
 
     def test_signed_verifier_called_with_only_unprivileged_read_token(self):
         record_path = ROOT / "extensions" / (NAME + ".json")
