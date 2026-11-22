@@ -31,7 +31,7 @@ internal static class PinnedBrowserDownloadTests
         Directory.CreateDirectory(root);
         try
         {
-            async Task<(bool rejected, string directory)> TryDownload(
+            async Task TryDownload(
                 string label, Scenario scenario, ReleasePins usePin)
             {
                 var folder = Path.Combine(root, "case-" + Guid.NewGuid().ToString("N"));
@@ -47,7 +47,7 @@ internal static class PinnedBrowserDownloadTests
                           receipt.ReleaseId == 100002 && receipt.AssetId == 100003 &&
                           receipt.VerificationLevel == "INTEGRITY_ONLY" &&
                           File.ReadAllBytes(receipt.FilePath).SequenceEqual(bytes),
-                          "Pinned public browser transport returns original ZIP bytes only");
+                          label + " returns original ZIP bytes only");
                 }
                 catch (Exception e) when (e is InvalidDataException or IOException
                     or HttpRequestException or OperationCanceledException) { rejected = true; }
@@ -58,26 +58,28 @@ internal static class PinnedBrowserDownloadTests
                 if (scenario is Scenario.TransientGateway or Scenario.PersistentGateway or
                     Scenario.ApiRecover or Scenario.ApiJson or Scenario.ApiEvilRedirect)
                     check(fake.AssetRequests == 3,
-                          "Browser CDN transient GET remains bounded to three attempts");
+                          label + " bounds browser CDN transient GET to three attempts");
                 if (scenario is Scenario.PersistentGateway or Scenario.ApiRecover or
                     Scenario.ApiJson or Scenario.ApiEvilRedirect)
-                    check(fake.ApiRequests == 1, "Only one pinned native API asset-ID GET");
+                    check(fake.ApiRequests == 1, label + " performs only one pinned native API asset-ID GET");
                 if (scenario is Scenario.Deny or Scenario.TransientGateway)
-                    check(fake.ApiRequests == 0, "No fallback on 403 or recovered transient");
+                    check(fake.ApiRequests == 0, label + " does not fall back to the API");
                 if (scenario == Scenario.Deny)
                     check(fake.AssetRequests == 1, "HTTP 403 is never retried");
-                return (rejected, folder);
             }
             await TryDownload("Github browser 302 to approved CDN", Scenario.Success, pin);
             await TryDownload("Changed final original ZIP SHA256", Scenario.Corrupt, pin);
             await TryDownload("Hostile external CDN redirect", Scenario.EvilRedirect, pin);
             await TryDownload("Metadata JSON not accepted as binary ZIP", Scenario.JsonBody, pin);
             await TryDownload("Binary HTTP 403 fails closed", Scenario.Deny, pin);
-            await TryDownload("Two transient HTTP 504 replies recover on same verified URL", Scenario.TransientGateway, pin);
-            await TryDownload("Three persistent HTTP 504 replies fail closed", Scenario.PersistentGateway, pin);
-            await TryDownload("Verified native API asset-ID fallback obtains exact original ZIP", Scenario.ApiRecover, pin);
-            await TryDownload("API metadata JSON cannot masquerade as ZIP", Scenario.ApiJson, pin);
-            await TryDownload("API fallback never follows an untrusted redirect", Scenario.ApiEvilRedirect, pin);
+            // Each retry case owns its handler and output folder. Overlap the
+            // retry delays while testing the real downloader's retry behavior.
+            await Task.WhenAll(
+                TryDownload("Two transient HTTP 504 replies recover on same verified URL", Scenario.TransientGateway, pin),
+                TryDownload("Three persistent HTTP 504 replies fail closed", Scenario.PersistentGateway, pin),
+                TryDownload("Verified native API asset-ID fallback obtains exact original ZIP", Scenario.ApiRecover, pin),
+                TryDownload("API metadata JSON cannot masquerade as ZIP", Scenario.ApiJson, pin),
+                TryDownload("API fallback never follows an untrusted redirect", Scenario.ApiEvilRedirect, pin));
             await TryDownload("HTTP 302 redirect loop fails closed", Scenario.Loop, pin);
             var pin19Name = "pg_cron-v1-pg19-windows-x64.zip";
             var pin19 = new ReleasePins("pg_cron", "19", "v1-windows.1", pin19Name,

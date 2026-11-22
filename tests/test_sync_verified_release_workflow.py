@@ -7,7 +7,9 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+from contextlib import chdir
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,11 +20,15 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
     def test_verified_first_records_update_both_indexes_and_landscape(self):
         workflow=WORKFLOW.read_text(encoding="utf-8")
         step=workflow.split("name: Update index only after complete signed",1)[1].split("      - name:",1)[0]
-        code=textwrap.dedent(step.split("          python - <<'PY'\n",1)[1].rsplit("          PY",1)[0])
-        # Inline workflow code executes from the Catalog checkout in Actions;
-        # the isolated fixture uses a temporary working directory instead.
-        test_env={**os.environ,
-                  "PYTHONPATH":str(ROOT)+os.pathsep+os.environ.get("PYTHONPATH","")}
+        code = textwrap.dedent(step.split("          python - <<'PY'\n", 1)[1].rsplit("          PY", 1)[0])
+        update_indexes = compile(code, "sync-verified-release.yml: update indexes", "exec")
+
+        def run_update(root, name):
+            # Each run gets the workflow's working directory and extension input.
+            with chdir(root), patch.dict(os.environ, EXTENSION=name), \
+                    patch.object(sys, "path", [str(ROOT), *sys.path]):
+                exec(update_indexes, {"__name__": "__main__"})
+
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
             (root/"extensions").mkdir()
@@ -39,15 +45,13 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                 before=(root/"index.json").read_bytes()
                 wrong=dict(record,name="other")
                 (root/"extensions"/(name+".json")).write_text(json.dumps(wrong))
-                rejected=subprocess.run([sys.executable,"-c",code],cwd=root,
-                    env={**test_env,"EXTENSION":name},capture_output=True,text=True)
-                self.assertNotEqual(rejected.returncode,0)
+                with self.assertRaises(SystemExit) as rejected:
+                    run_update(root, name)
+                self.assertNotIn(rejected.exception.code, (None, 0))
                 self.assertEqual((root/"index.json").read_bytes(),before)
                 self.assertFalse((root/"landscape/extensions"/(name+".json")).exists())
                 (root/"extensions"/(name+".json")).write_text(json.dumps(record))
-                done=subprocess.run([sys.executable,"-c",code],cwd=root,
-                    env={**test_env,"EXTENSION":name},capture_output=True,text=True)
-                self.assertEqual(done.returncode,0,done.stderr)
+                run_update(root, name)
                 landscape=json.loads((root/"landscape/extensions"/(name+".json")).read_text())
                 self.assertEqual(landscape["status"],"implemented")
                 self.assertEqual(landscape["pgextwinCatalogName"],name)
@@ -55,9 +59,9 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                 self.assertEqual(json.loads((root/"index.json").read_text())["extensions"],
                                  json.loads((root/"landscape/index.json").read_text())["extensions"])
             before=(root/"index.json").read_bytes()
-            missing=subprocess.run([sys.executable,"-c",code],cwd=root,
-                env={**test_env,"EXTENSION":"unregistered"},capture_output=True,text=True)
-            self.assertNotEqual(missing.returncode,0)
+            with self.assertRaises(SystemExit) as rejected:
+                run_update(root, "unregistered")
+            self.assertNotIn(rejected.exception.code, (None, 0))
             self.assertEqual((root/"index.json").read_bytes(),before)
 
     def test_schema_dependency_precedes_real_record_validation_without_duplicate_ci(self):
