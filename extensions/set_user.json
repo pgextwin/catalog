@@ -189,43 +189,5 @@
     "repository": "pgextwin/set_user",
     "path": "config/test-contract.json",
     "commit": "8c1197f75640b3c0b7e2f18b4901a2e4038665c3"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v4.3.0-windows.2",
-      "licensesByMajor": {
-        "15": {
-          "name": "PostgreSQL License",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
-          ]
-        },
-        "16": {
-          "name": "PostgreSQL License",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
-          ]
-        },
-        "17": {
-          "name": "PostgreSQL License",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
-          ]
-        },
-        "18": {
-          "name": "PostgreSQL License",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
-          ]
-        },
-        "19": {
-          "name": "PostgreSQL License",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }

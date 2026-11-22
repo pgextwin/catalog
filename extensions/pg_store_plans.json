@@ -186,43 +186,5 @@
     "repository": "pgextwin/pg_store_plans",
     "path": "config/test-contract.json",
     "commit": "15efd2cbcc4fcf52b7961d181c5f1bc1f468d4b0"
-  },
-  "releaseInventory": {
-    "current": {
-      "releaseTag": "v1.10-windows.1",
-      "licensesByMajor": {
-        "14": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_store_plans/blob/15efd2cbcc4fcf52b7961d181c5f1bc1f468d4b0/LICENSE"
-          ]
-        },
-        "15": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_store_plans/blob/15efd2cbcc4fcf52b7961d181c5f1bc1f468d4b0/LICENSE"
-          ]
-        },
-        "16": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_store_plans/blob/15efd2cbcc4fcf52b7961d181c5f1bc1f468d4b0/LICENSE"
-          ]
-        },
-        "17": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_store_plans/blob/15efd2cbcc4fcf52b7961d181c5f1bc1f468d4b0/LICENSE"
-          ]
-        },
-        "18": {
-          "name": "BSD-3-Clause",
-          "evidenceUrls": [
-            "https://github.com/pgextwin/pg_store_plans/blob/15efd2cbcc4fcf52b7961d181c5f1bc1f468d4b0/LICENSE"
-          ]
-        }
-      }
-    },
-    "history": []
   }
 }

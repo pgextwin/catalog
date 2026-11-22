@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "name": "set_user",
+  "displayName": "set_user",
+  "description": "Controlled PostgreSQL user switching with auditing and privilege-management safeguards.",
+  "repository": "pgextwin/set_user",
+  "license": "PostgreSQL License",
+  "architecture": "x64",
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "set_user"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "shared",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "role-transition-and-reset",
+        "description": "Transitions current_user to a target role, resets to the original superuser, and verifies both state changes and server-log transition entries.",
+        "evidence": [
+          "sql-result",
+          "server-log"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/set_user",
+    "path": "config/test-contract.json",
+    "commit": "8c1197f75640b3c0b7e2f18b4901a2e4038665c3"
+  },
+  "upstream": {
+    "repository": "pgaudit/set_user"
+  },
+  "repositoryId": 1406487415,
+  "latestReleaseId": 452556053,
+  "unavailableMajors": [
+    "14"
+  ],
+  "releases": [
+    {
+      "releaseTag": "v4.3.0-windows.2",
+      "releaseId": 452556053,
+      "publishedAt": "2026-11-20T10:32:20Z",
+      "checksumsAsset": "SHA256SUMS.txt",
+      "packages": [
+        {
+          "pgMajor": "15",
+          "version": "4.3.0",
+          "asset": "set_user-REL4_3_0-pg15-windows-x64.zip",
+          "assetId": 771407778,
+          "sha256": "2b419139c425e69b3b0ee49529242ade8692f6a849a361edc83f5ef76c1f73ee",
+          "license": {
+            "name": "PostgreSQL License",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg15-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg15-windows-x64.spdx.json",
+              "sha256": "c0df59df10959cbfcbe122198380f5a5ecb142972cf8551d7e92091122a4c5fc"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg15-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "870c37976547c36878b3091048aa62c0d4aa59614aed258fea7aec570bb74cae"
+            }
+          }
+        },
+        {
+          "pgMajor": "16",
+          "version": "4.3.0",
+          "asset": "set_user-REL4_3_0-pg16-windows-x64.zip",
+          "assetId": 771407809,
+          "sha256": "e7b3f4c059738b583226d795682dbca44be578779ea332b8024a46619ec92b3f",
+          "license": {
+            "name": "PostgreSQL License",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg16-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg16-windows-x64.spdx.json",
+              "sha256": "2beb57ba4c02ab10e9d723bc6511773484a0d9095dcbdcc521095ee1963942b9"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg16-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "9b8e6b0b1661f4baceb7f20ad27345f37c65ff8504d85efc3282a3283c654a1e"
+            }
+          }
+        },
+        {
+          "pgMajor": "17",
+          "version": "4.3.0",
+          "asset": "set_user-REL4_3_0-pg17-windows-x64.zip",
+          "assetId": 771407823,
+          "sha256": "cf661f5974d55ca9d437e78502a50f2c695b5a4829dde7bf7169c04c6bb73ff8",
+          "license": {
+            "name": "PostgreSQL License",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg17-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg17-windows-x64.spdx.json",
+              "sha256": "34e584232f806d446008d30d30de491959eef83e3553622df334729403bfda75"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg17-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "ebc1491d3e25f207f0f458212946819c80399dcf2e3a79062cadda68a0390117"
+            }
+          }
+        },
+        {
+          "pgMajor": "18",
+          "version": "4.3.0",
+          "asset": "set_user-REL4_3_0-pg18-windows-x64.zip",
+          "assetId": 771407842,
+          "sha256": "abfea787efd6a273dfa20e24aa5669c005ee129e873cf66ec5ef378b17ce5504",
+          "license": {
+            "name": "PostgreSQL License",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg18-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg18-windows-x64.spdx.json",
+              "sha256": "9499188e0e627b59d801f4c3bfca43b504b4ed2317714f26bdee3a25767e9799"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg18-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "28feea97efb1ac35fd87f5e83a2bc00071bf010f78459e5e6160ebdc7670f822"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "4.3.0",
+          "asset": "set_user-REL4_3_0-pg19-windows-x64.zip",
+          "assetId": 771407864,
+          "sha256": "4b31f8a7a44648652164964220c62210cdff60aab12ed35a4e5f7ee4e54c9b17",
+          "license": {
+            "name": "PostgreSQL License",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/set_user/blob/8c1197f75640b3c0b7e2f18b4901a2e4038665c3/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg19-windows-x64.spdx.json",
+              "sha256": "6b53a6775463976b49d6b6ef4bc86700ee115e078b98574383c3fce8e43ee199"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "set_user-REL4_3_0-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/set_user/releases/download/v4.3.0-windows.2/set_user-REL4_3_0-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "2d7747302a39e1eb07150ce2467c822bbff74cf4c3dc3ea11bb273c09436f1ce"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

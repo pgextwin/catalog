@@ -24,9 +24,10 @@ unpublished, unsigned, changed-ID, duplicate or stale evidence denies. A setup
 push without a request returns `NO_CATALOG_REQUEST` and verifies no Release.
 
 Only after the real run succeeds may normal Chat retrieve
-`verified-catalog-chat-request`, inspect the generated record against latest
-main and create the normal single-extension Catalog record PR (and initial
-index addition only where permitted). Require native CI and independently
+`verified-catalog-chat-request`, inspect `packages/<extension>.json` and the
+generated `extensions/<extension>.json` against current main, and create the
+single-extension Catalog PR with the initial indexes if applicable. Require
+native CI, merge the Catalog record PR with a merge commit, and independently
 verify the existing Website JA/EN public audit after merge. The existing
 catalog-only proposer App may still be used through its separately configured
 route; this path needs no App, key or write token. No automatic merge, Release

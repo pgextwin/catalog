@@ -15,6 +15,7 @@ import re
 from catalog_drift_live_readonly import GitHubReadOnly, blob_sha, unique_json_pairs
 from verified_release_record import INTAKE_ALLOWED, Denied, require
 from verify_signed_fleet_release import generate
+from package_ledger import DIRECTORY, json_bytes, website_record
 
 REPO = "pgextwin/catalog"
 PREFIX = ".github/catalog-release-requests/"
@@ -173,7 +174,11 @@ def main():
             mapped, audit = verify(api,request)
             output = Path(os.environ["RUNNER_TEMP"])/"verified-catalog-chat-request"
             output.mkdir(exist_ok=False)
-            (output/(request["extension"]+".json")).write_text(json.dumps(mapped,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
+            filename = request["extension"] + ".json"
+            (output / DIRECTORY).mkdir()
+            (output / "extensions").mkdir()
+            (output / DIRECTORY / filename).write_bytes(json_bytes(mapped))
+            (output / "extensions" / filename).write_bytes(json_bytes(website_record(mapped)))
             out.update(status="VERIFIED_PUBLIC_RELEASE_RECORD_ONLY",extension=request["extension"],
                        releaseId=request["releaseId"],releaseTag=request["releaseTag"],audit=audit)
             (output/"audit.json").write_text(json.dumps(out,indent=2)+"\n",encoding="utf-8")

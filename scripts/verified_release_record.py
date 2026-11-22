@@ -13,8 +13,10 @@ from pathlib import Path
 import re
 
 if __package__:
+    from . import package_ledger
     from .release_inventory import license_for, license_pins, match_zip, release_assets, version_for
 else:
+    import package_ledger
     from release_inventory import license_for, license_pins, match_zip, release_assets, version_for
 
 
@@ -192,13 +194,8 @@ def evidence_paths(pins):
     return Counter((repo.lower(), path) for repo, _, path in set(pins))
 
 
-def map_inventory(existing, repo, tag, source_commit, versions, licenses_by_major, load_previous):
-    inventory = existing.get("releaseInventory", {})
-    current = inventory.get("current", {})
-    old_tag = existing.get("latest", {}).get("releaseTag")
-    require(not current or current["releaseTag"] == old_tag,
-            "current license evidence belongs to a different Release")
-    previous_licenses = current.get("licensesByMajor", {})
+def verify_license_rollover(repo, tag, old_tag, source_commit, previous_licenses,
+                            versions, licenses_by_major):
     licenses = {major: license_for(licenses_by_major.get(major)) for major in versions}
     for major in sorted(licenses.keys() & previous_licenses.keys()):
         old_pins = license_pins(previous_licenses[major])
@@ -208,6 +205,18 @@ def map_inventory(existing, repo, tag, source_commit, versions, licenses_by_majo
         if tag != old_tag:
             require(all(commit == source_commit for source, commit, _ in new_pins if source.lower() == repo),
                     f"packaging license evidence must use the new source commit for PG{major}")
+    return licenses
+
+
+def map_inventory(existing, repo, tag, source_commit, versions, licenses_by_major, load_previous):
+    inventory = existing.get("releaseInventory", {})
+    current = inventory.get("current", {})
+    old_tag = existing.get("latest", {}).get("releaseTag")
+    require(not current or current["releaseTag"] == old_tag,
+            "current license evidence belongs to a different Release")
+    previous_licenses = current.get("licensesByMajor", {})
+    licenses = verify_license_rollover(repo, tag, old_tag, source_commit, previous_licenses,
+                                       versions, licenses_by_major)
     history = []
     for snapshot in inventory.get("history", []):
         packages = [row for row in snapshot["packages"]
@@ -247,7 +256,8 @@ def map_inventory(existing, repo, tag, source_commit, versions, licenses_by_majo
 
 
 def map_verified_release(existing, release, ext, contract, assets, digests,
-                         source_commit, required_majors, *, licenses_by_major, load_previous=None):
+                         source_commit, required_majors, *, licenses_by_major, load_previous=None,
+                         repository_id=None, previous_ledger=None, previous_admission=None):
     """Record transformation only: caller independently proves signature/bytes."""
     require(isinstance(existing,dict) and isinstance(release,dict)
             and isinstance(ext,dict) and isinstance(contract,dict),
@@ -304,8 +314,6 @@ def map_verified_release(existing, release, ext, contract, assets, digests,
                     "noncanonical public Release asset URL: " + fn)
     versions = {str(major): src[major]["version"] for major in required_majors}
     out=copy.deepcopy(existing)
-    out["releaseInventory"] = map_inventory(existing, repo, tag, source_commit, versions,
-                                            licenses_by_major, load_previous)
     if "perPostgresql" in ext["upstream"]:
         out["upstream"].pop("version", None)
         out["upstream"]["perPostgresql"]={
@@ -348,4 +356,20 @@ def map_verified_release(existing, release, ext, contract, assets, digests,
         "path":"config/test-contract.json",
         "commit":source_commit
     }
-    return out
+    if repository_id is None:
+        # v2 replay for callers verifying records from before the ledger.
+        out["releaseInventory"] = map_inventory(existing, repo, tag, source_commit, versions,
+                                                licenses_by_major, load_previous)
+        return out
+
+    previous = package_ledger.current_release(previous_ledger) if previous_ledger else None
+    previous_licenses = {row["pgMajor"]: row["license"] for row in previous["packages"]} if previous else {}
+    licenses = verify_license_rollover(repo, tag, previous["releaseTag"] if previous else None,
+                                       source_commit, previous_licenses, versions, licenses_by_major)
+    latest = package_ledger.pin_release(out, release, licenses)
+    history = []
+    if previous_ledger:
+        require(previous_ledger["repositoryId"] == repository_id,
+                "previously admitted repository ID changed")
+        history = package_ledger.superseded_releases(previous_ledger, latest, previous_admission)
+    return package_ledger.ledger_record(out, repository_id, latest, history)

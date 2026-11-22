@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_qualstats",
+  "displayName": "pg_qualstats",
+  "description": "Predicate statistics collection extension for PostgreSQL.",
+  "repository": "pgextwin/pg_qualstats",
+  "license": "PostgreSQL-style",
+  "architecture": "x64",
+  "runtime": {
+    "sharedPreloadLibraries": [
+      "pg_qualstats"
+    ],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "optional",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-applicable",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "predicate-statistics-collected",
+        "description": "Executes real predicates and verifies predicate rows are collected and exposed through both pg_qualstats and pg_qualstats_pretty.",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/pg_qualstats",
+    "path": "config/test-contract.json",
+    "commit": "b50bcc99eea325fbebc42a9dc32ffa32fc9a722b"
+  },
+  "upstream": {
+    "repository": "powa-team/pg_qualstats"
+  },
+  "repositoryId": 1406489233,
+  "latestReleaseId": 452429767,
+  "unavailableMajors": [
+    "14"
+  ],
+  "releases": [
+    {
+      "releaseTag": "v2.1.4-windows.3",
+      "releaseId": 452429767,
+      "publishedAt": "2026-11-20T08:22:23Z",
+      "checksumsAsset": "SHA256SUMS.txt",
+      "packages": [
+        {
+          "pgMajor": "15",
+          "version": "2.1.4",
+          "asset": "pg_qualstats-2.1.4-pg15-windows-x64.zip",
+          "assetId": 771031521,
+          "sha256": "6b533d3599547e3d000e5e00ada24f6c37338b467e68dac34273e54b9cd14b73",
+          "license": {
+            "name": "PostgreSQL-style",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg15-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg15-windows-x64.spdx.json",
+              "sha256": "8a10d0c67048becbf1b2eb8f6de296ad55535d5e2d18be204e2af8506b21f6fd"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg15-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "c72d159e1ad72fe10e093c0a6f56d3adbf8e6cee3c3e32a2c43e465547d1a584"
+            }
+          }
+        },
+        {
+          "pgMajor": "16",
+          "version": "2.1.4",
+          "asset": "pg_qualstats-2.1.4-pg16-windows-x64.zip",
+          "assetId": 771031547,
+          "sha256": "fb4a6de0769caf8293a57ed0ecf72d88c5090b15b266b0ef5ed35fcecb7be481",
+          "license": {
+            "name": "PostgreSQL-style",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg16-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg16-windows-x64.spdx.json",
+              "sha256": "f65fc832ace29104f80b1b3490dd3f6df0936daf12e222fb7d220c8a363dc10e"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg16-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "041951d9882152533e5867a5caf4c2153491dd864cc1be05be575bf5128bdd1f"
+            }
+          }
+        },
+        {
+          "pgMajor": "17",
+          "version": "2.1.4",
+          "asset": "pg_qualstats-2.1.4-pg17-windows-x64.zip",
+          "assetId": 771031557,
+          "sha256": "c014cf8bac893763c3678b5f89f7e81a6db74a4fcfa554cbfe51a817c99dfbc1",
+          "license": {
+            "name": "PostgreSQL-style",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg17-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg17-windows-x64.spdx.json",
+              "sha256": "b4d35aeb64a24fdf38c1ebc397943cff8175891370d9217ef0159431b85cb64b"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg17-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "8ab2cdc5c99edb688e0549be60ba9f156ce1b8af9f75e795ee9433af7517aa36"
+            }
+          }
+        },
+        {
+          "pgMajor": "18",
+          "version": "2.1.4",
+          "asset": "pg_qualstats-2.1.4-pg18-windows-x64.zip",
+          "assetId": 771031580,
+          "sha256": "ff64afb74e7de68bed8192ec65de3d90646d1bb8de88585638ead8333449e848",
+          "license": {
+            "name": "PostgreSQL-style",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg18-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg18-windows-x64.spdx.json",
+              "sha256": "16865c1f88f38b9e018d3c0b2d14297217ee390026964f7a7ac86945c5bf5d5c"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg18-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "c8b7c40140ea314310d2503d2cd9cca3fb11d71830878ebddd6b518ee17db4f2"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "2.1.4",
+          "asset": "pg_qualstats-2.1.4-pg19-windows-x64.zip",
+          "assetId": 771031595,
+          "sha256": "f0de17c75ebe4166e201939bc70d10a09d09786aa0957b57148f36813e66b2b6",
+          "license": {
+            "name": "PostgreSQL-style",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_qualstats/blob/b50bcc99eea325fbebc42a9dc32ffa32fc9a722b/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg19-windows-x64.spdx.json",
+              "sha256": "f38dd64982fb5d04ba96bfdfdf2cf1e9c0116d34682fd09b3937879b3ade0a37"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_qualstats-2.1.4-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_qualstats/releases/download/v2.1.4-windows.3/pg_qualstats-2.1.4-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "c0321f3277170a2327e73aefaf0e214fa0fa3824ee0434f4a2e68c71ec7e7f82"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

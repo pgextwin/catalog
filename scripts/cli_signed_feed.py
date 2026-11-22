@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 """Exact approved Catalog -> single read-only public ZIP feed (v3) builder.
 
-The builder runs only on a protected-main, completed-success Validate workflow
-and reads public Release metadata with workflow-scoped GitHub access.
-It NEVER promotes a candidate, creates extension Releases, signs, publishes
-or upgrades original ZIP Sigstore trust.
+The publication workflow runs this projection on the exact protected-main
+commit from a completed-success Validate workflow. The v3 wire format stays
+compatible with published CLI versions.
 """
 import argparse
 import base64
-from functools import cache
 import hashlib
 import json
-import os
 import re
-import subprocess
-import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -22,8 +17,10 @@ EXTENSION = re.compile(r"[a-z][a-z0-9_]*\Z")
 SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 LIMIT = 2_000_000
 if __package__:
+    from . import package_ledger as ledger
     from .release_inventory import ASSET, license_for, match_zip, release_assets, version_for
 else:
+    import package_ledger as ledger
     from release_inventory import ASSET, license_for, match_zip, release_assets, version_for
 
 
@@ -36,15 +33,7 @@ MAX_FLEET = 128
 MAX_MAJOR = 32
 
 
-def strict_object(text):
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise ValueError("Duplicate JSON key: " + key)
-            result[key] = value
-        return result
-    return json.loads(text, object_pairs_hook=unique)
+strict_object = ledger.strict_object
 
 
 def source_bytes(root, relative):
@@ -128,7 +117,7 @@ def verify_history_admission(name, snapshot, load_admission):
         raise ValueError(f"{name}: malformed historical Catalog admission for {tag}") from exc
 
 
-def declared_majors(root):
+def declared_majors(root, *, first_supported=15):
     """Fail-closed PG cohort configured in the protected, signed-feed source commit."""
     raw = source_bytes(root, "config/cli-feed-majors.json")
     matrix = strict_object(raw.decode("utf-8"))
@@ -140,7 +129,7 @@ def declared_majors(root):
     if (type(values) is not list or not 1 <= len(values) <= 12 or
         any(type(item) is not str or not re.fullmatch(r"[1-9][0-9]*", item)
             for item in values) or
-        any(not 14 <= int(item) <= MAX_MAJOR for item in values) or
+        any(not first_supported <= int(item) <= MAX_MAJOR for item in values) or
         [int(item) for item in values] !=
             list(range(int(values[0]), int(values[0]) + len(values)))):
         raise ValueError("Unsafe or noncontiguous protected PostgreSQL cohort")
@@ -153,20 +142,109 @@ def declared_majors(root):
     return tuple(values), optional
 
 
-def build_feed(root, commit, load, *, load_admission=None):
-    """Project the protected Catalog's current and approved historical ZIPs."""
-    root = Path(root)
-    if not SHA40.fullmatch(commit):
-        raise ValueError("Full protected Catalog commit required")
-    majors, optional = declared_majors(root)
+def catalog_names(root, directory):
     index = strict_object(source_bytes(root, "index.json").decode("utf-8"))
     names = index["extensions"]
     if index.get("schemaVersion") != 2 or not isinstance(names, list) or not 1 <= len(names) <= MAX_FLEET or (
         any(not isinstance(n, str) or len(n) > 64 or not EXTENSION.fullmatch(n) for n in names) or
         names != sorted(names) or len(names) != len(set(names)) or
-        sorted(p.stem for p in (root / "extensions").glob("*.json")) != names
+        sorted(p.stem for p in (root / directory).glob("*.json")) != names
     ):
         raise ValueError("Catalog extension inventory incomplete")
+    return names
+
+
+def verify_ledger_admission(name, repository_id, release, load_admission):
+    commit = release["admission"]["catalogCommit"]
+    admitted = load_admission(commit, name)
+    if admitted.get("schemaVersion") == 1:
+        original = ledger.current_release(admitted)
+        recorded = {row["pgMajor"]: row for row in original["packages"]}
+        if (admitted["name"] != name or admitted["repository"] != "pgextwin/" + name or
+                admitted["repositoryId"] != repository_id or
+                original["releaseId"] != release["releaseId"] or
+                original["releaseTag"] != release["releaseTag"] or
+                any(recorded.get(row["pgMajor"]) != row for row in release["packages"])):
+            raise ValueError(f"{name}: historical package differs from protected Catalog admission")
+    else:
+        verify_history_admission(name, release, load_admission)
+        ledger.verify_legacy_inventory(name, release, load_admission)
+
+
+def build_feed(root, commit, load=None, *, load_admission=None):
+    """Build v3 from the protected ledger. Explicit loaders support v2 replay."""
+    if load is not None:
+        return build_legacy_feed(root, commit, load, load_admission=load_admission)
+
+    root = Path(root)
+    if not SHA40.fullmatch(commit):
+        raise ValueError("Full protected Catalog commit required")
+    majors, optional = declared_majors(root)
+    names = catalog_names(root, ledger.DIRECTORY)
+    records = [ledger.read_record(root / ledger.DIRECTORY / (name + ".json")) for name in names]
+    load_admission = load_admission or ledger.git_admissions(root)
+    latest = [ledger.current_release(record) for record in records]
+    if optional and not any(row["pgMajor"] == optional for release in latest for row in release["packages"]):
+        optional = None
+    allowed = set(majors) | ({optional} if optional else set())
+    extensions = []
+    for name, record, current in zip(names, records, latest, strict=True):
+        repository_id = record["repositoryId"]
+        if (record["schemaVersion"] != 1 or record["name"] != name or
+                record["repository"] != "pgextwin/" + name or record["architecture"] != "x64" or
+                type(repository_id) is not int or repository_id <= 0):
+            raise ValueError("Unsafe Catalog ledger identity")
+        signed = []
+        tags, release_ids, asset_ids, versions = set(), set(), set(), set()
+        for release in sorted(record["releases"], key=lambda row: row["releaseTag"]):
+            tag, release_id = release["releaseTag"], release["releaseId"]
+            if (not ASSET.fullmatch(tag) or tag in tags or type(release_id) is not int or
+                    release_id <= 0 or release_id in release_ids or not release["packages"]):
+                raise ValueError(f"{name}: invalid or duplicate Catalog Release identity")
+            tags.add(tag)
+            release_ids.add(release_id)
+            current_release = release is current
+            if not current_release:
+                verify_ledger_admission(name, repository_id, release, load_admission)
+
+            packages = []
+            release_majors = set()
+            for row in sorted(release["packages"], key=lambda row: int(row["pgMajor"])):
+                major, version, asset, asset_id, digest, license_info = (
+                    row[field] for field in ledger.ZIP_FIELDS)
+                if (not ledger.MAJOR.fullmatch(major) or not isinstance(version, str) or
+                        not version.strip() or (major, version) in versions or major in release_majors or
+                        not ASSET.fullmatch(asset) or not asset.startswith(name + "-") or
+                        not asset.endswith(f"-pg{major}-windows-x64.zip") or not ledger.SHA64.fullmatch(digest) or
+                        type(asset_id) is not int or asset_id <= 0 or asset_id in asset_ids):
+                    raise ValueError(f"{name}: invalid or duplicate Catalog package for {tag} PG{major}")
+                license_for(license_info)
+                release_majors.add(major)
+                versions.add((major, version))
+                asset_ids.add(asset_id)
+                if major in allowed:
+                    packages.append({field: row[field] for field in ledger.ZIP_FIELDS})
+            if current_release and (not set(majors) <= release_majors or
+                    any(major not in allowed and not 14 <= int(major) < int(majors[0])
+                        for major in release_majors)):
+                raise ValueError(f"{name}: incomplete or unexpected latest signed-feed cohort")
+            if packages:
+                admission = {"catalogCommit": commit} if current_release else release["admission"]
+                signed.append({"releaseTag": tag, "releaseId": release_id, "admission": admission,
+                               "packages": packages})
+        extensions.append({"extension": name, "repositoryId": repository_id,
+                           "latestReleaseTag": current["releaseTag"], "releases": signed})
+
+    return feed_document(commit, majors, optional, extensions)
+
+
+def build_legacy_feed(root, commit, load, *, load_admission=None):
+    """Replay v2 Catalog snapshots with explicit Release and admission loaders."""
+    root = Path(root)
+    if not SHA40.fullmatch(commit):
+        raise ValueError("Full protected Catalog commit required")
+    majors, optional = declared_majors(root, first_supported=14)
+    names = catalog_names(root, "extensions")
     records = [strict_object(source_bytes(root, f"extensions/{name}.json").decode("utf-8"))
                for name in names]
     supported = majors
@@ -253,6 +331,10 @@ def build_feed(root, commit, load, *, load_admission=None):
         extensions.append({"extension": name, "repositoryId": repository_id,
                            "latestReleaseTag": latest_tag, "releases": signed})
 
+    return feed_document(commit, majors, optional if optional in supported else None, extensions)
+
+
+def feed_document(commit, majors, optional, extensions):
     feed = {
         "schemaVersion": SCHEMA,
         "repository": "pgextwin/catalog",
@@ -264,7 +346,7 @@ def build_feed(root, commit, load, *, load_admission=None):
         "publicationAuthorized": False,
         "installAuthorized": False,
     }
-    if optional in supported:
+    if optional is not None:
         feed[OPTIONAL_MAJOR] = optional
     return feed
 
@@ -280,23 +362,10 @@ def main():
     parser.add_argument("--commit", required=True)
     parser.add_argument("--output", required=True)
     opts = parser.parse_args()
-    token = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
-    if not token:
-        parser.error("Feed publisher requires job-scoped GitHub token")
     path = Path(opts.output)
     if path.exists() or path.is_symlink():
         raise ValueError("Refuse to overwrite feed output")
-
-    @cache
-    def protected_commits():
-        # Only first-parent commits represent Catalog states accepted on main.
-        return frozenset(subprocess.check_output(
-            ["git", "rev-list", "--first-parent", "refs/remotes/origin/main"],
-            cwd=opts.catalog, text=True).splitlines())
-
-    feed = build_feed(opts.catalog, opts.commit,
-                      lambda repo, route: get_repo_json(repo, route, token),
-                      load_admission=lambda commit, name: get_catalog_record(commit, name, token, protected_commits))
+    feed = build_feed(opts.catalog, opts.commit)
     data = canonical(feed)
     if len(data) > 2 * 1024 * 1024:
         raise ValueError("Signed Catalog feed exceeds 2MiB reader cap")

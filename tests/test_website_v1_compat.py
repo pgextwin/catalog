@@ -1,6 +1,12 @@
+from copy import deepcopy
 import json
+import subprocess
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+
+from scripts import package_ledger
+from scripts.cli_signed_feed import build_feed, verify_ledger_admission
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -41,6 +47,42 @@ class WebsiteV1CompatibilityTests(unittest.TestCase):
                 f"{record['latest']['releaseTag']}"
             )
             self.assertEqual(expected_release, record["latest"]["releaseUrl"])
+
+    def test_ledger_projects_v3_with_local_admissions_and_per_major_versions(self):
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        with patch("urllib.request.urlopen", side_effect=AssertionError("unexpected HTTP request")):
+            feed = build_feed(ROOT, commit)
+        self.assertEqual(feed["schemaVersion"], "pgextwin-signed-catalog-zip-feed/v3")
+        self.assertNotIn("14", feed["postgresqlMajors"])
+        entries = {entry["extension"]: entry for entry in feed["extensions"]}
+        for entry in entries.values():
+            for release in entry["releases"]:
+                self.assertNotIn("14", {row["pgMajor"] for row in release["packages"]})
+        for name in ("pg_hint_plan", "pgaudit"):
+            entry = entries[name]
+            current = next(r for r in entry["releases"] if r["releaseTag"] == entry["latestReleaseTag"])
+            view = package_ledger.read_record(ROOT / "extensions" / f"{name}.json")
+            versions = view["upstream"]["perPostgresql"]
+            self.assertGreater(len({row["version"] for row in current["packages"]}), 1)
+            for row in current["packages"]:
+                self.assertEqual(row["version"], versions[row["pgMajor"]]["version"])
+
+    def test_migrated_historical_license_is_admitted_from_protected_git(self):
+        name = "hypopg"
+        load = package_ledger.git_admissions(ROOT)
+        migration_base = "34da9eb5f08491b37859cf834fd9a833440ba3fe"
+        history = load(migration_base, name)["releaseInventory"]["history"]
+        snapshot = {**next(r for r in history if r["releaseTag"] == "v1.4.4-windows.1"),
+                    "legacyInventoryCommit": migration_base}
+        verify_ledger_admission(name, 1, snapshot, load)
+        altered = deepcopy(snapshot)
+        altered["packages"][0]["license"]["name"] = "Different license"
+        with self.assertRaisesRegex(ValueError, "historical license evidence"):
+            verify_ledger_admission(name, 1, altered, load)
+        altered = deepcopy(snapshot)
+        altered["admission"]["catalogCommit"] = "0" * 40
+        with self.assertRaisesRegex(ValueError, "outside protected main"):
+            verify_ledger_admission(name, 1, altered, load)
 
     def test_lifecycle_remains_external(self):
         index = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))

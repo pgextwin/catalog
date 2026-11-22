@@ -87,8 +87,8 @@ jobs:
             echo "## Verified public signed Release (read-only)"
             echo "Repository: pgextwin/$EXTENSION; tag: $RELEASE_TAG"
             echo "This run rehashed the public Release, independently verified its attestations, generated the proposed Catalog record, and passed offline Catalog and Landscape validation."
-            echo "Download the verified-manual-release-record artifact; inspect the single extensions/$EXTENSION.json diff against current protected catalog/main."
-            echo "An authenticated GitHub actor or connected Chat may propose that exact one-record change via a normal PR without installing a Catalog proposer App."
+            echo "Download the verified-manual-release-record artifact; inspect packages/$EXTENSION.json and the generated extensions/$EXTENSION.json against current protected catalog/main."
+            echo "An authenticated GitHub actor or connected Chat may propose those exact files via a normal PR without installing a Catalog proposer App."
             echo "Require native protected Catalog PR CI at the exact head; merge only after SUCCESS, then confirm the Website's cross-repository public Pages audit."
             echo "This read-only run cannot create, authorize, merge or publish a Release or Catalog PR; no App, Secret or write permission is used."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -98,6 +98,7 @@ jobs:
           name: verified-manual-release-record
           path: |
             extensions/${{ inputs.extension }}.json
+            packages/${{ inputs.extension }}.json
             ${{ runner.temp }}/verified-release-audit.json
           if-no-files-found: error
           retention-days: 14

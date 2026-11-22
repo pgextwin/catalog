@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "name": "orafce",
+  "displayName": "orafce",
+  "description": "Oracle-compatible functions and packages for community PostgreSQL.",
+  "repository": "pgextwin/orafce",
+  "license": "0BSD",
+  "architecture": "x64",
+  "runtime": {
+    "sharedPreloadLibraries": [],
+    "requirements": {
+      "extensionCreation": "required",
+      "preload": "none",
+      "backgroundWorker": false,
+      "clientExecutable": {
+        "required": false,
+        "packagePaths": []
+      }
+    }
+  },
+  "capabilities": {
+    "testContractVersion": 2,
+    "coverage": {
+      "createExtension": "covered",
+      "backgroundWorker": "not-applicable",
+      "clientExecutable": "not-applicable",
+      "serverLogAssertions": "not-covered",
+      "upgrade": "not-covered"
+    },
+    "functionalScenarios": [
+      {
+        "id": "oracle-compat-last-day",
+        "description": "Validate Oracle last_day leap-year date handling",
+        "evidence": [
+          "sql-result"
+        ]
+      },
+      {
+        "id": "oracle-compat-nvl",
+        "description": "Validate Oracle nvl null substitution",
+        "evidence": [
+          "sql-result"
+        ]
+      }
+    ]
+  },
+  "capabilitiesSource": {
+    "repository": "pgextwin/orafce",
+    "path": "config/test-contract.json",
+    "commit": "3a3a4469580b585d417837aa844c4d4d1d75fbf6"
+  },
+  "upstream": {
+    "repository": "orafce/orafce"
+  },
+  "repositoryId": 1413246504,
+  "latestReleaseId": 452351399,
+  "unavailableMajors": [
+    "14"
+  ],
+  "releases": [
+    {
+      "releaseTag": "v4.17.1-windows.2",
+      "releaseId": 452351399,
+      "publishedAt": "2026-11-20T06:39:08Z",
+      "checksumsAsset": "SHA256SUMS.txt",
+      "packages": [
+        {
+          "pgMajor": "15",
+          "version": "4.17.1",
+          "asset": "orafce-VERSION_4_17_1-pg15-windows-x64.zip",
+          "assetId": 770762736,
+          "sha256": "0702461645866a75276c6710794dfeeceae6b1ab5663699340b448ea1d5e57b7",
+          "license": {
+            "name": "0BSD",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg15-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg15-windows-x64.spdx.json",
+              "sha256": "2f79ffe3c6063fc542cb225b76c8eb3290122dc67f2489b6c34b954f352534f8"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg15-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "3ec8dac788f255bed1ff32f410c4087e8a2f0d56ea4ae83d3d93da3401a8a145"
+            }
+          }
+        },
+        {
+          "pgMajor": "16",
+          "version": "4.17.1",
+          "asset": "orafce-VERSION_4_17_1-pg16-windows-x64.zip",
+          "assetId": 770762743,
+          "sha256": "8e3687d2ff7680a4d376da8b100da0696d8535fd3f8085620e062d77b5b4decf",
+          "license": {
+            "name": "0BSD",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg16-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg16-windows-x64.spdx.json",
+              "sha256": "2ebf900bef4a07421f1d7c46108ea5f2373579bc9efb0f7cc3805de9b87c93d6"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg16-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "9848550a9d4651e83357faa48db6c2879814ceea1d21a1de1db8909d9dbcfc14"
+            }
+          }
+        },
+        {
+          "pgMajor": "17",
+          "version": "4.17.1",
+          "asset": "orafce-VERSION_4_17_1-pg17-windows-x64.zip",
+          "assetId": 770762756,
+          "sha256": "dcf0f96c61a2b352a7d9edcb039307c2a1f3a3f859f155121c916ab28278d9a0",
+          "license": {
+            "name": "0BSD",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg17-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg17-windows-x64.spdx.json",
+              "sha256": "3670858b2cc5331ad67acff8791c3ba7b89768f7d3ffe8698855c5a5b732176e"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg17-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "cd1aadc5f0ca6ac622f99ccc7ad2b554343922ff5eb3bbdf0134fa4194f33973"
+            }
+          }
+        },
+        {
+          "pgMajor": "18",
+          "version": "4.17.1",
+          "asset": "orafce-VERSION_4_17_1-pg18-windows-x64.zip",
+          "assetId": 770762770,
+          "sha256": "6ec3863a7395be8b7a53515e8c984fd7aa752feceb5faa27bb3761de20a22379",
+          "license": {
+            "name": "0BSD",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg18-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg18-windows-x64.spdx.json",
+              "sha256": "fd22bbc4eb515a584a7acfd24ba316852a500615ba850dcce74c3b0f8a6977ad"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg18-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "0d0f4c9cc3d027a3802f9154f9a583842bd0cfd7b2e95f4ff23579b3cddd173e"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "4.17.1",
+          "asset": "orafce-VERSION_4_17_1-pg19-windows-x64.zip",
+          "assetId": 770762802,
+          "sha256": "8f04e9f421b6dab0d39055ded1dcc774b07650164ff414f439c7150e514ccf72",
+          "license": {
+            "name": "0BSD",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/LICENSE",
+              "https://github.com/pgextwin/orafce/blob/3a3a4469580b585d417837aa844c4d4d1d75fbf6/COPYRIGHT.orafce"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg19-windows-x64.spdx.json",
+              "sha256": "8f78a715f785f594c5131f66ae09489203354099afbac384f7d81039cae1fb0d"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "orafce-VERSION_4_17_1-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/orafce/releases/download/v4.17.1-windows.2/orafce-VERSION_4_17_1-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "62254f28aa975372ee43b029b3f3c827ca8878f046ff0de99a4e4b41f8954781"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

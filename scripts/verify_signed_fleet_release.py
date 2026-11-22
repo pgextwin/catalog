@@ -28,12 +28,14 @@ else:
     import automatic_publisher_provenance as automatic_provenance
 
 if __package__:
+    from . import package_ledger
     from .release_inventory import license_for, license_pins
     from .verified_release_record import (
         INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
         seed_verified_first_release,
     )
 else:
+    import package_ledger
     from release_inventory import license_for, license_pins
     from verified_release_record import (
         INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
@@ -458,18 +460,19 @@ def verified_licenses(repo, source_commit, manifest, active, license_name, previ
     return licenses
 
 
-def previous_release_admission(extension, repo, tag):
+def admission_commit(path):
     # Use the same protected first-parent record commit during proposal and
     # independent re-verification, even when unrelated changes advance main.
     catalog_root = Path(__file__).resolve().parents[1]
-    path = f"extensions/{extension}.json"
     commit = subprocess.check_output(
         ["git", "log", "-1", "--first-parent", "--format=%H", "HEAD", "--", path],
         cwd=catalog_root, text=True).strip()
-    return commit, api(f"repos/{repo}/releases/tags/{tag}")
+    require(HEX40.fullmatch(commit), "previous Catalog admission missing")
+    return commit
 
 
 def generate(extension, tag, record):
+    ledger_path = record.parent.parent / package_ledger.DIRECTORY / record.name
     require(extension in INTAKE_ALLOWED, "extension not on exact Catalog verification allowlist")
     repo = "pgextwin/" + extension
     require(isinstance(tag, str) and re.fullmatch(r"v[A-Za-z0-9._-]+-windows\.[1-9][0-9]*", tag),
@@ -531,11 +534,17 @@ def generate(extension, tag, record):
                     "mixed immutable Signer workflow SHAs across PG-major assets")
     # Seed only registered identities with an independently verified first
     # public signed Release.
-    original = (json.loads(record.read_text(encoding="utf-8"))
-                if record.is_file() else seed_verified_first_release(manifest, contract))
+    previous_ledger = None
+    require(record.is_file() == ledger_path.is_file(), "Catalog ledger and Website view disagree")
+    if ledger_path.is_file():
+        previous_ledger = package_ledger.read_record(ledger_path)
+        original = package_ledger.website_record(previous_ledger)
+        require(package_ledger.read_record(record) == original, "stale Catalog Website view")
+    else:
+        original = seed_verified_first_release(manifest, contract)
+    current = package_ledger.current_release(previous_ledger) if previous_ledger else {}
+    previous_licenses = {row["pgMajor"]: row["license"] for row in current.get("packages", [])}
     deny_catalog_rollback(original, release)
-    current = original.get("releaseInventory", {}).get("current", {})
-    previous_licenses = current.get("licensesByMajor", {})
     licenses = {}
     if current.get("releaseTag") == tag:
         prefix = f"https://github.com/{repo}/blob/{source_commit}/"
@@ -547,10 +556,14 @@ def generate(extension, tag, record):
     if unrecorded:
         licenses.update(verified_licenses(repo, source_commit, manifest, unrecorded,
                                           original["license"], previous_licenses))
+    identity = api("repos/" + repo)
+    repository_id = identity.get("id")
+    require(identity.get("full_name") == repo and type(repository_id) is int and repository_id > 0,
+            "public repository identity mismatch")
     mapped = map_verified_release(
         original, release, manifest, contract, assets, digests, source_commit, active,
-        licenses_by_major=licenses,
-        load_previous=lambda old_tag: previous_release_admission(extension, repo, old_tag))
+        licenses_by_major=licenses, repository_id=repository_id, previous_ledger=previous_ledger,
+        previous_admission=lambda: admission_commit(f"{package_ledger.DIRECTORY}/{extension}.json"))
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
                     "releaseProvenance": (
                         "INDEPENDENT_OWNER_MAIN_SIGNED_PUBLISHER"
@@ -563,7 +576,7 @@ def generate(extension, tag, record):
                         if auto_marker is not None else "VERIFIED_MANUAL_DISPATCH"),
                     "packagingCommit": source_commit, "promotionRunId": run_id,
                     "postgresqlMajors": active, "assetCount": len(assets),
-                    "recordChanged": mapped != original}
+                    "recordChanged": mapped != previous_ledger}
 
 
 def main():
@@ -574,13 +587,15 @@ def main():
     args = parser.parse_args()
     try:
         record = Path("extensions") / (args.extension + ".json")
+        ledger_path = Path(package_ledger.DIRECTORY) / record.name
         mapped, audit = generate(args.extension, args.release_tag, record)
         if args.record_output:
             output = Path(args.record_output)
             require(output == record, "record output must be the exact Catalog extension path")
             if audit["recordChanged"]:
-                output.write_text(json.dumps(mapped, indent=2, ensure_ascii=False) + "\n",
-                                  encoding="utf-8")
+                view = package_ledger.json_bytes(package_ledger.website_record(mapped))
+                ledger_path.write_bytes(package_ledger.json_bytes(mapped))
+                output.write_bytes(view)
         output_file = os.environ.get("GITHUB_OUTPUT")
         if output_file:
             with open(output_file, "a", encoding="utf-8") as output:
