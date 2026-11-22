@@ -246,7 +246,7 @@ def map_inventory(existing, repo, tag, source_commit, versions, licenses_by_majo
             "history": sorted(history, key=lambda row: row["releaseTag"])}
 
 
-def map_verified_release(existing, release, ext, contract, assets, sums,
+def map_verified_release(existing, release, ext, contract, assets, digests,
                          source_commit, required_majors, *, licenses_by_major, load_previous=None):
     """Record transformation only: caller independently proves signature/bytes."""
     require(isinstance(existing,dict) and isinstance(release,dict)
@@ -275,33 +275,33 @@ def map_verified_release(existing, release, ext, contract, assets, sums,
             and bool(release.get("published_at"))
             and release.get("target_commitish")==source_commit,
             "Release is unpublished or not at verified immutable source SHA")
+    release_url = f"https://github.com/{repo}/releases/tag/{tag}"
+    download_base = f"https://github.com/{repo}/releases/download/{tag}/"
+    require(release.get("html_url") == release_url, "noncanonical public Release URL")
     require(isinstance(required_majors,list)
             and bool(required_majors)
             and required_majors==sorted(set(required_majors))
             and set(required_majors).issubset(src),
             "release PG major coverage is incomplete or duplicate")
-    require(isinstance(assets,dict) and isinstance(sums,dict),
-            "missing exact signed asset/checksum input")
+    require(isinstance(assets,dict) and isinstance(digests,dict),
+            "missing exact signed asset digest input")
     expected={"SHA256SUMS.txt"}
     for major in required_majors:
         stem=name+"-"+src[major]["ref"]+"-pg"+str(major)+"-windows-x64"
         expected.update(stem+suf for suf in SUFFIXES)
-    require(set(assets)==expected and set(sums)==expected-{"SHA256SUMS.txt"},
+    require(set(assets)==set(digests)==expected,
             "missing/extra signed ZIP, SPDX or Grype assets")
-    for fn in expected-{"SHA256SUMS.txt"}:
+    for fn in expected:
         a=assets[fn]
         require(isinstance(a,dict) and a.get("name")==fn
                 and a.get("state")=="uploaded"
-                and isinstance(sums[fn],str)
-                and DIGEST.fullmatch(sums[fn])
-                and a.get("digest")=="sha256:"+sums[fn],
+                and isinstance(digests[fn],str)
+                and DIGEST.fullmatch(digests[fn])
+                and a.get("digest")=="sha256:"+digests[fn],
                 "GitHub-hosted asset does not match exact SHA256: "+fn)
-    check=assets["SHA256SUMS.txt"]
-    require(check.get("name")=="SHA256SUMS.txt"
-            and check.get("state")=="uploaded"
-            and isinstance(check.get("digest"),str)
-            and re.fullmatch(r"sha256:[a-f0-9]{64}",check["digest"]),
-            "SHA256SUMS asset absent or has no GitHub SHA256")
+        if fn == "SHA256SUMS.txt" or fn.endswith(".zip"):
+            require(a.get("browser_download_url") == download_base + fn,
+                    "noncanonical public Release asset URL: " + fn)
     versions = {str(major): src[major]["version"] for major in required_majors}
     out=copy.deepcopy(existing)
     out["releaseInventory"] = map_inventory(existing, repo, tag, source_commit, versions,
@@ -316,7 +316,7 @@ def map_verified_release(existing, release, ext, contract, assets, sums,
         out["upstream"]["version"]=src[max(src)]["version"]
     out["latest"]={
         "releaseTag":tag,"publishedAt":release["published_at"],
-        "releaseUrl":"https://github.com/"+repo+"/releases/tag/"+tag,
+        "releaseUrl":release_url,
         "checksumsAsset":"SHA256SUMS.txt"
     }
     for m in required_majors:
@@ -324,8 +324,8 @@ def map_verified_release(existing, release, ext, contract, assets, sums,
         def entry(suffix):
             fn=stem+suffix
             return {"available":True,"asset":fn,
-                    "downloadUrl":"https://github.com/"+repo+"/releases/download/"+tag+"/"+fn,
-                    "sha256":sums[fn]}
+                    "downloadUrl":download_base+fn,
+                    "sha256":digests[fn]}
         item=entry(".zip")
         item["evidence"]={
             "buildProvenanceAttestation":{"available":True},

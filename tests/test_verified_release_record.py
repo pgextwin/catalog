@@ -25,7 +25,7 @@ PER={
  "pgaudit":{14:("1.6.3","1.6.3"),15:("1.7.1","1.7.1"),16:("16.1","16.1"),17:("17.1","17.1"),18:("18.0","18.0")},
  "pg_hint_plan":{14:("REL14_1_4_4","1.4.4"),15:("REL15_1_5_3","1.5.3"),16:("REL16_1_6_2","1.6.2"),17:("REL17_1_7_1","1.7.1"),18:("REL18_1_8_0","1.8.0")}
 }
-def fixture(name):
+def fixture(name, revision="3"):
     repo="pgextwin/"+name
     up={"repository":INTAKE_ALLOWED[name]}
     if name in REFS:
@@ -35,27 +35,31 @@ def fixture(name):
         up["perPostgresql"]={str(m):{"ref":ref,"version":v,"commit":"b"*40}
                               for m,(ref,v) in PER[name].items()}
     ext={"name":name,"upstream":up,"postgresql":{"majors":[14,15,16,17,18]}}
-    tag=tag_for(ext,"3")
+    tag=tag_for(ext,revision)
     base={"schemaVersion":2,"name":name,"repository":repo,
           "upstream":{"repository":INTAKE_ALLOWED[name],"version":"historical"},
           "postgresql":{str(m):{} for m in range(14,19)},
           "runtime":{"requirements":{}},"capabilities":{},"capabilitiesSource":{}}
     rel={"tag_name":tag,"draft":False,"prerelease":False,
+         "html_url":f"https://github.com/{repo}/releases/tag/{tag}",
          "published_at":"2026-10-11T12:00:00Z",
          "target_commitish":"c"*40}
     tc={"contractVersion":2,"extension":name,
         "runtimeRequirements":{"preload":"optional"},
         "coverage":{"upgrade":"not-covered"},
         "functionalScenarios":[{"id":"smoke","description":"smoke","evidence":["sql-result"]}]}
-    assets={"SHA256SUMS.txt":{"name":"SHA256SUMS.txt","state":"uploaded","digest":"sha256:"+"e"*64}}
-    sums={}
+    download=f"https://github.com/{repo}/releases/download/{tag}/"
+    assets={"SHA256SUMS.txt":{"name":"SHA256SUMS.txt","state":"uploaded",
+                             "browser_download_url":download+"SHA256SUMS.txt","digest":"sha256:"+"e"*64}}
+    sums={"SHA256SUMS.txt":"e"*64}
     for m in range(14,19):
         ref=up["perPostgresql"][str(m)]["ref"] if name in PER else up["ref"]
         stem=name+"-"+ref+"-pg"+str(m)+"-windows-x64"
         for suffix in (".zip",".spdx.json",".vulnerabilities.json"):
             filename=stem+suffix
             sums[filename]="f"*64
-            assets[filename]={"name":filename,"state":"uploaded","digest":"sha256:"+"f"*64}
+            assets[filename]={"name":filename,"state":"uploaded","browser_download_url":download+filename,
+                              "digest":"sha256:"+"f"*64}
     return base,rel,ext,tc,assets,sums
 
 def licenses(name, required):
@@ -116,8 +120,7 @@ class RecordTests(unittest.TestCase):
         row = next(row for row in history["packages"] if row["pgMajor"] == "15")
         self.assertEqual((row["version"], row["assetId"], row["license"]), ("1.4.2", 15, prior_license))
 
-        revision = fixture("hypopg")
-        revision[1]["tag_name"] = "v1.4.3-windows.4"
+        revision = fixture("hypopg", revision="4")
         replaced = mapped("hypopg", (switched, *revision[1:]))
         self.assertEqual(replaced["releaseInventory"]["current"]["releaseTag"], "v1.4.3-windows.4")
         self.assertEqual(replaced["releaseInventory"]["history"], [history])
@@ -131,8 +134,7 @@ class RecordTests(unittest.TestCase):
         current = mapped(name)
         current["releaseInventory"]["current"]["licensesByMajor"]["15"]["evidenceUrls"].append(
             f"https://github.com/postgres/postgres/blob/{'d' * 40}/COPYRIGHT")
-        revision = fixture(name)
-        revision[1]["tag_name"] = "v1.5.3-windows.4"
+        revision = fixture(name, revision="4")
         with self.assertRaisesRegex(Denied, "established license evidence missing for PG15"):
             mapped(name, (current, *revision[1:]))
 
@@ -140,8 +142,7 @@ class RecordTests(unittest.TestCase):
         current = mapped("hypopg")
         current["upstream"]["perPostgresql"] = {"16": {"version": "1.4.2"}}
         del current["releaseInventory"]["current"]["licensesByMajor"]["16"]
-        revision = fixture("hypopg")
-        revision[1]["tag_name"] = "v1.4.3-windows.4"
+        revision = fixture("hypopg", revision="4")
         with self.assertRaisesRegex(Denied, "previous Release v1.4.3-windows.3 lacks license evidence for PG16"):
             mapped("hypopg", (current, *revision[1:]))
 
@@ -204,7 +205,8 @@ class RecordTests(unittest.TestCase):
             for suffix in (".zip",".spdx.json",".vulnerabilities.json"):
                 fn=stem+suffix
                 parts[5][fn]="f"*64
-                parts[4][fn]={"name":fn,"state":"uploaded","digest":"sha256:"+"f"*64}
+                parts[4][fn]={"name":fn,"state":"uploaded","digest":"sha256:"+"f"*64,
+                              "browser_download_url":f"https://github.com/pgextwin/wal2json/releases/download/{parts[1]['tag_name']}/{fn}"}
         parts[2]["postgresql"]["majors"]=[14,15,16,17,18,19]
         out=mapped("wal2json",parts,required=[15,16,17,18,19])
         self.assertEqual(out["postgresql"]["14"],{"available":False})
@@ -215,11 +217,14 @@ class RecordTests(unittest.TestCase):
             lambda p:p[1].update(draft=True),
             lambda p:p[1].update(target_commitish="0"*40),
             lambda p:p[1].update(tag_name="v99.9-windows.1"),
+            lambda p:p[1].update(html_url="https://example.invalid/release"),
             lambda p:p[2]["upstream"].update(repository="attacker/wal2json"),
             lambda p:p[2]["upstream"].update(commit=None),
             lambda p:p[4].pop(next(x for x in p[4] if x.endswith(".zip"))),
             lambda p:p[5].pop(next(iter(p[5]))),
             lambda p:next(a for a in p[4].values() if a["name"].endswith(".zip")).update(digest="sha256:"+"0"*64),
+            lambda p:next(a for a in p[4].values() if a["name"].endswith(".zip")).update(browser_download_url="https://example.invalid/file.zip"),
+            lambda p:p[4]["SHA256SUMS.txt"].update(digest="sha256:"+"0"*64),
             lambda p:p[3].update(extension="other"),
         )
         for index,mut in enumerate(mutations):

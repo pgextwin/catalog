@@ -67,10 +67,12 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
             'python -m pip install --disable-pip-version-check "jsonschema>=4,<5"'
         )
         record_validation = workflow.index(
-            "name: Validate proposed record against Catalog schema and live sources"
+            "name: Validate proposed Catalog and Landscape locally"
         )
         self.assertLess(install, assert_dependency)
         self.assertLess(assert_dependency, record_validation)
+        self.assertIn("python scripts/validate_catalog.py\n", workflow)
+        self.assertNotIn("--verify-remote", workflow)
         self.assertNotIn("Run offline fail-closed test suite",workflow)
         required_ci=(ROOT/".github/workflows/validate.yml").read_text(encoding="utf-8")
         self.assertIn("python -m unittest discover -s tests -v",required_ci)
@@ -101,7 +103,7 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
         self.assertLess(workflow.index("Rehash all signed assets"),
                         workflow.index("Update index only after complete signed"))
         self.assertLess(workflow.index("Update index only after complete signed"),
-                        workflow.index("Validate proposed record against Catalog"))
+                        workflow.index("Validate proposed Catalog and Landscape locally"))
         self.assertIn('if [[ "$BASE_RECORD_SHA" == MISSING ]]', workflow)
         self.assertIn('cp ../index.json index.json', workflow)
         self.assertIn('git add -- "extensions/$EXTENSION.json" index.json', workflow)

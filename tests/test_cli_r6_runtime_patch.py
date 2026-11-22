@@ -18,8 +18,9 @@ class RuntimePinTests(unittest.TestCase):
             with self.subTest(file=file):
                 text=(ROOT/file).read_text(encoding="utf-8")
                 self.assertIn("dotnet-version: '11.0.100'",text)
-                self.assertIn("-p:RuntimeFrameworkVersion=11.0.0",text)
                 self.assertNotIn("dotnet-version: '10.0.402'",text)
+        candidate=(ROOT/".github/workflows/cli-candidate.yml").read_text(encoding="utf-8")
+        self.assertIn("-p:RuntimeFrameworkVersion=11.0.0",candidate)
 
     def test_original_r6_receipt_requires_patched_sdk(self):
         src=(ROOT/"scripts/cli_r6_candidate.py").read_text(encoding="utf-8")

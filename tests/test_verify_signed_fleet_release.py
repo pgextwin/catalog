@@ -53,7 +53,7 @@ def fixture(root, name="pg_hint_plan", second_run=902):
     sums = {n: verifier.digest(root / n) for n in names}
     (root / "SHA256SUMS.txt").write_text(
         "".join(v + "  " + k + "\n" for k, v in sorted(sums.items())))
-    assets = [{"name": f.name, "state": "uploaded",
+    assets = [{"name": f.name, "state": "uploaded", "size": f.stat().st_size,
                "digest": "sha256:" + verifier.digest(f)} for f in root.iterdir()]
     return {"assets": assets}, manifest, contract, packaging
 
@@ -117,7 +117,7 @@ class SignedEvidenceTests(unittest.TestCase):
                   patch.object(verifier, "verify_release_tag"),
                   patch.object(verifier, "pinned_json", side_effect=[manifest, contract]),
                   patch.object(verifier, "gh"),
-                  patch.object(verifier, "verify_payload", return_value=({}, {}, 902)),
+                  patch.object(verifier, "verify_payload", return_value=({}, {}, 902, [None])),
                   patch.object(verifier, "verify_main_run"),
                   patch.object(verifier, "verify_release_attestations"),
                   patch.object(verifier, "map_verified_release") as mapper):
@@ -158,20 +158,27 @@ class SignedEvidenceTests(unittest.TestCase):
 
     def test_exact_per_major_upstream_and_download_sha(self):
         root, release, manifest, contract, source = self.make()
-        assets, sums, run = verifier.verify_payload(
-            root, release, manifest, contract, source, [14, 15])
+        with (patch.object(verifier.hashlib, "sha256", wraps=hashlib.sha256) as sha256,
+              patch.object(verifier, "read_package_info",
+                           wraps=verifier.read_package_info) as read_info):
+            assets, digests, run, packages = verifier.verify_payload(
+                root, release, manifest, contract, source, [14, 15])
         self.assertEqual(run, 902)
         self.assertEqual(len(assets), 7)
-        self.assertEqual(len(sums), 6)
-        self.assertIn("pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip", sums)
-        self.assertIn("pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip", sums)
+        self.assertEqual(digests, {name: asset["digest"].removeprefix("sha256:")
+                                   for name, asset in assets.items()})
+        self.assertEqual(sha256.call_count, len(assets))
+        self.assertEqual(read_info.call_count, 2)
+        self.assertEqual([p.zip_path.name for p in packages],
+                         ["pg_hint_plan-REL14_1_4_4-pg14-windows-x64.zip",
+                          "pg_hint_plan-REL15_1_5_3-pg15-windows-x64.zip"])
 
     def test_orafce_nonstandard_upstream_ref(self):
         root, release, manifest, contract, source = self.make("orafce")
-        assets, sums, run = verifier.verify_payload(
+        _, digests, run, _ = verifier.verify_payload(
             root, release, manifest, contract, source, [14, 15])
         self.assertEqual(run, 902)
-        self.assertIn("orafce-VERSION_4_16_13-pg14-windows-x64.zip", sums)
+        self.assertIn("orafce-VERSION_4_16_13-pg14-windows-x64.zip", digests)
 
     def test_denies_tampered_asset_even_with_good_checksum(self):
         root, release, manifest, contract, source = self.make()

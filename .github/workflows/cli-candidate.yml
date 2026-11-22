@@ -15,7 +15,15 @@ on:
       - '.github/workflows/cli-candidate.yml'
   pull_request:
     paths:
+      # Windows smoke also covers checkout byte fidelity and release scripts on PRs.
+      - '.gitattributes'
+      - 'global.json'
       - 'dotnet/**'
+      - 'external/signed-direct-get/**'
+      - '.github/workflows/cli-release.yml'
+      - '.github/workflows/issue112-external-public-get-e2e.yml'
+      - 'scripts/validate_public_get_pin.py'
+      - 'tests/test_validate_public_get_pin.py'
       - 'external/direct-get.json'
       - 'config/cli-external-get-formal-publisher-v1.json'
       - '.github/workflows/cli-candidate.yml'
@@ -43,11 +51,16 @@ jobs:
           dotnet publish dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RuntimeFrameworkVersion=11.0.0 -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o $dir
           if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
           $exe = Join-Path $dir 'pgextwin.exe'
-          if (!(Test-Path $exe)) { throw 'Binary missing' }
-          if ((Get-Item $exe).Length -ge 16000000) { throw 'CLI v0.3.3 full-trim size target not met' }
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Binary missing' }
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request' -and (Get-ChildItem -LiteralPath $dir -File -Filter '*.dll')) { throw 'Unexpected loose DLLs in single-file output' }
+          $size = (Get-Item -LiteralPath $exe).Length
+          if ($size -le 0 -or $size -ge 16000000) { throw 'Invalid CLI binary size' }
           if ((& dotnet --version).Trim() -cne '11.0.100') { throw 'Wrong patched SDK' }
           $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          Write-Output "R6_CANDIDATE_SHA256=$sha RELEASE=DENY"
+          Write-Output "R6_CANDIDATE_SHA256=$sha SIZE=$size RELEASE=DENY"
+      - name: Exercise signed feed v3 selection and trust contracts on Windows
+        if: github.event_name == 'pull_request'
+        run: dotnet run --project dotnet/tests/PgExtWin.Contract.Tests --configuration Release -- --signed-feed
       - name: Record bounded exact-byte receipt (not a signature)
         shell: pwsh
         run: |
@@ -72,6 +85,7 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
+    # The checks moved from validate.yml run on PRs. Main keeps the original candidate checks.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,7 +94,50 @@ jobs:
         with:
           name: cli-r6-private-candidate
           path: ${{ runner.temp }}/cli-independent
-      - name: Rehash original bytes, reject escalation and run EXE
+      - name: Verify signed GET-only metadata bytes and signature on Windows
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(git ls-files -- 'external/signed-direct-get/')
+          if ($LASTEXITCODE -ne 0) { throw 'Signed metadata inventory failed' }
+          foreach ($file in $files) {
+            $expected = (& git rev-parse "HEAD:$file").Trim()
+            if ($LASTEXITCODE -ne 0) { throw 'Signed metadata Git blob unavailable' }
+            $actual = (& git hash-object --no-filters -- $file).Trim()
+            if ($LASTEXITCODE -ne 0 -or $actual -cne $expected) {
+              throw 'Signed metadata working-tree bytes differ from Git blob'
+            }
+          }
+          python scripts/validate_public_get_pin.py --catalog .
+          if ($LASTEXITCODE -ne 0) { throw 'Windows signed metadata verification failed' }
+          Write-Output "WINDOWS_SIGNED_METADATA_BYTE_FIDELITY=PASS FILES=$($files.Count) PROVIDER_GET=NONE"
+
+      - name: Parse versioned CLI release PowerShell without executing publication
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          foreach ($workflow in @('.github/workflows/cli-release.yml','.github/workflows/issue112-external-public-get-e2e.yml')) {
+            $text=Get-Content $workflow -Raw
+            if ($workflow -like '*issue112-external-public-get-e2e.yml') {
+              $offset=$text.IndexOf(([string][char]10 + '  windows-real-original-get:'))
+              if ($offset -lt 0) { throw 'Windows E2E job missing' }
+              $text=$text.Substring($offset)
+            }
+            $blocks=[regex]::Matches($text,'(?m)^        run: \|\r?\n(?<code>(?:^          .*\r?\n|^\r?\n)+)')
+            if ($blocks.Count -eq 0) { throw "No PowerShell blocks found in $workflow" }
+            foreach ($block in $blocks) {
+              $code=$block.Groups['code'].Value -replace '(?m)^          ',''
+              $tokens=$null; $errors=$null
+              [void][System.Management.Automation.Language.Parser]::ParseInput($code,[ref]$tokens,[ref]$errors)
+              if ($errors.Count) { throw ($errors | Out-String) }
+            }
+            Write-Output "CLI_RELEASE_POWERSHELL_PARSE=PASS WORKFLOW=$workflow BLOCKS=$($blocks.Count) NO_EXECUTION=true"
+          }
+
+      - name: Rehash original candidate bytes
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -92,21 +149,111 @@ jobs:
           $sha = (& git rev-parse HEAD).Trim().ToLowerInvariant()
           python scripts/cli_r6_candidate.py verify --binary $exe --receipt $receipt --source $sha --run-id $env:GITHUB_RUN_ID
           if ($LASTEXITCODE -ne 0) { throw 'Independent candidate verification failed' }
-          $version = (& $exe --version 2>&1 | Out-String).Trim()
-          if ($LASTEXITCODE -ne 0 -or $version -cne ([string]([xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)).Project.PropertyGroup.Version)) { throw 'Version smoke failed' }
-          $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
-          if ($LASTEXITCODE -ne 0) { throw 'Catalog smoke failed' }
-          $data = $jsonText | ConvertFrom-Json
+      - name: Smoke-check packaged CLI and negative trust path
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:RUNNER_TEMP 'cli-independent/pgextwin.exe'
+          $version = & $exe --version 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $version.Trim() -cne ([string]([xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)).Project.PropertyGroup.Version)) { throw 'CLI candidate version smoke failed' }
           $index = Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'index.json') -Raw | ConvertFrom-Json
           $expectedCount = @($index.extensions).Count
           if ($index.schemaVersion -ne 2 -or $expectedCount -lt 1 -or $expectedCount -gt 128) { throw 'Unsupported protected Catalog fleet size' }
-          if ($data.count -ne $expectedCount -or @($data.records).Count -ne $expectedCount -or $data.trust -cne 'UNVERIFIED' -or $data.signatureVerified -ne $false) { throw 'Unsafe listing' }
-          $search = & $exe search cron --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 0 -or $search -notmatch 'pg_cron') { throw 'Search smoke failed' }
-          $deny = & $exe verify pg_cron --pg 18 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 2 -or $deny -notmatch 'DENY:') { throw 'Unimplemented Sigstore verification accepted' }
-          $global:LASTEXITCODE = 0
+          $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'JSON list CLI failed' }
+          $json = $jsonText | ConvertFrom-Json
+          if ($json.count -ne $expectedCount -or @($json.records).Count -ne $expectedCount -or $json.trust -cne 'UNVERIFIED' -or $json.signatureVerified -ne $false) { throw 'Unsafe listing' }
+          $found = & $exe search cron --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $found -notmatch 'pg_cron') { throw 'Search smoke failed' }
+          $unsupportedVerify = & $exe verify pg_cron --pg 18 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2 -or $unsupportedVerify -notmatch 'DENY:') { throw 'Unsupported Sigstore verify was accepted' }
+
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
+            $helpText = & $exe --help 2>&1 | Out-String
+            if ($helpText -notmatch 'download-all') { throw 'Bulk download command absent' }
+            if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'pgextwin list') { throw 'Help smoke failed' }
+            $listing = @(& $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 2>&1)
+            if ($LASTEXITCODE -ne 0) { throw 'List smoke failed' }
+            if ($listing[0] -ne 'SOURCE=LOCAL_UNAUTHENTICATED TRUST=UNVERIFIED PUBLISH=DENY') { throw 'Trust banner missing' }
+            $rows = @($listing | Where-Object { $_ -match '^\w+\tPG18\t' })
+            if ($rows.Count -ne $expectedCount) { throw "Expected $expectedCount PG18 rows; got $($rows.Count)" }
+            # Verbose must keep stdout JSON byte-for-byte stable and never raise trust.
+            $log = Join-Path $env:RUNNER_TEMP 'verbose-stderr.log'
+            $verboseJson = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json --verbose 2> $log | Out-String
+            if ($LASTEXITCODE -ne 0) { throw 'Verbose JSON failed' }
+            $verboseData = $verboseJson | ConvertFrom-Json
+            $trace = Get-Content -LiteralPath $log -Raw
+            if ($verboseJson.Trim() -cne $jsonText.Trim() -or
+                $verboseData.trust -cne 'UNVERIFIED' -or
+                $trace -notmatch 'VERBOSE COMMAND_START' -or
+                $trace -notmatch 'CATALOG_LOCAL_LOADED' -or
+                $trace -notmatch 'COMMAND_END') { throw 'Verbose stream isolation failed' }
+            $duplicate = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --verbose --verbose 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $duplicate -notmatch 'DENY: Duplicate --verbose') { throw 'Duplicate verbose accepted' }
+            $unsupported = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --debug 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $unsupported -notmatch 'DENY:') { throw 'Unknown flag accepted' }
+            $downloadVerbose = & $exe download-all --pg 33 --verbose 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $downloadVerbose -notmatch 'DENY:') { throw 'Verbose bypassed PG validation' }
+            $exactBulk = & $exe download-all --pg 15 --version 1.4.4 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $exactBulk -notmatch 'DENY: --version requires download ITEM --source pgextwin') {
+              throw 'Internal bulk accepted an exact version'
+            }
+            if ($json.schemaVersion -ne 'pgextwin-cli-local-catalog/v1' -or
+                $json.source -ne 'LOCAL_UNAUTHENTICATED' -or $json.catalogAuthenticated -ne $false -or
+                $json.publicationAuthorized -ne $false -or $json.distributionAuthorized -ne $false) { throw 'JSON trust envelope mismatch' }
+            if (@($json.records | Where-Object { $_.pgMajor -ne '18' -or $_.trust -ne 'UNVERIFIED' }).Count -ne 0) { throw 'JSON row trust/major mismatch' }
+            $missing = Join-Path $env:RUNNER_TEMP 'pgextwin-no-catalog-here'
+            $denial = & $exe list --catalog-dir $missing --pg 18 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $denial -notmatch 'DENY:') { throw 'Malformed Catalog was not fail-closed' }
+            $downloadDenial = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $downloadDenial -notmatch 'DENY:') { throw 'Download missing independent policy did not fail closed' }
+            $invalidFormat = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --format yaml 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $invalidFormat -notmatch 'DENY:') { throw 'Unknown output format was accepted' }
+            $downloadJson = & $exe download pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE --format json 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $downloadJson -notmatch 'DENY:') { throw 'JSON output incorrectly allowed on download' }
+            $reportDenial = & $exe verify-report pg_cron --pg 18 --catalog-dir $env:GITHUB_WORKSPACE 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $reportDenial -notmatch 'DENY:') { throw 'Unauthenticated report was not rejected' }
+            # Positive Windows self-contained EXE E2E for local external ZIP batch verification.
+            $bulkRoot = Join-Path $env:RUNNER_TEMP 'pgextwin-external-verify-synthetic'
+            $bulkFolder = Join-Path $bulkRoot 'originals/pg18/oracle_fdw'
+            New-Item -ItemType Directory -Force -Path $bulkFolder | Out-Null
+            $bulkZip = Join-Path $bulkFolder 'oracle_fdw-2.9.0-pg18-win64.zip'
+            Add-Type -AssemblyName System.IO.Compression
+            $archive = [System.IO.Compression.ZipFile]::Open($bulkZip, [System.IO.Compression.ZipArchiveMode]::Create)
+            try {
+              $entry = $archive.CreateEntry('README.txt')
+              $writer = [System.IO.StreamWriter]::new($entry.Open())
+              try { $writer.Write('synthetic original ZIP: not for distribution') } finally { $writer.Dispose() }
+            } finally { $archive.Dispose() }
+            $digest = (Get-FileHash -LiteralPath $bulkZip -Algorithm SHA256).Hash.ToLowerInvariant()
+            $size = (Get-Item -LiteralPath $bulkZip).Length
+            $ledgerFile = Join-Path $bulkRoot 'review.json'
+            $ledgerDoc = @{
+              schemaVersion = 'pgextwin-external-original-link-review/v1'
+              scope = 'REFERENCE_TO_UNMODIFIED_PROVIDER_RELEASE_ASSET_ONLY'
+              rightsReview = 'SOURCE_AND_NOTICE_REFERENCES_REVIEWED_NOT_DISTRIBUTION_APPROVAL'
+              publicationAuthorized = $false; downloadAuthorized = $false
+              mirrorAuthorized = $false; redistributionAuthorized = $false; signedExternalCatalogPin = $false
+              records = @(@{
+                extension = 'oracle_fdw'; pgMajor = '18'; sourceRepo = 'laurenz/oracle_fdw'
+                repositoryId = 14332609; releaseId = 335861225; assetId = 442625860
+                releaseTag = 'ORACLE_FDW_2_9_0'; assetName = 'oracle_fdw-2.9.0-pg18-win64.zip'
+                originalProviderUrl = 'https://github.com/laurenz/oracle_fdw/releases/download/ORACLE_FDW_2_9_0/oracle_fdw-2.9.0-pg18-win64.zip'
+                originalBytes = $size; originalSha256 = $digest
+                referenceLinkReviewed = $true; downloadAuthorized = $false; mirrorAuthorized = $false
+              })
+            }
+            $ledgerDoc | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ledgerFile -Encoding utf8
+            $bulkResult = & $exe verify external --ledger $ledgerFile --input-dir (Join-Path $bulkRoot 'originals') --pg 18 | Out-String
+            if ($LASTEXITCODE -ne 0 -or $bulkResult -notmatch 'ZIP_COUNT=1' -or $bulkResult -notmatch 'DOWNLOAD_AUTHORIZED=FALSE PUBLISH=DENY') { throw 'External local batch verification EXE smoke failed' }
+            $bulkDenied = & $exe verify-external-all --ledger $ledgerFile --input-dir (Join-Path $bulkRoot 'originals') --pg 17 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 2 -or $bulkDenied -notmatch 'DENY:') { throw 'Unreviewed external PG major was not denied' }
+            Write-Output 'EXTERNAL_LOCAL_BULK_WIN_X64_EXE_E2E=PASS NETWORK_GET=0 PUBLISH=DENY'
+            Write-Output 'CLI_R2A_NO_TRUST_ELEVATION_NEGATIVE_SMOKE=PASS'
+          }
           Write-Output 'CLI_R6_PRIVATE_FRESH_RUNNER_SMOKE=PASS PUBLISH=DENY'
+          # Negative tests intentionally exit 2; clear the native process code only after all assertions pass.
+          $global:LASTEXITCODE = 0
 
   attest-provenance:
     # Signed provenance only for protected main, never an untrusted PR.
