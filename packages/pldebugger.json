@@ -42,32 +42,32 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pldebugger",
     "path": "config/test-contract.json",
-    "commit": "d78112e314460f1ed9688806eb532b006d986da7"
+    "commit": "5890cb5fa8f2e1725b76484c4a89b71a319f8839"
   },
   "upstream": {
     "repository": "EnterpriseDB/pldebugger"
   },
   "repositoryId": 1462270908,
-  "latestReleaseId": 449543190,
+  "latestReleaseId": 456083304,
   "unavailableMajors": [],
   "releases": [
     {
-      "releaseTag": "v1.10-windows.1",
-      "releaseId": 449543190,
-      "publishedAt": "2026-11-18T04:58:41Z",
+      "releaseTag": "v1.10-windows.2",
+      "releaseId": 456083304,
+      "publishedAt": "2026-11-23T22:41:38Z",
       "checksumsAsset": "SHA256SUMS.txt",
       "packages": [
         {
           "pgMajor": "15",
           "version": "1.10",
           "asset": "pldebugger-v1.10-pg15-windows-x64.zip",
-          "assetId": 761976205,
-          "sha256": "280d5c99e0ed0b4c46f0bdeb60018c32a896034c9047afbf7817864b55c1444c",
+          "assetId": 784818431,
+          "sha256": "9c7114f1c6963de1587e8b1ff75ea942b36e6dffd18c83040bcf806b4f2d5059",
           "license": {
             "name": "Artistic-2.0",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/LICENSE",
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/README-pldebugger.md"
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/README-pldebugger.md",
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/LICENSE"
             ]
           },
           "evidence": {
@@ -77,8 +77,8 @@
             "sbom": {
               "available": true,
               "asset": "pldebugger-v1.10-pg15-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg15-windows-x64.spdx.json",
-              "sha256": "89b94b8476f1532730306b5deedcd1b5d2ba30eb969fa6bb4dc705363af9393a"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg15-windows-x64.spdx.json",
+              "sha256": "d5a280338a04fd45e228be338b3e0b9c84fdb79174dad2b1a5b5e9c10c0b72a1"
             },
             "sbomAttestation": {
               "available": true
@@ -86,8 +86,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pldebugger-v1.10-pg15-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg15-windows-x64.vulnerabilities.json",
-              "sha256": "d2ab44eb8eb22d9932a6bc33d0c3d9d2b320c6c5772944ca4792f9b511be52d4"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "711918c474c57d91760940d782c58496330a79a8d83d7f2633d2904c4167352d"
             }
           }
         },
@@ -95,13 +95,13 @@
           "pgMajor": "16",
           "version": "1.10",
           "asset": "pldebugger-v1.10-pg16-windows-x64.zip",
-          "assetId": 761976237,
-          "sha256": "b573b21df0e2aa41d88ee10175117f335b09718655e5b08bff21befd5a78a17b",
+          "assetId": 784818470,
+          "sha256": "0b4afd1b185430fd57767cc31c849d3308e061618cc9163609830f595f6ef898",
           "license": {
             "name": "Artistic-2.0",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/LICENSE",
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/README-pldebugger.md"
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/README-pldebugger.md",
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/LICENSE"
             ]
           },
           "evidence": {
@@ -111,8 +111,8 @@
             "sbom": {
               "available": true,
               "asset": "pldebugger-v1.10-pg16-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg16-windows-x64.spdx.json",
-              "sha256": "041e91a235cfeabd4fd98c1760b6ecca8d4834b4b878c2c5ce598778ebe43160"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg16-windows-x64.spdx.json",
+              "sha256": "ba64f894df0208e91adb9bb0328f34ba825faa37a926e6673ef9a96a56e08b83"
             },
             "sbomAttestation": {
               "available": true
@@ -120,8 +120,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pldebugger-v1.10-pg16-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg16-windows-x64.vulnerabilities.json",
-              "sha256": "971b4f063623e055b30b3a63f067eac16e7d2b57637d799fbdb49643f2bc6e2d"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "637470c6bce1623433dad076d730bffb2fd13914aed4a6529800fe8d6d36e02a"
             }
           }
         },
@@ -129,13 +129,13 @@
           "pgMajor": "17",
           "version": "1.10",
           "asset": "pldebugger-v1.10-pg17-windows-x64.zip",
-          "assetId": 761976270,
-          "sha256": "60de5f6a36599a1bbf3d8a5a10c54f63781db514be2852f696254914cd6966e7",
+          "assetId": 784818480,
+          "sha256": "7e9d1c876b759cec9890f1923f0c95ffc56670bf16ee7128da58b469c3e5e40b",
           "license": {
             "name": "Artistic-2.0",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/LICENSE",
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/README-pldebugger.md"
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/README-pldebugger.md",
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/LICENSE"
             ]
           },
           "evidence": {
@@ -145,8 +145,8 @@
             "sbom": {
               "available": true,
               "asset": "pldebugger-v1.10-pg17-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg17-windows-x64.spdx.json",
-              "sha256": "2b9178a189d491c64de4654c02e3d9b0835f39f79caa73e41517106d3a2aa30c"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg17-windows-x64.spdx.json",
+              "sha256": "0209d11043efe047da0ea804a870a6aee8ef1908ae9e48afda44b01c8919cfbf"
             },
             "sbomAttestation": {
               "available": true
@@ -154,8 +154,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pldebugger-v1.10-pg17-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg17-windows-x64.vulnerabilities.json",
-              "sha256": "94478f32328b0324dacc730a0738e8fe7820c46aef2246bcb339de3d4f41d705"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "8e67b8d5c16125b428300ffa5efdaadcc92b2cc1a75dec2d6aa8f36109f36189"
             }
           }
         },
@@ -163,13 +163,13 @@
           "pgMajor": "18",
           "version": "1.10",
           "asset": "pldebugger-v1.10-pg18-windows-x64.zip",
-          "assetId": 761976292,
-          "sha256": "3ec9e535be8939e28773b53c9dc3ceb4fa6b436c234fbbf3bf7b1e71987dfd53",
+          "assetId": 784818517,
+          "sha256": "1a0a77bee8a76dbb7158667c0b58d78081f39278696c50b5620550c303a3e4af",
           "license": {
             "name": "Artistic-2.0",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/LICENSE",
-              "https://github.com/pgextwin/pldebugger/blob/d78112e314460f1ed9688806eb532b006d986da7/README-pldebugger.md"
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/README-pldebugger.md",
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/LICENSE"
             ]
           },
           "evidence": {
@@ -179,8 +179,8 @@
             "sbom": {
               "available": true,
               "asset": "pldebugger-v1.10-pg18-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg18-windows-x64.spdx.json",
-              "sha256": "46f4b1b827f30abb34040edc5751d676f4b74d8bd3e727f39ad0bbba3be7fa62"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg18-windows-x64.spdx.json",
+              "sha256": "8857625dcaafb272c626592b44f678d13f3e870e5467d61f16ce082080565a04"
             },
             "sbomAttestation": {
               "available": true
@@ -188,8 +188,41 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pldebugger-v1.10-pg18-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.1/pldebugger-v1.10-pg18-windows-x64.vulnerabilities.json",
-              "sha256": "bcdd6896b1f12b2b2a61ace1360196428f613a7da372fb0a8777901dd5f273e1"
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "438cc541f65cb394fabc44d005490a15ed7701259519618b6a5c04b5665129c6"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "1.10",
+          "asset": "pldebugger-v1.10-pg19-windows-x64.zip",
+          "assetId": 784818547,
+          "sha256": "6d79070a934a69f97887fa04e1108d311fde421bda08e0d404e7583a52f55077",
+          "license": {
+            "name": "Artistic-2.0",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pldebugger/blob/5890cb5fa8f2e1725b76484c4a89b71a319f8839/README-pldebugger.md"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pldebugger-v1.10-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg19-windows-x64.spdx.json",
+              "sha256": "706fd85d6e454442a3ff2b41b3eaf1ae981b1e2623d37de96d0aa7226fe9b841"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pldebugger-v1.10-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pldebugger/releases/download/v1.10-windows.2/pldebugger-v1.10-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "e690e90bcd6798aaa4272ae9b860802bd265027d90e96e4d3dd2ada230e3c683"
             }
           }
         }
