@@ -68,8 +68,7 @@
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
-              "https://github.com/postgres/postgres/blob/6b3806732b7c5df06bdd0ed150e8a07b4ad62315/COPYRIGHT"
+              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT"
             ]
           },
           "evidence": {
@@ -102,8 +101,7 @@
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
-              "https://github.com/postgres/postgres/blob/2ff1375b5dd8bf09d8cb0e795974528180fd75ca/COPYRIGHT"
+              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT"
             ]
           },
           "evidence": {
@@ -136,8 +134,7 @@
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
-              "https://github.com/postgres/postgres/blob/7d3e000c5961a544302072058a1184e9a588837b/COPYRIGHT"
+              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT"
             ]
           },
           "evidence": {
@@ -170,8 +167,7 @@
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
-              "https://github.com/postgres/postgres/blob/083ac033419f690758508e08c1736089384bbee8/COPYRIGHT"
+              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT"
             ]
           },
           "evidence": {
@@ -204,8 +200,7 @@
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
-              "https://github.com/postgres/postgres/blob/724edf9bde9d356724ad384a2e196edc3c9f80f7/COPYRIGHT"
+              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT"
             ]
           },
           "evidence": {
