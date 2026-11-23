@@ -174,6 +174,7 @@ class OwnerSignedCatalogTests(TestCase):
             ("pgextwin/pg_stat_monitor", 47, "v2.4.1-windows.1"),
             ("pgextwin/pgaudit", 60, "v19.0-windows.1"),
             ("pgextwin/pg_partman", 54, "v5.5.1-windows.1"),
+            ("pgextwin/pg_repack", 60, "v1.5.3-windows.3"),
             ("pgextwin/odbc_fdw", 3, "v0.5.2.3-windows.1"),
             ("pgextwin/pg_failover_slots", 3, "v1.2.1-windows.1"),
             ("pgextwin/pg_permissions", 1, "v1.4.1-windows.1"),
