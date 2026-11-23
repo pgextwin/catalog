@@ -47,31 +47,31 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_track_settings",
     "path": "config/test-contract.json",
-    "commit": "bc2f24fa59f44bb1a2f906b1e5ad36d42c1fbc50"
+    "commit": "cab930525dfef66982ec44a23addb93233d2d6ce"
   },
   "upstream": {
     "repository": "rjuju/pg_track_settings"
   },
   "repositoryId": 1459305919,
-  "latestReleaseId": 448925528,
+  "latestReleaseId": 455641049,
   "unavailableMajors": [],
   "releases": [
     {
-      "releaseTag": "v2.1.2-windows.1",
-      "releaseId": 448925528,
-      "publishedAt": "2026-11-17T16:48:24Z",
+      "releaseTag": "v2.1.2-windows.2",
+      "releaseId": 455641049,
+      "publishedAt": "2026-11-23T15:51:57Z",
       "checksumsAsset": "SHA256SUMS.txt",
       "packages": [
         {
           "pgMajor": "15",
           "version": "2.1.2",
           "asset": "pg_track_settings-2.1.2-pg15-windows-x64.zip",
-          "assetId": 759851782,
-          "sha256": "a31214c2cf98e28744316619cb10f6f2bfd0e5d3551dbad6080fe47f432f3ff9",
+          "assetId": 783546188,
+          "sha256": "880d75dcfd2cf6f96d6b83a4ad7830cd425b4306ab808a78f763faba1f51054d",
           "license": {
             "name": "PostgreSQL",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_track_settings/blob/bc2f24fa59f44bb1a2f906b1e5ad36d42c1fbc50/LICENSE"
+              "https://github.com/pgextwin/pg_track_settings/blob/cab930525dfef66982ec44a23addb93233d2d6ce/LICENSE"
             ]
           },
           "evidence": {
@@ -81,8 +81,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg15-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg15-windows-x64.spdx.json",
-              "sha256": "b7084cf8f871159dac2f54db575c5a1f0ed4bd4405321d3562f2bbfede4743a8"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg15-windows-x64.spdx.json",
+              "sha256": "2b40a9081c481d915fa4e3b9157dbf7fe2a14232c5657b8dbe70c947ebf2810c"
             },
             "sbomAttestation": {
               "available": true
@@ -90,8 +90,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg15-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg15-windows-x64.vulnerabilities.json",
-              "sha256": "afe0616f027ad0dedc5bc758ef8eb708e2a0bd730f6ce165804a8bdf10995ed2"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "dadbe76c58191c1013187630ee0de601fd40036a319ec73ec937b87454bab695"
             }
           }
         },
@@ -99,12 +99,12 @@
           "pgMajor": "16",
           "version": "2.1.2",
           "asset": "pg_track_settings-2.1.2-pg16-windows-x64.zip",
-          "assetId": 759851815,
-          "sha256": "c5eb6015b0047c74f94157b6fb7ccdca7e4873019d6d6d34ad5810ff59a16dee",
+          "assetId": 783546218,
+          "sha256": "0a0c7e373ea71d3d73c41ff7adff6df8b579fac0776e074fb59c4c567b25ca77",
           "license": {
             "name": "PostgreSQL",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_track_settings/blob/bc2f24fa59f44bb1a2f906b1e5ad36d42c1fbc50/LICENSE"
+              "https://github.com/pgextwin/pg_track_settings/blob/cab930525dfef66982ec44a23addb93233d2d6ce/LICENSE"
             ]
           },
           "evidence": {
@@ -114,8 +114,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg16-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg16-windows-x64.spdx.json",
-              "sha256": "6f3fabf3eb16b23a9a874e24fee091f6c4e64b9becf172589d9b02d8c681afa1"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg16-windows-x64.spdx.json",
+              "sha256": "02bbd75caca37d4fa7a6269988670d68d248642fd74caf72b19a1bf128e1fdb5"
             },
             "sbomAttestation": {
               "available": true
@@ -123,8 +123,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg16-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg16-windows-x64.vulnerabilities.json",
-              "sha256": "523a17730bcb2a5dff8c82ddb222d9c4be388cf4fdefaeac038eb6c759d4081e"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "87ddfa0012f8fddc274757e701cead824659df932b3682629f6b0edb0595af88"
             }
           }
         },
@@ -132,12 +132,12 @@
           "pgMajor": "17",
           "version": "2.1.2",
           "asset": "pg_track_settings-2.1.2-pg17-windows-x64.zip",
-          "assetId": 759851827,
-          "sha256": "6396e29ab78e33afb5339493056b28b523fa2a93b5797e84e648fcee66db5b54",
+          "assetId": 783546227,
+          "sha256": "11e39e13f2a07722db21e0b2a6dcdfef0daae872eb8a8d724e489d8ba226655b",
           "license": {
             "name": "PostgreSQL",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_track_settings/blob/bc2f24fa59f44bb1a2f906b1e5ad36d42c1fbc50/LICENSE"
+              "https://github.com/pgextwin/pg_track_settings/blob/cab930525dfef66982ec44a23addb93233d2d6ce/LICENSE"
             ]
           },
           "evidence": {
@@ -147,8 +147,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg17-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg17-windows-x64.spdx.json",
-              "sha256": "cd7aa5a04a54e1bac1401d9369052b80a691178c9b1a3e9c1261788788afa6ff"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg17-windows-x64.spdx.json",
+              "sha256": "3f58ef475c89917619201d8e96ad516f2c31acf1fba00165c2124daa17c315fb"
             },
             "sbomAttestation": {
               "available": true
@@ -156,8 +156,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg17-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg17-windows-x64.vulnerabilities.json",
-              "sha256": "dc6072d24b517148e8a740a52b16da365d15f6e92cb78f45266f258cc3d2da40"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "61795160a47a501d73b957d0f493b794db0dbb1d17e1b9da26a5cb9ee4a887e1"
             }
           }
         },
@@ -165,12 +165,12 @@
           "pgMajor": "18",
           "version": "2.1.2",
           "asset": "pg_track_settings-2.1.2-pg18-windows-x64.zip",
-          "assetId": 759851854,
-          "sha256": "35079020c6954d1931a0f3c9953dbdb689cc0e5417af489bbac0d65ddf7a206a",
+          "assetId": 783546250,
+          "sha256": "39582a30f6668dfcdff9ed3a4a6fee19809e88a0ac55275785076fa55a2e1cf5",
           "license": {
             "name": "PostgreSQL",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_track_settings/blob/bc2f24fa59f44bb1a2f906b1e5ad36d42c1fbc50/LICENSE"
+              "https://github.com/pgextwin/pg_track_settings/blob/cab930525dfef66982ec44a23addb93233d2d6ce/LICENSE"
             ]
           },
           "evidence": {
@@ -180,8 +180,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg18-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg18-windows-x64.spdx.json",
-              "sha256": "6dcd88c52e0af0656155a34aaec56f84e6cdf121bcf554e798cd8984c02fc94b"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg18-windows-x64.spdx.json",
+              "sha256": "cae525f1bb844f6ec958ad0bd19ec452a441e1cc1d661681ef739f7c87741c4d"
             },
             "sbomAttestation": {
               "available": true
@@ -189,8 +189,41 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_track_settings-2.1.2-pg18-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.1/pg_track_settings-2.1.2-pg18-windows-x64.vulnerabilities.json",
-              "sha256": "222fc9f8b85bc47512eb37996273ea49ef6db1d6953f2dfa422a86d045d6ea03"
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "51268d7d28e1d47e1ea791ab6f4b858d2bae90646ef0aef42052ba210405cfd0"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "2.1.2",
+          "asset": "pg_track_settings-2.1.2-pg19-windows-x64.zip",
+          "assetId": 783546296,
+          "sha256": "99d1ccbc47bf4e4af904f87648a59e3de6a61a3e70aab7dc04f267b20043665a",
+          "license": {
+            "name": "PostgreSQL",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_track_settings/blob/cab930525dfef66982ec44a23addb93233d2d6ce/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_track_settings-2.1.2-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg19-windows-x64.spdx.json",
+              "sha256": "c10f4eb0c411dbbd857d605a7068d061247f23d62afcf976c0b741db1b3a4fad"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_track_settings-2.1.2-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_track_settings/releases/download/v2.1.2-windows.2/pg_track_settings-2.1.2-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "8d1013d8377519077798a166d6c74755fa045dcde06859b6a5f49f776ef261ea"
             }
           }
         }
