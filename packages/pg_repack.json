@@ -44,14 +44,16 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_repack",
     "path": "config/test-contract.json",
-    "commit": "8cd0fdcd17b5849fdc611d243966d2ed2987e7cf"
+    "commit": "60fda0740528bf84ff578c5b730969efcbf5ec49"
   },
   "upstream": {
     "repository": "reorg/pg_repack"
   },
   "repositoryId": 1406488287,
-  "latestReleaseId": 408452263,
-  "unavailableMajors": [],
+  "latestReleaseId": 455376722,
+  "unavailableMajors": [
+    "14"
+  ],
   "releases": [
     {
       "releaseTag": "v1.5.3-windows.2",
@@ -92,17 +94,28 @@
               "sha256": "96370622d80a8fd7a233e6355f1de6d72e6d1b3136d7bf5aa9580b7e2f6a5f16"
             }
           }
-        },
+        }
+      ],
+      "admission": {
+        "catalogCommit": "f6338108550a0eceaa02f68ee2ba311562cf4282"
+      }
+    },
+    {
+      "releaseTag": "v1.5.3-windows.4",
+      "releaseId": 455376722,
+      "publishedAt": "2026-11-23T12:11:24Z",
+      "checksumsAsset": "SHA256SUMS.txt",
+      "packages": [
         {
           "pgMajor": "15",
           "version": "1.5.3",
           "asset": "pg_repack-ver_1.5.3-pg15-windows-x64.zip",
-          "assetId": 626572279,
-          "sha256": "92a030e15ac4711085c9d9a4e294eb6151c5110301c720cbc65ea1909d699fd2",
+          "assetId": 782802924,
+          "sha256": "9b48e54362e8638df3c8e28a5b6cd7d317e3f330f166ed407957ba2bc720fc4d",
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
+              "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/COPYRIGHT",
               "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/licenses/COPYRIGHT.postgresql"
             ]
           },
@@ -113,8 +126,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg15-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg15-windows-x64.spdx.json",
-              "sha256": "b2e6631131be0f71d7c728cbc9756637b2f0f1c7e56fc04e25fee0ee63a12e61"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg15-windows-x64.spdx.json",
+              "sha256": "a1d61a24bf936b7dbf3075af189ac2ca8451afee6ff33c46c7271bb8b0699563"
             },
             "sbomAttestation": {
               "available": true
@@ -122,8 +135,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg15-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg15-windows-x64.vulnerabilities.json",
-              "sha256": "788f4f08fbbd2458839ca63b95f0f173cbee8920c293f7ee6abe851137fcde17"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "ea9c50ea8052e00cedd6a479be08f5e1139098a3e5b9aad3c36f4018ee74ebd0"
             }
           }
         },
@@ -131,12 +144,12 @@
           "pgMajor": "16",
           "version": "1.5.3",
           "asset": "pg_repack-ver_1.5.3-pg16-windows-x64.zip",
-          "assetId": 626572274,
-          "sha256": "bbcfa2f29172a4a7fcb95f7ddc9818708c80dacc2d4ac9416bd5f46146893b47",
+          "assetId": 782802966,
+          "sha256": "d4319d77dad0e735693e5810b5c1a161f64c886d78e5adaac60741603f448602",
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
+              "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/COPYRIGHT",
               "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/licenses/COPYRIGHT.postgresql"
             ]
           },
@@ -147,8 +160,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg16-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg16-windows-x64.spdx.json",
-              "sha256": "2727ecee537af9ee156a4b2baffbdf291f44ed157b03c5432c4978e4db8c4617"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg16-windows-x64.spdx.json",
+              "sha256": "455c91dd813c649a3675b53e51fb843335d80f4744738917cd8943ede81a7c00"
             },
             "sbomAttestation": {
               "available": true
@@ -156,8 +169,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg16-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg16-windows-x64.vulnerabilities.json",
-              "sha256": "04c89b3d9fbe7a1055bbe153dfcbd9728091720fa1e6de6381d1aa0f3a9eed17"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "f03dc6794bd1242e693808d8edc9f4d19bc838110a001bca67d6451187a500d4"
             }
           }
         },
@@ -165,12 +178,12 @@
           "pgMajor": "17",
           "version": "1.5.3",
           "asset": "pg_repack-ver_1.5.3-pg17-windows-x64.zip",
-          "assetId": 626572281,
-          "sha256": "97c5a42a978d0acaf228891a8a26a33beaf3fe634a248543ff0c134e6d9672bd",
+          "assetId": 782802973,
+          "sha256": "1e5f3824ed4070f0aa58486fedc1e4834361272520d150d60e68a39dc19e3b49",
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
+              "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/COPYRIGHT",
               "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/licenses/COPYRIGHT.postgresql"
             ]
           },
@@ -181,8 +194,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg17-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg17-windows-x64.spdx.json",
-              "sha256": "139ba1ac7a00aeaa25b62dbee573b568c2ee42fb92ea8a562e36cc65bcc63c4c"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg17-windows-x64.spdx.json",
+              "sha256": "6673e6d3845b69934e16e3ea13ab52e4ee3cd5cfc44c7e8c318558b5bd677373"
             },
             "sbomAttestation": {
               "available": true
@@ -190,8 +203,8 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg17-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg17-windows-x64.vulnerabilities.json",
-              "sha256": "9873f7d9af7a9ba3a0555c75f8cb7b6ebebc64927fbf3007cbe3946b3b85d667"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "8b7a09251b777a40a83c0dc7562c18f6cec1d3ab5b1aa43e848f3c478fbf56a6"
             }
           }
         },
@@ -199,12 +212,12 @@
           "pgMajor": "18",
           "version": "1.5.3",
           "asset": "pg_repack-ver_1.5.3-pg18-windows-x64.zip",
-          "assetId": 626572277,
-          "sha256": "94141ebb7e039635c4c762ea4a2a82ceab404e4618a3687484ad6ccf3ae7124c",
+          "assetId": 782803021,
+          "sha256": "0195519bc2c29fba3c185c940e86dd25be5ff631b4763e0f818fc04a6b647f65",
           "license": {
             "name": "BSD-style and PostgreSQL License",
             "evidenceUrls": [
-              "https://github.com/pgextwin/pg_repack/blob/b9912670576e643ac2c04bb590c412500088d725/COPYRIGHT",
+              "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/COPYRIGHT",
               "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/licenses/COPYRIGHT.postgresql"
             ]
           },
@@ -215,8 +228,8 @@
             "sbom": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg18-windows-x64.spdx.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg18-windows-x64.spdx.json",
-              "sha256": "5990e1c65ed880038c6e527d08c955d21eb4f9f8f4538585f94a75af2f711736"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg18-windows-x64.spdx.json",
+              "sha256": "87052176bcb06fb07a8f1f230aac867d4b15d7a03d26a4168889d4c75228769e"
             },
             "sbomAttestation": {
               "available": true
@@ -224,8 +237,41 @@
             "vulnerabilityReport": {
               "available": true,
               "asset": "pg_repack-ver_1.5.3-pg18-windows-x64.vulnerabilities.json",
-              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.2/pg_repack-ver_1.5.3-pg18-windows-x64.vulnerabilities.json",
-              "sha256": "2b7ce59046cd263cb8e643891d0f5090f69df74fdd3543012d7727510ed72dec"
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "1c0975fe232d5f9b29e7b22bc0ea5c5fb4d56510e0069671b1348a00b4191265"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "1.5.3",
+          "asset": "pg_repack-ver_1.5.3-pg19-windows-x64.zip",
+          "assetId": 782803066,
+          "sha256": "a0a49c62ace5a55149e963c761078c5faf940fe4f2923dc13fe28d45d18d0c00",
+          "license": {
+            "name": "BSD-style and PostgreSQL License",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/pg_repack/blob/60fda0740528bf84ff578c5b730969efcbf5ec49/COPYRIGHT"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "pg_repack-ver_1.5.3-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg19-windows-x64.spdx.json",
+              "sha256": "74dfee6e3c8b74aa8a04e8246f0d608081cc07563f42091d22e1874faa626659"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "pg_repack-ver_1.5.3-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/pg_repack/releases/download/v1.5.3-windows.4/pg_repack-ver_1.5.3-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "fff81c059e4f338026261fb2780fd18d373656e129cfba8d6e3126f791cacc19"
             }
           }
         }
