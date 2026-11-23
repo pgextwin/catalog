@@ -56,7 +56,7 @@ FIRST_RELEASE_SIGNER_PINS = {
     "pg_track_settings": "3e235c7a403bf32a86b1013db6c302ab23e445df",
     "pg_wait_sampling": "e49f2fade7fd2951249a2dce1ddff69a808ce7ca",
     "pgtap": "4558c82c28b0814e60f35c6e5e5f8ee1025a5754",
-    "pldebugger": "b4e2be8b6d8fe26b91bc44d29631ca85fafa68c8",
+    "pldebugger": "4558c82c28b0814e60f35c6e5e5f8ee1025a5754",
 }
 PROVENANCE = "https://slsa.dev/provenance/v1"
 SPDX = "https://spdx.dev/Document/v2.3"
