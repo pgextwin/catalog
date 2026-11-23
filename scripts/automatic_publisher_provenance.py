@@ -61,6 +61,7 @@ OWNER_SIGNING_ISSUES={
     "pgextwin/pgaudit":60,
     "pgextwin/pg_partman":54,
     "pgextwin/pg_repack":60,
+    "pgextwin/pgtap":66,
 }
 ORIGINS={
     "automatic-schedule": ("schedule", "INDEPENDENT_LIVE_SCHEDULE_AND_SIGNED_SOURCE"),

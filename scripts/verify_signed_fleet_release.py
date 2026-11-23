@@ -53,8 +53,9 @@ FIRST_RELEASE_SIGNER_PINS = {
     "pg_profile": "c8b8a3cfad9734872ae9ceb8e305135a5d13e4a1",
     "pg_show_plans": "9be737c9126bb0b91b3a412ab97aa1b61fe88503",
     "pg_squeeze": "cb95fa6489df29853292dc3709ac13f00c1de9d0",
-    "pg_track_settings": "cdb253b5167031264e1baea634b55934c5f91d59",
+    "pg_track_settings": "4558c82c28b0814e60f35c6e5e5f8ee1025a5754",
     "pg_wait_sampling": "e49f2fade7fd2951249a2dce1ddff69a808ce7ca",
+    "pgtap": "4558c82c28b0814e60f35c6e5e5f8ee1025a5754",
     "pldebugger": "b4e2be8b6d8fe26b91bc44d29631ca85fafa68c8",
 }
 PROVENANCE = "https://slsa.dev/provenance/v1"
