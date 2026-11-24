@@ -11,9 +11,9 @@
   "license": "PostgreSQL",
   "architecture": "x64",
   "latest": {
-    "releaseTag": "v5.5.1-windows.1",
-    "publishedAt": "2026-11-22T00:49:16Z",
-    "releaseUrl": "https://github.com/pgextwin/pg_partman/releases/tag/v5.5.1-windows.1",
+    "releaseTag": "v5.5.1-windows.2",
+    "publishedAt": "2026-11-24T01:52:30Z",
+    "releaseUrl": "https://github.com/pgextwin/pg_partman/releases/tag/v5.5.1-windows.2",
     "checksumsAsset": "SHA256SUMS.txt"
   },
   "postgresql": {
@@ -23,8 +23,8 @@
     "15": {
       "available": true,
       "asset": "pg_partman-v5.5.1-pg15-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg15-windows-x64.zip",
-      "sha256": "beb38810c6b4c6c5d0dd896c473923b5a8be3a321fc70383b22aac49cebf4c53",
+      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg15-windows-x64.zip",
+      "sha256": "1cf32631414207a1af7493ffc7d5b7ddf92889c29c5fad2b8a578e214585d246",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -32,8 +32,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg15-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg15-windows-x64.spdx.json",
-          "sha256": "32e26a54024ea7a78304255864751cece49db41a066d7643c5064233d66f0bd0"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg15-windows-x64.spdx.json",
+          "sha256": "ac248c0ed2fc83002eb33bab8de6d589cf5672821aba6f0213585d3abaab9d17"
         },
         "sbomAttestation": {
           "available": true
@@ -41,16 +41,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg15-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg15-windows-x64.vulnerabilities.json",
-          "sha256": "2e793f842c485f91d1903015cc3bd3849df69c8f66c35d1e9d61079206250a10"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg15-windows-x64.vulnerabilities.json",
+          "sha256": "968b9296817b3be2c099ef423256a27e57bd3eb871605e96f35f00facdb0a942"
         }
       }
     },
     "16": {
       "available": true,
       "asset": "pg_partman-v5.5.1-pg16-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg16-windows-x64.zip",
-      "sha256": "5ba41f110443bd975fe46351622db4a12d57702c29cd6b311f29536652460ccb",
+      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg16-windows-x64.zip",
+      "sha256": "fc4944d49e1d79323eb670ded66c15c4359f886fb5d51d1fc4d8105902e5fece",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -58,8 +58,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg16-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg16-windows-x64.spdx.json",
-          "sha256": "e621c5cebeed4d689e68d6bebba5e111fbd8b52cc690ef230b22fab1b9554212"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg16-windows-x64.spdx.json",
+          "sha256": "6afcafb501745cc1594bc4798c79fd2a2eb8918508c56e06b10454cb26538815"
         },
         "sbomAttestation": {
           "available": true
@@ -67,16 +67,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg16-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg16-windows-x64.vulnerabilities.json",
-          "sha256": "4ccfaf8f0137c6686818eff90ca9a00d305fb0a9c355d069de17fa6dc2e32cf5"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg16-windows-x64.vulnerabilities.json",
+          "sha256": "f9874521a496dd743eb7fcb26ef11e2599a7e8d7aff26bc18418e220184cec2d"
         }
       }
     },
     "17": {
       "available": true,
       "asset": "pg_partman-v5.5.1-pg17-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg17-windows-x64.zip",
-      "sha256": "8e02823767e4223051e2fc4872ad5c0e9a3dc68c44090b4f9bfe9f8661a7ead2",
+      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg17-windows-x64.zip",
+      "sha256": "e89b65e0a4842712d211690d5e4d7e3533be394154444241d810d29a1c5745c9",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -84,8 +84,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg17-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg17-windows-x64.spdx.json",
-          "sha256": "a7321098f5a10efc5857c03879a6a968ef7224264ce94972976cb94bd352c590"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg17-windows-x64.spdx.json",
+          "sha256": "35fec27aaa596cf67740247baea28593c8ed60c540e2a1c8260341e343a1b6a3"
         },
         "sbomAttestation": {
           "available": true
@@ -93,16 +93,16 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg17-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg17-windows-x64.vulnerabilities.json",
-          "sha256": "37f8345a5633d5801dbe8732e53e0fbb794e91ed883b6d2ffa835a027e2c5df0"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg17-windows-x64.vulnerabilities.json",
+          "sha256": "58eb9f49de56b103271f7636f047c66cf58cdb5e2ad0a011c7ef24d647a1279b"
         }
       }
     },
     "18": {
       "available": true,
       "asset": "pg_partman-v5.5.1-pg18-windows-x64.zip",
-      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg18-windows-x64.zip",
-      "sha256": "69ccfa23f873db151ba75eb8a507d674cf749e2ebf991bf86cd603967760a2d2",
+      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg18-windows-x64.zip",
+      "sha256": "a361941dfa5efa0bf1503dcb33763ec53317dacaabc892edc0757f40b898519d",
       "evidence": {
         "buildProvenanceAttestation": {
           "available": true
@@ -110,8 +110,8 @@
         "sbom": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg18-windows-x64.spdx.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg18-windows-x64.spdx.json",
-          "sha256": "ba2bd9916e36dfec89d4d61ef65fb906bdc623da3f2eccd3b0bd8fa45abbf5cb"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg18-windows-x64.spdx.json",
+          "sha256": "b36b7267646250f7d586253d882a9c1ad1fa6237f2743c560af00a9c5f33ceff"
         },
         "sbomAttestation": {
           "available": true
@@ -119,8 +119,34 @@
         "vulnerabilityReport": {
           "available": true,
           "asset": "pg_partman-v5.5.1-pg18-windows-x64.vulnerabilities.json",
-          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.1/pg_partman-v5.5.1-pg18-windows-x64.vulnerabilities.json",
-          "sha256": "b9bedc808561bcbd2e1ffb76220ff11cdf59ea146b9935c35bb2ca0537bdab40"
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg18-windows-x64.vulnerabilities.json",
+          "sha256": "8f407166eb072824f8ce48cdf21add2b8b5ef70041540f61ee3e476cecca85aa"
+        }
+      }
+    },
+    "19": {
+      "available": true,
+      "asset": "pg_partman-v5.5.1-pg19-windows-x64.zip",
+      "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg19-windows-x64.zip",
+      "sha256": "93415d9312d948762e4edc1293386e4a0b1eb87a4f2a5ad3475dfc9a29e9ca47",
+      "evidence": {
+        "buildProvenanceAttestation": {
+          "available": true
+        },
+        "sbom": {
+          "available": true,
+          "asset": "pg_partman-v5.5.1-pg19-windows-x64.spdx.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg19-windows-x64.spdx.json",
+          "sha256": "35d06e849f62668ee0797494623087e2d99f7c44b4dcbfe08d8fe8bf2e0c234e"
+        },
+        "sbomAttestation": {
+          "available": true
+        },
+        "vulnerabilityReport": {
+          "available": true,
+          "asset": "pg_partman-v5.5.1-pg19-windows-x64.vulnerabilities.json",
+          "downloadUrl": "https://github.com/pgextwin/pg_partman/releases/download/v5.5.1-windows.2/pg_partman-v5.5.1-pg19-windows-x64.vulnerabilities.json",
+          "sha256": "fd07ad3b72f2e9c9d922d86d9ddf28675b883855267786fa14c44c5e150223d4"
         }
       }
     }
@@ -177,6 +203,6 @@
   "capabilitiesSource": {
     "repository": "pgextwin/pg_partman",
     "path": "config/test-contract.json",
-    "commit": "930031e2b24f694cd0861b03040b8f3f81286b2c"
+    "commit": "3ed3c824176656e0546693fca2bb46e5c1079bc7"
   }
 }
