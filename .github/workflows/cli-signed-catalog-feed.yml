@@ -10,6 +10,7 @@ on:
     paths:
       - "config/cli-feed-majors.json"
       - "scripts/cli_signed_feed.py"
+      - "scripts/compare_catalog_feeds.py"
       - "scripts/release_inventory.py"
       - "scripts/package_ledger.py"
       - "packages/*.json"
@@ -50,6 +51,12 @@ jobs:
     outputs:
       source: ${{ steps.verify.outputs.source }}
     steps:
+      - name: Read exact head commit for the canonical payload comparison
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0 # First-parent history feeds the admission loader.
+          persist-credentials: false
       - name: Independently require current protected Catalog main and successful exact-head Validate
         id: verify
         shell: bash
@@ -81,6 +88,30 @@ jobs:
           ' <<< "$commit" >/dev/null; then
             echo "CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE NO_COHORT_CHANGE HEAD=$RUN_SHA PUBLISH_DENY"
             exit 0
+          fi
+          # A format-only rewrite of the public records (e.g. the proposal-C
+          # C3 canonical switch) must not mint a new feed: compare the
+          # canonical feed payload against the first parent (previous main).
+          # Only the root and latest-admission source SHAs may differ.
+          # A comparison error falls back to the filename decision above.
+          parent="$(git rev-parse "$RUN_SHA^1" 2>/dev/null || true)"
+          if [[ "$parent" =~ ^[0-9a-f]{40}$ ]]; then
+            git worktree add --detach "$RUNNER_TEMP/parent-catalog" "$parent" >/dev/null 2>&1 || true
+            if [[ -d "$RUNNER_TEMP/parent-catalog" ]]; then
+              set +e
+              python scripts/compare_catalog_feeds.py \
+                --catalog-a "$RUNNER_TEMP/parent-catalog" --commit-a "$parent" \
+                --catalog-b . --commit-b "$RUN_SHA"
+              compare_rc=$?
+              set -e
+              if [[ $compare_rc -eq 0 ]]; then
+                echo "CATALOG_FEED_NOOP_CANONICAL_MATCH HEAD=$RUN_SHA PARENT=$parent PUBLISH_DENY"
+                exit 0
+              fi
+              if [[ $compare_rc -eq 2 ]]; then
+                echo "CATALOG_FEED_COMPARE_UNAVAILABLE: falling back to filename gate"
+              fi
+            fi
           fi
           echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"
           echo "CATALOG_FEED_GATE=PASS HEAD=$RUN_SHA ORIGINAL_VALIDATE_RUN=$RUN_ID"

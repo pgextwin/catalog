@@ -56,6 +56,23 @@ class CatalogFeedPublicationGate(unittest.TestCase):
             self.workflow.index('echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"'),
         )
 
+    def test_format_only_rewrite_cannot_publish(self):
+        # After the filename gate, the canonical payload comparison must run
+        # before any source is emitted, and a match must deny publication.
+        self.assertIn("scripts/compare_catalog_feeds.py", self.workflow)
+        self.assertIn("CATALOG_FEED_NOOP_CANONICAL_MATCH", self.workflow)
+        self.assertLess(
+            self.workflow.index("CATALOG_FEED_NOOP_NO_PUBLIC_RECORD_CHANGE"),
+            self.workflow.index("CATALOG_FEED_NOOP_CANONICAL_MATCH"),
+        )
+        self.assertLess(
+            self.workflow.index("CATALOG_FEED_NOOP_CANONICAL_MATCH"),
+            self.workflow.index('echo "source=$RUN_SHA" >> "$GITHUB_OUTPUT"'),
+        )
+        # A comparison error falls back to the filename decision, never to a
+        # silent publish or a silent deny.
+        self.assertIn("CATALOG_FEED_COMPARE_UNAVAILABLE", self.workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
