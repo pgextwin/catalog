@@ -26,10 +26,18 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
     def test_current_cli_and_catalog_security_checks_remain(self):
         for name in ("validate.yml", "cli-candidate.yml",
                      "cli-anonymous-latest.yml", "cli-signed-catalog-feed.yml",
-                     "sync-verified-release.yml", "verify-manual-release.yml",
-                     "notify-website.yml"):
+                     "sync-verified-release.yml", "verify-manual-release.yml"):
             with self.subTest(name=name):
                 self.assertTrue((WORKFLOWS / name).is_file())
+
+    def test_notify_website_is_retired(self):
+        # Proposal C phase C2 retired the cross-repository published-UI
+        # audit chain; the Catalog Pages deploy workflow now produces the
+        # display evidence itself. The workflow stays byte-identical in the
+        # historical archive, never as a live entrypoint.
+        self.assertFalse((WORKFLOWS / "notify-website.yml").exists())
+        self.assertTrue((ROOT / "tests/fixtures/historical-workflows" /
+                         "notify-website.yml").is_file())
 
     def test_old_plpgsql_only_catalog_ingestion_is_retired(self):
         self.assertFalse((WORKFLOWS / "sync-release.yml").exists())
@@ -72,9 +80,9 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
                      "tests/history/test_catalog_fleet14_readonly.py"):
             self.assertTrue((ROOT / path).is_file())
         # Keep the currently required Release verifier, managed Catalog
-        # ingestion, website notification and read-only drift monitoring.
+        # ingestion and read-only drift monitoring.
         for name in ("validate.yml", "sync-verified-release.yml",
-                     "verify-manual-release.yml", "notify-website.yml",
+                     "verify-manual-release.yml",
                      "catalog-drift-readonly.yml", "issue112-p1-fleet-readonly.yml",
                      "cli-anonymous-latest.yml", "cli-signed-catalog-feed.yml"):
             self.assertTrue((WORKFLOWS / name).is_file())
