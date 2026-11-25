@@ -1,0 +1,17 @@
+name: Verify public Website immediately after Catalog main merge
+
+on:
+  push:
+    branches: [main]
+
+# Invoke Website's audited reusable workflow directly; no PAT, private key,
+# additional GitHub App or admin setting is needed for public repositories.
+permissions:
+  contents: read
+
+jobs:
+  live_pages_audit:
+    name: Cross-repository public Catalog, Release and Pages acceptance
+    permissions:
+      contents: read
+    uses: pgextwin/website/.github/workflows/pages-smoke.yml@aced2a326b7038ca8c55a6d763493152a571c92c
