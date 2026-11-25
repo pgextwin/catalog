@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_cron",
+  "upstreamRepository": "citusdata/pg_cron",
+  "description": "Cron-based job scheduler for PostgreSQL.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "citusdata/pg_cron",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_cron",
+    "license": "PostgreSQL-style",
+    "ledgerPath": "packages/pg_cron.json"
+  },
+  "research": {
+    "descriptionOverride": "Cron scheduler",
+    "lastReviewed": "2026-10-08",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_cron/releases"
+    ],
+    "windowsBinarySources": []
+  }
+}

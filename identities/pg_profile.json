@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_profile",
+  "upstreamRepository": "zubkov-andrei/pg_profile",
+  "description": "Historical PostgreSQL workload reports",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "zubkov-andrei/pg_profile",
+    "sealedUpstream": false
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_profile",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_profile.json"
+  },
+  "research": {
+    "lastReviewed": "2026-11-18",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_profile/releases/tag/v4.16-windows.1",
+      "https://github.com/zubkov-andrei/pg_profile"
+    ],
+    "windowsBinarySources": []
+  }
+}

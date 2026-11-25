@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_permissions",
+  "upstreamRepository": "cybertec-postgresql/pg_permissions",
+  "description": "Audit PostgreSQL object permissions",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "cybertec-postgresql/pg_permissions",
+    "sealedUpstream": false
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_permissions",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_permissions.json"
+  },
+  "research": {
+    "lastReviewed": "2026-11-18",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_permissions/releases/tag/v1.4.1-windows.1",
+      "https://github.com/cybertec-postgresql/pg_permissions"
+    ],
+    "windowsBinarySources": []
+  }
+}

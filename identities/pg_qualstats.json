@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_qualstats",
+  "upstreamRepository": "powa-team/pg_qualstats",
+  "description": "Predicate statistics collection extension for PostgreSQL.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "powa-team/pg_qualstats",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_qualstats",
+    "license": "PostgreSQL-style",
+    "ledgerPath": "packages/pg_qualstats.json"
+  },
+  "research": {
+    "descriptionOverride": "Predicate statistics",
+    "lastReviewed": "2026-10-08",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_qualstats/releases"
+    ],
+    "windowsBinarySources": []
+  }
+}

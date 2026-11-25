@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_stat_monitor",
+  "upstreamRepository": "percona/pg_stat_monitor",
+  "description": "Time-bucketed query statistics for PostgreSQL.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "percona/pg_stat_monitor",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_stat_monitor",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_stat_monitor.json"
+  },
+  "research": {
+    "descriptionOverride": "Time-bucketed query performance monitoring",
+    "lastReviewed": "2026-10-10",
+    "license": "PostgreSQL",
+    "currentStableVersion": "2.4.0",
+    "pg18Support": "supported",
+    "pg19Readiness": "unknown",
+    "windowsUpstreamSupport": "unknown",
+    "knownWindowsBinaryAvailability": "public",
+    "estimatedWindowsEffort": "very-high",
+    "preliminaryPriority": "medium",
+    "evidenceUrls": [
+      "https://github.com/percona/pg_stat_monitor/releases/tag/2.4.0",
+      "https://github.com/percona/pg_stat_monitor/blob/2.4.0/README.md",
+      "https://github.com/percona/pg_stat_monitor/blob/2.4.0/Makefile",
+      "https://github.com/percona/pg_stat_monitor/blob/2.4.0/LICENSE"
+    ],
+    "windowsBinarySources": [
+      {
+        "provider": "pgextwin",
+        "type": "community",
+        "url": "https://github.com/pgextwin/pg_stat_monitor/releases/tag/v2.4.0-windows.1",
+        "availability": "public",
+        "postgresqlDistribution": "standard-postgresql",
+        "compatibility": "standard-postgresql",
+        "notes": "Independently verified signed Windows x64 PG14-18 release. See Test Contract for feature and preload requirements."
+      }
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_partman",
+  "upstreamRepository": "pgpartman/pg_partman",
+  "description": "Time-based and ID-based partition maintenance; optional BGW DLL included. SQL features work without preload.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "pgpartman/pg_partman",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_partman",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_partman.json"
+  },
+  "research": {
+    "descriptionOverride": "Time-based and ID-based partition maintenance",
+    "lastReviewed": "2026-10-10",
+    "license": "PostgreSQL",
+    "currentStableVersion": "5.5.0",
+    "pg18Support": "supported",
+    "pg19Readiness": "under-review",
+    "windowsUpstreamSupport": "unknown",
+    "knownWindowsBinaryAvailability": "public",
+    "estimatedWindowsEffort": "very-high",
+    "preliminaryPriority": "medium",
+    "evidenceUrls": [
+      "https://github.com/pgpartman/pg_partman/releases/tag/v5.5.0",
+      "https://github.com/pgpartman/pg_partman/blob/v5.5.0/README.md",
+      "https://github.com/pgpartman/pg_partman/blob/v5.5.0/CHANGELOG.md",
+      "https://github.com/pgpartman/pg_partman/blob/v5.5.0/LICENSE.txt"
+    ],
+    "windowsBinarySources": [
+      {
+        "provider": "pgextwin",
+        "type": "community",
+        "url": "https://github.com/pgextwin/pg_partman/releases/tag/v5.5.0-windows.2",
+        "availability": "public",
+        "postgresqlDistribution": "standard-postgresql",
+        "compatibility": "standard-postgresql",
+        "notes": "Independently verified signed Windows x64 PG14-18 release. BGW is optional and requires explicit shared_preload_libraries configuration."
+      }
+    ]
+  }
+}

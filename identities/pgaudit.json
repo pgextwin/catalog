@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "name": "pgaudit",
+  "displayName": "pgAudit",
+  "upstreamRepository": "pgaudit/pgaudit",
+  "description": "Detailed session and object audit logging for PostgreSQL.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "pgaudit/pgaudit",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pgaudit",
+    "license": "PostgreSQL License",
+    "ledgerPath": "packages/pgaudit.json"
+  },
+  "research": {
+    "descriptionOverride": "Auditing",
+    "lastReviewed": "2026-10-08",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pgaudit/releases",
+      "https://www.sraoss.co.jp/prod_serv/support/pgsql-mainte/third-party-software-list/"
+    ],
+    "windowsBinarySources": [
+      {
+        "provider": "SRA OSS PostgreSQL support service",
+        "type": "vendor",
+        "url": "https://www.sraoss.co.jp/prod_serv/support/pgsql-mainte/",
+        "availability": "support-customer",
+        "postgresqlDistribution": "standard-postgresql",
+        "compatibility": "manual-verification-required",
+        "notes": "Windows binaries provided to support-contract customers, not public downloads. Request the exact PostgreSQL major/version from SRA OSS."
+      }
+    ]
+  }
+}

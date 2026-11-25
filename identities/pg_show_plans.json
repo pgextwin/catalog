@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_show_plans",
+  "upstreamRepository": "cybertec-postgresql/pg_show_plans",
+  "description": "View execution plans for running PostgreSQL queries",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "cybertec-postgresql/pg_show_plans",
+    "sealedUpstream": false
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_show_plans",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_show_plans.json"
+  },
+  "research": {
+    "lastReviewed": "2026-11-18",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_show_plans/releases/tag/v2.1.8-windows.1",
+      "https://github.com/cybertec-postgresql/pg_show_plans"
+    ],
+    "windowsBinarySources": []
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_ivm",
+  "upstreamRepository": "sraoss/pg_ivm",
+  "description": "Incremental View Maintenance extension for PostgreSQL.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "sraoss/pg_ivm",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_ivm",
+    "license": "PostgreSQL-style",
+    "ledgerPath": "packages/pg_ivm.json"
+  },
+  "research": {
+    "descriptionOverride": "Incremental view maintenance",
+    "lastReviewed": "2026-10-08",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_ivm/releases"
+    ],
+    "windowsBinarySources": []
+  }
+}

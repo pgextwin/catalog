@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_failover_slots",
+  "upstreamRepository": "EnterpriseDB/pg_failover_slots",
+  "description": "Maintain logical replication slots across PostgreSQL failover",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "EnterpriseDB/pg_failover_slots",
+    "sealedUpstream": false
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_failover_slots",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_failover_slots.json"
+  },
+  "research": {
+    "lastReviewed": "2026-11-18",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_failover_slots/releases/tag/v1.2.1-windows.1",
+      "https://github.com/EnterpriseDB/pg_failover_slots"
+    ],
+    "windowsBinarySources": []
+  }
+}

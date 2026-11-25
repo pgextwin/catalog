@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_variables",
+  "upstreamRepository": "postgrespro/pg_variables",
+  "description": "Session variables for PostgreSQL",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "postgrespro/pg_variables",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_variables",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_variables.json"
+  },
+  "research": {
+    "lastReviewed": "2026-10-22",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_variables/releases/tag/v1.2.1-windows.1",
+      "https://github.com/postgrespro/pg_variables"
+    ],
+    "windowsBinarySources": []
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "timescaledb",
+  "displayName": "TimescaleDB",
+  "upstreamRepository": "timescale/timescaledb",
+  "description": "Timeseries hypertables and compression",
+  "intake": {
+    "class": "research-only",
+    "distributionAllowed": false
+  },
+  "research": {
+    "status": "not-planned",
+    "lastReviewed": "2026-10-08",
+    "reasonCode": "existing-windows-distribution",
+    "notPlannedReason": "Upstream publishes matching Windows ZIPs and installation documentation; complex native build and upgrade surface better handled upstream.",
+    "notPlannedReasonJa": "上流公式ReleaseがPG16〜18用のWindows ZIPを公開しています。対応するPostgreSQLと実行時依存関係を確認してください。",
+    "evidenceUrls": [
+      "https://docs.timescale.com/self-hosted/latest/install/installation-windows/"
+    ],
+    "windowsBinarySources": [
+      {
+        "provider": "TimescaleDB upstream",
+        "type": "upstream-official",
+        "url": "https://github.com/timescale/timescaledb/releases/tag/2.30.2",
+        "availability": "public",
+        "postgresqlDistribution": "standard-postgresql",
+        "compatibility": "manual-verification-required",
+        "notes": "Release 2.30.2 includes Windows amd64 archives for PostgreSQL 16–18. Check runtime libraries and upstream version matrix."
+      }
+    ]
+  }
+}

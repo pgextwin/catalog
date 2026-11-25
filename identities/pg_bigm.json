@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_bigm",
+  "upstreamRepository": "pgbigm/pg_bigm",
+  "description": "2-gram full text search extension for PostgreSQL.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "pgbigm/pg_bigm",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_bigm",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pg_bigm.json"
+  },
+  "research": {
+    "descriptionOverride": "2-gram full-text search",
+    "lastReviewed": "2026-10-08",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_bigm/releases"
+    ],
+    "windowsBinarySources": []
+  }
+}

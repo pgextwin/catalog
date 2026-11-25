@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pldebugger",
+  "upstreamRepository": "EnterpriseDB/pldebugger",
+  "description": "Debug PL/pgSQL functions in PostgreSQL",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "EnterpriseDB/pldebugger",
+    "sealedUpstream": false
+  },
+  "distribution": {
+    "repository": "pgextwin/pldebugger",
+    "license": "Artistic-2.0",
+    "ledgerPath": "packages/pldebugger.json"
+  },
+  "research": {
+    "lastReviewed": "2026-11-18",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pldebugger/releases/tag/v1.10-windows.1",
+      "https://github.com/EnterpriseDB/pldebugger"
+    ],
+    "windowsBinarySources": []
+  }
+}
