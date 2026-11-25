@@ -59,7 +59,7 @@ class GitHubReadOnly:
                 "invalid GitHub read-only REST path")
         if repo == "pgextwin/catalog":
             if path == "branches/main" or (
-                re.fullmatch(r"contents/extensions/([a-z][a-z0-9_]*)\.json\?ref=[0-9a-f]{40}", path)
+                re.fullmatch(r"contents/(?:identities|packages)/([a-z][a-z0-9_]*)\.json\?ref=[0-9a-f]{40}", path)
                 and path.split("/")[2].split(".json")[0] in ALLOWED
             ):
                 return
@@ -100,8 +100,27 @@ class GitHubReadOnly:
             raise Denied("GitHub JSON malformed or duplicated") from None
 
 
+def _fetch_verified_json_blob(api, catalog_repo, record_path, main_sha, label):
+    content = api.get(catalog_repo, "contents/" + record_path + "?ref=" + main_sha)
+    require(
+        type(content) is dict
+        and content.get("encoding") == "base64"
+        and type(content.get("content")) is str
+        and type(content.get("sha")) is str
+        and SHA.fullmatch(content["sha"]) is not None,
+        f"Catalog {label} at resolved main is unavailable",
+    )
+    try:
+        raw = base64.b64decode("".join(content["content"].split()), validate=True)
+        parsed = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_json_pairs)
+    except (UnicodeError, binascii.Error, ValueError, TypeError) as exc:
+        raise Denied(f"Catalog {label} bytes invalid") from exc
+    require(content["sha"] == blob_sha(raw), f"Catalog {label} API blob SHA mismatch")
+    return parsed, content["sha"]
+
+
 def inspect(api, extension):
-    """Inspect live independent main/record/Releases/open-PR snapshots, never write."""
+    """Inspect live independent main/identity/ledger/Releases/open-PR snapshots, never write."""
     require(type(extension) is str and extension in ALLOWED,
             "unknown extension in 14-name allowlist")
     extension_repo = "pgextwin/" + extension
@@ -110,18 +129,34 @@ def inspect(api, extension):
     main_sha = (main.get("commit") or {}).get("sha") if type(main) is dict else None
     require(type(main_sha) is str and SHA.fullmatch(main_sha),
             "Catalog main SHA not independently resolved")
-    record_path = "extensions/" + extension + ".json"
-    content = api.get(catalog_repo, "contents/" + record_path + "?ref=" + main_sha)
-    require(type(content) is dict and content.get("encoding") == "base64"
-            and type(content.get("content")) is str and type(content.get("sha")) is str,
-            "Catalog record at resolved main is unavailable")
-    try:
-        raw = base64.b64decode("".join(content["content"].split()), validate=True)
-        record = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_json_pairs)
-    except (UnicodeError, binascii.Error, ValueError, TypeError) as exc:
-        raise Denied("Catalog record bytes invalid") from exc
-    require(content["sha"] == blob_sha(raw),
-            "Catalog record API blob SHA mismatch")
+    identity_path = "identities/" + extension + ".json"
+    identity, identity_sha = _fetch_verified_json_blob(
+        api, catalog_repo, identity_path, main_sha, "identity"
+    )
+    require(
+        type(identity) is dict
+        and identity.get("schemaVersion") == 1
+        and identity.get("name") == extension,
+        "Catalog identity at resolved main is malformed",
+    )
+    intake = identity.get("intake")
+    dist = identity.get("distribution")
+    expected_ledger_path = "packages/" + extension + ".json"
+    require(
+        type(intake) is dict
+        and intake.get("class") == "distributed"
+        and intake.get("distributionAllowed") is True
+        and intake.get("expectedUpstreamRepository") == ALLOWED[extension]
+        and identity.get("upstreamRepository") == ALLOWED[extension]
+        and type(dist) is dict
+        and dist.get("repository") == extension_repo
+        and dist.get("ledgerPath") == expected_ledger_path,
+        "Catalog identity is not an authorized distributed repository",
+    )
+    ledger_path = dist["ledgerPath"]
+    ledger, ledger_sha = _fetch_verified_json_blob(
+        api, catalog_repo, ledger_path, main_sha, "record"
+    )
     releases = api.get(extension_repo, "releases?per_page=100&page=1")
     require(type(releases) is list and 0 < len(releases) < 100,
             "Release history absent or pagination not independently complete")
@@ -130,6 +165,7 @@ def inspect(api, extension):
             "open Catalog PR inventory incomplete")
     blocking = []
     seen_numbers = set()
+    watched_paths = {identity_path, ledger_path}
     for pr in proposals:
         require(type(pr) is dict and type(pr.get("number")) is int
                 and pr["number"] > 0 and pr["number"] not in seen_numbers
@@ -143,15 +179,16 @@ def inspect(api, extension):
                 "Catalog proposal PR file history incomplete")
         if any(type(item) is not dict for item in files):
             raise Denied("malformed Catalog PR changed file")
-        if any(item.get("filename") == record_path or
-               item.get("previous_filename") == record_path for item in files):
+        if any(item.get("filename") in watched_paths or
+               item.get("previous_filename") in watched_paths for item in files):
             blocking.append(number)
-    outcome = classify(record, releases)
+    outcome = classify(ledger, releases, identity=identity)
     if blocking:
         outcome["status"] = "BLOCKED_OPEN_RECORD_PR"
     outcome.update({
         "catalogMainSha": main_sha,
-        "catalogRecordBlobSha": content["sha"],
+        "catalogIdentityBlobSha": identity_sha,
+        "catalogRecordBlobSha": ledger_sha,
         "publicReleaseCount": len(releases),
         "openRecordProposalPrs": sorted(blocking),
         "gitHubCollectionsComplete": True,

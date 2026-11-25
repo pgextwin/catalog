@@ -30,7 +30,7 @@ def published_at(value):
     return value
 
 
-def classify(record, releases, *, pending_tags=()):
+def classify(record, releases, *, pending_tags=(), identity=None):
     """Classify ONLY; never certify candidate assets or authorize an action.
 
     A full first page (<100 items) is required by this initial pilot; 100
@@ -38,15 +38,44 @@ def classify(record, releases, *, pending_tags=()):
     an incomplete Release history. Pending tags must come from API-verified
     open Catalog proposals, never PR titles or bodies.
     """
-    require(type(record) is dict and record.get("schemaVersion") == 2
+    require(type(record) is dict and record.get("schemaVersion") == 1
             and record.get("name") in ALLOWED
             and record.get("repository") == "pgextwin/" + record["name"],
             "record is not one of the fourteen named repositories")
-    current = record.get("latest")
-    require(type(current) is dict and type(current.get("releaseTag")) is str
+    name = record["name"]
+    latest_id = record.get("latestReleaseId")
+    ledger_releases = record.get("releases")
+    require(type(latest_id) is int and latest_id > 0
+            and type(ledger_releases) is list and len(ledger_releases) > 0,
+            "Catalog current Release is missing or malformed")
+    matches = [
+        item for item in ledger_releases
+        if type(item) is dict and item.get("releaseId") == latest_id
+    ]
+    require(len(matches) == 1, "Catalog current Release is missing or malformed")
+    current = matches[0]
+    require("admission" not in current and "legacyInventoryCommit" not in current,
+            "Catalog current Release is missing or malformed")
+    require(type(current.get("releaseTag")) is str
             and TAG.fullmatch(current["releaseTag"]) is not None,
             "Catalog current Release is missing or malformed")
     current_time = published_at(current.get("publishedAt"))
+    if identity is not None:
+        require(type(identity) is dict and identity.get("schemaVersion") == 1
+                and identity.get("name") == name,
+                "identity does not match Catalog ledger")
+        intake = identity.get("intake")
+        require(type(intake) is dict
+                and intake.get("class") == "distributed"
+                and intake.get("distributionAllowed") is True
+                and intake.get("expectedUpstreamRepository") == ALLOWED[name]
+                and identity.get("upstreamRepository") == ALLOWED[name],
+                "identity intake is not an authorized distributed repository")
+        dist = identity.get("distribution")
+        require(type(dist) is dict
+                and dist.get("repository") == record["repository"]
+                and dist.get("ledgerPath") == "packages/" + name + ".json",
+                "identity distribution metadata mismatch")
     require(type(releases) is list and 0 < len(releases) < 100,
             "missing or potentially unpaginated Release history")
     require(type(pending_tags) in (list, tuple, set, frozenset)
@@ -102,13 +131,16 @@ def main():
     parser.add_argument("--record-json", type=Path, required=True)
     parser.add_argument("--releases-json", type=Path, required=True)
     parser.add_argument("--pending-tags-json", type=Path)
+    parser.add_argument("--identity-json", type=Path)
     args = parser.parse_args()
     try:
         record = json.loads(args.record_json.read_text(encoding="utf-8"))
         releases = json.loads(args.releases_json.read_text(encoding="utf-8"))
         pending = (json.loads(args.pending_tags_json.read_text(encoding="utf-8"))
                    if args.pending_tags_json else [])
-        print(json.dumps(classify(record, releases, pending_tags=pending), sort_keys=True))
+        identity = (json.loads(args.identity_json.read_text(encoding="utf-8"))
+                    if args.identity_json else None)
+        print(json.dumps(classify(record, releases, pending_tags=pending, identity=identity), sort_keys=True))
         return 0
     except (Denied, ValueError, TypeError, KeyError, OSError) as exc:
         print("CATALOG DRIFT DENIED (read only): " + str(exc))

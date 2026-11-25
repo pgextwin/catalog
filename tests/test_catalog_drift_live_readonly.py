@@ -15,12 +15,13 @@ from unittest import TestCase, main, mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import catalog_drift_live_readonly as live
-from test_catalog_release_drift import fixture, future_release
+from test_catalog_release_drift import fixture, future_release, identity_fixture
 
 MAIN = "08e3d48abc6cab71f8b735091cc5bbe6095abcf6"
 CAT = "pgextwin/catalog"
 EXT = "pgextwin/wal2json"
-RECORD_PATH = "extensions/wal2json.json"
+IDENTITY_PATH = "identities/wal2json.json"
+LEDGER_PATH = "packages/wal2json.json"
 
 
 def encoded_record(record):
@@ -31,9 +32,11 @@ def encoded_record(record):
 
 def snapshots():
     record, releases = fixture()
+    identity = identity_fixture()
     return {
         (CAT, "branches/main"): {"commit": {"sha": MAIN}},
-        (CAT, "contents/" + RECORD_PATH + "?ref=" + MAIN): encoded_record(record),
+        (CAT, "contents/" + IDENTITY_PATH + "?ref=" + MAIN): encoded_record(identity),
+        (CAT, "contents/" + LEDGER_PATH + "?ref=" + MAIN): encoded_record(record),
         (EXT, "releases?per_page=100&page=1"): releases,
         (CAT, "pulls?state=open&base=main&per_page=100"): [],
     }
@@ -68,27 +71,39 @@ class SnapshotTests(TestCase):
         self.assertEqual(result["candidateArtifactsAndAttestation"], "NOT_VERIFIED")
         self.assertFalse(result["proposalAuthorized"])
 
-    def test_any_open_pr_touching_extension_blocks_duplicate_proposal(self):
-        obj = snapshots()
-        obj[(EXT, "releases?per_page=100&page=1")].append(future_release())
-        obj[(CAT, "pulls?state=open&base=main&per_page=100")] = [
-            {"number": 77, "state": "open", "base": {"ref": "main"}}]
-        obj[(CAT, "pulls/77/files?per_page=100")] = [
-            {"filename": RECORD_PATH, "status": "modified"}]
-        outcome = live.inspect(FakeApi(obj), "wal2json")
-        self.assertEqual(outcome["status"], "BLOCKED_OPEN_RECORD_PR")
-        self.assertEqual(outcome["openRecordProposalPrs"], [77])
-        self.assertFalse(outcome["proposalAuthorized"])
+    def test_any_open_pr_touching_identity_or_ledger_blocks_duplicate_proposal(self):
+        for changed in (
+            {"filename": LEDGER_PATH, "status": "modified"},
+            {"filename": IDENTITY_PATH, "status": "modified"},
+            {"filename": "other.json", "previous_filename": LEDGER_PATH, "status": "renamed"},
+            {"filename": "other.json", "previous_filename": IDENTITY_PATH, "status": "renamed"},
+        ):
+            with self.subTest(changed=changed):
+                obj = snapshots()
+                obj[(EXT, "releases?per_page=100&page=1")].append(future_release())
+                obj[(CAT, "pulls?state=open&base=main&per_page=100")] = [
+                    {"number": 77, "state": "open", "base": {"ref": "main"}}]
+                obj[(CAT, "pulls/77/files?per_page=100")] = [changed]
+                outcome = live.inspect(FakeApi(obj), "wal2json")
+                self.assertEqual(outcome["status"], "BLOCKED_OPEN_RECORD_PR")
+                self.assertEqual(outcome["openRecordProposalPrs"], [77])
+                self.assertFalse(outcome["proposalAuthorized"])
 
     def test_read_failure_missing_history_and_forged_record_are_denied(self):
+        forged_identity = identity_fixture()
+        forged_identity["intake"]["class"] = "research-only"
         changes = [
-            lambda o: o[(CAT,"branches/main")]["commit"].update(sha="a"),
-            lambda o: o[(CAT,"contents/"+RECORD_PATH+"?ref="+MAIN)].update(sha="a"*40),
-            lambda o: o[(CAT,"contents/"+RECORD_PATH+"?ref="+MAIN)].update(content="!!!"),
-            lambda o: o[(EXT,"releases?per_page=100&page=1")].clear(),
-            lambda o: o[(EXT,"releases?per_page=100&page=1")].extend(
-                deepcopy(o[(EXT,"releases?per_page=100&page=1")]) * 50),
-            lambda o: o[(CAT,"pulls?state=open&base=main&per_page=100")].extend(
+            lambda o: o[(CAT, "branches/main")]["commit"].update(sha="a"),
+            lambda o: o[(CAT, "contents/" + LEDGER_PATH + "?ref=" + MAIN)].update(sha="a" * 40),
+            lambda o: o[(CAT, "contents/" + LEDGER_PATH + "?ref=" + MAIN)].update(content="!!!"),
+            lambda o: o[(CAT, "contents/" + IDENTITY_PATH + "?ref=" + MAIN)].update(sha="a" * 40),
+            lambda o: o[(CAT, "contents/" + IDENTITY_PATH + "?ref=" + MAIN)].update(content="!!!"),
+            lambda o: o.update({(CAT, "contents/" + IDENTITY_PATH + "?ref=" + MAIN): encoded_record(forged_identity)}),
+            lambda o: o.pop((CAT, "contents/" + IDENTITY_PATH + "?ref=" + MAIN)),
+            lambda o: o[(EXT, "releases?per_page=100&page=1")].clear(),
+            lambda o: o[(EXT, "releases?per_page=100&page=1")].extend(
+                deepcopy(o[(EXT, "releases?per_page=100&page=1")]) * 50),
+            lambda o: o[(CAT, "pulls?state=open&base=main&per_page=100")].extend(
                 [{"number": i, "state": "open", "base": {"ref": "main"}}
                  for i in range(1, 101)]),
             lambda o: o.pop((CAT, "branches/main")),
@@ -102,11 +117,11 @@ class SnapshotTests(TestCase):
     def test_ambiguous_pr_and_partial_file_list_are_denied(self):
         obj = snapshots()
         pr = {"number": 77, "state": "open", "base": {"ref": "main"}}
-        obj[(CAT,"pulls?state=open&base=main&per_page=100")] = [pr, deepcopy(pr)]
+        obj[(CAT, "pulls?state=open&base=main&per_page=100")] = [pr, deepcopy(pr)]
         with self.assertRaises(live.Denied):
             live.inspect(FakeApi(obj), "wal2json")
-        obj[(CAT,"pulls?state=open&base=main&per_page=100")] = [pr]
-        obj[(CAT,"pulls/77/files?per_page=100")] = [{"filename":"README.md"}] * 100
+        obj[(CAT, "pulls?state=open&base=main&per_page=100")] = [pr]
+        obj[(CAT, "pulls/77/files?per_page=100")] = [{"filename": "README.md"}] * 100
         with self.assertRaises(live.Denied):
             live.inspect(FakeApi(obj), "wal2json")
 

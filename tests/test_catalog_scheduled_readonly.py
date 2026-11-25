@@ -46,7 +46,7 @@ class RunnerTests(TestCase):
         api = TwoRounds(snapshots())
         result = schedule.audit(api)
         self.assertEqual(api.rounds, 2)
-        self.assertEqual(len(api.paths), 8)
+        self.assertEqual(len(api.paths), 10)
         self.assertEqual(result["status"], "NO_CHANGE")
         self.assertEqual(result["catalogTag"], EXPECTED_TAG)
         self.assertEqual(result["candidateTag"], EXPECTED_TAG)
@@ -66,17 +66,19 @@ class RunnerTests(TestCase):
         self.assertFalse(outcome["verifiedSignedRelease"])
 
     def test_any_open_record_pr_blocks_duplicate_proposal(self):
-        items = snapshots()
-        items[(CAT, "pulls?state=open&base=main&per_page=100")] = [
-            {"number": 77, "state": "open", "base": {"ref": "main"}},
-        ]
-        items[(CAT, "pulls/77/files?per_page=100")] = [
-            {"filename": "extensions/wal2json.json", "status": "modified"},
-        ]
-        outcome = schedule.audit(TwoRounds(items))
-        self.assertEqual(outcome["status"], "BLOCKED_OPEN_RECORD_PR")
-        self.assertEqual(outcome["openRecordProposalPrs"], [77])
-        self.assertFalse(outcome["proposalAuthorized"])
+        for changed_path in ("packages/wal2json.json", "identities/wal2json.json"):
+            with self.subTest(changed_path=changed_path):
+                items = snapshots()
+                items[(CAT, "pulls?state=open&base=main&per_page=100")] = [
+                    {"number": 77, "state": "open", "base": {"ref": "main"}},
+                ]
+                items[(CAT, "pulls/77/files?per_page=100")] = [
+                    {"filename": changed_path, "status": "modified"},
+                ]
+                outcome = schedule.audit(TwoRounds(items))
+                self.assertEqual(outcome["status"], "BLOCKED_OPEN_RECORD_PR")
+                self.assertEqual(outcome["openRecordProposalPrs"], [77])
+                self.assertFalse(outcome["proposalAuthorized"])
 
     def test_main_record_release_and_open_pr_toctou_denied(self):
         variants = []
@@ -94,12 +96,18 @@ class RunnerTests(TestCase):
             "number": 77, "state": "open", "base": {"ref": "main"},
         })
         second[(CAT, "pulls/77/files?per_page=100")] = [
-            {"filename": "extensions/wal2json.json", "status": "modified"}
+            {"filename": "packages/wal2json.json", "status": "modified"}
         ]
         variants.append(second)
 
         second = deepcopy(first)
-        key = (CAT, "contents/extensions/wal2json.json?ref="
+        key = (CAT, "contents/packages/wal2json.json?ref="
+               + "08e3d48abc6cab71f8b735091cc5bbe6095abcf6")
+        second[key]["sha"] = "f" * 40
+        variants.append(second)
+
+        second = deepcopy(first)
+        key = (CAT, "contents/identities/wal2json.json?ref="
                + "08e3d48abc6cab71f8b735091cc5bbe6095abcf6")
         second[key]["sha"] = "f" * 40
         variants.append(second)
@@ -126,7 +134,8 @@ class RunnerTests(TestCase):
         reader = live.GitHubReadOnly("synthetic-token")
         valid = [
             (CAT, "branches/main"),
-            (CAT, "contents/extensions/wal2json.json?ref=" + "a" * 40),
+            (CAT, "contents/identities/wal2json.json?ref=" + "a" * 40),
+            (CAT, "contents/packages/wal2json.json?ref=" + "a" * 40),
             (CAT, "pulls?state=open&base=main&per_page=100"),
             (CAT, "pulls/77/files?per_page=100"),
             (EXT, "releases?per_page=100&page=1"),
@@ -135,8 +144,10 @@ class RunnerTests(TestCase):
             reader.allowlisted(repo, path)
 
         forbidden = [
-            (CAT, "contents/extensions/evil.json?ref=" + "a" * 40),
-            (CAT, "contents/extensions/wal2json.json?ref=main"),
+            (CAT, "contents/extensions/wal2json.json?ref=" + "a" * 40),
+            (CAT, "contents/identities/evil.json?ref=" + "a" * 40),
+            (CAT, "contents/packages/evil.json?ref=" + "a" * 40),
+            (CAT, "contents/packages/wal2json.json?ref=main"),
             (CAT, "pulls?state=closed&base=main&per_page=100"),
             (CAT, "pulls/77/merge"),
             (CAT, "actions/workflows/dispatches"),

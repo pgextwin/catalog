@@ -3,7 +3,7 @@
  * Proposal C Phase C1 — Projection Parity Verification
  *
  * Independently reads raw Catalog inputs (index.json, packages/*.json,
- * extensions/*.json, landscape/*, external/*, pinned postgresql.json, and
+ * identities/*, external/*, pinned postgresql.json, and
  * cli-v0.6.0 release snapshot) and verifies projection parity against the
  * statically generated site in --site.
  *
@@ -152,6 +152,112 @@ function verifyHomeGuidance(html, locale) {
   }
 }
 
+function projectDistributionRecord(identity, pkg, packagesDir) {
+  const name = identity.name;
+  assert.equal(identity.schemaVersion, 1, `Unexpected identity schemaVersion on ${name}`);
+  assert.equal(pkg.name, name, `Ledger name mismatch for ${name}`);
+  assert.equal(identity.intake?.class, "distributed", `${name} must be distributed`);
+  assert.equal(identity.intake?.distributionAllowed, true, `${name} must allow distribution`);
+  assert.equal(
+    identity.intake?.expectedUpstreamRepository,
+    identity.upstreamRepository,
+    `Expected upstream mismatch on ${name}`
+  );
+  assert.equal(identity.displayName ?? name, pkg.displayName, `displayName mismatch on ${name}`);
+  assert.equal(identity.description, pkg.description, `description mismatch on ${name}`);
+  assert.equal(identity.upstreamRepository, pkg.upstream.repository, `upstream mismatch on ${name}`);
+  assert.equal(identity.distribution?.repository, pkg.repository, `repository mismatch on ${name}`);
+  assert.equal(identity.distribution?.license, pkg.license, `license mismatch on ${name}`);
+  assert.equal(identity.distribution?.ledgerPath, `${packagesDir}/${name}.json`, `ledgerPath mismatch on ${name}`);
+  assert.equal(
+    identity.distribution?.externalSourceRegistry,
+    pkg.externalSourceRegistry,
+    `externalSourceRegistry mismatch on ${name}`
+  );
+
+  const latest = pkg.releases.find((r) => r.releaseId === pkg.latestReleaseId);
+  assert.ok(latest, `Missing latest release on ${name}`);
+  const repo = identity.distribution.repository;
+  const tag = latest.releaseTag;
+
+  const upstream = { repository: identity.upstreamRepository };
+  if (pkg.upstream.versionScheme === "perPostgresql") {
+    const versions = { ...(pkg.upstream.unpublishedByMajor || {}) };
+    for (const row of latest.packages) {
+      const entry = { version: row.version };
+      if (row.upstreamRef !== undefined) entry.ref = row.upstreamRef;
+      versions[row.pgMajor] = entry;
+    }
+    upstream.perPostgresql = versions;
+  } else {
+    const versions = new Set(latest.packages.map((row) => row.version));
+    assert.equal(versions.size, 1, `Shared upstream version differs on ${name}`);
+    upstream.version = [...versions][0];
+  }
+
+  const postgresql = {};
+  for (const major of pkg.unavailableMajors) {
+    postgresql[major] = { available: false };
+  }
+  for (const row of latest.packages) {
+    assert.ok(!(row.pgMajor in postgresql), `Conflicting availability for ${name} PG${row.pgMajor}`);
+    postgresql[row.pgMajor] = {
+      available: true,
+      asset: row.asset,
+      downloadUrl: `https://github.com/${repo}/releases/download/${tag}/${row.asset}`,
+      sha256: row.sha256,
+      evidence: row.evidence,
+    };
+  }
+
+  return {
+    schemaVersion: 2,
+    name,
+    displayName: identity.displayName ?? name,
+    description: identity.description,
+    upstream,
+    repository: repo,
+    license: identity.distribution.license,
+    architecture: pkg.architecture,
+    latest: {
+      releaseTag: tag,
+      publishedAt: latest.publishedAt,
+      releaseUrl: `https://github.com/${repo}/releases/tag/${tag}`,
+      checksumsAsset: latest.checksumsAsset,
+    },
+    postgresql,
+    runtime: pkg.runtime,
+    capabilities: pkg.capabilities,
+    capabilitiesSource: pkg.capabilitiesSource,
+    ...(identity.distribution.externalSourceRegistry
+      ? { externalSourceRegistry: identity.distribution.externalSourceRegistry }
+      : {}),
+  };
+}
+
+function projectLandscapeRecord(identity) {
+  const name = identity.name;
+  const research = identity.research;
+  const out = {
+    schemaVersion: 1,
+    name,
+    displayName: identity.displayName ?? name,
+    description: research.descriptionOverride ?? identity.description,
+    upstreamRepository: identity.upstreamRepository,
+  };
+  if (identity.intake.class === "distributed") {
+    out.status = "implemented";
+    out.pgextwinCatalogName = name;
+  } else {
+    out.status = research.status;
+  }
+  for (const [key, value] of Object.entries(research)) {
+    if (key === "status" || key === "descriptionOverride") continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 function main() {
   const args = parseArgs(process.argv);
   const inputsPath = resolve(args.inputs);
@@ -168,7 +274,9 @@ function main() {
 
   // Load raw Catalog sources
   const distIndex = readJson(join(repoRoot, inputs.catalogPaths.index));
-  const landscapeIndex = readJson(join(repoRoot, inputs.catalogPaths.landscapeIndex));
+  const identitiesIndex = readJson(join(repoRoot, inputs.catalogPaths.identitiesIndex));
+  assert.equal(identitiesIndex.schemaVersion, 3, "Expected schemaVersion 3 on identities index");
+  assert.deepEqual(identitiesIndex.extensions, distIndex.extensions, "identities index extensions differ from index.json");
   const directRecords = readJson(join(repoRoot, inputs.catalogPaths.externalDirectGet)).records;
   const standaloneRecords = readJson(join(repoRoot, inputs.catalogPaths.externalStandaloneGet)).records;
   const pgSnapBytes = readFileSync(join(repoRoot, inputs.postgresqlLifecycle.snapshotPath));
@@ -182,16 +290,23 @@ function main() {
   const scenI18n = readJson(join(repoRoot, inputs.translationsDir, "scenarios.json"));
   const decisionsCfg = readJson(join(repoRoot, inputs.landscapeDecisionsPath));
 
-  const distRecords = distIndex.extensions.map((name) => ({
-    ext: readJson(join(repoRoot, inputs.catalogPaths.extensionsDir, `${name}.json`)),
-    pkg: readJson(join(repoRoot, inputs.catalogPaths.packagesDir, `${name}.json`)),
-  }));
-  const landscapeRegistry = landscapeIndex.extensions.map((name) =>
-    readJson(join(repoRoot, inputs.catalogPaths.landscapeExtensionsDir, `${name}.json`))
-  );
+  const distRecords = distIndex.extensions.map((name) => {
+    const identity = readJson(join(repoRoot, inputs.catalogPaths.identitiesDir, `${name}.json`));
+    const pkg = readJson(join(repoRoot, inputs.catalogPaths.packagesDir, `${name}.json`));
+    return {
+      ext: projectDistributionRecord(identity, pkg, inputs.catalogPaths.packagesDir),
+      pkg,
+    };
+  });
+  const landscapeRegistry = identitiesIndex.identities.map((entry) => {
+    assert.equal(entry.path, `${inputs.catalogPaths.identitiesDir}/${entry.name}.json`);
+    const identity = readJson(join(repoRoot, inputs.catalogPaths.identitiesDir, `${entry.name}.json`));
+    assert.equal(identity.intake.class, entry.intakeClass);
+    return projectLandscapeRecord(identity);
+  });
 
   // Expected Landscape displayed IDs (46)
-  const expectedLandscapeIds = new Set(landscapeIndex.extensions);
+  const expectedLandscapeIds = new Set(identitiesIndex.identities.map((entry) => entry.name));
   for (const [name, dec] of Object.entries(decisionsCfg.decisions)) {
     if (dec.displayName) expectedLandscapeIds.add(name);
   }

@@ -37,6 +37,8 @@ def audited_snapshot(api, extension=EXTENSION):
             "drift result cannot authorize signed Release or mutation")
     require(type(result.get("catalogMainSha")) is str
             and SHA.fullmatch(result["catalogMainSha"]) is not None
+            and type(result.get("catalogIdentityBlobSha")) is str
+            and SHA.fullmatch(result["catalogIdentityBlobSha"]) is not None
             and type(result.get("catalogRecordBlobSha")) is str
             and SHA.fullmatch(result["catalogRecordBlobSha"]) is not None
             and type(result.get("publicReleaseCount")) is int
