@@ -24,10 +24,29 @@ $expected = @(
 )
 $lastMajor = $required[-1]
 if ($optional) {
-    # Check the optional subset against immutable Catalog availability.
+    # Check the optional subset against immutable Catalog package-ledger availability.
     foreach ($extension in $extensions) {
-        $record = Invoke-RestMethod -Uri "$catalog/extensions/$extension.json"
-        if ($record.postgresql.PSObject.Properties[$optional].Value.available -eq $true) {
+        $ledger = Invoke-RestMethod -Uri "$catalog/packages/$extension.json"
+        if ($ledger.schemaVersion -ne 1 -or
+            ($ledger.latestReleaseId -isnot [int] -and $ledger.latestReleaseId -isnot [long]) -or
+            $ledger.latestReleaseId -le 0) {
+            throw "Invalid Catalog package ledger for $extension"
+        }
+        $latest = @($ledger.releases | Where-Object { $_.releaseId -eq $ledger.latestReleaseId })
+        if ($latest.Count -ne 1 -or
+            $null -ne $latest[0].PSObject.Properties['admission'] -or
+            $null -ne $latest[0].PSObject.Properties['legacyInventoryCommit']) {
+            throw "Invalid Catalog package ledger latest release for $extension"
+        }
+        $optionalRows = @($latest[0].packages | Where-Object { $_.pgMajor -is [string] -and $_.pgMajor -ceq $optional })
+        if ($optionalRows.Count -gt 1) {
+            throw "Duplicate PG$optional package row in Catalog ledger for $extension"
+        }
+        $unavailable = @($ledger.unavailableMajors | Where-Object { $_ -is [string] -and $_ -ceq $optional })
+        if ($optionalRows.Count -eq 1 -and $unavailable.Count -gt 0) {
+            throw "Conflicting PG$optional availability in Catalog ledger for $extension"
+        }
+        if ($optionalRows.Count -eq 1) {
             $expected += "$extension|$optional"
             $lastMajor = $optional
         }

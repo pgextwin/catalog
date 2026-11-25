@@ -47,10 +47,9 @@ public static class AuthenticatedLatestReleasePins
         var result = new List<ReleasePins>();
         foreach (var extension in names.OrderBy(x => x.Name, StringComparer.Ordinal))
         {
-            var recordFile = Path.Combine(snapshot.CatalogPath, "extensions", extension.Name + ".json");
+            var recordFile = Path.Combine(snapshot.CatalogPath, "packages", extension.Name + ".json");
             using var recordDoc = StrictJson.Parse(File.ReadAllBytes(recordFile));
-            var record = recordDoc.RootElement;
-            var tag = record.GetProperty("latest").GetProperty("releaseTag").GetString() ?? "";
+            var (tag, packagesByMajor) = ReadLatestLedgerPackages(recordDoc.RootElement, extension.Name);
             if (!PinnedReleaseSelector.SafeAssetName(tag))
                 throw new InvalidDataException("Unsafe Catalog-selected release tag");
 
@@ -93,18 +92,14 @@ public static class AuthenticatedLatestReleasePins
 
             foreach (var major in majors)
             {
-                var pg = record.GetProperty("postgresql").GetProperty(major);
-                if (!pg.GetProperty("available").GetBoolean())
+                if (!packagesByMajor.TryGetValue(major, out var pkg))
                     throw new InvalidDataException("Catalog latest lacks PG" + major);
-                var asset = pg.GetProperty("asset").GetString() ?? "";
-                var digest = pg.GetProperty("sha256").GetString() ?? "";
-                var downloadUrl = pg.GetProperty("downloadUrl").GetString() ?? "";
-                var expected = "https://github.com/pgextwin/" + extension.Name +
-                    "/releases/download/" + tag + "/" + asset;
+                var asset = pkg.Asset;
+                var digest = pkg.Sha256;
                 if (!PinnedReleaseSelector.SafeAssetName(asset) ||
                     !asset.StartsWith(extension.Name + "-", StringComparison.Ordinal) ||
                     !asset.EndsWith("-pg" + major + "-windows-x64.zip", StringComparison.Ordinal) ||
-                    !Hex64.IsMatch(digest) || downloadUrl != expected ||
+                    !Hex64.IsMatch(digest) ||
                     !assets.TryGetValue(asset, out var item) ||
                     item.Digest != "sha256:" + digest)
                     throw new InvalidDataException("Catalog ZIP SHA256 differs from public Release");
@@ -121,6 +116,68 @@ public static class AuthenticatedLatestReleasePins
             result.Select(p => p.Extension + "/" + p.PgMajor).Distinct(StringComparer.Ordinal).Count() != result.Count)
             throw new InvalidDataException("Incomplete latest ZIP plan");
         return result;
+    }
+
+    private static (string Tag, Dictionary<string, (string Asset, string Sha256)> Packages)
+        ReadLatestLedgerPackages(JsonElement record, string expectedName)
+    {
+        if (record.ValueKind != JsonValueKind.Object ||
+            !record.TryGetProperty("schemaVersion", out var schema) ||
+            schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var ver) || ver != 1 ||
+            !record.TryGetProperty("name", out var nameEl) || nameEl.GetString() != expectedName ||
+            !record.TryGetProperty("repository", out var repoEl) || repoEl.GetString() != "pgextwin/" + expectedName ||
+            !record.TryGetProperty("latestReleaseId", out var latestIdEl) ||
+            latestIdEl.ValueKind != JsonValueKind.Number || !latestIdEl.TryGetInt64(out var latestId) || latestId <= 0 ||
+            !record.TryGetProperty("unavailableMajors", out var unavailEl) || unavailEl.ValueKind != JsonValueKind.Array ||
+            !record.TryGetProperty("releases", out var releasesEl) || releasesEl.ValueKind != JsonValueKind.Array)
+            throw new InvalidDataException("Invalid Catalog package ledger: " + expectedName);
+
+        var unavailable = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var m in unavailEl.EnumerateArray())
+        {
+            var s = m.ValueKind == JsonValueKind.String ? m.GetString() ?? "" : "";
+            if (string.IsNullOrEmpty(s) || !unavailable.Add(s))
+                throw new InvalidDataException("Invalid unavailableMajors in Catalog ledger: " + expectedName);
+        }
+
+        JsonElement latest = default;
+        var found = false;
+        foreach (var rel in releasesEl.EnumerateArray())
+        {
+            if (rel.ValueKind != JsonValueKind.Object ||
+                !rel.TryGetProperty("releaseId", out var relIdEl) ||
+                relIdEl.ValueKind != JsonValueKind.Number || !relIdEl.TryGetInt64(out var relId) || relId <= 0)
+                throw new InvalidDataException("Invalid release in Catalog ledger: " + expectedName);
+            if (relId == latestId)
+            {
+                if (found)
+                    throw new InvalidDataException("Duplicate latestReleaseId in Catalog ledger: " + expectedName);
+                latest = rel;
+                found = true;
+            }
+        }
+        if (!found || latest.TryGetProperty("admission", out _) ||
+            latest.TryGetProperty("legacyInventoryCommit", out _) ||
+            !latest.TryGetProperty("releaseTag", out var tagEl) || tagEl.ValueKind != JsonValueKind.String ||
+            !latest.TryGetProperty("packages", out var pkgsEl) || pkgsEl.ValueKind != JsonValueKind.Array ||
+            pkgsEl.GetArrayLength() == 0)
+            throw new InvalidDataException("Invalid latest release in Catalog ledger: " + expectedName);
+
+        var tag = tagEl.GetString() ?? "";
+        var packages = new Dictionary<string, (string Asset, string Sha256)>(StringComparer.Ordinal);
+        foreach (var pkg in pkgsEl.EnumerateArray())
+        {
+            if (pkg.ValueKind != JsonValueKind.Object ||
+                !pkg.TryGetProperty("pgMajor", out var majorEl) || majorEl.ValueKind != JsonValueKind.String ||
+                !pkg.TryGetProperty("asset", out var assetEl) || assetEl.ValueKind != JsonValueKind.String ||
+                !pkg.TryGetProperty("sha256", out var shaEl) || shaEl.ValueKind != JsonValueKind.String)
+                throw new InvalidDataException("Invalid package entry in Catalog ledger: " + expectedName);
+            var major = majorEl.GetString() ?? "";
+            if (unavailable.Contains(major) ||
+                !packages.TryAdd(major, (assetEl.GetString() ?? "", shaEl.GetString() ?? "")))
+                throw new InvalidDataException("Conflicting or duplicate package major in Catalog ledger: " + expectedName);
+        }
+        return (tag, packages);
     }
 
     private static async Task<JsonDocument> ApiAsync(

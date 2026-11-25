@@ -117,29 +117,26 @@ public static class AuthenticatedCatalogHead
             await File.WriteAllBytesAsync(
                 Path.Combine(session.CatalogPath, "config", "cli-feed-majors.json"),
                 cohortBytes, cancellationToken);
-            var index = await ReadAsync(http, ImmutableUrl(commit, "index.json"), cancellationToken);
-            using var parsed = StrictJson.Parse(index);
-            var arr = parsed.RootElement.GetProperty("extensions");
-            if (parsed.RootElement.GetProperty("schemaVersion").GetInt32() != 2 ||
-                arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() < VerifiedFleetRoster.MinimumCount ||
-                arr.GetArrayLength() > VerifiedFleetRoster.MaximumCount)
-                throw new InvalidDataException("Unexpected Catalog v2 fleet");
-            var names = arr.EnumerateArray().Select(x => x.GetString() ?? "").ToArray();
-            if (names.Any(x => !Name.IsMatch(x)) ||
-                !names.SequenceEqual(names.Order(StringComparer.Ordinal)) ||
-                names.Distinct(StringComparer.Ordinal).Count() != names.Length)
-                throw new InvalidDataException("Unsafe Catalog fleet names");
-            VerifiedFleetRoster.Require(names);
-            await File.WriteAllBytesAsync(Path.Combine(session.CatalogPath, "index.json"),
+            var index = await ReadAsync(http, ImmutableUrl(commit, "identities/index.candidate.json"),
+                cancellationToken);
+            var names = ParseCandidateFleet(index);
+            var identitiesDir = Path.Combine(session.CatalogPath, "identities");
+            var packagesDir = Path.Combine(session.CatalogPath, "packages");
+            Directory.CreateDirectory(identitiesDir);
+            Directory.CreateDirectory(packagesDir);
+            await File.WriteAllBytesAsync(Path.Combine(identitiesDir, "index.candidate.json"),
                 index, cancellationToken);
-            var extensionDir = Path.Combine(session.CatalogPath, "extensions");
-            Directory.CreateDirectory(extensionDir);
             foreach (var name in names)
             {
-                var data = await ReadAsync(http, ImmutableUrl(commit, "extensions/" + name + ".json"),
+                var identity = await ReadAsync(http, ImmutableUrl(commit, "identities/" + name + ".json"),
                     cancellationToken);
-                await File.WriteAllBytesAsync(Path.Combine(extensionDir, name + ".json"),
-                    data, cancellationToken);
+                ValidateDistributedIdentity(identity, name);
+                await File.WriteAllBytesAsync(Path.Combine(identitiesDir, name + ".json"),
+                    identity, cancellationToken);
+                var ledger = await ReadAsync(http, ImmutableUrl(commit, "packages/" + name + ".json"),
+                    cancellationToken);
+                await File.WriteAllBytesAsync(Path.Combine(packagesDir, name + ".json"),
+                    ledger, cancellationToken);
             }
             var entries = CatalogReader.LoadLocal(session.CatalogPath);
             if (entries.Count != names.Length || entries.Any(entry => !cohort.Covers(entry)))
@@ -150,6 +147,90 @@ public static class AuthenticatedCatalogHead
             return session;
         }
         catch { session.Dispose(); throw; }
+    }
+
+    private static string[] ParseCandidateFleet(byte[] indexPayload)
+    {
+        using var parsed = StrictJson.Parse(indexPayload);
+        var root = parsed.RootElement;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("schemaVersion", out var schema) ||
+            schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var version) || version != 3 ||
+            !root.TryGetProperty("identitiesDir", out var idDir) || idDir.GetString() != "identities" ||
+            !root.TryGetProperty("packagesDir", out var pkgDir) || pkgDir.GetString() != "packages" ||
+            !root.TryGetProperty("extensions", out var arr) ||
+            arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() < VerifiedFleetRoster.MinimumCount ||
+            arr.GetArrayLength() > VerifiedFleetRoster.MaximumCount ||
+            !root.TryGetProperty("identities", out var identities) ||
+            identities.ValueKind != JsonValueKind.Array)
+            throw new InvalidDataException("Unexpected Catalog v3 fleet");
+
+        var names = new string[arr.GetArrayLength()];
+        var index = 0;
+        foreach (var item in arr.EnumerateArray())
+        {
+            var value = item.ValueKind == JsonValueKind.String ? item.GetString() ?? "" : "";
+            if (!Name.IsMatch(value))
+                throw new InvalidDataException("Unsafe Catalog fleet names");
+            names[index++] = value;
+        }
+        if (!names.SequenceEqual(names.Order(StringComparer.Ordinal)) ||
+            names.Distinct(StringComparer.Ordinal).Count() != names.Length)
+            throw new InvalidDataException("Unsafe Catalog fleet names");
+        VerifiedFleetRoster.Require(names);
+
+        var seenIdentities = new HashSet<string>(StringComparer.Ordinal);
+        var distributedIdentities = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in identities.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object ||
+                !item.TryGetProperty("name", out var n) || n.ValueKind != JsonValueKind.String ||
+                !item.TryGetProperty("path", out var p) || p.ValueKind != JsonValueKind.String ||
+                !item.TryGetProperty("intakeClass", out var c) || c.ValueKind != JsonValueKind.String)
+                throw new InvalidDataException("Unexpected Catalog v3 identity entry");
+            var entryName = n.GetString() ?? "";
+            var intakeClass = c.GetString() ?? "";
+            if (!Name.IsMatch(entryName) || !seenIdentities.Add(entryName) ||
+                p.GetString() != "identities/" + entryName + ".json")
+                throw new InvalidDataException("Unsafe Catalog v3 identity entry");
+            if (intakeClass == "distributed")
+            {
+                if (!item.TryGetProperty("ledgerPath", out var l) || l.ValueKind != JsonValueKind.String ||
+                    l.GetString() != "packages/" + entryName + ".json")
+                    throw new InvalidDataException("Invalid distributed ledgerPath in Catalog v3 index");
+                distributedIdentities.Add(entryName);
+            }
+            else if (intakeClass == "research-only")
+            {
+                if (item.TryGetProperty("ledgerPath", out _))
+                    throw new InvalidDataException("Unexpected ledgerPath for research-only identity");
+            }
+            else
+            {
+                throw new InvalidDataException("Unexpected Catalog v3 intakeClass");
+            }
+        }
+        if (!distributedIdentities.Order(StringComparer.Ordinal).SequenceEqual(names))
+            throw new InvalidDataException("Catalog v3 identity roster mismatch");
+        return names;
+    }
+
+    private static void ValidateDistributedIdentity(byte[] payload, string expectedName)
+    {
+        using var doc = StrictJson.Parse(payload);
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("schemaVersion", out var schema) ||
+            schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var version) || version != 1 ||
+            !root.TryGetProperty("name", out var name) || name.GetString() != expectedName ||
+            !root.TryGetProperty("intake", out var intake) || intake.ValueKind != JsonValueKind.Object ||
+            !intake.TryGetProperty("class", out var intakeClass) || intakeClass.GetString() != "distributed" ||
+            !intake.TryGetProperty("distributionAllowed", out var allowed) ||
+            allowed.ValueKind != JsonValueKind.True ||
+            !root.TryGetProperty("distribution", out var dist) || dist.ValueKind != JsonValueKind.Object ||
+            !dist.TryGetProperty("repository", out var repo) || repo.GetString() != "pgextwin/" + expectedName ||
+            !dist.TryGetProperty("ledgerPath", out var ledger) || ledger.GetString() != "packages/" + expectedName + ".json")
+            throw new InvalidDataException("Invalid or unauthorized Catalog identity: " + expectedName);
     }
 
     private static PostgresqlFeedCohort ParseCohort(byte[] payload)
@@ -169,15 +250,20 @@ public static class AuthenticatedCatalogHead
     private static Uri ImmutableUrl(string sha, string path) =>
         new("https://raw.githubusercontent.com/pgextwin/catalog/" + sha + "/" + path);
 
+    internal static bool IsApprovedCatalogUri(Uri url) =>
+        url.Scheme == Uri.UriSchemeHttps && url.Port == 443 &&
+        string.IsNullOrEmpty(url.UserInfo) && string.IsNullOrEmpty(url.Fragment) &&
+        (url.Host == "api.github.com" &&
+         url.AbsolutePath.StartsWith("/repos/pgextwin/catalog/", StringComparison.Ordinal) ||
+         url.Host == "raw.githubusercontent.com" &&
+         Regex.IsMatch(url.AbsolutePath,
+             @"\A/pgextwin/catalog/[0-9a-f]{40}/(config/cli-feed-majors\.json|identities/index\.candidate\.json|(?:identities|packages)/[a-z][a-z0-9_]*\.json)\z",
+             RegexOptions.CultureInvariant));
+
     private static async Task<byte[]> ReadAsync(HttpClient http, Uri url,
         CancellationToken token)
     {
-        if (url.Scheme != Uri.UriSchemeHttps || url.Port != 443 ||
-            !string.IsNullOrEmpty(url.UserInfo) || !string.IsNullOrEmpty(url.Fragment) ||
-            !(url.Host == "api.github.com" &&
-              url.AbsolutePath.StartsWith("/repos/pgextwin/catalog/", StringComparison.Ordinal) ||
-              url.Host == "raw.githubusercontent.com" &&
-              Regex.IsMatch(url.AbsolutePath, @"\A/pgextwin/catalog/[0-9a-f]{40}/(index\.json|config/cli-feed-majors\.json|extensions/[a-z][a-z0-9_]*\.json)\z")))
+        if (!IsApprovedCatalogUri(url))
             throw new InvalidDataException("Unapproved Catalog HTTPS request");
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.ParseAdd("application/vnd.github+json");
