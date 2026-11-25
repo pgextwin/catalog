@@ -17,17 +17,17 @@ class LandscapeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.schema = module.load(ROOT / "schema" / "landscape-extension.schema.json")
         cls.validator = module.Draft202012Validator(cls.schema, format_checker=module.FormatChecker())
-        cls.impl = module.build_identities.project_landscape_v1(
+        cls.impl = module.identity_records.project_landscape_v1(
             module.load(ROOT / "identities" / "pg_cron.json")
         )
-        cls.candidate = module.build_identities.project_landscape_v1(
+        cls.candidate = module.identity_records.project_landscape_v1(
             module.load(ROOT / "identities" / "pg_partman.json")
         )
         cls.candidate["status"] = "candidate"
         cls.candidate.pop("pgextwinCatalogName", None)
         cls.candidate["candidateRationale"] = "Offline fixture candidate"
         cls.candidate["roadmap"] = {"decision": "reserve", "decisionDate": "2026-10-08", "rationale": "fixture"}
-        cls.other = module.build_identities.project_landscape_v1(
+        cls.other = module.identity_records.project_landscape_v1(
             module.load(ROOT / "identities" / "postgis.json")
         )
 
@@ -66,6 +66,7 @@ class LandscapeTests(unittest.TestCase):
             base = Path(tmp)
             shutil.copytree(ROOT / "identities", base / "identities")
             shutil.copytree(ROOT / "schema", base / "schema")
+            shutil.copy2(ROOT / "index.json", base / "index.json")
             self.assertEqual([], module.validate_landscape(base))
 
     def test_duplicate_names(self):
@@ -93,12 +94,12 @@ class LandscapeTests(unittest.TestCase):
                     },
                 ],
             }
-            (base / "identities" / "index.candidate.json").write_text(json.dumps(idx), encoding="utf-8")
+            (base / "index.json").write_text(json.dumps(idx), encoding="utf-8")
             self.assertTrue(any("duplicate" in x for x in module.validate_landscape(base)))
 
     def test_step18_implemented_wave_history(self):
         plpgsql_identity = module.load(ROOT / "identities" / "plpgsql_check.json")
-        plpgsql = module.build_identities.project_landscape_v1(plpgsql_identity)
+        plpgsql = module.identity_records.project_landscape_v1(plpgsql_identity)
         self.assertValid(plpgsql)
         self.assertEqual("implemented", plpgsql["status"])
         self.assertEqual("plpgsql_check", plpgsql["pgextwinCatalogName"])
@@ -124,7 +125,8 @@ class LandscapeTests(unittest.TestCase):
                 base = Path(tmp)
                 shutil.copytree(ROOT / "identities", base / "identities")
                 shutil.copytree(ROOT / "schema", base / "schema")
-                idx_path = base / "identities" / "index.candidate.json"
+                idx_path = base / "index.json"
+                shutil.copy2(ROOT / "index.json", idx_path)
                 index = json.loads(idx_path.read_text(encoding="utf-8"))
                 if name not in index["extensions"]:
                     index["extensions"].append(name)
@@ -193,6 +195,8 @@ class LandscapeTests(unittest.TestCase):
             base = Path(tmp)
             shutil.copytree(ROOT / "identities", base / "identities")
             shutil.copytree(ROOT / "schema", base / "schema")
+            idx_path = base / "index.json"
+            shutil.copy2(ROOT / "index.json", idx_path)
             for label, name, mutate, fragment in cases:
                 with self.subTest(case=label):
                     path = base / "identities" / f"{name}.json"
@@ -206,7 +210,6 @@ class LandscapeTests(unittest.TestCase):
                     finally:
                         path.write_bytes(original)
 
-            idx_path = base / "identities" / "index.candidate.json"
             original_idx = idx_path.read_bytes()
             try:
                 idx = json.loads(original_idx)

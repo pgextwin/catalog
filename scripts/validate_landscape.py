@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Windows Extension Landscape records stored in identities/; do not alter distribution Catalog v2."""
+"""Validate Windows Extension Landscape records stored in identities/ and v3 index.json."""
 import json
 import re
 import sys
@@ -12,9 +12,9 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 try:
-    from scripts import build_identities
+    from scripts import identity_records
 except ModuleNotFoundError:
-    import build_identities
+    import identity_records
 
 ROOT = Path(__file__).resolve().parents[1]
 INITIAL_EIGHT = {"pg_bigm", "pg_cron", "pg_hint_plan", "pgaudit", "set_user", "pg_repack", "pg_ivm", "pg_qualstats"}
@@ -34,8 +34,8 @@ def validate_landscape(root=ROOT):
     root = Path(root)
     errors = []
 
-    identity_schema = load(root / "schema" / "identity.schema.json")
-    index_v3_schema = load(root / "schema" / "index-v3.schema.json")
+    identity_schema = load(root / identity_records.IDENTITY_SCHEMA_REL)
+    index_v3_schema = load(root / identity_records.INDEX_V3_SCHEMA_REL)
     landscape_schema = load(root / "schema" / "landscape-extension.schema.json")
     Draft202012Validator.check_schema(identity_schema)
     Draft202012Validator.check_schema(index_v3_schema)
@@ -45,24 +45,25 @@ def validate_landscape(root=ROOT):
     index_v3_validator = Draft202012Validator(index_v3_schema, format_checker=FormatChecker())
     landscape_validator = Draft202012Validator(landscape_schema, format_checker=FormatChecker())
 
-    identities_dir = root / build_identities.IDENTITIES_DIR_NAME
-    idx = load(identities_dir / build_identities.CANDIDATE_INDEX_NAME)
+    identities_dir = root / identity_records.IDENTITIES_DIR_NAME
+    index_name = identity_records.INDEX_FILENAME
+    idx = load(root / index_name)
     if (
         type(idx) is not dict
         or idx.get("schemaVersion") != 3
-        or idx.get("identitiesDir") != build_identities.IDENTITIES_DIR_NAME
-        or idx.get("packagesDir") != "packages"
+        or idx.get("identitiesDir") != identity_records.IDENTITIES_DIR_NAME
+        or idx.get("packagesDir") != identity_records.PACKAGES_DIR_NAME
         or not isinstance(idx.get("extensions"), list)
         or not isinstance(idx.get("identities"), list)
     ):
-        return ["Identities candidate index format is invalid"]
+        return ["Catalog v3 index format is invalid"]
 
     ext_names = idx["extensions"]
     id_entries = idx["identities"]
     if not all(isinstance(x, str) and NAME_RE.fullmatch(x) for x in ext_names):
-        return ["Identities candidate index format is invalid"]
+        return ["Catalog v3 index format is invalid"]
     if not all(isinstance(e, dict) and isinstance(e.get("name"), str) and NAME_RE.fullmatch(e["name"]) for e in id_entries):
-        return ["Identities candidate index format is invalid"]
+        return ["Catalog v3 index format is invalid"]
 
     if len(ext_names) != len(set(ext_names)):
         errors.append("Identities index duplicate extension names")
@@ -71,26 +72,26 @@ def validate_landscape(root=ROOT):
         errors.append("Identities index duplicate identity names")
 
     for issue in sorted(index_v3_validator.iter_errors(idx), key=lambda err: list(err.absolute_path)):
-        errors.append(_format_issue(build_identities.CANDIDATE_INDEX_NAME, issue))
+        errors.append(_format_issue(index_name, issue))
 
     entries_by_name = {}
     distributed_entries = set()
     for entry in id_entries:
         entry_name = entry["name"]
         entries_by_name.setdefault(entry_name, entry)
-        expected_path = f"{build_identities.IDENTITIES_DIR_NAME}/{entry_name}.json"
+        expected_path = f"{identity_records.IDENTITIES_DIR_NAME}/{entry_name}.json"
         if entry.get("path") != expected_path:
-            errors.append(f"{build_identities.CANDIDATE_INDEX_NAME}: {entry_name}: unexpected identity path {entry.get('path')!r}")
+            errors.append(f"{index_name}: {entry_name}: unexpected identity path {entry.get('path')!r}")
         intake_class = entry.get("intakeClass")
         if intake_class == "distributed":
             distributed_entries.add(entry_name)
-            if entry.get("ledgerPath") != f"packages/{entry_name}.json":
-                errors.append(f"{build_identities.CANDIDATE_INDEX_NAME}: {entry_name}: invalid ledgerPath")
+            if entry.get("ledgerPath") != f"{identity_records.PACKAGES_DIR_NAME}/{entry_name}.json":
+                errors.append(f"{index_name}: {entry_name}: invalid ledgerPath")
         elif intake_class == "research-only":
             if "ledgerPath" in entry:
-                errors.append(f"{build_identities.CANDIDATE_INDEX_NAME}: {entry_name}: research-only entry must not define ledgerPath")
+                errors.append(f"{index_name}: {entry_name}: research-only entry must not define ledgerPath")
         else:
-            errors.append(f"{build_identities.CANDIDATE_INDEX_NAME}: {entry_name}: invalid intakeClass {intake_class!r}")
+            errors.append(f"{index_name}: {entry_name}: invalid intakeClass {intake_class!r}")
 
     available = set(ext_names)
     if distributed_entries != available:
@@ -99,10 +100,7 @@ def validate_landscape(root=ROOT):
             f"only_entries={sorted(distributed_entries - available)} only_extensions={sorted(available - distributed_entries)}"
         )
 
-    paths = sorted(
-        p for p in identities_dir.glob("*.json")
-        if p.name != build_identities.CANDIDATE_INDEX_NAME
-    )
+    paths = sorted(identities_dir.glob("*.json"))
     files = {p.stem for p in paths}
     if files != set(id_names):
         errors.append(
@@ -142,7 +140,7 @@ def validate_landscape(root=ROOT):
 
         entry = entries_by_name.get(path.stem)
         if entry is not None and entry.get("intakeClass") != intake_class:
-            add_error(f"{path.name}: intakeClass disagrees with {build_identities.CANDIDATE_INDEX_NAME}")
+            add_error(f"{path.name}: intakeClass disagrees with {index_name}")
 
         if intake_class == "distributed":
             status = "implemented"
@@ -154,7 +152,7 @@ def validate_landscape(root=ROOT):
                 or intake.get("distributionAllowed") is not True
                 or not isinstance(dist, dict)
                 or dist.get("repository") != f"pgextwin/{path.stem}"
-                or dist.get("ledgerPath") != f"packages/{path.stem}.json"
+                or dist.get("ledgerPath") != f"{identity_records.PACKAGES_DIR_NAME}/{path.stem}.json"
             ):
                 add_error(f"{path.name}: invalid distribution catalog reference")
             if "status" in research:
@@ -174,7 +172,7 @@ def validate_landscape(root=ROOT):
             and isinstance(identity.get("research"), dict)
             and (intake_class == "distributed" or "status" in research)
         ):
-            projected = build_identities.project_landscape_v1(identity)
+            projected = identity_records.project_landscape_v1(identity)
             for issue in sorted(landscape_validator.iter_errors(projected), key=lambda err: list(err.absolute_path)):
                 add_error(_format_issue(path.name, issue))
 
@@ -239,4 +237,4 @@ if __name__ == "__main__":
         print(f"ERROR: {failure}", file=sys.stderr)
     if failures:
         sys.exit(1)
-    print("Landscape Registry v1 valid (via identities/); distribution Catalog v2 remains independent.")
+    print("Landscape Registry v1 valid (via identities/ and v3 index.json).")

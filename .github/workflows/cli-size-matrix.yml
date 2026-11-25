@@ -62,7 +62,7 @@ jobs:
           $json=$body | ConvertFrom-Json
           $index=Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'index.json') -Raw | ConvertFrom-Json
           $expected=@($index.extensions).Count
-          if ($index.schemaVersion -ne 2 -or $expected -lt 1 -or
+          if ($index.schemaVersion -ne 3 -or $expected -lt 1 -or
               $json.count -ne $expected -or @($json.records).Count -ne $expected -or
               $json.trust -cne 'UNVERIFIED' -or $json.signatureVerified -ne $false) { throw 'Trust model changed' }
           $deny=(& $exe verify pg_cron --pg 18 2>&1 | Out-String)

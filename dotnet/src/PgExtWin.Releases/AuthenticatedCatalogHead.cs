@@ -117,14 +117,14 @@ public static class AuthenticatedCatalogHead
             await File.WriteAllBytesAsync(
                 Path.Combine(session.CatalogPath, "config", "cli-feed-majors.json"),
                 cohortBytes, cancellationToken);
-            var index = await ReadAsync(http, ImmutableUrl(commit, "identities/index.candidate.json"),
+            var index = await ReadAsync(http, ImmutableUrl(commit, "index.json"),
                 cancellationToken);
-            var names = ParseCandidateFleet(index);
+            var names = ParseV3Fleet(index);
             var identitiesDir = Path.Combine(session.CatalogPath, "identities");
             var packagesDir = Path.Combine(session.CatalogPath, "packages");
             Directory.CreateDirectory(identitiesDir);
             Directory.CreateDirectory(packagesDir);
-            await File.WriteAllBytesAsync(Path.Combine(identitiesDir, "index.candidate.json"),
+            await File.WriteAllBytesAsync(Path.Combine(session.CatalogPath, "index.json"),
                 index, cancellationToken);
             foreach (var name in names)
             {
@@ -149,7 +149,7 @@ public static class AuthenticatedCatalogHead
         catch { session.Dispose(); throw; }
     }
 
-    private static string[] ParseCandidateFleet(byte[] indexPayload)
+    private static string[] ParseV3Fleet(byte[] indexPayload)
     {
         using var parsed = StrictJson.Parse(indexPayload);
         var root = parsed.RootElement;
@@ -257,7 +257,7 @@ public static class AuthenticatedCatalogHead
          url.AbsolutePath.StartsWith("/repos/pgextwin/catalog/", StringComparison.Ordinal) ||
          url.Host == "raw.githubusercontent.com" &&
          Regex.IsMatch(url.AbsolutePath,
-             @"\A/pgextwin/catalog/[0-9a-f]{40}/(config/cli-feed-majors\.json|identities/index\.candidate\.json|(?:identities|packages)/[a-z][a-z0-9_]*\.json)\z",
+             @"\A/pgextwin/catalog/[0-9a-f]{40}/(config/cli-feed-majors\.json|index\.json|(?:identities|packages)/[a-z][a-z0-9_]*\.json)\z",
              RegexOptions.CultureInvariant));
 
     private static async Task<byte[]> ReadAsync(HttpClient http, Uri url,

@@ -158,7 +158,7 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $version.Trim() -cne ([string]([xml](Get-Content dotnet/src/PgExtWin.Cli/PgExtWin.Cli.csproj -Raw)).Project.PropertyGroup.Version)) { throw 'CLI candidate version smoke failed' }
           $index = Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'index.json') -Raw | ConvertFrom-Json
           $expectedCount = @($index.extensions).Count
-          if ($index.schemaVersion -ne 2 -or $expectedCount -lt 1 -or $expectedCount -gt 128) { throw 'Unsupported protected Catalog fleet size' }
+          if ($index.schemaVersion -ne 3 -or $expectedCount -lt 1 -or $expectedCount -gt 128) { throw 'Unsupported protected Catalog fleet size' }
           $jsonText = & $exe list --catalog-dir $env:GITHUB_WORKSPACE --pg 18 --format json | Out-String
           if ($LASTEXITCODE -ne 0) { throw 'JSON list CLI failed' }
           $json = $jsonText | ConvertFrom-Json

@@ -634,5 +634,98 @@ class CatalogAdmissionLoaderTests(unittest.TestCase):
             get_repo_json("pgextwin/hypopg", f"/contents/extensions/hypopg.json?ref={ADMISSION}")
 
 
+class FormalizedV3FeedTests(unittest.TestCase):
+    def _build_temp_repos(self):
+        import copy
+        import shutil
+        import tempfile
+        from scripts import cli_signed_feed, identity_records, package_ledger
+
+        root = Path(__file__).resolve().parents[1]
+        tmp = tempfile.TemporaryDirectory()
+        base = Path(tmp.name)
+
+        def git(repo: Path, *args: str) -> str:
+            return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+        def init_repo(name: str, *, mode: str) -> tuple[Path, str]:
+            repo = base / name
+            repo.mkdir()
+            git(repo, "init", "-b", "main")
+            git(repo, "config", "user.name", "Test")
+            git(repo, "config", "user.email", "test@example.invalid")
+            shutil.copytree(root / "config", repo / "config")
+            (repo / "packages").mkdir()
+            ledger = copy.deepcopy(package_ledger.read_record(root / "packages" / "orafce.json"))
+            ledger["releases"] = [copy.deepcopy(package_ledger.current_release(ledger))]
+            (repo / "packages" / "orafce.json").write_bytes(package_ledger.json_bytes(ledger))
+
+            if mode == "v3":
+                (repo / "identities").mkdir()
+                for ext_name in ("orafce", "http"):
+                    shutil.copy2(root / "identities" / f"{ext_name}.json", repo / "identities" / f"{ext_name}.json")
+                identities = {
+                    "orafce": json.loads((repo / "identities" / "orafce.json").read_text("utf-8")),
+                    "http": json.loads((repo / "identities" / "http.json").read_text("utf-8")),
+                }
+                v3_idx = identity_records.build_index_v3(identities)
+                (repo / "index.json").write_text(json.dumps(v3_idx, indent=2) + "\n", encoding="utf-8")
+            else:
+                (repo / "extensions").mkdir()
+                view = package_ledger.website_record(ledger)
+                (repo / "extensions" / "orafce.json").write_bytes(package_ledger.json_bytes(view))
+                (repo / "index.json").write_text(
+                    json.dumps({"schemaVersion": 2, "extensions": ["orafce"]}, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+
+            git(repo, "add", ".")
+            git(repo, "commit", "-m", f"seed {mode}")
+            sha = git(repo, "rev-parse", "HEAD")
+            git(repo, "update-ref", "refs/remotes/origin/main", sha)
+            return repo, sha
+
+        v3_repo, v3_sha = init_repo("v3", mode="v3")
+        v2_repo, v2_sha = init_repo("v2", mode="v2")
+        self.addCleanup(tmp.cleanup)
+        return v3_repo, v3_sha, v2_repo, v2_sha, cli_signed_feed, package_ledger
+
+    def test_v3_build_feed_succeeds_and_matches_equivalent_v2_feed(self):
+        from scripts import compare_catalog_feeds
+
+        v3_repo, v3_sha, v2_repo, v2_sha, cli_signed_feed, package_ledger = self._build_temp_repos()
+        feed = cli_signed_feed.build_feed(v3_repo, v3_sha, load_admission=package_ledger.git_admissions(v3_repo))
+        self.assertEqual([e["extension"] for e in feed["extensions"]], ["orafce"])
+        self.assertEqual(cli_signed_feed.catalog_names(v3_repo, package_ledger.DIRECTORY), ["orafce"])
+        equal, _, _, norm_a, norm_b = compare_catalog_feeds.compare(v2_repo, v2_sha, v3_repo, v3_sha)
+        self.assertTrue(equal)
+        self.assertEqual(norm_a, norm_b)
+
+    def test_v3_catalog_names_fails_closed_on_invalid_shapes(self):
+        v3_repo, v3_sha, _, _, cli_signed_feed, package_ledger = self._build_temp_repos()
+        idx_path = v3_repo / "index.json"
+        original_idx = idx_path.read_bytes()
+
+        # Wrong packagesDir fails closed.
+        bad_dir = json.loads(original_idx)
+        bad_dir["packagesDir"] = "extensions"
+        idx_path.write_text(json.dumps(bad_dir), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            cli_signed_feed.catalog_names(v3_repo, package_ledger.DIRECTORY)
+
+        # Promoting research-only into extensions fails closed.
+        bad_promote = json.loads(original_idx)
+        bad_promote["extensions"].append("http")
+        idx_path.write_text(json.dumps(bad_promote), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            cli_signed_feed.catalog_names(v3_repo, package_ledger.DIRECTORY)
+
+        # Missing packages/<name>.json fails closed.
+        idx_path.write_bytes(original_idx)
+        (v3_repo / "packages" / "orafce.json").unlink()
+        with self.assertRaises(ValueError):
+            cli_signed_feed.catalog_names(v3_repo, package_ledger.DIRECTORY)
+
+
 if __name__ == "__main__":
     unittest.main()

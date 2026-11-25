@@ -14,14 +14,16 @@ ROOT = Path(__file__).resolve().parents[1]
 class WebsiteV1CompatibilityTests(unittest.TestCase):
     def test_current_website_consumer_fields_remain_available(self):
         index = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))
-        self.assertEqual(2, index["schemaVersion"])
+        self.assertEqual(3, index["schemaVersion"])
+        self.assertEqual("packages", index["packagesDir"])
+        self.assertTrue(index["identities"])
         self.assertTrue(index["extensions"])
         self.assertEqual(len(index["extensions"]),len(set(index["extensions"])))
         self.assertTrue({"pg_bigm","pg_cron","pg_hint_plan","pg_ivm","pg_qualstats","pg_repack","pgaudit","set_user","plpgsql_check"}.issubset(set(index["extensions"])))
 
         for name in index["extensions"]:
-            record = json.loads(
-                (ROOT / "extensions" / f"{name}.json").read_text(encoding="utf-8")
+            record = package_ledger.website_record(
+                package_ledger.read_record(ROOT / "packages" / f"{name}.json")
             )
 
             self.assertTrue(record["displayName"])
@@ -61,7 +63,9 @@ class WebsiteV1CompatibilityTests(unittest.TestCase):
         for name in ("pg_hint_plan", "pgaudit"):
             entry = entries[name]
             current = next(r for r in entry["releases"] if r["releaseTag"] == entry["latestReleaseTag"])
-            view = package_ledger.read_record(ROOT / "extensions" / f"{name}.json")
+            view = package_ledger.website_record(
+                package_ledger.read_record(ROOT / "packages" / f"{name}.json")
+            )
             versions = view["upstream"]["perPostgresql"]
             self.assertGreater(len({row["version"] for row in current["packages"]}), 1)
             for row in current["packages"]:
@@ -87,8 +91,8 @@ class WebsiteV1CompatibilityTests(unittest.TestCase):
     def test_lifecycle_remains_external(self):
         index = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))
         for name in index["extensions"]:
-            record = json.loads(
-                (ROOT / "extensions" / f"{name}.json").read_text(encoding="utf-8")
+            record = package_ledger.website_record(
+                package_ledger.read_record(ROOT / "packages" / f"{name}.json")
             )
             self.assertNotIn("maintained", record)
             self.assertNotIn("eol", record)

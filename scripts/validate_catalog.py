@@ -15,10 +15,10 @@ from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 from referencing import Registry, Resource
 
 try:
-    from scripts import build_identities, package_ledger, verified_release_record
+    from scripts import identity_records, package_ledger, verified_release_record
     from scripts.release_inventory import match_zip, release_assets
 except ModuleNotFoundError:
-    import build_identities
+    import identity_records
     import package_ledger
     import verified_release_record
     from release_inventory import match_zip, release_assets
@@ -27,10 +27,9 @@ ROOT = Path(__file__).resolve().parents[1]
 EXTENSION_SCHEMA_PATH = ROOT / "schema" / "extension.schema.json"
 LEDGER_SCHEMA_PATH = ROOT / "schema" / "package-ledger.schema.json"
 LEDGER_DIR = ROOT / package_ledger.DIRECTORY
-INDEX_SCHEMA_PATH = ROOT / "schema" / "index.schema.json"
-INDEX_PATH = ROOT / "index.json"
-IDENTITY_SCHEMA_REL = build_identities.IDENTITY_SCHEMA_REL
-INDEX_V3_SCHEMA_REL = build_identities.INDEX_V3_SCHEMA_REL
+INDEX_PATH = ROOT / identity_records.INDEX_FILENAME
+IDENTITY_SCHEMA_REL = identity_records.IDENTITY_SCHEMA_REL
+INDEX_V3_SCHEMA_REL = identity_records.INDEX_V3_SCHEMA_REL
 
 FULL_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -506,7 +505,7 @@ def _compare_mapping_fields(label: str, actual: dict, expected: dict, errors: li
 
 
 def validate_identities(root=ROOT):
-    """Provisional PR-1 check: verify identities/ losslessly represent the union of extensions/ and landscape/."""
+    """Validate root v3 index.json, identities/*.json, intake rules, and landscape projection."""
     root = Path(root)
     errors = []
 
@@ -518,39 +517,66 @@ def validate_identities(root=ROOT):
     except Exception as exc:
         return [f"identities schema error: {exc}"]
 
-    try:
-        inputs = build_identities.load_source_inputs(root)
-    except (ValueError, KeyError, TypeError, OSError) as exc:
-        return [f"identities source inputs: {exc}"]
+    index_name = identity_records.INDEX_FILENAME
+    index_path = root / index_name
+    index = None
+    if index_path.is_symlink() or not index_path.is_file():
+        errors.append(f"Missing or invalid {index_name}")
+    else:
+        try:
+            index = package_ledger.read_record(index_path)
+            errors.extend(schema_errors(index_v3_schema, index, index_name))
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            errors.append(f"{index_name}: {exc}")
 
-    identities_dir = root / build_identities.IDENTITIES_DIR_NAME
+    identities_dir = root / identity_records.IDENTITIES_DIR_NAME
     if identities_dir.is_symlink() or not identities_dir.is_dir():
-        return [f"missing or invalid {build_identities.IDENTITIES_DIR_NAME}/ directory"]
+        errors.append(f"missing or invalid {identity_records.IDENTITIES_DIR_NAME}/ directory")
+        return errors
 
-    all_ids = inputs["all_ids"]
-    dist_set = set(inputs["distributed_ids"])
-    research_only_set = set(inputs["research_only_ids"])
-    expected_files = {f"{name}.json" for name in all_ids} | {build_identities.CANDIDATE_INDEX_NAME}
-
-    actual_files = set()
+    actual_stems = set()
     for entry in sorted(identities_dir.iterdir()):
-        if entry.is_symlink() or not entry.is_file():
-            errors.append(f"{build_identities.IDENTITIES_DIR_NAME}/{entry.name}: must be a regular file")
+        if (
+            entry.is_symlink()
+            or not entry.is_file()
+            or entry.suffix != ".json"
+            or not package_ledger.NAME.fullmatch(entry.stem)
+        ):
+            errors.append(
+                f"{identity_records.IDENTITIES_DIR_NAME}/{entry.name}: "
+                "unexpected file, link, or invalid identity filename"
+            )
             continue
-        actual_files.add(entry.name)
-    missing_files = sorted(expected_files - actual_files)
-    extra_files = sorted(actual_files - expected_files)
+        actual_stems.add(entry.stem)
+
+    index_entries = index.get("identities") if isinstance(index, dict) and isinstance(index.get("identities"), list) else []
+    expected_stems = {
+        entry["name"]
+        for entry in index_entries
+        if isinstance(entry, dict) and isinstance(entry.get("name"), str)
+    }
+    dist_roster = set(index["extensions"]) if isinstance(index, dict) and isinstance(index.get("extensions"), list) else set()
+
+    missing_files = sorted(expected_stems - actual_stems)
+    extra_files = sorted(actual_stems - expected_stems) if expected_stems else []
     if missing_files:
-        errors.append(f"{build_identities.IDENTITIES_DIR_NAME}/ missing file(s): {', '.join(missing_files)}")
+        errors.append(
+            f"{identity_records.IDENTITIES_DIR_NAME}/ missing file(s): "
+            + ", ".join(f"{name}.json" for name in missing_files)
+        )
     if extra_files:
-        errors.append(f"{build_identities.IDENTITIES_DIR_NAME}/ unexpected file(s): {', '.join(extra_files)}")
+        errors.append(
+            f"{identity_records.IDENTITIES_DIR_NAME}/ unexpected file(s): "
+            + ", ".join(f"{name}.json" for name in extra_files)
+        )
 
     loaded_identities = {}
-    for name in all_ids:
-        rel_path = f"{build_identities.IDENTITIES_DIR_NAME}/{name}.json"
+    historical_core_names = set()
+    first_release_names = set()
+
+    for name in sorted(actual_stems):
+        rel_path = f"{identity_records.IDENTITIES_DIR_NAME}/{name}.json"
         id_path = identities_dir / f"{name}.json"
-        if not id_path.is_file() or id_path.is_symlink():
-            continue
         try:
             identity = package_ledger.read_record(id_path)
         except (ValueError, OSError) as exc:
@@ -558,128 +584,181 @@ def validate_identities(root=ROOT):
             continue
 
         loaded_identities[name] = identity
-        id_schema_errors = schema_errors(identity_schema, identity, rel_path)
-        errors.extend(id_schema_errors)
+        errors.extend(schema_errors(identity_schema, identity, rel_path))
 
         if identity.get("name") != name:
             errors.append(f"{rel_path}: name {identity.get('name')!r} does not match filename '{name}'")
         if "displayName" in identity and identity["displayName"] == name:
             errors.append(f"{rel_path}: displayName must be omitted when equal to name")
 
-        landscape_record = inputs["landscape"][name]
-        expected_intake = build_identities.intake_metadata(name, inputs["first_release_sources"])
-        if identity.get("intake") != expected_intake:
-            errors.append(
-                f"{rel_path}.intake: mismatch (actual={identity.get('intake')!r}, expected={expected_intake!r})"
-            )
+        intake = identity.get("intake")
+        research = identity.get("research")
+        pkg_path = root / package_ledger.DIRECTORY / f"{name}.json"
 
-        if name in dist_set:
-            ext_record = inputs["extensions"][name]
-            ledger_record = inputs["packages"][name]
-            try:
-                if ext_record != package_ledger.website_record(ledger_record):
-                    errors.append(f"{rel_path}: extensions/{name}.json is stale relative to packages/{name}.json")
-            except (ValueError, KeyError, TypeError) as exc:
-                errors.append(f"{rel_path}: package ledger projection error: {exc}")
-
-            allowed_ext = (
-                build_identities.IDENTITY_OWNED_EXTENSION_KEYS
-                | build_identities.LEDGER_OWNED_EXTENSION_KEYS
-            )
-            unmapped_ext = sorted(set(ext_record) - allowed_ext)
-            if unmapped_ext:
-                errors.append(f"extensions/{name}.json: unmapped field(s): {', '.join(unmapped_ext)}")
-            unmapped_upstream = sorted(set(ext_record.get("upstream", {})) - {"repository", "version", "perPostgresql"})
-            if unmapped_upstream:
-                errors.append(
-                    f"extensions/{name}.json.upstream: unmapped field(s): {', '.join(unmapped_upstream)}"
-                )
-
-            if identity.get("displayName", name) != ext_record.get("displayName"):
-                errors.append(
-                    f"{rel_path}.displayName: differs from extensions/{name}.json "
-                    f"({identity.get('displayName', name)!r} != {ext_record.get('displayName')!r})"
-                )
-            if identity.get("upstreamRepository") != ext_record.get("upstream", {}).get("repository"):
-                errors.append(f"{rel_path}.upstreamRepository: differs from extensions/{name}.json")
-            if identity.get("description") != ext_record.get("description"):
-                errors.append(f"{rel_path}.description: differs from extensions/{name}.json")
-
-            expected_dist = {
-                "repository": ext_record.get("repository"),
-                "license": ext_record.get("license"),
-                "ledgerPath": f"{package_ledger.DIRECTORY}/{name}.json",
-            }
-            if "externalSourceRegistry" in ext_record:
-                expected_dist["externalSourceRegistry"] = ext_record["externalSourceRegistry"]
-            actual_dist = identity.get("distribution")
-            if not isinstance(actual_dist, dict):
-                errors.append(f"{rel_path}.distribution: missing object on distributed identity")
-            else:
-                _compare_mapping_fields(f"{rel_path}.distribution", actual_dist, expected_dist, errors)
-
-            if name in inputs["first_release_meta"]:
-                reg_display, reg_desc, reg_license = inputs["first_release_meta"][name]
-                if (
-                    identity.get("displayName", name),
-                    identity.get("description"),
-                    actual_dist.get("license") if isinstance(actual_dist, dict) else None,
-                ) != (reg_display, reg_desc, reg_license):
-                    errors.append(f"{rel_path}: differs from config/first-release-registry.json metadata")
-
-            research = identity.get("research")
-            if isinstance(research, dict):
-                if landscape_record.get("description") != ext_record.get("description"):
-                    if research.get("descriptionOverride") != landscape_record.get("description"):
-                        errors.append(
-                            f"{rel_path}.research.descriptionOverride: must preserve differing landscape description"
-                        )
-                elif "descriptionOverride" in research:
+        if isinstance(intake, dict):
+            intake_class = intake.get("class")
+            if intake_class == "distributed":
+                reg_source = intake.get("registrationSource")
+                expected_upstream = intake.get("expectedUpstreamRepository")
+                sealed = intake.get("sealedUpstream")
+                if intake.get("distributionAllowed") is not True:
+                    errors.append(f"{rel_path}.intake: distributed identity must set distributionAllowed=true")
+                if expected_upstream != identity.get("upstreamRepository"):
                     errors.append(
-                        f"{rel_path}.research.descriptionOverride: must be omitted when descriptions match"
+                        f"{rel_path}.intake: expectedUpstreamRepository disagrees with upstreamRepository"
                     )
-        else:
-            if name not in research_only_set:
-                errors.append(f"{rel_path}: unknown classification")
-            if "distribution" in identity:
-                errors.append(f"{rel_path}: research-only identity must not define distribution")
-            if (root / "extensions" / f"{name}.json").exists() or (root / package_ledger.DIRECTORY / f"{name}.json").exists():
-                errors.append(f"{rel_path}: research-only identity must not have extensions/ or packages/ files")
-            research = identity.get("research")
-            if isinstance(research, dict) and "descriptionOverride" in research:
-                errors.append(f"{rel_path}.research.descriptionOverride: forbidden on research-only identity")
-            if identity.get("description") != landscape_record.get("description"):
-                errors.append(f"{rel_path}.description: differs from landscape/extensions/{name}.json")
-            if identity.get("upstreamRepository") != landscape_record.get("upstreamRepository"):
-                errors.append(f"{rel_path}.upstreamRepository: differs from landscape/extensions/{name}.json")
-            if identity.get("displayName", name) != landscape_record.get("displayName"):
-                errors.append(f"{rel_path}.displayName: differs from landscape/extensions/{name}.json")
+                if reg_source == "historical-core":
+                    historical_core_names.add(name)
+                    if (
+                        name not in verified_release_record.ALLOWED
+                        or sealed is not True
+                        or expected_upstream != verified_release_record.ALLOWED.get(name)
+                    ):
+                        errors.append(
+                            f"{rel_path}.intake: historical-core identity failed sealed registration rules"
+                        )
+                elif reg_source == "first-release-registry":
+                    first_release_names.add(name)
+                    if name in verified_release_record.ALLOWED:
+                        errors.append(
+                            f"{rel_path}.intake: historical-core extension cannot use first-release-registry"
+                        )
+                    if name in verified_release_record.SEALED_FIRST_RELEASE_UPSTREAM:
+                        if (
+                            sealed is not True
+                            or expected_upstream != verified_release_record.SEALED_FIRST_RELEASE_UPSTREAM[name]
+                        ):
+                            errors.append(
+                                f"{rel_path}.intake: sealed first-release upstream constraint violated"
+                            )
+                else:
+                    errors.append(f"{rel_path}.intake: invalid registrationSource {reg_source!r}")
 
-        if isinstance(identity.get("intake"), dict) and isinstance(identity.get("research"), dict):
+                dist = identity.get("distribution")
+                if not isinstance(dist, dict):
+                    errors.append(f"{rel_path}.distribution: missing object on distributed identity")
+                else:
+                    if dist.get("repository") != f"pgextwin/{name}":
+                        errors.append(f"{rel_path}.distribution.repository: must be pgextwin/{name}")
+                    if dist.get("ledgerPath") != f"{package_ledger.DIRECTORY}/{name}.json":
+                        errors.append(
+                            f"{rel_path}.distribution.ledgerPath: must be {package_ledger.DIRECTORY}/{name}.json"
+                        )
+                    if not isinstance(dist.get("license"), str) or not dist["license"].strip():
+                        errors.append(f"{rel_path}.distribution.license: must be non-empty")
+
+                if isinstance(research, dict):
+                    if "status" in research:
+                        errors.append(f"{rel_path}.research: distributed identity must not define status")
+                    if "descriptionOverride" in research:
+                        override = research["descriptionOverride"]
+                        if (
+                            not isinstance(override, str)
+                            or not override.strip()
+                            or override == identity.get("description")
+                        ):
+                            errors.append(
+                                f"{rel_path}.research.descriptionOverride: must be non-empty and differ from description"
+                            )
+                    if name in identity_records.DESCRIPTION_OVERRIDE_IDS:
+                        desc = identity.get("description")
+                        override = research.get("descriptionOverride")
+                        if (
+                            not isinstance(desc, str)
+                            or not desc.strip()
+                            or not isinstance(override, str)
+                            or not override.strip()
+                            or override == desc
+                        ):
+                            errors.append(
+                                f"{rel_path}.research.descriptionOverride: must preserve differing description override"
+                            )
+                if isinstance(index, dict) and name not in dist_roster:
+                    errors.append(f"{rel_path} is distributed but is not listed in {index_name}")
+
+            elif intake_class == "research-only":
+                if intake.get("distributionAllowed") is not False:
+                    errors.append(f"{rel_path}.intake: research-only identity must set distributionAllowed=false")
+                if "distribution" in identity:
+                    errors.append(f"{rel_path}: research-only identity must not define distribution")
+                if (
+                    name in verified_release_record.ALLOWED
+                    or name in verified_release_record.SEALED_FIRST_RELEASE_UPSTREAM
+                ):
+                    errors.append(f"{rel_path}.intake: registered distributed extension cannot be research-only")
+                if pkg_path.exists() or pkg_path.is_symlink():
+                    errors.append(
+                        f"{rel_path}: research-only identity must not have {package_ledger.DIRECTORY}/ file"
+                    )
+                if isinstance(research, dict) and "descriptionOverride" in research:
+                    errors.append(
+                        f"{rel_path}.research.descriptionOverride: forbidden on research-only identity"
+                    )
+                if isinstance(index, dict) and name in dist_roster:
+                    errors.append(
+                        f"{rel_path}: listed in {index_name} extensions but intake.class is 'research-only'"
+                    )
+            else:
+                errors.append(f"{rel_path}.intake: unknown class {intake_class!r}")
+
+        if isinstance(intake, dict) and isinstance(research, dict):
             try:
-                reconstructed = build_identities.project_landscape_v1(identity)
-                _compare_mapping_fields(f"{rel_path}->landscape", reconstructed, landscape_record, errors)
+                identity_records.project_landscape_v1(identity)
             except (KeyError, TypeError, ValueError) as exc:
                 errors.append(f"{rel_path}: failed landscape reconstruction: {exc}")
 
-    candidate_path = identities_dir / build_identities.CANDIDATE_INDEX_NAME
-    if candidate_path.is_file() and not candidate_path.is_symlink():
-        candidate_rel = f"{build_identities.IDENTITIES_DIR_NAME}/{build_identities.CANDIDATE_INDEX_NAME}"
-        try:
-            candidate_index = package_ledger.read_record(candidate_path)
-            errors.extend(schema_errors(index_v3_schema, candidate_index, candidate_rel))
-            if set(loaded_identities) == set(all_ids):
-                expected_index = build_identities.build_index_v3_candidate(loaded_identities)
-                _compare_mapping_fields(candidate_rel, candidate_index, expected_index, errors)
-        except (ValueError, KeyError, TypeError, OSError) as exc:
-            errors.append(f"{candidate_rel}: {exc}")
+    missing_core = sorted(set(verified_release_record.ALLOWED) - historical_core_names)
+    if missing_core:
+        errors.append(
+            f"{identity_records.IDENTITIES_DIR_NAME}/: missing historical-core identity(ies): "
+            + ", ".join(missing_core)
+        )
+    missing_sealed = sorted(set(verified_release_record.SEALED_FIRST_RELEASE_UPSTREAM) - first_release_names)
+    if missing_sealed:
+        errors.append(
+            f"{identity_records.IDENTITIES_DIR_NAME}/: missing sealed first-release identity(ies): "
+            + ", ".join(missing_sealed)
+        )
+    if not (3 <= len(first_release_names) <= 128 - len(verified_release_record.ALLOWED)):
+        errors.append(
+            f"{identity_records.IDENTITIES_DIR_NAME}/: invalid first-release identity count ({len(first_release_names)})"
+        )
+    missing_override_ids = sorted(identity_records.DESCRIPTION_OVERRIDE_IDS - set(loaded_identities))
+    if missing_override_ids:
+        errors.append(
+            f"{identity_records.IDENTITIES_DIR_NAME}/: missing descriptionOverride identity(ies): "
+            + ", ".join(missing_override_ids)
+        )
+
+    can_build_index = all(
+        isinstance(doc.get("intake"), dict)
+        and isinstance(doc["intake"].get("class"), str)
+        and (
+            doc["intake"].get("class") != "distributed"
+            or (
+                isinstance(doc.get("distribution"), dict)
+                and isinstance(doc["distribution"].get("ledgerPath"), str)
+            )
+        )
+        for doc in loaded_identities.values()
+    )
+    if (
+        isinstance(index, dict)
+        and loaded_identities
+        and set(loaded_identities) == actual_stems
+        and can_build_index
+    ):
+        expected_index = identity_records.build_index_v3(
+            loaded_identities, packages_dir=package_ledger.DIRECTORY
+        )
+        _compare_mapping_fields(index_name, index, expected_index, errors)
 
     return errors
 
 
 def validate_identity_distribution(name: str, identity: dict, projected: dict) -> list[str]:
     """Cross-check identity-owned distribution fields against the ledger-projected v2 record."""
-    rel_path = f"{build_identities.IDENTITIES_DIR_NAME}/{name}.json"
+    rel_path = f"{identity_records.IDENTITIES_DIR_NAME}/{name}.json"
     errors: list[str] = []
 
     if identity.get("name") != name or projected.get("name") != name:
@@ -734,10 +813,9 @@ def validate_identity_distribution(name: str, identity: dict, projected: dict) -
     return errors
 
 
-def validate_catalog(verify_remote=False, root=ROOT, *, include_legacy_union_check=True):
+def validate_catalog(verify_remote=False, root=ROOT):
     root = Path(root)
     extension_schema = load_json(root / "schema" / "extension.schema.json")
-    index_schema = load_json(root / "schema" / "index.schema.json")
     ledger_schema = load_json(root / "schema" / "package-ledger.schema.json")
     identity_schema = load_json(root / IDENTITY_SCHEMA_REL)
     index_v3_schema = load_json(root / INDEX_V3_SCHEMA_REL)
@@ -745,54 +823,54 @@ def validate_catalog(verify_remote=False, root=ROOT, *, include_legacy_union_che
     ledger_validator = Draft202012Validator(ledger_schema, registry=registry,
                                             format_checker=FormatChecker())
     Draft202012Validator.check_schema(extension_schema)
-    Draft202012Validator.check_schema(index_schema)
     Draft202012Validator.check_schema(ledger_schema)
     Draft202012Validator.check_schema(identity_schema)
     Draft202012Validator.check_schema(index_v3_schema)
 
-    index = load_json(root / "index.json")
-    errors = schema_errors(index_schema, index, "index.json")
+    index_name = identity_records.INDEX_FILENAME
+    index_path = root / index_name
+    errors = []
+    index = {}
+    if index_path.is_symlink() or not index_path.is_file():
+        errors.append(f"Missing or invalid {index_name}")
+    else:
+        try:
+            index = package_ledger.read_record(index_path)
+            errors.extend(schema_errors(index_v3_schema, index, index_name))
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            errors.append(f"{index_name}: {exc}")
 
-    if index.get("schemaVersion") != 2:
-        errors.append("index.json: schemaVersion must be 2")
+    if isinstance(index, dict) and index:
+        if index.get("schemaVersion") != 3:
+            errors.append(f"{index_name}: schemaVersion must be 3")
+        if index.get("identitiesDir") != identity_records.IDENTITIES_DIR_NAME:
+            errors.append(f"{index_name}: identitiesDir must be {identity_records.IDENTITIES_DIR_NAME!r}")
+        if index.get("packagesDir") != package_ledger.DIRECTORY:
+            errors.append(f"{index_name}: packagesDir must be {package_ledger.DIRECTORY!r}")
 
-    names = index.get("extensions")
-    if not isinstance(names, list):
+    names = index.get("extensions") if isinstance(index, dict) else []
+    if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
         names = []
 
     ledger_dir = root / package_ledger.DIRECTORY
-    identities_dir = root / build_identities.IDENTITIES_DIR_NAME
+    identities_dir = root / identity_records.IDENTITIES_DIR_NAME
     records = {}
-    if sorted(path.stem for path in ledger_dir.glob("*.json")) != sorted(names):
-        errors.append(f"{package_ledger.DIRECTORY}/ inventory differs from index.json")
+    if ledger_dir.is_symlink() or not ledger_dir.is_dir():
+        errors.append(f"missing or invalid {package_ledger.DIRECTORY}/ directory")
+    elif sorted(path.stem for path in ledger_dir.glob("*.json")) != sorted(names):
+        errors.append(f"{package_ledger.DIRECTORY}/ inventory differs from {index_name}")
 
-    candidate_index_rel = f"{build_identities.IDENTITIES_DIR_NAME}/{build_identities.CANDIDATE_INDEX_NAME}"
-    candidate_index_path = identities_dir / build_identities.CANDIDATE_INDEX_NAME
-    if candidate_index_path.is_symlink() or not candidate_index_path.is_file():
-        errors.append(f"Missing or invalid {candidate_index_rel}")
-    else:
-        try:
-            candidate_index = package_ledger.read_record(candidate_index_path)
-            errors.extend(schema_errors(index_v3_schema, candidate_index, candidate_index_rel))
-            if candidate_index.get("extensions") != names:
-                errors.append(f"{candidate_index_rel}: extensions roster differs from index.json")
-        except (ValueError, KeyError, TypeError, OSError) as exc:
-            errors.append(f"{candidate_index_rel}: {exc}")
-
-    loaded_identities = {}
     for name in names:
-        id_rel = f"{build_identities.IDENTITIES_DIR_NAME}/{name}.json"
+        id_rel = f"{identity_records.IDENTITIES_DIR_NAME}/{name}.json"
         id_path = identities_dir / f"{name}.json"
         if id_path.is_symlink() or not id_path.is_file():
-            errors.append(f"index.json references missing identity file: {id_rel}")
+            errors.append(f"{index_name} references missing identity file: {id_rel}")
             continue
         try:
             identity = package_ledger.read_record(id_path)
         except (ValueError, KeyError, TypeError, OSError) as exc:
             errors.append(f"{id_rel}: {exc}")
             continue
-        loaded_identities[name] = identity
-        errors.extend(schema_errors(identity_schema, identity, id_rel))
 
         try:
             ledger_path = ledger_dir / f"{name}.json"
@@ -816,34 +894,8 @@ def validate_catalog(verify_remote=False, root=ROOT, *, include_legacy_union_che
             for message in validate_record_semantics(name, record)
         )
 
-    if identities_dir.is_symlink() or not identities_dir.is_dir():
-        errors.append(f"missing or invalid {build_identities.IDENTITIES_DIR_NAME}/ directory")
-    else:
-        indexed = set(names)
-        for path in sorted(identities_dir.glob("*.json")):
-            if path.name == build_identities.CANDIDATE_INDEX_NAME:
-                continue
-            if path.is_symlink() or not path.is_file():
-                errors.append(f"{build_identities.IDENTITIES_DIR_NAME}/{path.name}: must be a regular file")
-                continue
-            try:
-                id_doc = loaded_identities.get(path.stem)
-                if id_doc is None:
-                    id_doc = package_ledger.read_record(path)
-                id_class = (id_doc.get("intake") or {}).get("class") if isinstance(id_doc.get("intake"), dict) else None
-                if path.stem in indexed:
-                    if id_class != "distributed":
-                        errors.append(
-                            f"{build_identities.IDENTITIES_DIR_NAME}/{path.name}: listed in index.json "
-                            f"but intake.class is {id_class!r}"
-                        )
-                elif id_class == "distributed":
-                    errors.append(
-                        f"{build_identities.IDENTITIES_DIR_NAME}/{path.name} is distributed "
-                        "but is not listed in index.json"
-                    )
-            except (ValueError, KeyError, TypeError, OSError) as exc:
-                errors.append(f"{build_identities.IDENTITIES_DIR_NAME}/{path.name}: {exc}")
+    errors.extend(validate_identities(root))
+    errors = list(dict.fromkeys(errors))
 
     if verify_remote:
         token = os.environ.get("GITHUB_TOKEN")
@@ -870,14 +922,11 @@ def validate_catalog(verify_remote=False, root=ROOT, *, include_legacy_union_che
                     f"{package_ledger.DIRECTORY}/{name}.json: remote release verification failed: {exc}"
                 )
 
-    if include_legacy_union_check:
-        errors.extend(validate_identities(root))
-
     return errors, len(records)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Validate pgextwin Catalog schema v2.")
+    parser = argparse.ArgumentParser(description="Validate pgextwin Catalog schema v3.")
     parser.add_argument(
         "--verify-remote",
         action="store_true",
@@ -896,7 +945,7 @@ def main():
         return 1
 
     remote_suffix = " with remote provenance/release verification" if args.verify_remote else ""
-    print(f"Catalog schema v2 validation passed for {count} extension record(s){remote_suffix}.")
+    print(f"Catalog schema v3 validation passed for {count} extension record(s){remote_suffix}.")
     return 0
 
 

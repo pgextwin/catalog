@@ -4,7 +4,6 @@
   "catalogPaths": {
     "index": "index.json",
     "packagesDir": "packages",
-    "identitiesIndex": "identities/index.candidate.json",
     "identitiesDir": "identities",
     "externalDirectGet": "external/direct-get.json",
     "externalStandaloneGet": "external/standalone-get.json"

@@ -243,11 +243,12 @@ class ReconcileTests(unittest.TestCase):
             with self.subTest(target=target), self.assertRaises(mod.Denied):
                 mod.discover(*x, manual=target)
 
-    def test_main_reads_identities_candidate_index_and_packages_without_root_index(self):
+    def test_main_reads_root_v3_index_identities_and_packages(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             shutil.copytree(ROOT / "identities", root / "identities")
             shutil.copytree(ROOT / "packages", root / "packages")
+            shutil.copy2(ROOT / "index.json", root / "index.json")
             out_file = root / "gh_out.txt"
 
             class FakeReader:
@@ -278,9 +279,20 @@ class ReconcileTests(unittest.TestCase):
             self.assertIn("has_changes=false\n", out)
 
             # Corrupting an identity causes main() to fail closed.
-            bad_id = json.loads((root / "identities" / "orafce.json").read_text("utf-8"))
+            orig_id = (root / "identities" / "orafce.json").read_bytes()
+            bad_id = json.loads(orig_id)
             bad_id["intake"]["expectedUpstreamRepository"] = "evil/orafce"
             (root / "identities" / "orafce.json").write_text(json.dumps(bad_id), "utf-8")
+            with patch.dict(os.environ, env, clear=False), \
+                 patch.object(mod, "GithubReader", FakeReader), \
+                 patch("sys.argv", ["catalog_auto_delta.py", "--catalog-root", str(root)]):
+                self.assertEqual(mod.main(), 2)
+            (root / "identities" / "orafce.json").write_bytes(orig_id)
+
+            # A v2 root index.json must also be rejected cleanly.
+            (root / "index.json").write_text(
+                json.dumps({"schemaVersion": 2, "extensions": ["orafce"]}), "utf-8"
+            )
             with patch.dict(os.environ, env, clear=False), \
                  patch.object(mod, "GithubReader", FakeReader), \
                  patch("sys.argv", ["catalog_auto_delta.py", "--catalog-root", str(root)]):
