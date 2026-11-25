@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 from functools import cache
 from pathlib import Path
 
@@ -213,7 +214,9 @@ def verify_legacy_inventory(name, snapshot, load_admission):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Regenerate a Catalog v2 Website record from the ledger.")
+    parser = argparse.ArgumentParser(
+        description="Validate a package ledger and print its projected Catalog v2 view to stdout."
+    )
     parser.add_argument("extension")
     args = parser.parse_args()
     name = args.extension
@@ -223,7 +226,7 @@ def main():
     ledger = read_record(Path(DIRECTORY) / filename)
     if ledger["name"] != name or ledger["repository"] != "pgextwin/" + name:
         parser.error("Ledger name or repository does not match the extension")
-    (Path("extensions") / filename).write_bytes(json_bytes(website_record(ledger)))
+    sys.stdout.buffer.write(json_bytes(website_record(ledger)))
 
 
 if __name__ == "__main__":

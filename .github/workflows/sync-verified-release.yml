@@ -105,26 +105,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -f "extensions/$EXTENSION.json" ]]; then
-            echo "base_record_sha=$(git hash-object "extensions/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
-          else
-            echo "base_record_sha=MISSING" >> "$GITHUB_OUTPUT"
-          fi
           if [[ -f "packages/$EXTENSION.json" ]]; then
             echo "base_ledger_sha=$(git hash-object "packages/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
           else
             echo "base_ledger_sha=MISSING" >> "$GITHUB_OUTPUT"
           fi
-          echo "base_index_sha=$(git hash-object index.json)" >> "$GITHUB_OUTPUT"
-          echo "base_landscape_index_sha=$(git hash-object landscape/index.json)" >> "$GITHUB_OUTPUT"
-          if [[ -f "landscape/extensions/$EXTENSION.json" ]]; then
-            echo "base_landscape_record_sha=$(git hash-object "landscape/extensions/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
+          if [[ -f "identities/$EXTENSION.json" ]]; then
+            echo "base_identity_sha=$(git hash-object "identities/$EXTENSION.json")" >> "$GITHUB_OUTPUT"
           else
-            echo "base_landscape_record_sha=MISSING" >> "$GITHUB_OUTPUT"
+            echo "base_identity_sha=MISSING" >> "$GITHUB_OUTPUT"
           fi
+          echo "base_index_sha=$(git hash-object identities/index.candidate.json)" >> "$GITHUB_OUTPUT"
           python scripts/verify_signed_fleet_release.py \
             --extension "$EXTENSION" --release-tag "$RELEASE_TAG" \
-            --record-output "extensions/$EXTENSION.json" \
+            --record-output "packages/$EXTENSION.json" \
             | tee "$RUNNER_TEMP/verified-catalog-record.json"
       - name: Update index only after complete signed first-Release verification
         if: steps.verify.outputs.changed == 'true'
@@ -136,59 +130,78 @@ jobs:
           import json
           import os
           from pathlib import Path
+          from scripts.package_ledger import json_bytes, read_record
           from scripts.verified_release_record import FIRST_RELEASE_SOURCES
+          from scripts.verified_release_record import (
+              Denied, project_first_intake_files, read_candidate_index,
+          )
           name = os.environ["EXTENSION"]
-          path = Path("index.json")
-          data = json.loads(path.read_text(encoding="utf-8"))
+          index_path = Path("identities/index.candidate.json")
+          data = read_candidate_index(index_path)
           names = data["extensions"]
           if name not in names:
               if name not in FIRST_RELEASE_SOURCES:
                   raise SystemExit("DENY: unknown first-Release Catalog identity")
-              if not (Path("extensions") / (name + ".json")).is_file():
-                  raise SystemExit("DENY: verifier did not generate the signed record")
-              record = json.loads((Path("extensions") / (name + ".json")).read_text(encoding="utf-8"))
-              if record.get("name") != name or record.get("schemaVersion") != 2:
-                  raise SystemExit("DENY: verified record identity mismatch")
-              registry_index = Path("landscape/index.json")
-              registry = json.loads(registry_index.read_text(encoding="utf-8"))
-              registry_path = Path("landscape/extensions") / (name + ".json")
-              landscape = (json.loads(registry_path.read_text(encoding="utf-8"))
-                           if registry_path.is_file() else {})
-              landscape.update(
-                  schemaVersion=1, name=name, displayName=record["displayName"],
-                  description=record["description"],
-                  upstreamRepository=record["upstream"]["repository"],
-                  status="implemented", pgextwinCatalogName=name,
-                  lastReviewed=record["latest"]["publishedAt"][:10],
-                  evidenceUrls=[record["latest"]["releaseUrl"],
-                                "https://github.com/" + record["upstream"]["repository"]],
-                  windowsBinarySources=[])
-              for key in ("candidateRationale", "roadmap", "notPlannedReason",
-                          "notPlannedReasonJa", "reasonCode"):
-                  landscape.pop(key, None)
-              registry["extensions"] = sorted(set(registry["extensions"]) | {name})
-              registry_path.write_text(json.dumps(landscape, indent=2) + "\n", encoding="utf-8")
-              registry_index.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
-              names.append(name)
-              data["extensions"] = sorted(names)
-              path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+              ledger_path = Path("packages") / (name + ".json")
+              if not ledger_path.is_file():
+                  raise SystemExit("DENY: verifier did not generate the signed ledger")
+              ledger = read_record(ledger_path)
+              if ledger.get("name") != name or ledger.get("schemaVersion") != 1:
+                  raise SystemExit("DENY: verified ledger identity mismatch")
+              evidence_path = Path(os.environ["RUNNER_TEMP"]) / "verified-catalog-record.json"
+              evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+              try:
+                  projected = project_first_intake_files(
+                      name,
+                      ledger,
+                      expected_identity_blob_sha=evidence.get("identityBlobSha"),
+                  )
+              except (Denied, ValueError, KeyError, TypeError, OSError) as exc:
+                  raise SystemExit(f"DENY: {exc}") from exc
+              for rel_path, doc in projected.items():
+                  target = Path(rel_path)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(json_bytes(doc))
           PY
       - name: Validate proposed Catalog and Landscape locally
         if: steps.verify.outputs.changed == 'true'
         run: |
           python scripts/validate_landscape.py
           python scripts/validate_catalog.py
+      - name: Stage verified Catalog proposal artifact
+        env:
+          EXTENSION: ${{ matrix.extension }}
+          CHANGED: ${{ steps.verify.outputs.changed }}
+          BASE_IDENTITY_SHA: ${{ steps.verify.outputs.base_identity_sha }}
+          BASE_INDEX_SHA: ${{ steps.verify.outputs.base_index_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/verified-catalog-proposal"
+          rm -rf "$stage"
+          mkdir -p "$stage"
+          cp "$RUNNER_TEMP/verified-catalog-record.json" "$stage/verified-catalog-record.json"
+          if [[ "$CHANGED" == "true" ]]; then
+            mkdir -p "$stage/packages"
+            cp "packages/$EXTENSION.json" "$stage/packages/$EXTENSION.json"
+            if [[ -f "identities/$EXTENSION.json" ]]; then
+              actual_id_sha="$(git hash-object "identities/$EXTENSION.json")"
+              if [[ "$actual_id_sha" != "$BASE_IDENTITY_SHA" ]]; then
+                mkdir -p "$stage/identities"
+                cp "identities/$EXTENSION.json" "$stage/identities/$EXTENSION.json"
+              fi
+            fi
+            actual_idx_sha="$(git hash-object identities/index.candidate.json)"
+            if [[ "$actual_idx_sha" != "$BASE_INDEX_SHA" ]]; then
+              mkdir -p "$stage/identities"
+              cp identities/index.candidate.json "$stage/identities/index.candidate.json"
+            fi
+          fi
       - name: Preserve immutable verification evidence (never a Release asset)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: verified-catalog-proposal
-          path: |
-            extensions/${{ matrix.extension }}.json
-            packages/${{ matrix.extension }}.json
-            index.json
-            landscape/index.json
-            landscape/extensions/${{ matrix.extension }}.json
-            ${{ runner.temp }}/verified-catalog-record.json
+          path: ${{ runner.temp }}/verified-catalog-proposal
           if-no-files-found: error
           retention-days: 14
       - name: Create narrow Catalog proposer App token only after verification
@@ -216,76 +229,84 @@ jobs:
           GH_TOKEN: ${{ steps.proposer-token.outputs.token }}
           EXTENSION: ${{ matrix.extension }}
           RELEASE_TAG: ${{ matrix.release_tag }}
-          BASE_RECORD_SHA: ${{ steps.verify.outputs.base_record_sha }}
           BASE_LEDGER_SHA: ${{ steps.verify.outputs.base_ledger_sha }}
+          BASE_IDENTITY_SHA: ${{ steps.verify.outputs.base_identity_sha }}
           BASE_INDEX_SHA: ${{ steps.verify.outputs.base_index_sha }}
-          BASE_LANDSCAPE_INDEX_SHA: ${{ steps.verify.outputs.base_landscape_index_sha }}
-          BASE_LANDSCAPE_RECORD_SHA: ${{ steps.verify.outputs.base_landscape_record_sha }}
         shell: bash
         run: |
           set -euo pipefail
+          stage="$RUNNER_TEMP/verified-catalog-proposal"
+          recorded_id_sha="$(python -c 'import json,sys; d=json.load(open(sys.argv[1],encoding="utf-8")); v=d.get("identityBlobSha"); print("MISSING" if v is None else v)' "$stage/verified-catalog-record.json")"
+          if [[ "$recorded_id_sha" != "$BASE_IDENTITY_SHA" ]]; then
+            echo "::error::Verification identityBlobSha disagrees with base identity snapshot; refuse proposal"
+            exit 1
+          fi
           cd proposed
           branch="auto-catalog/$EXTENSION-$RELEASE_TAG"
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
             echo "::error::Catalog proposal branch already exists; do not overwrite or duplicate it."
             exit 1
           fi
-          if [[ "$(git hash-object index.json)" != "$BASE_INDEX_SHA" ]]; then
-            echo "::error::Catalog index changed after verification; refuse stale overwrite"
-            exit 1
-          fi
-          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
-            if [[ -e "extensions/$EXTENSION.json" ]]; then
-              echo "::error::First Catalog record unexpectedly exists; deny overwrite"
-              exit 1
-            fi
-          elif [[ ! -f "extensions/$EXTENSION.json" || "$(git hash-object "extensions/$EXTENSION.json")" != "$BASE_RECORD_SHA" ]]; then
-            echo "::error::Catalog main record changed after signed verification; refuse stale overwrite"
+          if [[ "$(git hash-object identities/index.candidate.json)" != "$BASE_INDEX_SHA" ]]; then
+            echo "::error::Catalog candidate index changed after verification; refuse stale overwrite"
             exit 1
           fi
           if [[ "$BASE_LEDGER_SHA" == MISSING ]]; then
-            [[ ! -e "packages/$EXTENSION.json" ]] || exit 1
+            if [[ -e "packages/$EXTENSION.json" ]]; then
+              echo "::error::First Catalog ledger unexpectedly exists; deny overwrite"
+              exit 1
+            fi
           elif [[ ! -f "packages/$EXTENSION.json" || "$(git hash-object "packages/$EXTENSION.json")" != "$BASE_LEDGER_SHA" ]]; then
             echo "::error::Catalog main ledger changed after signed verification; refuse stale overwrite"
             exit 1
           fi
-          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
-            [[ "$(git hash-object landscape/index.json)" == "$BASE_LANDSCAPE_INDEX_SHA" ]] || { echo 'Landscape index changed; refuse stale overwrite'; exit 1; }
-            if [[ "$BASE_LANDSCAPE_RECORD_SHA" == MISSING ]]; then
-              [[ ! -e "landscape/extensions/$EXTENSION.json" ]] || exit 1
-            else
-              [[ "$(git hash-object "landscape/extensions/$EXTENSION.json")" == "$BASE_LANDSCAPE_RECORD_SHA" ]] || exit 1
+          if [[ "$recorded_id_sha" == MISSING ]]; then
+            if [[ -e "identities/$EXTENSION.json" ]]; then
+              echo "::error::Catalog main identity unexpectedly appeared after verification; refuse stale proposal"
+              exit 1
             fi
-            cp ../landscape/index.json landscape/index.json
-            cp "../landscape/extensions/$EXTENSION.json" "landscape/extensions/$EXTENSION.json"
+          elif [[ ! -f "identities/$EXTENSION.json" || -L "identities/$EXTENSION.json" || "$(git hash-object "identities/$EXTENSION.json")" != "$recorded_id_sha" ]]; then
+            echo "::error::Catalog main identity blob changed after verification; refuse stale overwrite"
+            exit 1
           fi
-          cp "../packages/$EXTENSION.json" "packages/$EXTENSION.json"
-          cp "../extensions/$EXTENSION.json" "extensions/$EXTENSION.json"
-          cp ../index.json index.json
+          cp "$stage/packages/$EXTENSION.json" "packages/$EXTENSION.json"
+          staged_candidates=("packages/$EXTENSION.json")
+          if [[ -f "$stage/identities/$EXTENSION.json" ]]; then
+            if [[ "$BASE_LEDGER_SHA" != MISSING ]]; then
+              echo "::error::Existing-extension update must not modify identities/$EXTENSION.json"
+              exit 1
+            fi
+            cp "$stage/identities/$EXTENSION.json" "identities/$EXTENSION.json"
+            staged_candidates+=("identities/$EXTENSION.json")
+          fi
+          if [[ -f "$stage/identities/index.candidate.json" ]]; then
+            if [[ "$BASE_LEDGER_SHA" != MISSING ]]; then
+              echo "::error::Existing-extension update must not modify identities/index.candidate.json"
+              exit 1
+            fi
+            cp "$stage/identities/index.candidate.json" "identities/index.candidate.json"
+            staged_candidates+=("identities/index.candidate.json")
+          elif [[ "$BASE_LEDGER_SHA" == MISSING ]]; then
+            echo "::error::First Catalog release requires updated identities/index.candidate.json"
+            exit 1
+          fi
           git switch -c "$branch"
           git config user.name "pgextwin-catalog-proposer[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "extensions/$EXTENSION.json" index.json
-          git add -- "packages/$EXTENSION.json"
-          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
-            git add -- "landscape/extensions/$EXTENSION.json" landscape/index.json
-          fi
+          git add -- "${staged_candidates[@]}"
           actual="$(git diff --cached --name-only)"
-          expected="packages/$EXTENSION.json"
-          if ! git diff --cached --quiet -- "extensions/$EXTENSION.json"; then
-            expected="$(printf 'extensions/%s.json\npackages/%s.json' "$EXTENSION" "$EXTENSION")"
-          fi
-          if [[ "$BASE_RECORD_SHA" == MISSING ]]; then
-            # Landscape may already list a prospective extension: no phantom
-            # change to landscape/index.json is permitted in that case.
-            expected="$(printf 'extensions/%s.json\nindex.json\nlandscape/extensions/%s.json' "$EXTENSION" "$EXTENSION")"
-            if ! git diff --cached --quiet -- landscape/index.json; then
-              expected="$expected"$'\n'"landscape/index.json"
+          expected_paths=("packages/$EXTENSION.json")
+          if [[ "$BASE_LEDGER_SHA" == MISSING ]]; then
+            if [[ -f "$stage/identities/$EXTENSION.json" ]] && ! git diff --cached --quiet -- "identities/$EXTENSION.json"; then
+              expected_paths+=("identities/$EXTENSION.json")
             fi
-            expected="$expected"$'\n'"packages/$EXTENSION.json"
+            if ! git diff --cached --quiet -- identities/index.candidate.json; then
+              expected_paths+=("identities/index.candidate.json")
+            fi
           fi
+          expected="$(printf '%s\n' "${expected_paths[@]}" | LC_ALL=C sort)"
           if [[ "$actual" != "$expected" ]]; then
-            echo "::error::Catalog PR files not exactly the verified record and permitted initial index"
+            echo "::error::Catalog PR files not exactly the verified ledger and permitted initial identity/index"
             exit 1
           fi
           git commit -m "catalog: verified operator release $EXTENSION $RELEASE_TAG"
