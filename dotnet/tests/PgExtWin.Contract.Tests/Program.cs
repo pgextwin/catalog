@@ -83,8 +83,188 @@ try
 }
 finally { Directory.Delete(path, recursive:true); }
 
+// Check new-format identities+ledger layout alongside legacy v2 snapshot support.
+var v3Path = Path.Combine(Path.GetTempPath(), "pgextwin-c3-v3-tests-" + Guid.NewGuid().ToString("N"));
+try
+{
+    Directory.CreateDirectory(Path.Combine(v3Path, "identities"));
+    Directory.CreateDirectory(Path.Combine(v3Path, "packages"));
+    string MakeCandidateIndex(string[] extensions, object[] identities) =>
+        JsonSerializer.Serialize(new
+        {
+            schemaVersion = 3,
+            identitiesDir = "identities",
+            packagesDir = "packages",
+            extensions,
+            identities
+        });
+    object[] DefaultIdentities() =>
+    [
+        new { name = "pg_cron", path = "identities/pg_cron.json", intakeClass = "distributed", ledgerPath = "packages/pg_cron.json" },
+        new { name = "pg_hint_plan", path = "identities/pg_hint_plan.json", intakeClass = "distributed", ledgerPath = "packages/pg_hint_plan.json" },
+        new { name = "postgis", path = "identities/postgis.json", intakeClass = "research-only" }
+    ];
+    string MakeLedger(string name, bool perMajor, bool includeDefaults = false, string architecture = "x64",
+        bool mismatchSharedVersion = false, bool overlapUnavailable = false, long latestReleaseId = 202)
+    {
+        var upstream = perMajor
+            ? (object)new { repository = "example/" + name, versionScheme = "perPostgresql" }
+            : new { repository = "example/" + name };
+        var packages = new object[]
+        {
+            new
+            {
+                pgMajor = "15",
+                version = perMajor ? "1.15" : "1.0",
+                asset = name + "-15.zip",
+                assetId = 15L,
+                sha256 = new string('a', 64),
+                license = new { name = "PostgreSQL", evidenceUrls = new[] { "https://github.com/pgextwin/" + name + "/blob/main/LICENSE" } }
+            },
+            new
+            {
+                pgMajor = "18",
+                version = perMajor ? "1.18" : (mismatchSharedVersion ? "1.1" : "1.0"),
+                asset = name + "-18.zip",
+                assetId = 18L,
+                sha256 = new string('b', 64),
+                license = new { name = "PostgreSQL", evidenceUrls = new[] { "https://github.com/pgextwin/" + name + "/blob/main/LICENSE" } }
+            }
+        };
+        var releases = new object[]
+        {
+            new
+            {
+                releaseTag = "v0.9-windows.1",
+                releaseId = 101L,
+                admission = new { catalogCommit = new string('c', 40) },
+                packages = new[]
+                {
+                    new
+                    {
+                        pgMajor = "13",
+                        version = "0.9",
+                        asset = name + "-13.zip",
+                        assetId = 13L,
+                        sha256 = new string('d', 64),
+                        license = new { name = "PostgreSQL", evidenceUrls = new[] { "https://github.com/pgextwin/" + name + "/blob/main/LICENSE" } }
+                    }
+                }
+            },
+            new
+            {
+                releaseTag = "v1.0-windows.1",
+                releaseId = 202L,
+                publishedAt = "2026-10-19T00:00:00Z",
+                checksumsAsset = "SHA256SUMS.txt",
+                packages
+            }
+        };
+        var payload = new Dictionary<string, object>
+        {
+            ["schemaVersion"] = 1,
+            ["name"] = name,
+            ["repository"] = "pgextwin/" + name,
+            ["license"] = "PostgreSQL",
+            ["architecture"] = architecture,
+            ["upstream"] = upstream,
+            ["repositoryId"] = 42L,
+            ["latestReleaseId"] = latestReleaseId,
+            ["unavailableMajors"] = overlapUnavailable ? new[] { "14", "18" } : new[] { "14" },
+            ["releases"] = releases
+        };
+        if (!includeDefaults)
+        {
+            payload["displayName"] = name;
+            payload["description"] = "Synthetic test extension";
+            payload["runtime"] = new { requirements = new { preload = "optional" } };
+        }
+        return JsonSerializer.Serialize(payload);
+    }
+
+    var candidateIndex = MakeCandidateIndex(["pg_cron", "pg_hint_plan"], DefaultIdentities());
+    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"), candidateIndex);
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"), MakeLedger("pg_cron", false));
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_hint_plan.json"), MakeLedger("pg_hint_plan", true, includeDefaults: true));
+
+    var records = CatalogReader.LoadLocal(v3Path);
+    Check(records.Count == 2, "new-format Catalog index fixture");
+    var hint = records.Single(r => r.Name == "pg_hint_plan");
+    var cron = records.Single(r => r.Name == "pg_cron");
+    Check(hint.Versions.Single(v => v.Major == "18").Version == "1.18", "new-format per-PG upstream version");
+    Check(hint.DisplayName == "pg_hint_plan" && hint.Description == "" && hint.Preload == "unknown",
+        "new-format fallback defaults match website_record");
+    Check(cron.Versions.Select(v => v.Major).SequenceEqual(["15", "18"]) &&
+          cron.Versions.All(v => v.Version == "1.0") &&
+          cron.ReleaseTag == "v1.0-windows.1" && cron.Preload == "optional",
+        "new-format latest release selected by latestReleaseId excluding unavailableMajors");
+
+    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"),
+        MakeCandidateIndex(["pg_cron", "pg_cron"], DefaultIdentities()));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format duplicated roster denied");
+
+    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"),
+        MakeCandidateIndex(["pg_cron", "pg_hint_plan"],
+        [
+            new { name = "pg_cron", path = "identities/pg_cron.json", intakeClass = "research-only" },
+            new { name = "pg_hint_plan", path = "identities/pg_hint_plan.json", intakeClass = "distributed", ledgerPath = "packages/pg_hint_plan.json" }
+        ]));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format research-only roster member denied");
+
+    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"),
+        MakeCandidateIndex(["pg_cron", "pg_hint_plan"],
+        [
+            new { name = "pg_cron", path = "identities/pg_cron.json", intakeClass = "distributed", ledgerPath = "extensions/pg_cron.json" },
+            new { name = "pg_hint_plan", path = "identities/pg_hint_plan.json", intakeClass = "distributed", ledgerPath = "packages/pg_hint_plan.json" }
+        ]));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format wrong ledgerPath denied");
+
+    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"), candidateIndex);
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"),
+        MakeLedger("pg_cron", false, architecture: "arm64"));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format wrong architecture denied");
+
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"),
+        MakeLedger("pg_cron", false, mismatchSharedVersion: true));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format mismatched shared upstream version denied");
+
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"),
+        MakeLedger("pg_cron", false, overlapUnavailable: true));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format overlapping unavailableMajors denied");
+
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"),
+        MakeLedger("pg_cron", false, latestReleaseId: 101));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format latestReleaseId on historical admission denied");
+
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"), MakeLedger("pg_cron", false));
+    File.WriteAllText(Path.Combine(v3Path, "packages", "extra.json"), MakeLedger("extra", false));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format roster/ledger inventory mismatch denied");
+
+    File.Delete(Path.Combine(v3Path, "packages", "extra.json"));
+    File.Delete(Path.Combine(v3Path, "packages", "pg_hint_plan.json"));
+    Denies(() => CatalogReader.LoadLocal(v3Path), "new-format missing package ledger denied");
+
+    var emptyDir = Path.Combine(v3Path, "empty");
+    Directory.CreateDirectory(emptyDir);
+    Denies(() => CatalogReader.LoadLocal(emptyDir), "neither Catalog layout present denied");
+}
+finally { Directory.Delete(v3Path, recursive: true); }
+
 // Check the actual checkout in CI (no network/cryptographic trust claims).
-if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
+if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "identities", "index.candidate.json")))
+{
+    var records = CatalogReader.LoadLocal(Directory.GetCurrentDirectory());
+    using var localIndex = StrictJson.Parse(File.ReadAllBytes(Path.Combine("identities", "index.candidate.json")));
+    Check(records.Count == localIndex.RootElement.GetProperty("extensions").GetArrayLength(),
+        "actual local Catalog contains exactly its indexed records (untrusted)");
+    using var feedCohort = StrictJson.Parse(File.ReadAllBytes("config/cli-feed-majors.json"));
+    var feedMajors = feedCohort.RootElement.GetProperty("postgresqlMajors").EnumerateArray()
+        .Select(major => major.GetString()).ToArray();
+    Check(feedMajors.Length > 0 && records.All(record =>
+        feedMajors.All(major => record.Versions.Any(version => version.Major == major))),
+        "actual local Catalog covers all configured feed majors");
+}
+else if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
 {
     var records = CatalogReader.LoadLocal(Directory.GetCurrentDirectory());
     using var localIndex = StrictJson.Parse(File.ReadAllBytes("index.json"));

@@ -13,6 +13,8 @@ internal static class AuthenticatedCatalogHeadTests
         public bool CiSuccess = true;
         public bool MutateHead = false;
         public bool BadRecord = false;
+        public bool BadIdentity = false;
+        public bool ResearchOnlyIdentity = false;
         public bool RateLimit = false;
         public bool WrongReleaseDigest = false;
         public bool DraftRelease = false;
@@ -24,6 +26,7 @@ internal static class AuthenticatedCatalogHeadTests
         public string[]? RosterOverride;
         public string[] Majors = ["14", "15", "16", "17", "18"];
         public bool OptionalPg19;
+        public List<string> RequestedRawPaths = [];
         private static readonly string[] Wave3 = ["pgtap", "pg_variables", "pg_store_plans"];
         private string[] Inventory => RosterOverride ?? Names
             .Concat(Wave3.Take(WaveThreeCount))
@@ -41,6 +44,8 @@ internal static class AuthenticatedCatalogHeadTests
             CancellationToken cancellationToken)
         {
             var path = req.RequestUri!.AbsolutePath;
+            if (req.RequestUri.Host == "raw.githubusercontent.com")
+                RequestedRawPaths.Add(path);
             var body = "";
             if (path.EndsWith("/branches/main", StringComparison.Ordinal))
             {
@@ -124,46 +129,133 @@ internal static class AuthenticatedCatalogHeadTests
                 else
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             }
-            else if (path.EndsWith("/config/cli-feed-majors.json", StringComparison.Ordinal))
+            else if (path == "/pgextwin/catalog/" + Head + "/config/cli-feed-majors.json")
             {
                 body = OptionalPg19
                     ? JsonSerializer.Serialize(new
                         { schemaVersion = 1, postgresqlMajors = Majors, optionalPostgresqlMajor = "19" })
                     : JsonSerializer.Serialize(new { schemaVersion = 1, postgresqlMajors = Majors });
             }
-            else if (path.EndsWith("/index.json", StringComparison.Ordinal))
+            else if (path == "/pgextwin/catalog/" + Head + "/identities/index.candidate.json")
             {
-                body = JsonSerializer.Serialize(new { schemaVersion = 2, extensions = Inventory });
+                var identityEntries = Inventory
+                    .Distinct(StringComparer.Ordinal)
+                    .Select(n => (object)new
+                    {
+                        name = n,
+                        path = "identities/" + n + ".json",
+                        intakeClass = "distributed",
+                        ledgerPath = "packages/" + n + ".json"
+                    })
+                    .ToList();
+                if (RosterOverride is null)
+                {
+                    identityEntries.Add(new
+                    {
+                        name = "postgis",
+                        path = "identities/postgis.json",
+                        intakeClass = "research-only"
+                    });
+                }
+                body = JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 3,
+                    identitiesDir = "identities",
+                    packagesDir = "packages",
+                    extensions = Inventory,
+                    identities = identityEntries
+                });
             }
-            else
+            else if (path.StartsWith("/pgextwin/catalog/" + Head + "/identities/", StringComparison.Ordinal))
             {
                 var name = Path.GetFileNameWithoutExtension(path);
                 if (!Inventory.Contains(name, StringComparer.Ordinal))
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-                var pg = new Dictionary<string, object>();
+                var identityName = BadIdentity ? "not_" + name : name;
+                body = ResearchOnlyIdentity
+                    ? JsonSerializer.Serialize(new
+                    {
+                        schemaVersion = 1,
+                        name = identityName,
+                        upstreamRepository = "example/" + name,
+                        description = "synthetic",
+                        intake = new
+                        {
+                            @class = "research-only",
+                            distributionAllowed = false
+                        }
+                    })
+                    : JsonSerializer.Serialize(new
+                    {
+                        schemaVersion = 1,
+                        name = identityName,
+                        upstreamRepository = "example/" + name,
+                        description = "synthetic",
+                        intake = new
+                        {
+                            @class = "distributed",
+                            distributionAllowed = true,
+                            registrationSource = "historical-core",
+                            expectedUpstreamRepository = "example/" + name,
+                            sealedUpstream = true
+                        },
+                        distribution = new
+                        {
+                            repository = "pgextwin/" + name,
+                            license = "PostgreSQL",
+                            ledgerPath = "packages/" + name + ".json"
+                        }
+                    });
+            }
+            else if (path.StartsWith("/pgextwin/catalog/" + Head + "/packages/", StringComparison.Ordinal))
+            {
+                var name = Path.GetFileNameWithoutExtension(path);
+                if (!Inventory.Contains(name, StringComparer.Ordinal))
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 string[] recordMajors = OptionalPg19 && name == "wal2json"
                     ? ["14", "15", "16", "17", "18", "19"] : ["14", "15", "16", "17", "18"];
-                foreach (var major in recordMajors)
-                    pg.Add(major, new
+                var packages = recordMajors.Select(major => new
+                {
+                    pgMajor = major,
+                    version = "1.0",
+                    asset = name + "-v1-pg" + major + "-windows-x64.zip",
+                    assetId = 100L + long.Parse(major),
+                    sha256 = new string('a', 64),
+                    license = new
                     {
-                        available = true,
-                        asset = name + "-v1-pg" + major + "-windows-x64.zip",
-                        downloadUrl = "https://github.com/pgextwin/" + name +
-                            "/releases/download/v1/" + name + "-v1-pg" + major + "-windows-x64.zip",
-                        sha256 = new string('a', 64)
-                    });
+                        name = "PostgreSQL",
+                        evidenceUrls = new[] { "https://github.com/pgextwin/" + name + "/blob/main/LICENSE" }
+                    }
+                }).ToArray();
                 body = JsonSerializer.Serialize(new
                 {
-                    schemaVersion = 2,
+                    schemaVersion = 1,
                     name = BadRecord ? "not_" + name : name,
                     displayName = name,
                     description = "synthetic",
                     repository = "pgextwin/" + name,
+                    license = "PostgreSQL",
                     architecture = "x64",
-                    latest = new { releaseTag = "v1" },
-                    upstream = new { version = "1.0" },
-                    postgresql = pg
+                    upstream = new { repository = "example/" + name },
+                    repositoryId = 4242L,
+                    latestReleaseId = 5678L,
+                    unavailableMajors = Array.Empty<string>(),
+                    releases = new[]
+                    {
+                        new
+                        {
+                            releaseTag = "v1",
+                            releaseId = 5678L,
+                            publishedAt = "2026-10-19T00:00:00Z",
+                            checksumsAsset = "SHA256SUMS.txt",
+                            packages
+                        }
+                    }
                 });
+            }
+            else
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             }
             return Task.FromResult(new HttpResponseMessage(
                 RateLimit ? HttpStatusCode.Forbidden : HttpStatusCode.OK)
@@ -175,6 +267,33 @@ internal static class AuthenticatedCatalogHeadTests
 
     public static async Task RunAsync(Action<bool, string> check)
     {
+        check(AuthenticatedCatalogHead.IsApprovedCatalogUri(
+                new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/config/cli-feed-majors.json")),
+            "raw allowlist permits config/cli-feed-majors.json");
+        check(AuthenticatedCatalogHead.IsApprovedCatalogUri(
+                new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/identities/index.candidate.json")),
+            "raw allowlist permits identities/index.candidate.json");
+        check(AuthenticatedCatalogHead.IsApprovedCatalogUri(
+                new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/identities/pg_cron.json")),
+            "raw allowlist permits identities/<name>.json");
+        check(AuthenticatedCatalogHead.IsApprovedCatalogUri(
+                new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/packages/pg_cron.json")),
+            "raw allowlist permits packages/<name>.json");
+        foreach (var deniedRaw in new[]
+        {
+            $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/index.json",
+            $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/extensions/pg_cron.json",
+            $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/packages/index.candidate.json",
+            $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/landscape/index.json",
+            "https://raw.githubusercontent.com/pgextwin/catalog/main/identities/index.candidate.json",
+            $"http://raw.githubusercontent.com/pgextwin/catalog/{Head}/packages/pg_cron.json",
+            $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/identities/../secrets.json"
+        })
+        {
+            check(!AuthenticatedCatalogHead.IsApprovedCatalogUri(new Uri(deniedRaw)),
+                "raw allowlist denies disallowed URL: " + deniedRaw);
+        }
+
         var parent = Path.Combine(Path.GetTempPath(), "pgextwin-latest-contract-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(parent);
         try
@@ -183,8 +302,21 @@ internal static class AuthenticatedCatalogHeadTests
             {
                 using var session = await AuthenticatedCatalogHead.AcquireAsync(parent, fixture);
                 check(session.Commit == Head, "latest immutable commit selected");
-                check(File.Exists(Path.Combine(session.CatalogPath, "extensions", "pg_cron.json")),
-                    "exact immutable Catalog record fetched");
+                check(File.Exists(Path.Combine(session.CatalogPath, "config", "cli-feed-majors.json")),
+                    "exact immutable feed cohort fetched");
+                check(File.Exists(Path.Combine(session.CatalogPath, "identities", "index.candidate.json")),
+                    "exact immutable candidate index fetched");
+                check(File.Exists(Path.Combine(session.CatalogPath, "identities", "pg_cron.json")),
+                    "exact immutable Catalog identity fetched");
+                check(File.Exists(Path.Combine(session.CatalogPath, "packages", "pg_cron.json")),
+                    "exact immutable Catalog package ledger fetched");
+                check(!Directory.Exists(Path.Combine(session.CatalogPath, "extensions")) &&
+                      !File.Exists(Path.Combine(session.CatalogPath, "index.json")),
+                    "authenticated head session excludes legacy v2 files");
+                check(fixture.RequestedRawPaths.All(p =>
+                    !p.EndsWith("/index.json", StringComparison.Ordinal) &&
+                    !p.Contains("/extensions/", StringComparison.Ordinal)),
+                    "authenticated head fetches only new-format raw paths");
                 check(fixture.HeadReads == 2, "latest head verified before and after");
                 var latest = await AuthenticatedLatestReleasePins.ResolveAsync(session, "all", fixture);
                 check(latest.Count == 70, "latest 14x5 release asset mapping");
@@ -292,7 +424,7 @@ internal static class AuthenticatedCatalogHeadTests
             }
             check(Directory.GetFileSystemEntries(parent).Length == 0,
                 "latest verified snapshot disposed without leftovers");
-            foreach (var fault in new[] { "branch", "signature", "ci", "race", "record", "403" })
+            foreach (var fault in new[] { "branch", "signature", "ci", "race", "record", "identity", "research-only", "403" })
             {
                 using var fixture = new FixtureHandler
                 {
@@ -301,6 +433,8 @@ internal static class AuthenticatedCatalogHeadTests
                     CiSuccess = fault != "ci",
                     MutateHead = fault == "race",
                     BadRecord = fault == "record",
+                    BadIdentity = fault == "identity",
+                    ResearchOnlyIdentity = fault == "research-only",
                     RateLimit = fault == "403"
                 };
                 var denied = false;
