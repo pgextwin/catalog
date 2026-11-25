@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_store_plans",
+  "upstreamRepository": "ossc-db/pg_store_plans",
+  "description": "SQL execution plan statistics",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "ossc-db/pg_store_plans",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_store_plans",
+    "license": "BSD-3-Clause",
+    "ledgerPath": "packages/pg_store_plans.json"
+  },
+  "research": {
+    "lastReviewed": "2026-10-22",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_store_plans/releases/tag/v1.10-windows.1",
+      "https://github.com/ossc-db/pg_store_plans"
+    ],
+    "windowsBinarySources": []
+  }
+}

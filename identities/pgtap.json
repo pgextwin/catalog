@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "name": "pgtap",
+  "displayName": "pgTAP",
+  "upstreamRepository": "theory/pgtap",
+  "description": "TAP-compatible PostgreSQL unit testing",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "first-release-registry",
+    "expectedUpstreamRepository": "theory/pgtap",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pgtap",
+    "license": "PostgreSQL",
+    "ledgerPath": "packages/pgtap.json"
+  },
+  "research": {
+    "lastReviewed": "2026-10-22",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pgtap/releases/tag/v1.3.4-windows.1",
+      "https://github.com/theory/pgtap"
+    ],
+    "windowsBinarySources": []
+  }
+}

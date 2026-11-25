@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "name": "pg_hint_plan",
+  "upstreamRepository": "ossc-db/pg_hint_plan",
+  "description": "Execution-plan hinting extension for PostgreSQL.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "ossc-db/pg_hint_plan",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/pg_hint_plan",
+    "license": "BSD-style and PostgreSQL-derived notices",
+    "ledgerPath": "packages/pg_hint_plan.json"
+  },
+  "research": {
+    "descriptionOverride": "Planner hints",
+    "lastReviewed": "2026-10-08",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/pg_hint_plan/releases",
+      "https://www.sraoss.co.jp/prod_serv/support/pgsql-mainte/third-party-software-list/"
+    ],
+    "windowsBinarySources": [
+      {
+        "provider": "SRA OSS PostgreSQL support service",
+        "type": "vendor",
+        "url": "https://www.sraoss.co.jp/prod_serv/support/pgsql-mainte/",
+        "availability": "support-customer",
+        "postgresqlDistribution": "standard-postgresql",
+        "compatibility": "manual-verification-required",
+        "notes": "Windows binaries provided to support-contract customers, not public downloads. Request the exact PostgreSQL major/version from SRA OSS."
+      }
+    ]
+  }
+}

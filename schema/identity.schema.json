@@ -1,0 +1,574 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pgextwin.github.io/catalog/schema/identity.schema.json",
+  "title": "pgextwin catalog identity record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "name",
+    "upstreamRepository",
+    "description",
+    "intake",
+    "research"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "upstreamRepository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intake": {
+      "$ref": "#/$defs/intake"
+    },
+    "distribution": {
+      "$ref": "#/$defs/distribution"
+    },
+    "research": {
+      "$ref": "#/$defs/research"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "intake"
+        ],
+        "properties": {
+          "intake": {
+            "required": [
+              "class"
+            ],
+            "properties": {
+              "class": {
+                "const": "distributed"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "distribution"
+        ],
+        "properties": {
+          "research": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "status"
+                  ]
+                },
+                {
+                  "required": [
+                    "candidateRationale"
+                  ]
+                },
+                {
+                  "required": [
+                    "reasonCode"
+                  ]
+                },
+                {
+                  "required": [
+                    "notPlannedReason"
+                  ]
+                },
+                {
+                  "required": [
+                    "notPlannedReasonJa"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "roadmap": {
+                "required": [
+                  "decision"
+                ],
+                "properties": {
+                  "decision": {
+                    "const": "wave-2"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "distribution"
+          ]
+        },
+        "properties": {
+          "research": {
+            "required": [
+              "status"
+            ],
+            "not": {
+              "required": [
+                "descriptionOverride"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "intake": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "distributionAllowed"
+      ],
+      "properties": {
+        "class": {
+          "enum": [
+            "distributed",
+            "research-only"
+          ]
+        },
+        "distributionAllowed": {
+          "type": "boolean"
+        },
+        "registrationSource": {
+          "enum": [
+            "historical-core",
+            "first-release-registry"
+          ]
+        },
+        "expectedUpstreamRepository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$"
+        },
+        "sealedUpstream": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "class"
+            ],
+            "properties": {
+              "class": {
+                "const": "distributed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "registrationSource",
+              "expectedUpstreamRepository",
+              "sealedUpstream"
+            ],
+            "properties": {
+              "distributionAllowed": {
+                "const": true
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "distributionAllowed": {
+                "const": false
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "registrationSource"
+                  ]
+                },
+                {
+                  "required": [
+                    "expectedUpstreamRepository"
+                  ]
+                },
+                {
+                  "required": [
+                    "sealedUpstream"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "license",
+        "ledgerPath"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^pgextwin/[a-z][a-z0-9_]{0,63}$"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ledgerPath": {
+          "type": "string",
+          "pattern": "^packages/[a-z][a-z0-9_]{0,63}\\.json$"
+        },
+        "externalSourceRegistry": {
+          "type": "string",
+          "const": "external/windows-candidates-v1.json"
+        }
+      }
+    },
+    "research": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lastReviewed",
+        "evidenceUrls",
+        "windowsBinarySources"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "candidate",
+            "not-planned"
+          ]
+        },
+        "descriptionOverride": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lastReviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "currentStableVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pg18Support": {
+          "enum": [
+            "supported",
+            "not-supported",
+            "unknown"
+          ]
+        },
+        "pg19Readiness": {
+          "enum": [
+            "documented",
+            "upstream-ci-probe",
+            "under-review",
+            "unknown",
+            "known-incompatible"
+          ]
+        },
+        "windowsUpstreamSupport": {
+          "enum": [
+            "build-instructions",
+            "native-binary",
+            "unknown",
+            "not-supported"
+          ]
+        },
+        "knownWindowsBinaryAvailability": {
+          "enum": [
+            "none-identified",
+            "limited",
+            "public",
+            "unknown"
+          ]
+        },
+        "estimatedWindowsEffort": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "very-high",
+            "unknown"
+          ]
+        },
+        "preliminaryPriority": {
+          "enum": [
+            "high",
+            "medium",
+            "low",
+            "unranked"
+          ]
+        },
+        "candidateRationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reasonCode": {
+          "enum": [
+            "existing-windows-distribution",
+            "out-of-scope",
+            "platform-mismatch",
+            "excessive-complexity"
+          ]
+        },
+        "notPlannedReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notPlannedReasonJa": {
+          "type": "string",
+          "minLength": 1
+        },
+        "roadmap": {
+          "$ref": "#/$defs/roadmap"
+        },
+        "evidenceUrls": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/https"
+          }
+        },
+        "windowsBinarySources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        },
+        "externalSourceRegistry": {
+          "type": "string",
+          "const": "external/windows-candidates-v1.json"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "candidate"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "license",
+              "currentStableVersion",
+              "pg18Support",
+              "pg19Readiness",
+              "windowsUpstreamSupport",
+              "knownWindowsBinaryAvailability",
+              "estimatedWindowsEffort",
+              "preliminaryPriority",
+              "candidateRationale"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "reasonCode"
+                  ]
+                },
+                {
+                  "required": [
+                    "notPlannedReason"
+                  ]
+                },
+                {
+                  "required": [
+                    "notPlannedReasonJa"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "not-planned"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reasonCode",
+              "notPlannedReason"
+            ],
+            "properties": {
+              "windowsBinarySources": {
+                "minItems": 1
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "candidateRationale"
+                  ]
+                },
+                {
+                  "required": [
+                    "roadmap"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "https": {
+      "type": "string",
+      "pattern": "^https://[^\\s]+$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "type",
+        "url",
+        "availability",
+        "postgresqlDistribution",
+        "compatibility",
+        "notes"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "upstream-official",
+            "community",
+            "vendor",
+            "package-manager"
+          ]
+        },
+        "url": {
+          "$ref": "#/$defs/https"
+        },
+        "availability": {
+          "enum": [
+            "public",
+            "vendor-product",
+            "support-customer",
+            "commercial-bundled"
+          ]
+        },
+        "postgresqlDistribution": {
+          "enum": [
+            "standard-postgresql",
+            "vendor-postgresql",
+            "conda-postgresql",
+            "unknown"
+          ]
+        },
+        "compatibility": {
+          "enum": [
+            "standard-postgresql",
+            "vendor-specific",
+            "manual-verification-required",
+            "unknown"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "roadmap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "decisionDate",
+        "rationale"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "wave-2",
+            "reserve",
+            "research"
+          ]
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "decisionDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "rationale": {
+          "type": "string",
+          "pattern": "\\S",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "wave-2"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "required": [
+              "order"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "order"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

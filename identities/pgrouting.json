@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "pgrouting",
+  "displayName": "pgRouting",
+  "upstreamRepository": "pgRouting/pgrouting",
+  "description": "Network routing extension",
+  "intake": {
+    "class": "research-only",
+    "distributionAllowed": false
+  },
+  "research": {
+    "status": "not-planned",
+    "lastReviewed": "2026-11-13",
+    "reasonCode": "existing-windows-distribution",
+    "notPlannedReason": "Published PostGIS Windows bundles include pgRouting; building overlapping native GIS toolchains adds little value.",
+    "notPlannedReasonJa": "PostGISのWindowsバンドルにpgRoutingが同梱されており、独自の複雑なGISビルドを重複させる必要性が低いため。",
+    "evidenceUrls": [
+      "https://github.com/pgRouting/pgrouting"
+    ],
+    "windowsBinarySources": [
+      {
+        "provider": "PostGIS / OSGeo Windows bundle",
+        "type": "upstream-official",
+        "url": "https://postgis.net/documentation/getting_started/install_windows/released_versions/",
+        "availability": "public",
+        "postgresqlDistribution": "standard-postgresql",
+        "compatibility": "standard-postgresql",
+        "notes": "The official PostGIS 3.7.0 Windows page now advertises pgRouting 4.0.2, while the previously audited immutable PG18 bundle SQL runtime reported pgRouting 4.0.1 (the DLL basename libpgrouting-4.0.dll is not a precise version). Do not attribute 4.0.2 to that exact ZIP or infer source/build provenance, rights/NOTICE closure or pgextwin public GET authority."
+      }
+    ]
+  }
+}

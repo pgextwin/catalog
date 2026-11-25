@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "postgis",
+  "displayName": "PostGIS",
+  "upstreamRepository": "postgis/postgis",
+  "description": "Spatial types and GIS functions",
+  "intake": {
+    "class": "research-only",
+    "distributionAllowed": false
+  },
+  "research": {
+    "status": "not-planned",
+    "lastReviewed": "2026-11-13",
+    "reasonCode": "existing-windows-distribution",
+    "notPlannedReason": "Official PostGIS Windows binary/installer routes exist but release coverage differs by PostgreSQL major; duplicating the GIS toolchain for a native build is not currently planned. External original GET remains a separate gated candidate.",
+    "notPlannedReasonJa": "PostGISの公式Windowsバイナリ・インストーラーは存在しますが、PostgreSQLメジャー別の公開状況は異なります。GIS関連ライブラリのネイティブ再ビルドは当面行わず、外部原本GETは別途認可が必要な候補として扱います。",
+    "evidenceUrls": [
+      "https://postgis.net/documentation/getting_started/install_windows/released_versions/"
+    ],
+    "windowsBinarySources": [
+      {
+        "provider": "PostGIS / OSGeo",
+        "type": "upstream-official",
+        "url": "https://postgis.net/documentation/getting_started/install_windows/released_versions/",
+        "availability": "public",
+        "postgresqlDistribution": "standard-postgresql",
+        "compatibility": "standard-postgresql",
+        "notes": "Official PostGIS 3.7.0 page (checked 2026-11-13) lists released Windows installers for PG18-19, PG15-17 installers forthcoming, and additional binaries under Unreleased Versions. A separately audited PG18 3.7.0 original ZIP is only a pinned candidate: source-to-binary producer provenance, complete dependency/NOTICE rights and formal pgextwin download authorization remain unverified."
+      }
+    ]
+  }
+}

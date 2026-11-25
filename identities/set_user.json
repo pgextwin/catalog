@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "set_user",
+  "upstreamRepository": "pgaudit/set_user",
+  "description": "Controlled PostgreSQL user switching with auditing and privilege-management safeguards.",
+  "intake": {
+    "class": "distributed",
+    "distributionAllowed": true,
+    "registrationSource": "historical-core",
+    "expectedUpstreamRepository": "pgaudit/set_user",
+    "sealedUpstream": true
+  },
+  "distribution": {
+    "repository": "pgextwin/set_user",
+    "license": "PostgreSQL License",
+    "ledgerPath": "packages/set_user.json"
+  },
+  "research": {
+    "descriptionOverride": "Controlled privilege switching",
+    "lastReviewed": "2026-10-08",
+    "evidenceUrls": [
+      "https://github.com/pgextwin/set_user/releases"
+    ],
+    "windowsBinarySources": []
+  }
+}

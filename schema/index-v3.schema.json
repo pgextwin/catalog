@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pgextwin.github.io/catalog/schema/index-v3.schema.json",
+  "title": "pgextwin catalog index v3 (candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "identitiesDir",
+    "packagesDir",
+    "extensions",
+    "identities"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "identitiesDir": {
+      "const": "identities"
+    },
+    "packagesDir": {
+      "const": "packages"
+    },
+    "extensions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      }
+    },
+    "identities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identityEntry"
+      }
+    }
+  },
+  "$defs": {
+    "identityEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "path",
+        "intakeClass"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^identities/[a-z][a-z0-9_]{0,63}\\.json$"
+        },
+        "intakeClass": {
+          "enum": [
+            "distributed",
+            "research-only"
+          ]
+        },
+        "ledgerPath": {
+          "type": "string",
+          "pattern": "^packages/[a-z][a-z0-9_]{0,63}\\.json$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "intakeClass"
+            ],
+            "properties": {
+              "intakeClass": {
+                "const": "distributed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "ledgerPath"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "ledgerPath"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

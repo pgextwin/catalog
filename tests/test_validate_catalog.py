@@ -2,7 +2,9 @@ import copy
 import hashlib
 import json
 import importlib.util
+import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -287,6 +289,162 @@ class CatalogV2ValidationTests(unittest.TestCase):
             "asset": "fictional.vulnerabilities.json",
         }
         self.assert_has_error(record, "unavailable evidence")
+
+
+class CatalogIdentitiesConsistencyTests(unittest.TestCase):
+    def _copy_catalog(self, dest: Path) -> Path:
+        for directory in ("extensions", "packages", "landscape", "identities", "schema"):
+            shutil.copytree(ROOT / directory, dest / directory)
+        (dest / "config").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "config" / "first-release-registry.json", dest / "config" / "first-release-registry.json")
+        shutil.copy2(ROOT / "index.json", dest / "index.json")
+        return dest
+
+    def _mutate_json(self, path: Path, mutator) -> None:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        mutator(data)
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    def test_full_catalog_validation_with_identities_passes(self):
+        self.assertEqual([], validate_catalog.validate_identities(ROOT))
+        errors, count = validate_catalog.validate_catalog(verify_remote=False)
+        self.assertEqual([], errors)
+        self.assertEqual(26, count)
+
+    def test_fails_when_differing_description_override_is_dropped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_catalog(Path(tmp))
+            self._mutate_json(
+                root / "identities" / "pg_hint_plan.json",
+                lambda doc: doc["research"].pop("descriptionOverride"),
+            )
+            errors = validate_catalog.validate_identities(root)
+            self.assertTrue(any("descriptionOverride" in err for err in errors), errors)
+
+    def test_fails_when_description_or_override_is_altered(self):
+        cases = (
+            ("pg_hint_plan.json", lambda doc: doc.update(description="Altered summary"), "description"),
+            (
+                "pg_hint_plan.json",
+                lambda doc: doc["research"].update(descriptionOverride="Altered override"),
+                "descriptionOverride",
+            ),
+            ("hypopg.json", lambda doc: doc.update(description="Altered hypopg summary"), "description"),
+        )
+        for filename, mutate, needle in cases:
+            with self.subTest(filename=filename, needle=needle), tempfile.TemporaryDirectory() as tmp:
+                root = self._copy_catalog(Path(tmp))
+                self._mutate_json(root / "identities" / filename, mutate)
+                errors = validate_catalog.validate_identities(root)
+                self.assertTrue(any(needle in err for err in errors), errors)
+
+    def test_fails_when_research_only_or_landscape_field_is_dropped_or_altered(self):
+        cases = (
+            ("postgis.json", lambda doc: doc["research"].pop("notPlannedReasonJa"), "notPlannedReasonJa"),
+            ("http.json", lambda doc: doc["research"].pop("candidateRationale"), "candidateRationale"),
+            ("hypopg.json", lambda doc: doc["research"].pop("roadmap"), "roadmap"),
+            ("pgvector.json", lambda doc: doc["research"].pop("externalSourceRegistry"), "externalSourceRegistry"),
+            (
+                "pgroonga.json",
+                lambda doc: doc["research"]["windowsBinarySources"][0].update(notes="altered note"),
+                "windowsBinarySources",
+            ),
+        )
+        for filename, mutate, needle in cases:
+            with self.subTest(filename=filename, needle=needle), tempfile.TemporaryDirectory() as tmp:
+                root = self._copy_catalog(Path(tmp))
+                self._mutate_json(root / "identities" / filename, mutate)
+                errors = validate_catalog.validate_identities(root)
+                self.assertTrue(any(needle in err for err in errors), errors)
+
+    def test_fails_if_research_only_is_promoted_to_distribution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_catalog(Path(tmp))
+            self._mutate_json(
+                root / "identities" / "postgis.json",
+                lambda doc: doc.update(
+                    intake={
+                        "class": "distributed",
+                        "distributionAllowed": True,
+                        "registrationSource": "first-release-registry",
+                        "expectedUpstreamRepository": "postgis/postgis",
+                        "sealedUpstream": False,
+                    },
+                    distribution={
+                        "repository": "pgextwin/postgis",
+                        "license": "GPL-2.0-or-later",
+                        "ledgerPath": "packages/postgis.json",
+                    },
+                ),
+            )
+            errors = validate_catalog.validate_identities(root)
+            self.assertTrue(errors)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_catalog(Path(tmp))
+            self._mutate_json(
+                root / "identities" / "index.candidate.json",
+                lambda doc: doc["extensions"].append("http"),
+            )
+            errors = validate_catalog.validate_identities(root)
+            self.assertTrue(any("extensions" in err for err in errors), errors)
+
+    def test_fails_when_sealed_upstream_or_intake_invariant_is_mutated(self):
+        cases = (
+            ("pgtap.json", lambda doc: doc["intake"].update(sealedUpstream=False)),
+            ("pgtap.json", lambda doc: doc["intake"].update(expectedUpstreamRepository="evil/pgtap")),
+            ("pg_hint_plan.json", lambda doc: doc["intake"].update(registrationSource="first-release-registry")),
+        )
+        for filename, mutate in cases:
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as tmp:
+                root = self._copy_catalog(Path(tmp))
+                self._mutate_json(root / "identities" / filename, mutate)
+                errors = validate_catalog.validate_identities(root)
+                self.assertTrue(any("intake" in err for err in errors), errors)
+
+    def test_fails_when_distributed_identity_field_differs_from_extension(self):
+        cases = (
+            ("hypopg.json", lambda doc: doc["distribution"].update(license="MIT"), "license"),
+            ("hypopg.json", lambda doc: doc.update(displayName="hypopg"), "displayName"),
+            ("hypopg.json", lambda doc: doc.update(upstreamRepository="evil/hypopg"), "upstreamRepository"),
+        )
+        for filename, mutate, needle in cases:
+            with self.subTest(filename=filename, needle=needle), tempfile.TemporaryDirectory() as tmp:
+                root = self._copy_catalog(Path(tmp))
+                self._mutate_json(root / "identities" / filename, mutate)
+                errors = validate_catalog.validate_identities(root)
+                self.assertTrue(any(needle in err for err in errors), errors)
+
+    def test_fails_on_missing_extra_stale_index_or_unmapped_extension_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_catalog(Path(tmp))
+            (root / "identities" / "http.json").unlink()
+            errors = validate_catalog.validate_identities(root)
+            self.assertTrue(any("missing file" in err for err in errors), errors)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_catalog(Path(tmp))
+            (root / "identities" / "rogue.json").write_text("{}", encoding="utf-8")
+            errors = validate_catalog.validate_identities(root)
+            self.assertTrue(any("unexpected file" in err for err in errors), errors)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_catalog(Path(tmp))
+            self._mutate_json(
+                root / "identities" / "index.candidate.json",
+                lambda doc: doc.update(identities=doc["identities"][:-1]),
+            )
+            errors = validate_catalog.validate_identities(root)
+            self.assertTrue(any("index.candidate.json" in err for err in errors), errors)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_catalog(Path(tmp))
+            self._mutate_json(
+                root / "extensions" / "hypopg.json",
+                lambda doc: doc.update(unmappedExtensionField="unexpected"),
+            )
+            errors = validate_catalog.validate_identities(root)
+            self.assertTrue(any("unmapped field" in err for err in errors), errors)
 
 
 if __name__ == "__main__":
