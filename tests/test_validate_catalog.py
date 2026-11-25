@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import package_ledger
+
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "validate_catalog.py"
 
@@ -18,15 +20,19 @@ sys.modules[spec.name] = validate_catalog
 spec.loader.exec_module(validate_catalog)
 
 
+def projected_record(name: str) -> dict:
+    return package_ledger.website_record(
+        package_ledger.read_record(ROOT / "packages" / f"{name}.json")
+    )
+
+
 class CatalogV2ValidationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.schema = validate_catalog.load_json(
             ROOT / "schema" / "extension.schema.json"
         )
-        cls.valid = validate_catalog.load_json(
-            ROOT / "extensions" / "pg_cron.json"
-        )
+        cls.valid = projected_record("pg_cron")
 
     def errors_for(self, record):
         errors = validate_catalog.schema_errors(
@@ -133,7 +139,7 @@ class CatalogV2ValidationTests(unittest.TestCase):
 
     def test_remote_check_uses_stored_authorized_tag_not_unverified_newest_tag(self):
         """Keep a verified older Catalog entry while a newer Publisher run is DENIED."""
-        record = validate_catalog.load_json(ROOT / "extensions" / "hypopg.json")
+        record = projected_record("hypopg")
         latest = record["latest"]
         tagged_url = (
             "https://api.github.com/repos/pgextwin/hypopg/releases/tags/"
@@ -161,7 +167,7 @@ class CatalogV2ValidationTests(unittest.TestCase):
         )
 
     def test_remote_tagged_release_rejects_identity_and_publication_attacks(self):
-        record = validate_catalog.load_json(ROOT / "extensions" / "hypopg.json")
+        record = projected_record("hypopg")
         tag = record["latest"]["releaseTag"]
         good = {
             "tag_name": tag,
@@ -196,7 +202,7 @@ class CatalogV2ValidationTests(unittest.TestCase):
         get.assert_not_called()
 
     def test_step18_plpgsql_check_release_metadata(self):
-        record = validate_catalog.load_json(ROOT / "extensions" / "plpgsql_check.json")
+        record = projected_record("plpgsql_check")
         self.assertEqual([], self.errors_for(record))
         self.assertTrue({"15", "16", "17", "18"}.issubset({major for major, metadata in record["postgresql"].items() if metadata["available"]}))
         if "14" in record["postgresql"]:
@@ -213,9 +219,7 @@ class CatalogV2ValidationTests(unittest.TestCase):
 
 
     def test_pg_partman_release_describes_optional_bundled_bgw(self):
-        record = validate_catalog.load_json(
-            ROOT / "extensions" / "pg_partman.json"
-        )
+        record = projected_record("pg_partman")
         self.assertEqual([], self.errors_for(record))
         self.assertIn("BGW DLL included", record["description"])
         self.assertNotIn("BGW excluded", record["description"])
@@ -445,6 +449,80 @@ class CatalogIdentitiesConsistencyTests(unittest.TestCase):
             )
             errors = validate_catalog.validate_identities(root)
             self.assertTrue(any("unmapped field" in err for err in errors), errors)
+
+
+class CatalogIdentitiesReaderTests(unittest.TestCase):
+    def _copy_identities_only_catalog(self, dest: Path) -> Path:
+        for directory in ("packages", "identities", "schema"):
+            shutil.copytree(ROOT / directory, dest / directory)
+        shutil.copy2(ROOT / "index.json", dest / "index.json")
+        return dest
+
+    def _mutate_json(self, path: Path, mutator) -> None:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        mutator(data)
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    def test_validate_catalog_passes_without_legacy_extensions_or_landscape_dirs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_identities_only_catalog(Path(tmp))
+            errors, count = validate_catalog.validate_catalog(
+                verify_remote=False,
+                root=root,
+                include_legacy_union_check=False,
+            )
+            self.assertEqual([], errors)
+            self.assertEqual(26, count)
+
+    def test_fails_when_identity_distribution_cross_check_differs_from_ledger(self):
+        cases = (
+            ("hypopg.json", lambda doc: doc["distribution"].update(license="MIT"), "distribution.license"),
+            ("hypopg.json", lambda doc: doc["distribution"].update(repository="pgextwin/other"), "distribution.repository"),
+            ("hypopg.json", lambda doc: doc["distribution"].update(ledgerPath="packages/other.json"), "distribution.ledgerPath"),
+            ("hypopg.json", lambda doc: doc.update(description="Altered description"), "description"),
+            ("hypopg.json", lambda doc: doc.update(displayName="hypopg"), "displayName"),
+            ("hypopg.json", lambda doc: doc.update(upstreamRepository="evil/hypopg"), "upstreamRepository"),
+        )
+        for filename, mutate, needle in cases:
+            with self.subTest(filename=filename, needle=needle), tempfile.TemporaryDirectory() as tmp:
+                root = self._copy_identities_only_catalog(Path(tmp))
+                self._mutate_json(root / "identities" / filename, mutate)
+                errors, _ = validate_catalog.validate_catalog(
+                    verify_remote=False,
+                    root=root,
+                    include_legacy_union_check=False,
+                )
+                self.assertTrue(any(needle in err for err in errors), errors)
+
+    def test_fails_on_missing_identity_orphan_distributed_or_research_only_in_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_identities_only_catalog(Path(tmp))
+            (root / "identities" / "hypopg.json").unlink()
+            errors, _ = validate_catalog.validate_catalog(
+                verify_remote=False, root=root, include_legacy_union_check=False
+            )
+            self.assertTrue(any("missing identity file" in err for err in errors), errors)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_identities_only_catalog(Path(tmp))
+            self._mutate_json(root / "index.json", lambda doc: doc["extensions"].remove("hypopg"))
+            (root / "packages" / "hypopg.json").unlink()
+            errors, _ = validate_catalog.validate_catalog(
+                verify_remote=False, root=root, include_legacy_union_check=False
+            )
+            self.assertTrue(any("not listed in index.json" in err for err in errors), errors)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_identities_only_catalog(Path(tmp))
+            shutil.copy2(root / "packages" / "hypopg.json", root / "packages" / "http.json")
+            self._mutate_json(
+                root / "index.json",
+                lambda doc: doc.update(extensions=sorted([*doc["extensions"], "http"])),
+            )
+            errors, _ = validate_catalog.validate_catalog(
+                verify_remote=False, root=root, include_legacy_union_check=False
+            )
+            self.assertTrue(any("intake.class" in err or "distributed" in err for err in errors), errors)
 
 
 if __name__ == "__main__":

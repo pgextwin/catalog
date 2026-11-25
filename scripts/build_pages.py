@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 import hashlib
 import html
@@ -350,6 +351,66 @@ def load_cli_release_metadata(repo_root: Path, cli_cfg: dict, fetch_live: bool) 
     }
 
 
+def project_landscape_v1(identity: dict) -> dict:
+    """Reconstruct the legacy v1 landscape record shape from an identity."""
+    name = identity["name"]
+    research = identity["research"]
+    out: dict = {
+        "schemaVersion": 1,
+        "name": name,
+        "displayName": identity.get("displayName", name),
+        "description": research.get("descriptionOverride", identity["description"]),
+        "upstreamRepository": identity["upstreamRepository"],
+    }
+    if identity["intake"]["class"] == "distributed":
+        out["status"] = "implemented"
+        out["pgextwinCatalogName"] = name
+    else:
+        out["status"] = research["status"]
+    for key, value in research.items():
+        if key in ("status", "descriptionOverride"):
+            continue
+        out[key] = copy.deepcopy(value)
+    return out
+
+
+def project_distribution_from_identity(
+    name: str,
+    identity: dict,
+    ledger_projected: dict,
+    packages_dir: str,
+) -> dict:
+    """Verify identity metadata and merge its distribution fields onto the ledger projection."""
+    if identity.get("schemaVersion") != 1 or identity.get("name") != name:
+        raise ValueError(f"Invalid identity header for {name}")
+    intake = identity.get("intake")
+    if (
+        not isinstance(intake, dict)
+        or intake.get("class") != "distributed"
+        or intake.get("distributionAllowed") is not True
+        or intake.get("expectedUpstreamRepository") != identity.get("upstreamRepository")
+    ):
+        raise ValueError(f"Identity {name} is not an authorized distributed entry")
+    dist = identity.get("distribution")
+    if not isinstance(dist, dict):
+        raise ValueError(f"Missing distribution metadata on identity {name}")
+    if dist.get("ledgerPath") != f"{packages_dir}/{name}.json":
+        raise ValueError(f"Identity ledgerPath mismatch for {name}")
+
+    derived = copy.deepcopy(ledger_projected)
+    derived["name"] = name
+    derived["displayName"] = identity.get("displayName", name)
+    derived["description"] = identity["description"]
+    derived["upstream"]["repository"] = identity["upstreamRepository"]
+    derived["repository"] = dist["repository"]
+    derived["license"] = dist["license"]
+    if "externalSourceRegistry" in dist:
+        derived["externalSourceRegistry"] = dist["externalSourceRegistry"]
+    else:
+        derived.pop("externalSourceRegistry", None)
+    return derived
+
+
 def load_distributed_records(repo_root: Path, catalog_paths: dict) -> list[dict]:
     index = read_json(repo_root / catalog_paths["index"])
     if index.get("schemaVersion") != 2 or not isinstance(index.get("extensions"), list):
@@ -358,19 +419,31 @@ def load_distributed_records(repo_root: Path, catalog_paths: dict) -> list[dict]
     if names != sorted(set(names)) or not all(EXT_NAME_RE.fullmatch(n) for n in names):
         raise ValueError("Catalog index extensions must be unique, sorted, and valid")
 
+    identities_index = read_json(repo_root / catalog_paths["identitiesIndex"])
+    if (
+        type(identities_index) is not dict
+        or identities_index.get("schemaVersion") != 3
+        or identities_index.get("extensions") != names
+    ):
+        raise ValueError("Invalid or mismatched identities index")
+
     records: list[dict] = []
     pkg_dir = repo_root / catalog_paths["packagesDir"]
-    ext_dir = repo_root / catalog_paths["extensionsDir"]
+    id_dir = repo_root / catalog_paths["identitiesDir"]
     for name in names:
         ledger = package_ledger.read_record(pkg_dir / f"{name}.json")
         if ledger.get("name") != name or ledger.get("repository") != f"pgextwin/{name}":
             raise ValueError(f"Package ledger identity mismatch for {name}")
         projected = package_ledger.website_record(ledger)
-        ext_file = ext_dir / f"{name}.json"
-        if ext_file.is_file():
-            existing = read_json(ext_file)
-            if existing != projected:
-                raise ValueError(f"Ledger projection differs from extensions/{name}.json")
+        identity = read_json(id_dir / f"{name}.json")
+        identity_derived = project_distribution_from_identity(
+            name,
+            identity,
+            projected,
+            catalog_paths["packagesDir"],
+        )
+        if identity_derived != projected:
+            raise ValueError(f"Ledger projection differs from identities/{name}.json")
         records.append(projected)
     records.sort(key=lambda r: r["displayName"].lower())
     # Match JS localeCompare-like case-insensitive / standard sort stability on displayName
@@ -379,17 +452,58 @@ def load_distributed_records(repo_root: Path, catalog_paths: dict) -> list[dict]
 
 
 def load_landscape_registry(repo_root: Path, catalog_paths: dict) -> list[dict]:
-    lindex = read_json(repo_root / catalog_paths["landscapeIndex"])
-    if lindex.get("schemaVersion") != 1 or not isinstance(lindex.get("extensions"), list):
-        raise ValueError("Invalid landscape/index.json")
-    names = lindex["extensions"]
-    if len(set(names)) != len(names) or not all(EXT_NAME_RE.fullmatch(n) for n in names):
-        raise ValueError("Invalid landscape index extensions")
+    identities_index = read_json(repo_root / catalog_paths["identitiesIndex"])
+    if (
+        type(identities_index) is not dict
+        or identities_index.get("schemaVersion") != 3
+        or not isinstance(identities_index.get("identities"), list)
+        or not isinstance(identities_index.get("extensions"), list)
+    ):
+        raise ValueError("Invalid identities candidate index")
 
-    ldir = repo_root / catalog_paths["landscapeExtensionsDir"]
+    entries = identities_index["identities"]
+    dist_names = identities_index["extensions"]
+    if not all(isinstance(n, str) and EXT_NAME_RE.fullmatch(n) for n in dist_names) or len(set(dist_names)) != len(dist_names):
+        raise ValueError("Invalid distributed roster in identities index")
+    if not all(isinstance(e, dict) and isinstance(e.get("name"), str) and EXT_NAME_RE.fullmatch(e["name"]) for e in entries):
+        raise ValueError("Invalid identity entries in identities index")
+    names = [e["name"] for e in entries]
+    if len(set(names)) != len(names):
+        raise ValueError("Duplicate identity names in identities index")
+
+    dist_roster = set(dist_names)
+    if {e["name"] for e in entries if e.get("intakeClass") == "distributed"} != dist_roster:
+        raise ValueError("Identities index distributed roster mismatch")
+
+    id_dir = repo_root / catalog_paths["identitiesDir"]
     records: list[dict] = []
-    for name in names:
-        rec = read_json(ldir / f"{name}.json")
+    for entry in entries:
+        name = entry["name"]
+        expected_rel = f"{catalog_paths['identitiesDir']}/{name}.json"
+        if entry.get("path") != expected_rel:
+            raise ValueError(f"Identity path mismatch for {name}: {entry.get('path')!r}")
+        identity = read_json(id_dir / f"{name}.json")
+        if (
+            type(identity) is not dict
+            or identity.get("schemaVersion") != 1
+            or identity.get("name") != name
+            or not isinstance(identity.get("intake"), dict)
+            or not isinstance(identity.get("research"), dict)
+        ):
+            raise ValueError(f"Invalid identity record for {name}")
+        intake = identity["intake"]
+        intake_class = intake.get("class")
+        if (
+            intake_class not in ("distributed", "research-only")
+            or intake_class != entry.get("intakeClass")
+            or (intake_class == "distributed") != (name in dist_roster)
+            or intake.get("distributionAllowed") is not (intake_class == "distributed")
+        ):
+            raise ValueError(f"Identity intake mismatch for {name}")
+        if intake_class == "research-only" and "status" not in identity["research"]:
+            raise ValueError(f"Research-only identity missing status on {name}")
+
+        rec = project_landscape_v1(identity)
         if rec.get("schemaVersion") != 1 or rec.get("name") != name:
             raise ValueError(f"Invalid landscape record for {name}")
         if rec.get("status") not in ("implemented", "candidate", "not-planned"):

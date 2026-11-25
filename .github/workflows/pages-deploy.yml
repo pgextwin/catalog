@@ -11,6 +11,7 @@ on:
     paths:
       - "site/**"
       - "scripts/build_pages.py"
+      - "identities/**"
       - "extensions/**"
       - "packages/**"
       - "landscape/**"

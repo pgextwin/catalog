@@ -29,7 +29,6 @@ LEDGER_SCHEMA_PATH = ROOT / "schema" / "package-ledger.schema.json"
 LEDGER_DIR = ROOT / package_ledger.DIRECTORY
 INDEX_SCHEMA_PATH = ROOT / "schema" / "index.schema.json"
 INDEX_PATH = ROOT / "index.json"
-EXTENSIONS_DIR = ROOT / "extensions"
 IDENTITY_SCHEMA_REL = build_identities.IDENTITY_SCHEMA_REL
 INDEX_V3_SCHEMA_REL = build_identities.INDEX_V3_SCHEMA_REL
 
@@ -678,18 +677,80 @@ def validate_identities(root=ROOT):
     return errors
 
 
-def validate_catalog(verify_remote=False):
-    extension_schema = load_json(EXTENSION_SCHEMA_PATH)
-    index_schema = load_json(INDEX_SCHEMA_PATH)
-    ledger_schema = load_json(LEDGER_SCHEMA_PATH)
+def validate_identity_distribution(name: str, identity: dict, projected: dict) -> list[str]:
+    """Cross-check identity-owned distribution fields against the ledger-projected v2 record."""
+    rel_path = f"{build_identities.IDENTITIES_DIR_NAME}/{name}.json"
+    errors: list[str] = []
+
+    if identity.get("name") != name or projected.get("name") != name:
+        errors.append(f"{rel_path}: identity/ledger name mismatch for {name}")
+
+    intake = identity.get("intake")
+    if (
+        not isinstance(intake, dict)
+        or intake.get("class") != "distributed"
+        or intake.get("distributionAllowed") is not True
+        or intake.get("expectedUpstreamRepository") != identity.get("upstreamRepository")
+    ):
+        errors.append(f"{rel_path}.intake: invalid distributed intake metadata")
+
+    dist = identity.get("distribution")
+    if not isinstance(dist, dict):
+        errors.append(f"{rel_path}.distribution: missing object on distributed identity")
+        return errors
+
+    if identity.get("displayName", name) != projected.get("displayName"):
+        errors.append(
+            f"{rel_path}.displayName: differs from {package_ledger.DIRECTORY}/{name}.json "
+            f"({identity.get('displayName', name)!r} != {projected.get('displayName')!r})"
+        )
+    if identity.get("description") != projected.get("description"):
+        errors.append(
+            f"{rel_path}.description: differs from {package_ledger.DIRECTORY}/{name}.json"
+        )
+    if identity.get("upstreamRepository") != projected.get("upstream", {}).get("repository"):
+        errors.append(
+            f"{rel_path}.upstreamRepository: differs from {package_ledger.DIRECTORY}/{name}.json"
+        )
+
+    expected_repo = f"pgextwin/{name}"
+    if dist.get("repository") != projected.get("repository") or dist.get("repository") != expected_repo:
+        errors.append(
+            f"{rel_path}.distribution.repository: differs from {package_ledger.DIRECTORY}/{name}.json"
+        )
+    if dist.get("license") != projected.get("license"):
+        errors.append(
+            f"{rel_path}.distribution.license: differs from {package_ledger.DIRECTORY}/{name}.json"
+        )
+    expected_ledger = f"{package_ledger.DIRECTORY}/{name}.json"
+    if dist.get("ledgerPath") != expected_ledger:
+        errors.append(f"{rel_path}.distribution.ledgerPath: must be {expected_ledger}")
+    if ("externalSourceRegistry" in dist) != ("externalSourceRegistry" in projected) or (
+        dist.get("externalSourceRegistry") != projected.get("externalSourceRegistry")
+    ):
+        errors.append(
+            f"{rel_path}.distribution.externalSourceRegistry: differs from {package_ledger.DIRECTORY}/{name}.json"
+        )
+    return errors
+
+
+def validate_catalog(verify_remote=False, root=ROOT, *, include_legacy_union_check=True):
+    root = Path(root)
+    extension_schema = load_json(root / "schema" / "extension.schema.json")
+    index_schema = load_json(root / "schema" / "index.schema.json")
+    ledger_schema = load_json(root / "schema" / "package-ledger.schema.json")
+    identity_schema = load_json(root / IDENTITY_SCHEMA_REL)
+    index_v3_schema = load_json(root / INDEX_V3_SCHEMA_REL)
     registry = Registry().with_resource(extension_schema["$id"], Resource.from_contents(extension_schema))
     ledger_validator = Draft202012Validator(ledger_schema, registry=registry,
                                             format_checker=FormatChecker())
     Draft202012Validator.check_schema(extension_schema)
     Draft202012Validator.check_schema(index_schema)
     Draft202012Validator.check_schema(ledger_schema)
+    Draft202012Validator.check_schema(identity_schema)
+    Draft202012Validator.check_schema(index_v3_schema)
 
-    index = load_json(INDEX_PATH)
+    index = load_json(root / "index.json")
     errors = schema_errors(index_schema, index, "index.json")
 
     if index.get("schemaVersion") != 2:
@@ -699,44 +760,90 @@ def validate_catalog(verify_remote=False):
     if not isinstance(names, list):
         names = []
 
+    ledger_dir = root / package_ledger.DIRECTORY
+    identities_dir = root / build_identities.IDENTITIES_DIR_NAME
     records = {}
-    if sorted(path.stem for path in LEDGER_DIR.glob("*.json")) != sorted(names):
-        errors.append("packages/ inventory differs from index.json")
-    for name in names:
-        path = EXTENSIONS_DIR / f"{name}.json"
-        if not path.is_file():
-            errors.append(f"index.json references missing file: {path.relative_to(ROOT)}")
-            continue
+    if sorted(path.stem for path in ledger_dir.glob("*.json")) != sorted(names):
+        errors.append(f"{package_ledger.DIRECTORY}/ inventory differs from index.json")
 
-        record = load_json(path)
+    candidate_index_rel = f"{build_identities.IDENTITIES_DIR_NAME}/{build_identities.CANDIDATE_INDEX_NAME}"
+    candidate_index_path = identities_dir / build_identities.CANDIDATE_INDEX_NAME
+    if candidate_index_path.is_symlink() or not candidate_index_path.is_file():
+        errors.append(f"Missing or invalid {candidate_index_rel}")
+    else:
         try:
-            ledger_path = LEDGER_DIR / f"{name}.json"
+            candidate_index = package_ledger.read_record(candidate_index_path)
+            errors.extend(schema_errors(index_v3_schema, candidate_index, candidate_index_rel))
+            if candidate_index.get("extensions") != names:
+                errors.append(f"{candidate_index_rel}: extensions roster differs from index.json")
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            errors.append(f"{candidate_index_rel}: {exc}")
+
+    loaded_identities = {}
+    for name in names:
+        id_rel = f"{build_identities.IDENTITIES_DIR_NAME}/{name}.json"
+        id_path = identities_dir / f"{name}.json"
+        if id_path.is_symlink() or not id_path.is_file():
+            errors.append(f"index.json references missing identity file: {id_rel}")
+            continue
+        try:
+            identity = package_ledger.read_record(id_path)
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            errors.append(f"{id_rel}: {exc}")
+            continue
+        loaded_identities[name] = identity
+        errors.extend(schema_errors(identity_schema, identity, id_rel))
+
+        try:
+            ledger_path = ledger_dir / f"{name}.json"
             ledger = package_ledger.read_record(ledger_path)
             ledger_validator.validate(ledger)
-            if record != package_ledger.website_record(ledger):
-                raise ValueError("stale Website projection")
+            record = package_ledger.website_record(ledger)
         except (ValueError, KeyError, TypeError, OSError) as exc:
-            errors.append(f"packages/{name}.json: {exc}")
+            errors.append(f"{package_ledger.DIRECTORY}/{name}.json: {exc}")
             continue
         except ValidationError as exc:
-            errors.append(f"packages/{name}.json:{json_path(exc.path)}: {exc.message}")
+            errors.append(f"{package_ledger.DIRECTORY}/{name}.json:{json_path(exc.path)}: {exc.message}")
             continue
+
+        errors.extend(validate_identity_distribution(name, identity, record))
         records[name] = (record, package_ledger.current_release(ledger))
         errors.extend(
-            schema_errors(extension_schema, record, str(path.relative_to(ROOT)))
+            schema_errors(extension_schema, record, f"{package_ledger.DIRECTORY}/{name}.json")
         )
         errors.extend(
-            f"{path.relative_to(ROOT)}: {message}"
+            f"{package_ledger.DIRECTORY}/{name}.json: {message}"
             for message in validate_record_semantics(name, record)
         )
 
-    if EXTENSIONS_DIR.exists():
+    if identities_dir.is_symlink() or not identities_dir.is_dir():
+        errors.append(f"missing or invalid {build_identities.IDENTITIES_DIR_NAME}/ directory")
+    else:
         indexed = set(names)
-        for path in sorted(EXTENSIONS_DIR.glob("*.json")):
-            if path.stem not in indexed:
-                errors.append(
-                    f"extensions/{path.name} exists but is not listed in index.json"
-                )
+        for path in sorted(identities_dir.glob("*.json")):
+            if path.name == build_identities.CANDIDATE_INDEX_NAME:
+                continue
+            if path.is_symlink() or not path.is_file():
+                errors.append(f"{build_identities.IDENTITIES_DIR_NAME}/{path.name}: must be a regular file")
+                continue
+            try:
+                id_doc = loaded_identities.get(path.stem)
+                if id_doc is None:
+                    id_doc = package_ledger.read_record(path)
+                id_class = (id_doc.get("intake") or {}).get("class") if isinstance(id_doc.get("intake"), dict) else None
+                if path.stem in indexed:
+                    if id_class != "distributed":
+                        errors.append(
+                            f"{build_identities.IDENTITIES_DIR_NAME}/{path.name}: listed in index.json "
+                            f"but intake.class is {id_class!r}"
+                        )
+                elif id_class == "distributed":
+                    errors.append(
+                        f"{build_identities.IDENTITIES_DIR_NAME}/{path.name} is distributed "
+                        "but is not listed in index.json"
+                    )
+            except (ValueError, KeyError, TypeError, OSError) as exc:
+                errors.append(f"{build_identities.IDENTITIES_DIR_NAME}/{path.name}: {exc}")
 
     if verify_remote:
         token = os.environ.get("GITHUB_TOKEN")
@@ -744,26 +851,27 @@ def validate_catalog(verify_remote=False):
             try:
                 source_errors = verify_capability_source(record, token)
                 errors.extend(
-                    f"extensions/{name}.json: remote capability source: {message}"
+                    f"{package_ledger.DIRECTORY}/{name}.json: remote capability source: {message}"
                     for message in source_errors
                 )
             except Exception as exc:
                 errors.append(
-                    f"extensions/{name}.json: remote capability source verification failed: {exc}"
+                    f"{package_ledger.DIRECTORY}/{name}.json: remote capability source verification failed: {exc}"
                 )
 
             try:
                 release_errors = verify_release(record, token, pinned)
                 errors.extend(
-                    f"extensions/{name}.json: remote release verification: {message}"
+                    f"{package_ledger.DIRECTORY}/{name}.json: remote release verification: {message}"
                     for message in release_errors
                 )
             except Exception as exc:
                 errors.append(
-                    f"extensions/{name}.json: remote release verification failed: {exc}"
+                    f"{package_ledger.DIRECTORY}/{name}.json: remote release verification failed: {exc}"
                 )
 
-    errors.extend(validate_identities(ROOT))
+    if include_legacy_union_check:
+        errors.extend(validate_identities(root))
 
     return errors, len(records)
 
