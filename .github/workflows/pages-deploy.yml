@@ -1,0 +1,85 @@
+name: Deploy Catalog Pages
+
+# Proposal C phase C2: build the static site from the protected main ledgers
+# and deploy it to GitHub Pages (https://pgextwin.github.io/catalog/).
+# Evidence artifacts follow DESIGN.md section 4 (pages-projection-parity.json,
+# pages-request-trace.json, pages-filter-results.json).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "scripts/build_pages.py"
+      - "extensions/**"
+      - "packages/**"
+      - "landscape/**"
+      - "external/**"
+      - "index.json"
+      - ".github/workflows/pages-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout protected main
+        uses: actions/checkout@v4
+
+      - name: Build static site
+        run: |
+          python3 scripts/build_pages.py --inputs site/inputs.json --output build/pages-output
+          cat build/pages-output/manifest.json
+
+      - name: Projection parity
+        run: |
+          node site/tests/projection-parity.mjs \
+            --inputs site/inputs.json \
+            --site build/pages-output \
+            --output build/pages-projection-parity.json
+
+      - name: Browser smoke (request trace and filter results)
+        run: |
+          python3 -m http.server 8137 --directory build/pages-output &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID" EXIT
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8137/ja/index.html >/dev/null && break
+            sleep 1
+          done
+          node site/tests/pages-smoke.mjs \
+            --base http://127.0.0.1:8137 \
+            --trace build/pages-request-trace.json \
+            --filters-out build/pages-filter-results.json
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-evidence
+          path: |
+            build/pages-projection-parity.json
+            build/pages-request-trace.json
+            build/pages-filter-results.json
+            build/pages-output/cli-release-metadata.json
+            build/pages-output/manifest.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/pages-output
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
