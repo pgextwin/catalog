@@ -75,10 +75,19 @@ jobs:
             build/pages-output/cli-release-metadata.json
             build/pages-output/manifest.json
 
+      # actions/upload-pages-artifact cannot be used in this repository: its
+      # own action.yml references actions/upload-artifact by tag, which the
+      # repository Actions policy (full-length SHA pinning) rejects. Package
+      # the same github-pages artifact manually with the pinned upload-artifact.
+      - name: Package Pages artifact
+        run: tar --dereference --hard-dereference --directory build/pages-output -cvf artifact.tar .
+
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          path: build/pages-output
+          name: github-pages
+          path: artifact.tar
+          if-no-files-found: error
 
       - name: Deploy to GitHub Pages
         id: deployment
