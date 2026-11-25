@@ -18,9 +18,15 @@ import sys
 import tempfile
 
 try:
-    from scripts.verified_release_record import INTAKE_ALLOWED, FIRST_RELEASE_SOURCES
+    from scripts.verified_release_record import (
+        Denied, FIRST_RELEASE_SOURCES, INTAKE_ALLOWED, identity_blob_sha,
+        project_first_intake_files, read_candidate_index, read_identity,
+    )
 except ModuleNotFoundError:
-    from verified_release_record import INTAKE_ALLOWED, FIRST_RELEASE_SOURCES
+    from verified_release_record import (
+        Denied, FIRST_RELEASE_SOURCES, INTAKE_ALLOWED, identity_blob_sha,
+        project_first_intake_files, read_candidate_index, read_identity,
+    )
 
 REPO = "pgextwin/catalog"
 CENTRAL = "pgextwin/build"
@@ -31,7 +37,7 @@ SHA = re.compile(r"^[0-9a-f]{40}$")
 BRANCH = re.compile(
     r"^auto-catalog/([a-z][a-z0-9_]{1,63})-(v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\.[1-9][0-9]*)$"
 )
-# inspect_pr limits auto-merge to the existing package ledger and its view.
+# inspect_pr limits auto-merge to the existing package ledger only.
 # These paths do not trigger the Windows CLI smoke in cli-candidate.yml.
 REQUIRED_CHECKS = frozenset({"validate"})
 ROOT = Path(__file__).resolve().parents[1]
@@ -219,16 +225,15 @@ def inspect_pr(pr, files, commits, *, proposer_login, proposer_id, initial=False
             and (pr.get("base") or {}).get("ref") == "main"
             and (head.get("repo") or {}).get("full_name") == REPO
             and pr.get("commits") == 1, "Catalog PR not from dedicated proposer App")
-    path = "extensions/" + name + ".json"
     ledger_path = "packages/" + name + ".json"
     require(type(files) is list, "Catalog PR file inventory unavailable")
     actual = {row.get("filename"): row.get("status") for row in files}
     require(len(actual) == len(files), "duplicate Catalog PR file paths")
-    # First Release requires initial index/landscape changes and remains a
+    # First Release requires initial identity/roster changes and remains a
     # manual protected-merge decision even when the runtime opt-in is true.
     require(initial is False, "first Catalog Release auto-merge forbidden")
-    require(actual in ({ledger_path: "modified"}, {ledger_path: "modified", path: "modified"}),
-            "existing Catalog PR is not ledger/view only")
+    require(actual == {ledger_path: "modified"},
+            "existing Catalog PR must modify only packages/<name>.json")
     expected = "catalog: verified operator release " + name + " " + tag
     require(type(commits) is list and len(commits) == 1
             and (commits[0].get("commit") or {}).get("message", "").split("\n")[0] == expected,
@@ -269,100 +274,82 @@ def validate_checks(payload, sha):
                 "required App15368 native check not completed SUCCESS")
 
 
-def first_release_projection(name, verified):
-    """Recompute first-intake index and landscape from protected main, never PR code."""
-    require(name in FIRST_RELEASE_SOURCES
-            and verified.get("schemaVersion") == 2
-            and verified.get("name") == name
-            and verified.get("repository") == "pgextwin/" + name
-            and (verified.get("upstream") or {}).get("repository") == FIRST_RELEASE_SOURCES[name],
-            "unknown first-intake identity")
-    index = json.loads(Path("index.json").read_text(encoding="utf-8"))
-    require(index.get("schemaVersion") == 2
-            and type(index.get("extensions")) is list
-            and index["extensions"] == sorted(set(index["extensions"]))
-            and name not in index["extensions"],
-            "first-intake index is not a protected unregistered source")
-    index["extensions"] = sorted(index["extensions"] + [name])
-    li = json.loads(Path("landscape/index.json").read_text(encoding="utf-8"))
-    require(li.get("schemaVersion") == 1
-            and type(li.get("extensions")) is list
-            and li["extensions"] == sorted(set(li["extensions"])),
-            "invalid protected landscape registry")
-    previous = Path("landscape/extensions") / (name + ".json")
-    landscape = json.loads(previous.read_text(encoding="utf-8")) if previous.is_file() else {}
-    latest = verified.get("latest") or {}
-    release_url = latest.get("releaseUrl")
-    published_at = latest.get("publishedAt")
-    require(type(release_url) is str
-            and release_url.startswith("https://github.com/pgextwin/" + name + "/releases/tag/")
-            and type(published_at) is str and len(published_at) >= 10,
-            "missing independently verified public first-Release identity")
-    landscape.update(
-        schemaVersion=1, name=name, displayName=verified["displayName"],
-        description=verified["description"],
-        upstreamRepository=FIRST_RELEASE_SOURCES[name],
-        status="implemented", pgextwinCatalogName=name,
-        lastReviewed=published_at[:10],
-        evidenceUrls=[release_url, "https://github.com/" + FIRST_RELEASE_SOURCES[name]],
-        windowsBinarySources=[])
-    for key in ("candidateRationale", "roadmap", "notPlannedReason",
-                "notPlannedReasonJa", "reasonCode"):
-        landscape.pop(key, None)
-    li["extensions"] = sorted(set(li["extensions"]) | {name})
-    return {"index.json": index, "landscape/index.json": li,
-            "landscape/extensions/" + name + ".json": landscape}
+def first_release_projection(name, verified, *, expected_identity_blob_sha):
+    """Recompute first-intake identity/roster updates from protected main, never PR code."""
+    try:
+        return project_first_intake_files(
+            name,
+            verified,
+            expected_identity_blob_sha=expected_identity_blob_sha,
+            root=Path("."),
+        )
+    except (Denied, OSError, ValueError, TypeError, KeyError) as exc:
+        raise AutoMergeDenied(str(exc)) from exc
 
 
 def verify_record(name, tag, head_sha, *, read_token, files=None):
-    """Reverify exact signed bytes before comparing an existing or FIRST Catalog PR."""
+    """Reverify exact signed bytes before merging an existing Catalog ledger PR."""
     require(name in INTAKE_ALLOWED and SHA.fullmatch(head_sha)
             and type(read_token) is str and len(read_token) > 10,
             "unsigned verifier input or read token missing")
-    path = "extensions/" + name + ".json"
+    identity_path = "identities/" + name + ".json"
     ledger_path = "packages/" + name + ".json"
-    require(Path(path).is_file() and Path(ledger_path).is_file(),
+    require(Path(ledger_path).is_file(),
             "first Catalog Release signed verification cannot authorize auto-merge")
-    changed = set()
+    require(Path(identity_path).is_file(), "protected Catalog identity missing")
+    try:
+        read_identity(Path(identity_path), expected_name=name)
+        expected_id_blob = identity_blob_sha(Path(identity_path))
+    except (Denied, OSError, ValueError, TypeError, KeyError) as exc:
+        raise AutoMergeDenied(str(exc)) from exc
     with tempfile.TemporaryDirectory() as directory:
         temp = Path(directory)
-        for item in (path, ledger_path):
+        for item in (identity_path, ledger_path):
             candidate = temp / item
-            candidate.parent.mkdir()
+            candidate.parent.mkdir(parents=True, exist_ok=True)
             candidate.write_bytes(Path(item).read_bytes())
         env = dict(os.environ, GH_TOKEN=read_token)
         run = subprocess.run(
             (sys.executable, str(ROOT / "scripts" / "verify_signed_fleet_release.py"),
-             "--extension", name, "--release-tag", tag, "--record-output", path),
+             "--extension", name, "--release-tag", tag, "--record-output", ledger_path),
             cwd=temp, env=env, text=True, capture_output=True
         )
         require(run.returncode == 0,
                 "fresh signed public Release verification DENY: " + run.stderr[:300])
-        for item in (path, ledger_path):
-            verified = json.loads((temp / item).read_text(encoding="utf-8"))
-            if verified != json.loads(Path(item).read_text(encoding="utf-8")):
-                changed.add(item)
-            proposed = unpack_content(api(f"repos/{REPO}/contents/{item}?ref={head_sha}"))
-            require(proposed == verified, "PR record differs from independently signed public bytes")
-    require(ledger_path in changed, "signed Release already in Catalog/no-op")
+        try:
+            audit = json.loads(run.stdout)
+        except ValueError as exc:
+            raise AutoMergeDenied("malformed signed Release verification evidence") from exc
+        require(
+            type(audit) is dict
+            and audit.get("status") == "VERIFIED"
+            and audit.get("identityBlobSha") == expected_id_blob
+            and identity_blob_sha(temp / identity_path) == expected_id_blob
+            and identity_blob_sha(Path(identity_path)) == expected_id_blob,
+            "Catalog identity blob changed or mismatched verification evidence",
+        )
+        verified = json.loads((temp / ledger_path).read_text(encoding="utf-8"))
+        require(verified != json.loads(Path(ledger_path).read_text(encoding="utf-8")),
+                "signed Release already in Catalog/no-op")
+        proposed = unpack_content(api(f"repos/{REPO}/contents/{ledger_path}?ref={head_sha}"))
+        require(proposed == verified, "PR record differs from independently signed public bytes")
     if files is not None:
-        require(changed == {entry.get("filename") for entry in files},
-                "PR file set differs from independently verified ledger/view changes")
+        require({ledger_path} == {entry.get("filename") for entry in files},
+                "PR file set differs from independently verified ledger update")
 
 
 def eligible_existing_record_prs(selected):
     """Skip first-intake proposals, never blocking verified existing-record updates.
 
-    A signed first Release may generate a PR, but merging its index/landscape
+    A signed first Release may generate a PR, but merging its identity/roster
     changes is not an automated operation. Check protected main, not PR code.
-    Fail closed if a protected index and record disagree.
+    Fail closed if the protected candidate index, identity, and ledger disagree.
     """
-    index = json.loads(Path("index.json").read_text(encoding="utf-8"))
-    names = index.get("extensions") if type(index) is dict else None
-    require(index.get("schemaVersion") == 2 and type(names) is list
-            and all(type(n) is str for n in names)
-            and names == sorted(set(names)),
-            "protected Catalog index missing or inconsistent")
+    try:
+        index = read_candidate_index(Path("identities") / "index.candidate.json")
+    except (Denied, OSError, ValueError, TypeError, KeyError) as exc:
+        raise AutoMergeDenied("protected Catalog index missing or inconsistent: " + str(exc)) from exc
+    names = index["extensions"]
     eligible = []
     for pr in selected:
         branch = (pr.get("head") or {}).get("ref", "")
@@ -370,11 +357,18 @@ def eligible_existing_record_prs(selected):
         require(match is not None, "unknown automated Catalog PR branch")
         name = match.group(1)
         exists = (Path("packages") / (name + ".json")).is_file()
-        view_exists = (Path("extensions") / (name + ".json")).is_file()
         indexed = name in names
-        require(exists == indexed == view_exists,
-                "protected Catalog index and current record disagree")
+        require(exists == indexed, "protected Catalog index and current package ledger disagree")
         if exists:
+            identity_file = Path("identities") / (name + ".json")
+            require(identity_file.is_file(), "protected Catalog identity missing for existing ledger")
+            try:
+                identity = read_identity(identity_file, expected_name=name)
+            except (Denied, OSError, ValueError, TypeError, KeyError) as exc:
+                raise AutoMergeDenied("invalid protected Catalog identity: " + str(exc)) from exc
+            require(identity["intake"]["class"] == "distributed"
+                    and identity["intake"]["distributionAllowed"] is True,
+                    "protected Catalog identity is not distributed")
             eligible.append(pr)
     return eligible
 
@@ -438,7 +432,8 @@ def perform(config_path, dry_run=False):
     match = BRANCH.fullmatch((pr.get("head") or {}).get("ref", ""))
     require(match is not None, "unknown Catalog automation branch")
     # A second fail-closed gate immediately before any privileged merge.
-    require((Path("extensions") / (match.group(1) + ".json")).is_file(),
+    require((Path("packages") / (match.group(1) + ".json")).is_file()
+            and (Path("identities") / (match.group(1) + ".json")).is_file(),
             "first Catalog Release auto-merge forbidden before PR inspection")
     number, sha, branch, name, tag = inspect_pr(
         pr, files, commits, proposer_login=local["expectedProposerLogin"],

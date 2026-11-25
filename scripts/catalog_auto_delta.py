@@ -15,7 +15,24 @@ import re
 import sys
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
-from verified_release_record import INTAKE_ALLOWED, FIRST_RELEASE, FIRST_RELEASE_SOURCES
+if __package__:
+    from . import package_ledger
+    from .verified_release_record import (
+        Denied as RecordDenied,
+        FIRST_RELEASE,
+        FIRST_RELEASE_SOURCES,
+        INTAKE_ALLOWED,
+        read_identity,
+    )
+else:
+    import package_ledger
+    from verified_release_record import (
+        Denied as RecordDenied,
+        FIRST_RELEASE,
+        FIRST_RELEASE_SOURCES,
+        INTAKE_ALLOWED,
+        read_identity,
+    )
 
 TAG = re.compile(r"^v[A-Za-z0-9][A-Za-z0-9._-]{0,110}-windows\.[1-9][0-9]*$")
 DATE = re.compile(r"^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
@@ -30,14 +47,49 @@ def require(value, reason):
         raise Denied(reason)
 
 
-def discover(index, records, published, open_prs, *, manual=None):
+def _validate_v3_index(index):
+    require(
+        type(index) is dict
+        and set(index) == {"schemaVersion", "identitiesDir", "packagesDir", "extensions", "identities"}
+        and type(index.get("schemaVersion")) is int and index["schemaVersion"] == 3
+        and index.get("identitiesDir") == "identities"
+        and index.get("packagesDir") == package_ledger.DIRECTORY
+        and isinstance(index.get("extensions"), list)
+        and all(type(n) is str for n in index["extensions"])
+        and len(index["extensions"]) == len(set(index["extensions"]))
+        and isinstance(index.get("identities"), list),
+        "invalid or duplicate Catalog distribution roster",
+    )
+    seen = set()
+    dist_entries = set()
+    for entry in index["identities"]:
+        require(
+            type(entry) is dict
+            and {"name", "path", "intakeClass"}.issubset(entry)
+            and set(entry).issubset({"name", "path", "intakeClass", "ledgerPath"})
+            and type(entry.get("name")) is str
+            and entry["name"] not in seen
+            and entry.get("path") == f"identities/{entry['name']}.json"
+            and entry.get("intakeClass") in ("distributed", "research-only"),
+            "invalid Catalog v3 identity roster entry",
+        )
+        name = entry["name"]
+        seen.add(name)
+        if entry["intakeClass"] == "distributed":
+            require(
+                entry.get("ledgerPath") == f"{package_ledger.DIRECTORY}/{name}.json",
+                "invalid Catalog v3 distributed ledgerPath",
+            )
+            dist_entries.add(name)
+        else:
+            require("ledgerPath" not in entry, "research-only entry must not carry ledgerPath")
+    require(dist_entries == set(index["extensions"]),
+            "Catalog v3 extensions roster disagrees with identities list")
+
+
+def discover(index, records, published, open_prs, *, manual=None, identities=None):
     """Pure discovery; ALL returned rows still need full signed verification."""
-    require(type(index) is dict and type(index.get("schemaVersion")) is int
-            and index["schemaVersion"] == 2
-            and isinstance(index.get("extensions"), list)
-            and all(type(n) is str for n in index["extensions"])
-            and len(index["extensions"]) == len(set(index["extensions"])),
-            "invalid or duplicate Catalog distribution roster")
+    _validate_v3_index(index)
     indexed = set(index["extensions"])
     authorized = set(INTAKE_ALLOWED)
     first_release = set(FIRST_RELEASE) & set(FIRST_RELEASE_SOURCES)
@@ -60,19 +112,39 @@ def discover(index, records, published, open_prs, *, manual=None):
         return {"include": [{"extension": name, "release_tag": tag}]}
     require(type(records) is dict and set(records) == indexed,
             "missing or unexpected existing Catalog records")
+    if identities is not None:
+        require(type(identities) is dict and set(identities) == indexed,
+                "missing or unexpected existing Catalog identities")
     require(type(published) is dict and set(published) == set(INTAKE_ALLOWED),
             "incomplete per-repository public Release inventory")
     result = []
     for name in sorted(INTAKE_ALLOWED):
         is_initial = name not in indexed
         if not is_initial:
+            if identities is not None:
+                ident = identities[name]
+                intake = ident.get("intake") if type(ident) is dict else None
+                dist = ident.get("distribution") if type(ident) is dict else None
+                require(
+                    type(ident) is dict and type(ident.get("schemaVersion")) is int
+                    and ident["schemaVersion"] == 1 and ident.get("name") == name
+                    and type(intake) is dict and intake.get("class") == "distributed"
+                    and intake.get("distributionAllowed") is True
+                    and intake.get("expectedUpstreamRepository") == ident.get("upstreamRepository") == INTAKE_ALLOWED[name]
+                    and type(dist) is dict and dist.get("repository") == "pgextwin/" + name
+                    and dist.get("ledgerPath") == f"{package_ledger.DIRECTORY}/{name}.json",
+                    "invalid current Catalog identity: " + name,
+                )
             record = records[name]
             require(type(record) is dict and record.get("name") == name
                     and type(record.get("schemaVersion")) is int
-                    and record["schemaVersion"] == 2
+                    and record["schemaVersion"] == 1
                     and record.get("repository") == "pgextwin/" + name,
                     "invalid current Catalog record: " + name)
-            current = record.get("latest")
+            try:
+                current = package_ledger.current_release(record)
+            except (ValueError, KeyError, TypeError) as exc:
+                raise Denied("invalid current Catalog package ledger: " + name) from exc
             require(type(current) is dict and type(current.get("releaseTag")) is str
                     and TAG.fullmatch(current["releaseTag"])
                     and type(current.get("publishedAt")) is str
@@ -158,9 +230,12 @@ def main():
         event = os.environ.get("GITHUB_EVENT_NAME")
         require(event in ("schedule", "workflow_dispatch", "issue_comment"), "unsupported event")
         root = Path(args.catalog_root)
-        index = json.loads((root / "index.json").read_text("utf-8"))
-        records = {name: json.loads((root / "extensions" / (name + ".json")).read_text("utf-8"))
+        index = json.loads((root / "identities" / "index.candidate.json").read_text("utf-8"))
+        _validate_v3_index(index)
+        records = {name: json.loads((root / package_ledger.DIRECTORY / (name + ".json")).read_text("utf-8"))
                    for name in index["extensions"]}
+        identities = {name: read_identity(root / "identities" / (name + ".json"), expected_name=name)
+                      for name in index["extensions"]}
         api = GithubReader(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
         prs = api.get("repos/pgextwin/catalog/pulls?state=open&base=main&per_page=100")
         pr_rows = [{"state": r["state"], "headRef": r["head"]["ref"]} for r in prs]
@@ -176,7 +251,7 @@ def main():
             name: api.get("repos/pgextwin/" + name + "/releases?per_page=100")
             for name in sorted(INTAKE_ALLOWED)
         }
-        matrix = discover(index, records, releases, pr_rows, manual=manual)
+        matrix = discover(index, records, releases, pr_rows, manual=manual, identities=identities)
         output = json.dumps(matrix, separators=(",", ":"), sort_keys=True)
         enabled = "true" if matrix["include"] else "false"
         if os.environ.get("GITHUB_OUTPUT"):
@@ -187,7 +262,7 @@ def main():
         for row in matrix["include"]:
             print(row["extension"], row["release_tag"], "INDEPENDENT_SIGNED_VERIFICATION_REQUIRED")
         return 0
-    except (Denied, KeyError, TypeError, ValueError, OSError) as error:
+    except (Denied, RecordDenied, KeyError, TypeError, ValueError, OSError) as error:
         print("CATALOG DELTA DISCOVERY DENIED:", str(error), file=sys.stderr)
         return 2
 

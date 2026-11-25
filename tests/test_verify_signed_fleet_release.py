@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Offline fail-closed Release byte, metadata, and operator provenance fixtures."""
 import base64
+from contextlib import chdir
 import copy
 from datetime import date
 import hashlib
+import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -13,6 +16,7 @@ from zipfile import ZipFile
 
 from scripts import verify_signed_fleet_release as verifier
 from scripts import package_ledger
+from scripts import verified_release_record
 
 
 def sha(data):
@@ -68,8 +72,9 @@ class SignedEvidenceTests(unittest.TestCase):
 
     def test_absent_first_release_stays_absent_without_published_attested_release(self):
         with tempfile.TemporaryDirectory() as tmp:
-            directory = Path(tmp) / "extensions"
+            directory = Path(tmp) / "packages"
             directory.mkdir()
+            (Path(tmp) / "identities").mkdir()
             for name, version in (("pgtap", "1.3.4"),
                                   ("pg_variables", "1.2.1"),
                                   ("pg_store_plans", "1.10")):
@@ -104,16 +109,16 @@ class SignedEvidenceTests(unittest.TestCase):
             if row["pgMajor"] == "15":
                 row["license"]["evidenceUrls"].append(
                     f"https://github.com/postgres/postgres/blob/{'b' * 40}/COPYRIGHT")
-        original = package_ledger.json_bytes(package_ledger.website_record(old_ledger))
+        original = package_ledger.json_bytes(old_ledger)
         lifecycle = {"postgresql": [{"major": major, "eol": "2030-01-01"} for major in range(14, 19)]}
         with tempfile.TemporaryDirectory() as tmp:
-            directory = Path(tmp) / "extensions"
-            directory.mkdir()
-            target = directory / f"{name}.json"
+            pkg_dir = Path(tmp) / "packages"
+            pkg_dir.mkdir()
+            id_dir = Path(tmp) / "identities"
+            id_dir.mkdir()
+            target = pkg_dir / f"{name}.json"
             target.write_bytes(original)
-            ledger_path = directory.parent / "packages" / target.name
-            ledger_path.parent.mkdir()
-            ledger_path.write_bytes(package_ledger.json_bytes(old_ledger))
+            (id_dir / f"{name}.json").write_bytes((root / "identities" / f"{name}.json").read_bytes())
             with (patch.object(verifier, "api", side_effect=[release, {"status": "ahead"}, {
                       "encoding": "base64", "content": base64.b64encode(json.dumps(lifecycle).encode())}]),
                   patch.object(verifier, "verify_release_tag"),
@@ -128,6 +133,174 @@ class SignedEvidenceTests(unittest.TestCase):
                     verifier.generate(name, tag, target)
                 mapper.assert_not_called()
             self.assertEqual(target.read_bytes(), original)
+
+    def test_generate_uses_identity_and_ledger_and_records_identity_blob_sha(self):
+        root = Path(__file__).resolve().parents[1]
+        name = "pg_repack"
+        commit = "c" * 40
+        tag = "v1.5.4-windows.1"
+        old_ledger = package_ledger.read_record(root / "packages" / f"{name}.json")
+        current = package_ledger.current_release(old_ledger)
+        manifest = {
+            "name": name,
+            "postgresql": {"majors": [15]},
+            "upstream": {"repository": "reorg/pg_repack", "version": "1.5.4",
+                         "ref": "ver_1.5.4", "commit": "d" * 40},
+            "license": {"files": [{"repositoryPath": "LICENSE"}]},
+        }
+        contract = {
+            "extension": name, "contractVersion": 2,
+            "runtimeRequirements": {"preload": "none"},
+            "coverage": {"upgrade": "not-covered"},
+            "functionalScenarios": [{"id": "smoke", "description": "smoke", "evidence": ["sql-result"]}],
+        }
+        release = {
+            "id": current["releaseId"] + 10, "tag_name": tag, "draft": False, "prerelease": False,
+            "html_url": f"https://github.com/pgextwin/{name}/releases/tag/{tag}",
+            "published_at": "2026-11-25T12:00:00Z", "target_commitish": commit,
+            "assets": [
+                {"name": "SHA256SUMS.txt", "id": 1, "state": "uploaded",
+                 "digest": "sha256:" + ("e" * 64),
+                 "browser_download_url": f"https://github.com/pgextwin/{name}/releases/download/{tag}/SHA256SUMS.txt"},
+                {"name": f"{name}-ver_1.5.4-pg15-windows-x64.zip", "id": 2, "state": "uploaded",
+                 "digest": "sha256:" + ("f" * 64),
+                 "browser_download_url": f"https://github.com/pgextwin/{name}/releases/download/{tag}/{name}-ver_1.5.4-pg15-windows-x64.zip"},
+                {"name": f"{name}-ver_1.5.4-pg15-windows-x64.spdx.json", "id": 3, "state": "uploaded",
+                 "digest": "sha256:" + ("f" * 64),
+                 "browser_download_url": f"https://github.com/pgextwin/{name}/releases/download/{tag}/{name}-ver_1.5.4-pg15-windows-x64.spdx.json"},
+                {"name": f"{name}-ver_1.5.4-pg15-windows-x64.vulnerabilities.json", "id": 4, "state": "uploaded",
+                 "digest": "sha256:" + ("f" * 64),
+                 "browser_download_url": f"https://github.com/pgextwin/{name}/releases/download/{tag}/{name}-ver_1.5.4-pg15-windows-x64.vulnerabilities.json"},
+            ],
+        }
+        assets_map = {a["name"]: a for a in release["assets"]}
+        digests = {a["name"]: a["digest"].removeprefix("sha256:") for a in release["assets"]}
+        lifecycle = {"postgresql": [{"major": 15, "eol": "2030-01-01"}, *[{"major": m, "eol": "2020-01-01"} for m in range(16, 20)]]}
+        repo_meta = {"id": old_ledger["repositoryId"], "full_name": f"pgextwin/{name}"}
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp)
+            (ws / "packages").mkdir()
+            (ws / "identities").mkdir()
+            (ws / "packages" / f"{name}.json").write_bytes((root / "packages" / f"{name}.json").read_bytes())
+            id_file = ws / "identities" / f"{name}.json"
+            id_file.write_bytes((root / "identities" / f"{name}.json").read_bytes())
+            expected_blob = verified_release_record.identity_blob_sha(id_file)
+
+            def fake_api(path):
+                if path == f"repos/pgextwin/{name}/releases/tags/{tag}":
+                    return release
+                if path == f"repos/pgextwin/{name}/compare/{commit}...main":
+                    return {"status": "ahead"}
+                if path == "repos/pgextwin/build/contents/metadata/postgresql.json?ref=main":
+                    return {"encoding": "base64", "content": base64.b64encode(json.dumps(lifecycle).encode()).decode()}
+                if path.startswith(f"repos/pgextwin/{name}/contents/") or path.startswith("repos/reorg/pg_repack/contents/"):
+                    return {"type": "file", "path": path.split("/contents/")[1].split("?")[0], "size": 100}
+                if path == f"repos/pgextwin/{name}":
+                    return repo_meta
+                raise AssertionError("unexpected api path: " + path)
+
+            with (patch.object(verifier, "api", side_effect=fake_api),
+                  patch.object(verifier, "verify_release_tag"),
+                  patch.object(verifier, "pinned_json", side_effect=[manifest, contract]),
+                  patch.object(verifier, "gh"),
+                  patch.object(verifier, "verify_payload", return_value=(assets_map, digests, 902, [object()])),
+                  patch.object(verifier, "verify_main_run"),
+                  patch.object(verifier, "verify_release_attestations", return_value="a" * 40),
+                  patch.object(verifier, "admission_commit", return_value="b" * 40)):
+                mapped, audit = verifier.generate(name, tag, ws / "packages" / f"{name}.json")
+            self.assertEqual(audit["identityBlobSha"], expected_blob)
+            self.assertTrue(audit["recordChanged"])
+            self.assertEqual(mapped["latestReleaseId"], release["id"])
+            self.assertFalse((ws / "extensions").exists())
+
+            # Missing identity on existing ledger must fail closed.
+            id_file.unlink()
+            with (patch.object(verifier, "api", side_effect=fake_api),
+                  patch.object(verifier, "verify_release_tag"),
+                  patch.object(verifier, "pinned_json", side_effect=[manifest, contract]),
+                  patch.object(verifier, "gh"),
+                  patch.object(verifier, "verify_payload", return_value=(assets_map, digests, 902, [object()])),
+                  patch.object(verifier, "verify_main_run"),
+                  patch.object(verifier, "verify_release_attestations", return_value="a" * 40)):
+                with self.assertRaisesRegex(verifier.Denied, "Catalog identity missing"):
+                    verifier.generate(name, tag, ws / "packages" / f"{name}.json")
+
+            # First-intake with no identity file on disk records identityBlobSha=None.
+            (ws / "packages" / f"{name}.json").unlink()
+            with patch.dict(verifier.FIRST_RELEASE_SOURCES, {"pgtap": "theory/pgtap"}):
+                pgtap_manifest = {
+                    "name": "pgtap", "postgresql": {"majors": [15]},
+                    "upstream": {"repository": "theory/pgtap", "version": "1.3.4",
+                                 "ref": "v1.3.4", "commit": "d" * 40},
+                }
+                pgtap_contract = {**contract, "extension": "pgtap"}
+                pgtap_tag = "v1.3.4-windows.1"
+                pgtap_rel = {
+                    "id": 999, "tag_name": pgtap_tag, "draft": False, "prerelease": False,
+                    "html_url": f"https://github.com/pgextwin/pgtap/releases/tag/{pgtap_tag}",
+                    "published_at": "2026-11-25T12:00:00Z", "target_commitish": commit,
+                    "assets": [
+                        {"name": "SHA256SUMS.txt", "id": 1, "state": "uploaded",
+                         "digest": "sha256:" + ("e" * 64),
+                         "browser_download_url": f"https://github.com/pgextwin/pgtap/releases/download/{pgtap_tag}/SHA256SUMS.txt"},
+                        {"name": "pgtap-v1.3.4-pg15-windows-x64.zip", "id": 2, "state": "uploaded",
+                         "digest": "sha256:" + ("f" * 64),
+                         "browser_download_url": f"https://github.com/pgextwin/pgtap/releases/download/{pgtap_tag}/pgtap-v1.3.4-pg15-windows-x64.zip"},
+                        {"name": "pgtap-v1.3.4-pg15-windows-x64.spdx.json", "id": 3, "state": "uploaded",
+                         "digest": "sha256:" + ("f" * 64),
+                         "browser_download_url": f"https://github.com/pgextwin/pgtap/releases/download/{pgtap_tag}/pgtap-v1.3.4-pg15-windows-x64.spdx.json"},
+                        {"name": "pgtap-v1.3.4-pg15-windows-x64.vulnerabilities.json", "id": 4, "state": "uploaded",
+                         "digest": "sha256:" + ("f" * 64),
+                         "browser_download_url": f"https://github.com/pgextwin/pgtap/releases/download/{pgtap_tag}/pgtap-v1.3.4-pg15-windows-x64.vulnerabilities.json"},
+                    ],
+                }
+                pgtap_assets = {a["name"]: a for a in pgtap_rel["assets"]}
+                pgtap_digests = {a["name"]: a["digest"].removeprefix("sha256:") for a in pgtap_rel["assets"]}
+
+                def pgtap_api(path):
+                    if path == f"repos/pgextwin/pgtap/releases/tags/{pgtap_tag}":
+                        return pgtap_rel
+                    if path == f"repos/pgextwin/pgtap/compare/{commit}...main":
+                        return {"status": "ahead"}
+                    if path == "repos/pgextwin/build/contents/metadata/postgresql.json?ref=main":
+                        return {"encoding": "base64", "content": base64.b64encode(json.dumps(lifecycle).encode()).decode()}
+                    if path == "repos/pgextwin/pgtap":
+                        return {"id": 1425678353, "full_name": "pgextwin/pgtap"}
+                    raise AssertionError("unexpected api path: " + path)
+
+                with (patch.object(verifier, "api", side_effect=pgtap_api),
+                      patch.object(verifier, "verify_release_tag"),
+                      patch.object(verifier, "pinned_json", side_effect=[pgtap_manifest, pgtap_contract]),
+                      patch.object(verifier, "gh"),
+                      patch.object(verifier, "verify_payload", return_value=(pgtap_assets, pgtap_digests, 902, [object()])),
+                      patch.object(verifier, "verify_main_run"),
+                      patch.object(verifier, "verify_release_attestations", return_value="a" * 40)):
+                    _, first_audit = verifier.generate("pgtap", pgtap_tag, ws / "packages" / "pgtap.json")
+                self.assertIsNone(first_audit["identityBlobSha"])
+
+    def test_main_writes_only_package_ledger_and_rejects_extensions_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp)
+            fake_audit = {"status": "VERIFIED", "recordChanged": True, "identityBlobSha": "a" * 40}
+            fake_ledger = {"schemaVersion": 1, "name": "pg_repack"}
+            with chdir(ws), patch.object(verifier, "generate", return_value=(fake_ledger, fake_audit)):
+                with patch("sys.argv", ["verify_signed_fleet_release.py", "--extension", "pg_repack",
+                                        "--release-tag", "v1.5.4-windows.1",
+                                        "--record-output", "extensions/pg_repack.json"]):
+                    self.assertEqual(verifier.main(), 2)
+                self.assertFalse((ws / "extensions").exists())
+                out_file = ws / "github_output.txt"
+                stdout = io.StringIO()
+                with patch.dict(os.environ, {"GITHUB_OUTPUT": str(out_file)}), \
+                     patch("sys.argv", ["verify_signed_fleet_release.py", "--extension", "pg_repack",
+                                        "--release-tag", "v1.5.4-windows.1",
+                                        "--record-output", "packages/pg_repack.json"]), \
+                     patch("sys.stdout", stdout):
+                    self.assertEqual(verifier.main(), 0)
+                self.assertTrue((ws / "packages" / "pg_repack.json").is_file())
+                self.assertFalse((ws / "extensions").exists())
+                self.assertEqual(json.loads(stdout.getvalue())["identityBlobSha"], "a" * 40)
+                self.assertIn("identity_blob_sha=" + ("a" * 40), out_file.read_text("utf-8"))
 
     def test_rollover_verifies_and_repins_packaging_and_per_major_upstream_license_files(self):
         _, _, manifest, _, commit = self.make()

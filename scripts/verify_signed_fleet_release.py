@@ -31,14 +31,18 @@ if __package__:
     from . import package_ledger
     from .release_inventory import license_for, license_pins
     from .verified_release_record import (
-        INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES,
+        candidate_from_identity_and_ledger, identity_blob_sha, majors,
+        map_verified_release, read_identity, require, source_map,
         seed_verified_first_release,
     )
 else:
     import package_ledger
     from release_inventory import license_for, license_pins
     from verified_release_record import (
-        INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES, majors, map_verified_release, require, source_map,
+        INTAKE_ALLOWED, FIRST_RELEASE_SOURCES, Denied, SUFFIXES,
+        candidate_from_identity_and_ledger, identity_blob_sha, majors,
+        map_verified_release, read_identity, require, source_map,
         seed_verified_first_release,
     )
 
@@ -473,14 +477,34 @@ def admission_commit(path):
     return commit
 
 
-def generate(extension, tag, record):
-    ledger_path = record.parent.parent / package_ledger.DIRECTORY / record.name
+def generate(extension, tag, record, *, identity_path=None):
+    ledger_path = Path(record)
     require(extension in INTAKE_ALLOWED, "extension not on exact Catalog verification allowlist")
     repo = "pgextwin/" + extension
     require(isinstance(tag, str) and re.fullmatch(r"v[A-Za-z0-9._-]+-windows\.[1-9][0-9]*", tag),
             "invalid formal Release tag")
-    require(record.name == extension + ".json"
-            and record.parent.name == "extensions", "Catalog destination identity mismatch")
+    require(not ledger_path.is_symlink()
+            and ledger_path.name == extension + ".json"
+            and ledger_path.parent.name == package_ledger.DIRECTORY,
+            "Catalog destination ledger identity mismatch")
+    identity_file = (
+        Path(identity_path)
+        if identity_path is not None
+        else ledger_path.parent.parent / "identities" / ledger_path.name
+    )
+    require(identity_file.name == extension + ".json"
+            and identity_file.parent.name == "identities",
+            "Catalog identity path mismatch")
+    id_blob_sha = identity_blob_sha(identity_file)
+    if id_blob_sha is not None:
+        identity_doc = read_identity(identity_file, expected_name=extension)
+        require(
+            identity_doc["intake"]["class"] == "distributed"
+            and identity_doc["intake"]["distributionAllowed"] is True,
+            "Catalog identity is not approved for distribution",
+        )
+    else:
+        identity_doc = None
     release = api("repos/" + repo + "/releases/tags/" + tag)
     require(release.get("tag_name") == tag and release.get("draft") is False
             and release.get("prerelease") is False and release.get("published_at"),
@@ -537,13 +561,14 @@ def generate(extension, tag, record):
     # Seed only registered identities with an independently verified first
     # public signed Release.
     previous_ledger = None
-    require(record.is_file() == ledger_path.is_file(), "Catalog ledger and Website view disagree")
+    require(not ledger_path.exists() or ledger_path.is_file(),
+            "invalid Catalog package ledger path")
     if ledger_path.is_file():
+        require(identity_doc is not None, "Catalog identity missing for existing package ledger")
         previous_ledger = package_ledger.read_record(ledger_path)
-        original = package_ledger.website_record(previous_ledger)
-        require(package_ledger.read_record(record) == original, "stale Catalog Website view")
+        original = candidate_from_identity_and_ledger(identity_doc, previous_ledger)
     else:
-        original = seed_verified_first_release(manifest, contract)
+        original = seed_verified_first_release(manifest, contract, identity=identity_doc)
     current = package_ledger.current_release(previous_ledger) if previous_ledger else {}
     previous_licenses = {row["pgMajor"]: row["license"] for row in current.get("packages", [])}
     deny_catalog_rollback(original, release)
@@ -558,14 +583,17 @@ def generate(extension, tag, record):
     if unrecorded:
         licenses.update(verified_licenses(repo, source_commit, manifest, unrecorded,
                                           original["license"], previous_licenses))
-    identity = api("repos/" + repo)
-    repository_id = identity.get("id")
-    require(identity.get("full_name") == repo and type(repository_id) is int and repository_id > 0,
+    repo_identity = api("repos/" + repo)
+    repository_id = repo_identity.get("id")
+    require(repo_identity.get("full_name") == repo and type(repository_id) is int and repository_id > 0,
             "public repository identity mismatch")
     mapped = map_verified_release(
         original, release, manifest, contract, assets, digests, source_commit, active,
         licenses_by_major=licenses, repository_id=repository_id, previous_ledger=previous_ledger,
-        previous_admission=lambda: admission_commit(f"{package_ledger.DIRECTORY}/{extension}.json"))
+        previous_admission=lambda: admission_commit(f"{package_ledger.DIRECTORY}/{extension}.json"),
+        identity=identity_doc)
+    require(identity_blob_sha(identity_file) == id_blob_sha,
+            "Catalog identity changed during signed Release verification")
     return mapped, {"status": "VERIFIED", "repository": repo, "tag": tag,
                     "releaseProvenance": (
                         "INDEPENDENT_OWNER_MAIN_SIGNED_PUBLISHER"
@@ -578,6 +606,7 @@ def generate(extension, tag, record):
                         if auto_marker is not None else "VERIFIED_MANUAL_DISPATCH"),
                     "packagingCommit": source_commit, "promotionRunId": run_id,
                     "postgresqlMajors": active, "assetCount": len(assets),
+                    "identityBlobSha": id_blob_sha,
                     "recordChanged": mapped != previous_ledger}
 
 
@@ -588,20 +617,22 @@ def main():
     parser.add_argument("--record-output")
     args = parser.parse_args()
     try:
-        record = Path("extensions") / (args.extension + ".json")
-        ledger_path = Path(package_ledger.DIRECTORY) / record.name
-        mapped, audit = generate(args.extension, args.release_tag, record)
+        ledger_path = Path(package_ledger.DIRECTORY) / (args.extension + ".json")
+        identity_path = Path("identities") / (args.extension + ".json")
+        mapped, audit = generate(args.extension, args.release_tag, ledger_path,
+                                 identity_path=identity_path)
         if args.record_output:
             output = Path(args.record_output)
-            require(output == record, "record output must be the exact Catalog extension path")
+            require(output == ledger_path, "record output must be the exact Catalog package ledger path")
             if audit["recordChanged"]:
-                view = package_ledger.json_bytes(package_ledger.website_record(mapped))
-                ledger_path.write_bytes(package_ledger.json_bytes(mapped))
-                output.write_bytes(view)
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_bytes(package_ledger.json_bytes(mapped))
         output_file = os.environ.get("GITHUB_OUTPUT")
         if output_file:
             with open(output_file, "a", encoding="utf-8") as output:
                 output.write("changed=" + str(audit["recordChanged"]).lower() + "\n")
+                blob_sha = audit["identityBlobSha"] if audit["identityBlobSha"] is not None else "MISSING"
+                output.write("identity_blob_sha=" + blob_sha + "\n")
         print(json.dumps(audit, sort_keys=True))
         return 0
     except (Denied, OSError, ValueError, TypeError, KeyError, IndexError,

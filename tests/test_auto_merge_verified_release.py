@@ -69,8 +69,7 @@ def pr_fixture(name=NAME, tag=TAG):
                  "repo": {"full_name": "pgextwin/catalog"}},
         "base": {"ref": "main"}, "commits": 1
     }
-    files = [{"filename": directory + "/" + name + ".json", "status": "modified"}
-             for directory in ("extensions", "packages")]
+    files = [{"filename": "packages/" + name + ".json", "status": "modified"}]
     commits = [{"commit": {"message": "catalog: verified operator release " + name + " " + tag}}]
     return pr, files, commits
 
@@ -307,8 +306,16 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             lambda p,f,c: p.update(draft=True),
             lambda p,f,c: f.append({"filename": ".github/workflows/validate.yml",
                                     "status": "modified"}),
+            lambda p,f,c: f.append({"filename": "extensions/" + NAME + ".json",
+                                    "status": "modified"}),
+            lambda p,f,c: f.append({"filename": "identities/" + NAME + ".json",
+                                    "status": "modified"}),
+            lambda p,f,c: f.append({"filename": "identities/index.candidate.json",
+                                    "status": "modified"}),
+            lambda p,f,c: f.append({"filename": "index.json",
+                                    "status": "modified"}),
             lambda p,f,c: f[0].update(status="added"),
-            lambda p,f,c: f.pop(),  # A Website-only change has no ledger update.
+            lambda p,f,c: f.pop(),  # Empty PR diff must be denied.
             lambda p,f,c: c[0]["commit"].update(message="catalog: propose " + NAME + " " + TAG),
             lambda p,f,c: p["head"].update(ref="auto-catalog/evil-v1.0-windows.1"),
             lambda p,f,c: p["head"].update(ref="auto-catalog/" + NAME + "-../bad"),
@@ -321,26 +328,32 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                                      proposer_id=local()["expectedProposerBotId"])
 
     def test_first_release_is_never_eligible_for_auto_merge_even_with_valid_signed_scope(self):
-        p, f, c = pr_fixture("pgtap", "v1.3.4-windows.1")
-        first_path = "extensions/pgtap.json"
-        landscape_path = "landscape/extensions/pgtap.json"
-        valid_first = [{"filename": first_path, "status": "added"},
-                       {"filename": "packages/pgtap.json", "status": "added"},
-                       {"filename": "index.json", "status": "modified"},
-                       {"filename": landscape_path, "status": "modified"}]
+        p, _, c = pr_fixture("pgtap", "v1.3.4-windows.1")
+        id_path = "identities/pgtap.json"
+        valid_first = [{"filename": "packages/pgtap.json", "status": "added"},
+                       {"filename": id_path, "status": "modified"},
+                       {"filename": "identities/index.candidate.json", "status": "modified"}]
         for changed in (valid_first,
-                        valid_first + [{"filename": "landscape/index.json", "status": "modified"}],
-                        [{"filename": first_path, "status": "modified"}],
-                        [{"filename": first_path, "status": "added"},
+                        [{"filename": "packages/pgtap.json", "status": "added"}],
+                        [{"filename": id_path, "status": "modified"}],
+                        [{"filename": "packages/pgtap.json", "status": "added"},
                          {"filename": "evil.json", "status": "modified"}]):
             with self.subTest(files=changed), self.assertRaisesRegex(
                     mod.AutoMergeDenied, "first Catalog Release auto-merge forbidden"):
                 mod.inspect_pr(p, changed, c, proposer_login=local()["expectedProposerLogin"],
                                proposer_id=local()["expectedProposerBotId"], initial=True)
-        # Existing record requires a ledger change and allows the corresponding view.
+        # Existing record update may modify ONLY packages/<name>.json; any diff touching
+        # identities/ or index files is rejected even with initial=False.
         p, f, c = pr_fixture("pg_cron", "v1.0.0-windows.1")
         mod.inspect_pr(p, f, c, proposer_login=local()["expectedProposerLogin"],
                        proposer_id=local()["expectedProposerBotId"], initial=False)
+        for extra in ("identities/pg_cron.json", "identities/index.candidate.json",
+                      "extensions/pg_cron.json", "index.json"):
+            with self.subTest(extra=extra), self.assertRaisesRegex(
+                    mod.AutoMergeDenied, "must modify only packages/<name>.json"):
+                mod.inspect_pr(p, f + [{"filename": extra, "status": "modified"}], c,
+                               proposer_login=local()["expectedProposerLogin"],
+                               proposer_id=local()["expectedProposerBotId"], initial=False)
 
     def test_first_release_is_excluded_even_when_a_lower_number_than_valid_update(self):
         first, _, _ = pr_fixture("pgtap", "v1.3.4-windows.1")
@@ -349,12 +362,26 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         existing["number"] = 2
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)
-            (root/"extensions").mkdir()
-            (root/"extensions"/"pg_cron.json").write_text("{}")
-            (root/"packages").mkdir()
-            (root/"packages"/"pg_cron.json").write_text("{}")
-            (root/"index.json").write_text(json.dumps({
-                "schemaVersion": 2, "extensions": ["pg_cron"]}))
+            (root / "identities").mkdir()
+            (root / "identities" / "pg_cron.json").write_bytes(
+                (ROOT / "identities" / "pg_cron.json").read_bytes())
+            (root / "identities" / "pgtap.json").write_bytes(
+                (ROOT / "identities" / "pgtap.json").read_bytes())
+            (root / "packages").mkdir()
+            (root / "packages" / "pg_cron.json").write_text("{}")
+
+            def write_index(ext_names):
+                ident_entries = [{
+                    "name": n, "path": f"identities/{n}.json",
+                    "intakeClass": "distributed", "ledgerPath": f"packages/{n}.json",
+                } for n in sorted(ext_names)]
+                (root / "identities" / "index.candidate.json").write_text(json.dumps({
+                    "schemaVersion": 3, "identitiesDir": "identities",
+                    "packagesDir": "packages", "extensions": ext_names,
+                    "identities": ident_entries,
+                }))
+
+            write_index(["pg_cron"])
             before = os.getcwd()
             try:
                 os.chdir(root)
@@ -362,12 +389,15 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                 self.assertEqual([p["number"] for p in result], [2])
                 self.assertEqual(mod.eligible_existing_record_prs([first]), [])
                 # A missing indexed record and an unindexed existing record DENY.
-                (root/"index.json").write_text(json.dumps({
-                    "schemaVersion": 2, "extensions": ["pg_cron", "pgtap"]}))
+                write_index(["pg_cron", "pgtap"])
                 with self.assertRaises(mod.AutoMergeDenied):
                     mod.eligible_existing_record_prs([first])
-                (root/"index.json").write_text(json.dumps({
-                    "schemaVersion": 2, "extensions": []}))
+                write_index(["pgtap"])
+                with self.assertRaises(mod.AutoMergeDenied):
+                    mod.eligible_existing_record_prs([existing])
+                # Missing identity for existing ledger DENIES.
+                write_index(["pg_cron"])
+                (root / "identities" / "pg_cron.json").unlink()
                 with self.assertRaises(mod.AutoMergeDenied):
                     mod.eligible_existing_record_prs([existing])
             finally:
@@ -389,39 +419,66 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             finally:
                 os.chdir(before)
 
-    def test_first_release_projection_denies_unregistered_and_bad_identity(self):
-        import tempfile
+    def test_first_release_projection_denies_unregistered_and_bad_identity_or_blob_mismatch(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            (root / "landscape" / "extensions").mkdir(parents=True)
-            (root / "index.json").write_text(json.dumps({
-                "schemaVersion": 2, "extensions": ["pg_cron"]}))
-            (root / "landscape" / "index.json").write_text(json.dumps({
-                "schemaVersion": 1, "extensions": ["pg_cron", "pgtap"]}))
-            record = {
-                "schemaVersion": 2, "name": "pgtap", "repository": "pgextwin/pgtap",
-                "upstream": {"repository": "theory/pgtap"},
-                "displayName": "pgTAP", "description": "PostgreSQL tests",
-                "latest": {"publishedAt": "2026-10-25T00:00:00Z",
-                           "releaseUrl": "https://github.com/pgextwin/pgtap/releases/tag/v1.3.4-windows.1"}
-            }
+            (root / "identities").mkdir()
+            (root / "identities" / "pg_cron.json").write_bytes(
+                (ROOT / "identities" / "pg_cron.json").read_bytes())
+            pgtap_id = json.loads((ROOT / "identities" / "pgtap.json").read_text("utf-8"))
+            pgtap_id["research"]["evidenceUrls"] = ["https://github.com/theory/pgtap"]
+            id_path = root / "identities" / "pgtap.json"
+            id_path.write_text(json.dumps(pgtap_id, indent=2) + "\n", encoding="utf-8")
+            blob_sha = mod.identity_blob_sha(id_path)
+            (root / "identities" / "index.candidate.json").write_text(json.dumps({
+                "schemaVersion": 3, "identitiesDir": "identities", "packagesDir": "packages",
+                "extensions": ["pg_cron"],
+                "identities": [{
+                    "name": "pg_cron", "path": "identities/pg_cron.json",
+                    "intakeClass": "distributed", "ledgerPath": "packages/pg_cron.json",
+                }],
+            }))
+            ledger = json.loads((ROOT / "packages" / "pgtap.json").read_text("utf-8"))
             previous = os.getcwd()
             try:
                 os.chdir(root)
-                projected = mod.first_release_projection("pgtap", record)
-                self.assertEqual(projected["index.json"]["extensions"], ["pg_cron", "pgtap"])
-                self.assertEqual(projected["landscape/index.json"]["extensions"], ["pg_cron", "pgtap"])
-                self.assertEqual(projected["landscape/extensions/pgtap.json"]["status"], "implemented")
+                projected = mod.first_release_projection(
+                    "pgtap", ledger, expected_identity_blob_sha=blob_sha)
+                self.assertEqual(set(projected), {"identities/pgtap.json", "identities/index.candidate.json"})
+                self.assertEqual(projected["identities/index.candidate.json"]["extensions"], ["pg_cron", "pgtap"])
+                self.assertIn(
+                    "https://github.com/pgextwin/pgtap/releases/tag/v1.3.4-windows.2",
+                    projected["identities/pgtap.json"]["research"]["evidenceUrls"],
+                )
                 with self.assertRaises(mod.AutoMergeDenied):
-                    mod.first_release_projection("pg_cron", record)
-                bad = copy.deepcopy(record)
+                    mod.first_release_projection("pg_cron", ledger, expected_identity_blob_sha=blob_sha)
+                bad = copy.deepcopy(ledger)
                 bad["upstream"]["repository"] = "attacker/other"
                 with self.assertRaises(mod.AutoMergeDenied):
-                    mod.first_release_projection("pgtap", bad)
-                (root / "index.json").write_text(json.dumps({
-                    "schemaVersion": 2, "extensions": ["pg_cron", "pgtap"]}))
+                    mod.first_release_projection("pgtap", bad, expected_identity_blob_sha=blob_sha)
+                # Mismatched identityBlobSha (stale/changed/None) must fail closed.
+                for wrong_blob in ("0" * 40, None):
+                    with self.assertRaisesRegex(mod.AutoMergeDenied, "identity blob changed"):
+                        mod.first_release_projection("pgtap", ledger, expected_identity_blob_sha=wrong_blob)
+                pgtap_id["description"] = "Mutated on main after verification"
+                id_path.write_text(json.dumps(pgtap_id, indent=2) + "\n", encoding="utf-8")
+                with self.assertRaisesRegex(mod.AutoMergeDenied, "identity blob changed"):
+                    mod.first_release_projection("pgtap", ledger, expected_identity_blob_sha=blob_sha)
+                # Already indexed must fail.
+                id_path.write_text(json.dumps({**pgtap_id, "description": ledger["description"]}, indent=2) + "\n")
+                new_blob = mod.identity_blob_sha(id_path)
+                (root / "identities" / "index.candidate.json").write_text(json.dumps({
+                    "schemaVersion": 3, "identitiesDir": "identities", "packagesDir": "packages",
+                    "extensions": ["pg_cron", "pgtap"],
+                    "identities": [
+                        {"name": "pg_cron", "path": "identities/pg_cron.json",
+                         "intakeClass": "distributed", "ledgerPath": "packages/pg_cron.json"},
+                        {"name": "pgtap", "path": "identities/pgtap.json",
+                         "intakeClass": "distributed", "ledgerPath": "packages/pgtap.json"},
+                    ],
+                }))
                 with self.assertRaises(mod.AutoMergeDenied):
-                    mod.first_release_projection("pgtap", record)
+                    mod.first_release_projection("pgtap", ledger, expected_identity_blob_sha=new_blob)
             finally:
                 os.chdir(previous)
 
@@ -490,14 +547,20 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             "GH_TOKEN": "write-credential", "GH_READ_TOKEN": "read-credential",
             "PGEXTWIN_CATALOG_AUTOMERGE_ENABLED": "true",
         }
-        scope_error = "not ledger/view only"
+        scope_error = "must modify only packages/<name>.json"
         cli = {"filename": "dotnet/src/PgExtWin.Cli/Program.cs", "status": "modified"}
         ledger_code = {"filename": "scripts/package_ledger.py", "status": "modified"}
         workflow = {"filename": ".github/workflows/cli-candidate.yml", "status": "modified"}
+        identity_file = {"filename": f"identities/{NAME}.json", "status": "modified"}
+        candidate_index = {"filename": "identities/index.candidate.json", "status": "modified"}
+        legacy_view = {"filename": f"extensions/{NAME}.json", "status": "modified"}
         cases = (
             (files, ("validate",), None),
-            ([files[1]], ("validate",), None),
             (files, ("pr-readonly-dryrun",), "required native Catalog checks missing"),
+            (files + [legacy_view], ("validate",), scope_error),
+            (files + [identity_file], ("validate",), scope_error),
+            (files + [candidate_index], ("validate",), scope_error),
+            ([identity_file], ("validate",), scope_error),
             (files + [cli], ("validate",), scope_error),
             (files + [cli], ("validate", WINDOWS_SMOKE), scope_error),
             (files + [ledger_code], ("validate",), scope_error),
@@ -529,38 +592,41 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                                          error != scope_error)
 
     def test_signed_verifier_called_with_only_unprivileged_read_token(self):
-        record_path = ROOT / "extensions" / (NAME + ".json")
-        self.assertTrue(record_path.exists())
-        existing = json.loads(record_path.read_text())
-        revised = copy.deepcopy(existing)
-        revised["latest"] = {"releaseTag": TAG}
-        ledger_path = ROOT / "packages" / record_path.name
+        identity_path = ROOT / "identities" / (NAME + ".json")
+        ledger_path = ROOT / "packages" / (NAME + ".json")
+        self.assertTrue(identity_path.exists() and ledger_path.exists())
+        expected_id_blob = mod.identity_blob_sha(identity_path)
         revised_ledger = json.loads(ledger_path.read_text())
         revised_ledger["latestReleaseId"] += 1
-        encoded = {
-            directory: base64.b64encode(json.dumps(doc).encode()).decode()
-            for directory, doc in (("extensions", revised), ("packages", revised_ledger))
-        }
+        encoded = base64.b64encode(json.dumps(revised_ledger).encode()).decode()
         seen = []
+        reported_blob = [expected_id_blob]
 
         def fake_run(argv, cwd, env, text, capture_output):
             seen.append((argv, env.get("GH_TOKEN")))
-            path = Path(cwd) / "extensions" / (NAME + ".json")
-            path.write_text(json.dumps(revised))
-            (Path(cwd) / "packages" / path.name).write_text(json.dumps(revised_ledger))
-            return Mock(returncode=0, stderr="")
+            (Path(cwd) / "packages" / ledger_path.name).write_text(json.dumps(revised_ledger))
+            return Mock(
+                returncode=0,
+                stdout=json.dumps({"status": "VERIFIED", "identityBlobSha": reported_blob[0]}),
+                stderr="",
+            )
 
         old_cwd = os.getcwd()
         try:
             os.chdir(ROOT)
             with patch.object(mod.subprocess, "run", side_effect=fake_run), \
-                 patch.object(mod, "api",
-                              side_effect=lambda path: {"encoding": "base64",
-                                  "content": encoded[path.split("/contents/")[1].split("/")[0]]}):
+                 patch.object(mod, "api", return_value={"encoding": "base64", "content": encoded}):
                 mod.verify_record(NAME, TAG, SHA, read_token="r"*32)
             self.assertEqual(len(seen), 1)
             self.assertEqual(seen[0][1], "r"*32)
             self.assertIn("verify_signed_fleet_release.py", " ".join(seen[0][0]))
+            self.assertIn(f"packages/{NAME}.json", seen[0][0])
+            reported_blob[0] = "0" * 40
+            with patch.object(mod.subprocess, "run", side_effect=fake_run), \
+                 patch.object(mod, "api", return_value={"encoding": "base64", "content": encoded}), \
+                 self.assertRaisesRegex(mod.AutoMergeDenied, "identity blob"):
+                mod.verify_record(NAME, TAG, SHA, read_token="r"*32)
+            reported_blob[0] = expected_id_blob
             with patch.object(mod.subprocess, "run", side_effect=fake_run), \
                  patch.object(mod, "api",
                               return_value={"encoding": "base64",

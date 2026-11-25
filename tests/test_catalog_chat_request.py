@@ -1,10 +1,13 @@
 """Adversarial protected Catalog request tests; fixtures are not real signatures."""
 import base64
+from contextlib import chdir
 from copy import deepcopy
 import json
 from pathlib import Path
 import re
+import shutil
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,18 +133,69 @@ class CatalogChatRequestTests(unittest.TestCase):
 
     def test_existing_verifier_is_mandatory_and_release_changes_deny(self):
         env,event,data=fixture();api=Fake(data);calls=[]
+        id_blob = m.identity_blob_sha(ROOT / "identities" / f"{EXT}.json")
         def signed_mock(ext,tag,path):
             calls.append((ext,tag,path))
-            return {"synthetic":True},{"status":"VERIFIED","repository":"pgextwin/"+EXT,"tag":TAG}
-        mapped,audit=m.verify(api,request(),signed_mock)
-        self.assertEqual(calls,[(EXT,TAG,Path("extensions/pgtap.json"))])
-        self.assertTrue(mapped["synthetic"])
-        def unsigned(ext,tag,path): return {},{"status":"INTEGRITY_ONLY","repository":"pgextwin/"+EXT,"tag":TAG}
-        with self.assertRaises(m.Denied):m.verify(Fake(data),request(),unsigned)
-        def changed(ext,tag,path):
-            data[("pgextwin/"+EXT,"releases/tags/"+TAG)]["assets"][0]["digest"]="sha256:"+"0"*64
-            return signed_mock(ext,tag,path)
-        with self.assertRaises(m.Denied):m.verify(Fake(data),request(),changed)
+            return {"synthetic":True},{"status":"VERIFIED","repository":"pgextwin/"+EXT,"tag":TAG,"identityBlobSha":id_blob}
+        with chdir(ROOT):
+            mapped,audit=m.verify(api,request(),signed_mock)
+            self.assertEqual(calls,[(EXT,TAG,Path("packages/pgtap.json"))])
+            self.assertTrue(mapped["synthetic"])
+            def unsigned(ext,tag,path): return {},{"status":"INTEGRITY_ONLY","repository":"pgextwin/"+EXT,"tag":TAG,"identityBlobSha":id_blob}
+            with self.assertRaises(m.Denied):m.verify(Fake(data),request(),unsigned)
+            def wrong_blob(ext,tag,path): return {"synthetic":True},{"status":"VERIFIED","repository":"pgextwin/"+EXT,"tag":TAG,"identityBlobSha":"0"*40}
+            with self.assertRaises(m.Denied):m.verify(Fake(data),request(),wrong_blob)
+            def changed(ext,tag,path):
+                data[("pgextwin/"+EXT,"releases/tags/"+TAG)]["assets"][0]["digest"]="sha256:"+"0"*64
+                return signed_mock(ext,tag,path)
+            with self.assertRaises(m.Denied):m.verify(Fake(data),request(),changed)
+
+    def test_write_artifact_matches_identity_ledger_contract_and_checks_blob(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shutil.copytree(ROOT / "identities", root / "identities")
+            (root / "packages").mkdir()
+            # Existing update artifact: writes only packages/<name>.json, evidence, audit.json.
+            (root / "packages" / "pg_cron.json").write_bytes((ROOT / "packages" / "pg_cron.json").read_bytes())
+            pg_cron_ledger = json.loads((ROOT / "packages" / "pg_cron.json").read_text("utf-8"))
+            pg_cron_req = {**request(), "extension": "pg_cron", "releaseTag": "v1.6.8-windows.1"}
+            pg_cron_audit = {"status": "VERIFIED", "identityBlobSha": m.identity_blob_sha(root / "identities" / "pg_cron.json")}
+            existing_out = root / "out-existing"
+            m.write_artifact(existing_out, pg_cron_req, pg_cron_ledger, pg_cron_audit, {"status": "VERIFIED_PUBLIC_RELEASE_RECORD_ONLY"}, root=root)
+            self.assertEqual(
+                sorted(str(p.relative_to(existing_out)) for p in existing_out.rglob("*") if p.is_file()),
+                ["audit.json", "packages/pg_cron.json", "verified-catalog-record.json"],
+            )
+
+            # First-intake artifact: writes packages/<name>.json + identities/<name>.json + index.candidate.json + evidence.
+            idx = json.loads((root / "identities" / "index.candidate.json").read_text("utf-8"))
+            idx["extensions"].remove("pgtap")
+            idx["identities"] = [e for e in idx["identities"] if e["name"] != "pgtap"]
+            (root / "identities" / "index.candidate.json").write_text(json.dumps(idx), "utf-8")
+            pgtap_id = json.loads((root / "identities" / "pgtap.json").read_text("utf-8"))
+            pgtap_id["research"]["evidenceUrls"] = ["https://github.com/theory/pgtap"]
+            (root / "identities" / "pgtap.json").write_text(json.dumps(pgtap_id), "utf-8")
+            pgtap_blob = m.identity_blob_sha(root / "identities" / "pgtap.json")
+            pgtap_ledger = json.loads((ROOT / "packages" / "pgtap.json").read_text("utf-8"))
+
+            # Mismatched identityBlobSha fails closed without creating output dir.
+            bad_out = root / "out-bad"
+            with self.assertRaises(m.Denied):
+                m.write_artifact(bad_out, request(), pgtap_ledger, {"status": "VERIFIED", "identityBlobSha": "0" * 40}, {}, root=root)
+            self.assertFalse(bad_out.exists())
+
+            first_out = root / "out-first"
+            m.write_artifact(first_out, request(), pgtap_ledger, {"status": "VERIFIED", "identityBlobSha": pgtap_blob}, {"status": "VERIFIED_PUBLIC_RELEASE_RECORD_ONLY"}, root=root)
+            self.assertEqual(
+                sorted(str(p.relative_to(first_out)) for p in first_out.rglob("*") if p.is_file()),
+                [
+                    "audit.json",
+                    "identities/index.candidate.json",
+                    "identities/pgtap.json",
+                    "packages/pgtap.json",
+                    "verified-catalog-record.json",
+                ],
+            )
 
     def test_download_count_is_not_immutable_identity(self):
         env,event,data=fixture();api=Fake(data)

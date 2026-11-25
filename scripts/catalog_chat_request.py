@@ -13,9 +13,11 @@ from pathlib import Path
 import re
 
 from catalog_drift_live_readonly import GitHubReadOnly, blob_sha, unique_json_pairs
-from verified_release_record import INTAKE_ALLOWED, Denied, require
+from verified_release_record import (
+    INTAKE_ALLOWED, Denied, identity_blob_sha, project_first_intake_files, require,
+)
 from verify_signed_fleet_release import generate
-from package_ledger import DIRECTORY, json_bytes, website_record
+from package_ledger import DIRECTORY, json_bytes
 
 REPO = "pgextwin/catalog"
 PREFIX = ".github/catalog-release-requests/"
@@ -160,13 +162,42 @@ def resolve(api, env, event):
 
 def verify(api, request, verifier=generate):
     before = release_identity(api,request)
-    record = Path("extensions")/(request["extension"]+".json")
-    mapped, audit = verifier(request["extension"],request["releaseTag"],record)
+    ledger = Path(DIRECTORY)/(request["extension"]+".json")
+    identity = Path("identities")/(request["extension"]+".json")
+    expected_id_blob = identity_blob_sha(identity)
+    mapped, audit = verifier(request["extension"],request["releaseTag"],ledger)
     require(audit.get("status") == "VERIFIED" and audit.get("repository") == "pgextwin/"+request["extension"]
             and audit.get("tag") == request["releaseTag"]
+            and audit.get("identityBlobSha") == expected_id_blob
+            and identity_blob_sha(identity) == expected_id_blob
             and release_identity(api,request) == before,
             "signed verification or final immutable Release snapshot differs")
     return mapped, audit
+
+
+def write_artifact(output, request, mapped, audit, envelope, *, root=Path(".")):
+    name = request["extension"]
+    filename = name + ".json"
+    is_initial = not (Path(root) / DIRECTORY / filename).is_file()
+    projected = {}
+    if is_initial:
+        projected = project_first_intake_files(
+            name,
+            mapped,
+            expected_identity_blob_sha=audit.get("identityBlobSha"),
+            root=root,
+        )
+    output.mkdir(exist_ok=False)
+    (output / DIRECTORY).mkdir()
+    (output / DIRECTORY / filename).write_bytes(json_bytes(mapped))
+    for rel_path, doc in projected.items():
+        target = output / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(json_bytes(doc))
+    (output / "verified-catalog-record.json").write_text(
+        json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (output / "audit.json").write_text(json.dumps(envelope, indent=2) + "\n", encoding="utf-8")
 
 
 def main():
@@ -181,15 +212,13 @@ def main():
         else:
             mapped, audit = verify(api,request)
             output = Path(os.environ["RUNNER_TEMP"])/"verified-catalog-chat-request"
-            output.mkdir(exist_ok=False)
-            filename = request["extension"] + ".json"
-            (output / DIRECTORY).mkdir()
-            (output / "extensions").mkdir()
-            (output / DIRECTORY / filename).write_bytes(json_bytes(mapped))
-            (output / "extensions" / filename).write_bytes(json_bytes(website_record(mapped)))
-            out.update(status="VERIFIED_PUBLIC_RELEASE_RECORD_ONLY",extension=request["extension"],
-                       releaseId=request["releaseId"],releaseTag=request["releaseTag"],audit=audit)
-            (output/"audit.json").write_text(json.dumps(out,indent=2)+"\n",encoding="utf-8")
+            envelope = {**out, "status": "VERIFIED_PUBLIC_RELEASE_RECORD_ONLY",
+                        "extension": request["extension"],
+                        "releaseId": request["releaseId"],
+                        "releaseTag": request["releaseTag"],
+                        "audit": audit}
+            write_artifact(output, request, mapped, audit, envelope, root=Path("."))
+            out = envelope
             with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8") as stream:
                 stream.write("verified=true\n")
         code = 0

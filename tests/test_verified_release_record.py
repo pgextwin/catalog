@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 """No-network tests for mapping a pre-verified formal Windows Release to Catalog v2."""
 import copy
+import io
+import json
+import os
+import tempfile
+from contextlib import chdir, redirect_stdout
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 from scripts import package_ledger
-from scripts.verified_release_record import INTAKE_ALLOWED, Denied, majors, tag_for, map_verified_release, seed_verified_first_release
+from scripts.verified_release_record import (
+    INTAKE_ALLOWED, Denied, candidate_from_identity_and_ledger,
+    identity_blob_sha, majors, map_verified_release,
+    project_first_intake_files, seed_verified_first_release, tag_for,
+)
 
 REFS={
  "pg_bigm":("v1.2-20250903","1.2"),
@@ -286,6 +296,99 @@ class MajorsCap(unittest.TestCase):
                          [15, 16, 17, 18, 19])
         with self.assertRaises(Denied):
             majors({"postgresql": {"majors": [15, 16, 17, 18, 19, 20]}})
+
+
+class IdentityLedgerContractTests(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[1]
+
+    def test_candidate_from_identity_and_ledger_matches_website_record(self):
+        for name in ("pg_hint_plan", "pgaudit", "hypopg", "pgtap"):
+            with self.subTest(name=name):
+                identity = json.loads((self.ROOT / "identities" / f"{name}.json").read_text("utf-8"))
+                ledger = package_ledger.read_record(self.ROOT / "packages" / f"{name}.json")
+                candidate = candidate_from_identity_and_ledger(identity, ledger)
+                self.assertEqual(candidate, package_ledger.website_record(ledger))
+
+        identity = json.loads((self.ROOT / "identities" / "pg_hint_plan.json").read_text("utf-8"))
+        ledger = package_ledger.read_record(self.ROOT / "packages" / "pg_hint_plan.json")
+        bad_id = copy.deepcopy(identity)
+        bad_id["description"] = "Changed"
+        with self.assertRaises(Denied):
+            candidate_from_identity_and_ledger(bad_id, ledger)
+        research_id = json.loads((self.ROOT / "identities" / "http.json").read_text("utf-8"))
+        with self.assertRaises(Denied):
+            candidate_from_identity_and_ledger(research_id, ledger)
+
+    def test_map_verified_release_from_identity_and_ledger_without_v2_record(self):
+        name = "pgaudit"
+        identity = json.loads((self.ROOT / "identities" / f"{name}.json").read_text("utf-8"))
+        previous = package_ledger.read_record(self.ROOT / "packages" / f"{name}.json")
+        current = package_ledger.current_release(previous)
+        _, release, ext, contract, assets, sums = fixture(name)
+        release.update(id=current["releaseId"] + 100, assets=[
+            {**asset, "id": idx} for idx, asset in enumerate(assets.values(), 1)
+        ])
+        mapped_ledger = map_verified_release(
+            None, release, ext, contract, assets, sums, "c" * 40, [14, 15, 16, 17, 18],
+            licenses_by_major=licenses(name, [14, 15, 16, 17, 18]),
+            repository_id=previous["repositoryId"],
+            previous_ledger=previous,
+            previous_admission=lambda: "a" * 40,
+            identity=identity,
+        )
+        self.assertEqual(mapped_ledger["schemaVersion"], 1)
+        self.assertEqual(mapped_ledger["latestReleaseId"], release["id"])
+
+    def test_identity_blob_sha_and_first_intake_projection_fail_closed(self):
+        pgtap_id = json.loads((self.ROOT / "identities" / "pgtap.json").read_text("utf-8"))
+        pgtap_ledger = package_ledger.read_record(self.ROOT / "packages" / "pgtap.json")
+        idx = json.loads((self.ROOT / "identities" / "index.candidate.json").read_text("utf-8"))
+        idx["extensions"].remove("pgtap")
+        idx["identities"] = [e for e in idx["identities"] if e["name"] != "pgtap"]
+        pre_id = copy.deepcopy(pgtap_id)
+        pre_id["research"]["evidenceUrls"] = ["https://github.com/theory/pgtap"]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "identities").mkdir()
+            (root / "identities" / "index.candidate.json").write_text(json.dumps(idx), "utf-8")
+            id_path = root / "identities" / "pgtap.json"
+            self.assertIsNone(identity_blob_sha(id_path))
+            id_path.write_text(json.dumps(pre_id), "utf-8")
+            blob_sha = identity_blob_sha(id_path)
+            self.assertRegex(blob_sha, r"^[0-9a-f]{40}$")
+            projected = project_first_intake_files(
+                "pgtap", pgtap_ledger, expected_identity_blob_sha=blob_sha, root=root
+            )
+            self.assertEqual(set(projected), {"identities/pgtap.json", "identities/index.candidate.json"})
+            self.assertIn("pgtap", projected["identities/index.candidate.json"]["extensions"])
+            self.assertTrue(
+                projected["identities/pgtap.json"]["research"]["evidenceUrls"][0].startswith(
+                    "https://github.com/pgextwin/pgtap/releases/tag/"
+                )
+            )
+            for wrong_sha in (None, "0" * 40):
+                with self.assertRaisesRegex(Denied, "identity blob changed"):
+                    project_first_intake_files(
+                        "pgtap", pgtap_ledger, expected_identity_blob_sha=wrong_sha, root=root
+                    )
+            link = root / "identities" / "pg_cron.json"
+            link.symlink_to(id_path)
+            with self.assertRaises(Denied):
+                identity_blob_sha(link)
+
+    def test_package_ledger_cli_prints_to_stdout_and_never_writes_extensions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "packages").mkdir()
+            ledger_bytes = (self.ROOT / "packages" / "pg_hint_plan.json").read_bytes()
+            (root / "packages" / "pg_hint_plan.json").write_bytes(ledger_bytes)
+            buf = io.BytesIO()
+            with chdir(root), patch("sys.argv", ["package_ledger.py", "pg_hint_plan"]), \
+                 patch("sys.stdout", new=type("S", (), {"buffer": buf})()):
+                package_ledger.main()
+            self.assertFalse((root / "extensions").exists())
+            parsed = json.loads(buf.getvalue().decode("utf-8"))
+            self.assertEqual(parsed, package_ledger.website_record(package_ledger.read_record(root / "packages" / "pg_hint_plan.json")))
 
 
 if __name__=="__main__":
