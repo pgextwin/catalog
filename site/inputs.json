@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "siteBaseUrl": "https://pgextwin.github.io/catalog/",
+  "catalogPaths": {
+    "index": "index.json",
+    "packagesDir": "packages",
+    "extensionsDir": "extensions",
+    "landscapeIndex": "landscape/index.json",
+    "landscapeExtensionsDir": "landscape/extensions",
+    "externalDirectGet": "external/direct-get.json",
+    "externalStandaloneGet": "external/standalone-get.json"
+  },
+  "postgresqlLifecycle": {
+    "repository": "pgextwin/build",
+    "path": "metadata/postgresql.json",
+    "commit": "e97d69c6edce3c876d168b7f6423aac63200fd15",
+    "snapshotPath": "site/snapshots/postgresql.json",
+    "snapshotSha256": "bec0645fb7029dd93d2d22a705b0e5469e6693c6a4030aec9cbb62e4c7125398"
+  },
+  "cliReleasePath": "site/cli-release.json",
+  "landscapeDecisionsPath": "site/data/landscape-decisions.json",
+  "cliContentPath": "site/data/cli-content.json",
+  "translationsDir": "site/i18n",
+  "templatesDir": "site/templates",
+  "assetsDir": "site/assets",
+  "effectiveDate": null
+}

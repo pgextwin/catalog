@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "packageDetails": {
+    "pg_trickle": {
+      "displayName": "pg_trickle",
+      "description": {
+        "en": "Incrementally maintained stream tables",
+        "ja": "差分更新によるストリームテーブル"
+      }
+    },
+    "pglogical": {
+      "displayName": "pglogical",
+      "description": {
+        "en": "Logical replication",
+        "ja": "論理レプリケーション"
+      }
+    },
+    "pg_crash": {
+      "displayName": "pg_crash",
+      "description": {
+        "en": "Crash simulation for PostgreSQL tests",
+        "ja": "PostgreSQLの障害テスト用の拡張機能"
+      }
+    },
+    "pgbouncer": {
+      "displayName": "PgBouncer",
+      "description": {
+        "en": "Connection pooler",
+        "ja": "コネクションプーラー"
+      }
+    },
+    "psqlodbc": {
+      "displayName": "psqlODBC",
+      "description": {
+        "en": "PostgreSQL ODBC driver",
+        "ja": "PostgreSQLのODBCドライバー"
+      }
+    }
+  },
+  "bundleAliases": [
+    {
+      "sourceItem": "postgis",
+      "bundledItem": "pgrouting",
+      "versionPrefix": "PostGIS ",
+      "note": {
+        "en": "Available in the same package as PostGIS.",
+        "ja": "PostGISと同じパッケージに同梱されています。"
+      }
+    }
+  ],
+  "suppressWindowsBinarySources": [
+    "postgis",
+    "pgrouting"
+  ],
+  "decisions": {
+    "pgroonga": {
+      "reason": {
+        "en": "Waiting for signed evidence linking the Windows package to its upstream build.",
+        "ja": "Windowsパッケージと上流ビルドの対応を示す署名付きの証明を待っています。"
+      }
+    },
+    "pg_lockout": {
+      "type": "candidate",
+      "displayName": "pg_lockout",
+      "reason": {
+        "en": "License evidence for the exact Windows package is still unavailable.",
+        "ja": "対象のWindowsパッケージのライセンス根拠を確認できていません。"
+      }
+    },
+    "pg_prohibit_commands": {
+      "type": "candidate",
+      "displayName": "pg_prohibit_commands",
+      "reason": {
+        "en": "License evidence for the exact Windows package is still unavailable.",
+        "ja": "対象のWindowsパッケージのライセンス根拠を確認できていません。"
+      }
+    },
+    "pgagent": {
+      "type": "license-excluded",
+      "displayName": "pgAgent 4.2.3-1",
+      "clearPackagesAndEvidence": true,
+      "reason": {
+        "en": "The source uses the PostgreSQL License. The installer has no package-wide terms, and three bundled helper EXEs could not be traced to a licensed source revision.",
+        "ja": "ソースにはPostgreSQL Licenseが適用されます。インストーラー全体の利用条件が確認できず、同梱の補助EXE 3本もライセンスを確認できるソースの版に紐づけられませんでした。"
+      }
+    },
+    "edb_language_pack": {
+      "type": "license-excluded",
+      "displayName": "EDB Language Pack 3.13-1 / 4.12-1",
+      "clearPackagesAndEvidence": true,
+      "reason": {
+        "en": "Package-wide terms are missing. The third-party notice omits OpenSSL, SQLite, the MSVC runtime and libraries bundled with pip.",
+        "ja": "パッケージ全体の利用条件が確認できず、第三者ライセンスの通知にもOpenSSL、SQLite、MSVCランタイム、pip同梱ライブラリの記載がありません。"
+      }
+    },
+    "asp_bluefin": {
+      "type": "license-excluded",
+      "displayName": "ASP Bluefin 1.7.0-1",
+      "clearPackagesAndEvidence": true,
+      "reason": {
+        "en": "The bundled EnterpriseDB Limited Use License 2.10 limits use to internal, non-commercial evaluation and prohibits distribution.",
+        "ja": "同梱のEnterpriseDB Limited Use License 2.10は社内での非商用評価に利用を限り、配布を禁止しています。"
+      }
+    },
+    "timescaledb": {
+      "type": "license-excluded",
+      "displayName": "TimescaleDB",
+      "clearPackagesAndEvidence": true,
+      "reason": {
+        "en": "The reviewed Windows builds include Timescale-licensed (-tsl) components and did not pass pgextwin's license review.",
+        "ja": "確認したWindowsビルドにはTimescale Licenseが適用されるコンポーネント（-tsl）が含まれており、pgextwinのライセンス審査では対象外となりました。"
+      }
+    },
+    "postgresql_minor_updates": {
+      "type": "not-planned",
+      "displayName": {
+        "en": "PostgreSQL minor-update installers",
+        "ja": "PostgreSQLのマイナーアップデート用インストーラー"
+      },
+      "reason": {
+        "en": "pgextwin does not plan to add PostgreSQL server updates.",
+        "ja": "PostgreSQLサーバーの更新用インストーラーはpgextwinの対象外です。"
+      }
+    },
+    "edb_commercial_tools": {
+      "type": "not-planned",
+      "displayName": {
+        "en": "EDB commercial tools",
+        "ja": "EDBの商用ツール"
+      },
+      "reason": {
+        "en": "PEM, Migration Toolkit and other registration-required tools are outside pgextwin's download scope.",
+        "ja": "PEM、Migration Toolkitなど、EDBへの登録が必要なツールはpgextwinの取得対象外です。"
+      }
+    }
+  }
+}

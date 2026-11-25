@@ -1,0 +1,186 @@
+{
+  "hypopg.roadmap.rationale:665eefd40fac1ae4f79aa0c22d5823790cf7dfd432d6ec921d96defd709f38e7": {
+    "extension": "hypopg",
+    "field": "roadmap.rationale",
+    "sourceEn": "Planner advisor with explicit PG18/PG19 upstream fixes and reliable EXPLAIN tests; historical upstream Windows releases cover only PG14–16 and newer issue attachments are not maintained official assets. Pilot planner hooks and imported internal symbols.",
+    "sourceBlobSha256": "665eefd40fac1ae4f79aa0c22d5823790cf7dfd432d6ec921d96defd709f38e7",
+    "ja": "PG18/PG19向けの上流修正と再現性のあるEXPLAINテストがあります。一方、上流公式の過去のWindows配布はPG14〜16のみで、Issue添付DLLは継続保守された公式成果物ではありません。プランナーフックと内部シンボルの取扱いを技術検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "hypopg.source:c9ceb02380b41619b00215b15801753153d0b66fab1ffc6fc571978f5d14b485": {
+    "extension": "hypopg",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Official 1.4.1 Windows x64 release assets cover PG14–16; there are no official 1.4.3/PG17–18 assets. Not a current alternative for the later majors.",
+    "sourceBlobSha256": "c9ceb02380b41619b00215b15801753153d0b66fab1ffc6fc571978f5d14b485",
+    "ja": "公式1.4.1のWindows x64成果物はPG14〜16向けです。1.4.3およびPG17〜18向けの公式成果物はなく、新しいPGバージョンの代替入手先にはなりません。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "hypopg.source:0253f3e40147def6507b9af46d7d9c2727f44cb49c6c8d7c5c4a0181e9b236e7": {
+    "extension": "hypopg",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Individually attached PG17/18 DLLs; not an official, maintained release channel. Validate provenance, matching PG build, and runtime safety independently.",
+    "sourceBlobSha256": "0253f3e40147def6507b9af46d7d9c2727f44cb49c6c8d7c5c4a0181e9b236e7",
+    "ja": "PG17/18用のDLLが個別に添付されていますが、公式の継続保守された配布経路ではありません。出自、ビルドの一致、実行時の安全性を個別に検証してください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "oracle_fdw.notPlannedReason:b6a47e514bc065bac5126e119ca9bf46e19ff0a313d41483368e21519c957c55": {
+    "extension": "oracle_fdw",
+    "field": "notPlannedReason",
+    "sourceEn": "Upstream officially publishes Windows ZIP assets for PG14–18; no need to duplicate native Oracle SDK dependency handling.",
+    "sourceBlobSha256": "b6a47e514bc065bac5126e119ca9bf46e19ff0a313d41483368e21519c957c55",
+    "ja": "上流公式がPG14〜18用のWindows ZIPを公開しているため、Oracle SDK依存のビルドをpgextwinで重複実装する必要はありません。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "oracle_fdw.source:b2fc64c96a5a01432388ec9e1b59940c1970095f50a887f96f5438ed59b567d0": {
+    "extension": "oracle_fdw",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Official release 2.9.0 provides pg14–18 win64 ZIPs; Oracle Instant Client runtime required. Match PostgreSQL build and Oracle client.",
+    "sourceBlobSha256": "b2fc64c96a5a01432388ec9e1b59940c1970095f50a887f96f5438ed59b567d0",
+    "ja": "公式2.9.0リリースにはPG14〜18向けwin64 ZIPがあります。Oracle Instant Clientが必要なため、PostgreSQLのビルドとOracleクライアントの整合性をご確認ください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "orafce.source:0861feb7e1a8157ced4dc9c2e354c92d4ec41ddaa64330b442d0bc00189158be": {
+    "extension": "orafce",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Independently verified signed Windows x64 PG14-18 release. See Test Contract for feature and preload requirements.",
+    "sourceBlobSha256": "0861feb7e1a8157ced4dc9c2e354c92d4ec41ddaa64330b442d0bc00189158be",
+    "ja": "署名付きのWindows x64版をPostgreSQL 14〜18で独立検証済み。機能範囲と事前ロードの要件はテスト契約を参照してください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_hint_plan.source:dcde0330827131d201fe7c5ce0e2b0b2a0718737c6d4b5b71d2f5dee2b7d4df3": {
+    "extension": "pg_hint_plan",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Windows binaries provided to support-contract customers, not public downloads. Request the exact PostgreSQL major/version from SRA OSS.",
+    "sourceBlobSha256": "dcde0330827131d201fe7c5ce0e2b0b2a0718737c6d4b5b71d2f5dee2b7d4df3",
+    "ja": "Windowsバイナリはサポート契約者向けに提供され、一般公開されていません。対応するPostgreSQLのメジャーバージョンと詳細はSRA OSSにお問い合わせください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_partman.source:d1a7cf8cecb63eb4783af2402aa9c7658cf21fc21630c11536f9dc2e02f5aed1": {
+    "extension": "pg_partman",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Independently verified signed Windows x64 PG14-18 release. BGW is optional and requires explicit shared_preload_libraries configuration.",
+    "sourceBlobSha256": "d1a7cf8cecb63eb4783af2402aa9c7658cf21fc21630c11536f9dc2e02f5aed1",
+    "ja": "PostgreSQL 14〜18対応の署名付きWindows x64版を独立検証済み。BGW DLLを同梱し、利用時にはshared_preload_librariesの明示的な設定が必要です。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_repack.source:dcde0330827131d201fe7c5ce0e2b0b2a0718737c6d4b5b71d2f5dee2b7d4df3": {
+    "extension": "pg_repack",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Windows binaries provided to support-contract customers, not public downloads. Request the exact PostgreSQL major/version from SRA OSS.",
+    "sourceBlobSha256": "dcde0330827131d201fe7c5ce0e2b0b2a0718737c6d4b5b71d2f5dee2b7d4df3",
+    "ja": "Windowsバイナリはサポート契約者向けに提供され、一般公開されていません。対応するPostgreSQLのメジャーバージョンと詳細はSRA OSSにお問い合わせください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_sphere.notPlannedReason:65a0836003051505e5943af2b9ac08a72cda19dc423342dd44bcc8f6812b7bb8": {
+    "extension": "pg_sphere",
+    "field": "notPlannedReason",
+    "sourceEn": "PostGIS Windows bundles now ship pgSphere binaries; niche demand does not justify a duplicate standalone pipeline.",
+    "sourceBlobSha256": "65a0836003051505e5943af2b9ac08a72cda19dc423342dd44bcc8f6812b7bb8",
+    "ja": "PostGISのWindowsバンドルにpgSphereが含まれており、専用パイプラインを追加する優先度は高くありません。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_sphere.source:fd47be9b964b9ae14f82be86074f8b3cf25b7031bf5ab37acc769621bec4d8b1": {
+    "extension": "pg_sphere",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "pgSphere artifacts are under the bundle's extras directories; verify the actual target major and compatible DLLs.",
+    "sourceBlobSha256": "fd47be9b964b9ae14f82be86074f8b3cf25b7031bf5ab37acc769621bec4d8b1",
+    "ja": "pgSphereの成果物はバンドルのextrasディレクトリ内にあります。対応するPGメジャーバージョンとDLLの互換性を確認してください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_stat_monitor.source:0861feb7e1a8157ced4dc9c2e354c92d4ec41ddaa64330b442d0bc00189158be": {
+    "extension": "pg_stat_monitor",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Independently verified signed Windows x64 PG14-18 release. See Test Contract for feature and preload requirements.",
+    "sourceBlobSha256": "0861feb7e1a8157ced4dc9c2e354c92d4ec41ddaa64330b442d0bc00189158be",
+    "ja": "署名付きのWindows x64版をPostgreSQL 14〜18で独立検証済み。機能範囲と事前ロードの要件はテスト契約を参照してください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgaudit.source:dcde0330827131d201fe7c5ce0e2b0b2a0718737c6d4b5b71d2f5dee2b7d4df3": {
+    "extension": "pgaudit",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Windows binaries provided to support-contract customers, not public downloads. Request the exact PostgreSQL major/version from SRA OSS.",
+    "sourceBlobSha256": "dcde0330827131d201fe7c5ce0e2b0b2a0718737c6d4b5b71d2f5dee2b7d4df3",
+    "ja": "Windowsバイナリはサポート契約者向けに提供され、一般公開されていません。対応するPostgreSQLのメジャーバージョンと詳細はSRA OSSにお問い合わせください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgrouting.notPlannedReason:accb7553226b4845e80881231de012f08cc09a800167f569a2f5599a4b077fe3": {
+    "extension": "pgrouting",
+    "field": "notPlannedReason",
+    "sourceEn": "Published PostGIS Windows bundles include pgRouting; building overlapping native GIS toolchains adds little value.",
+    "sourceBlobSha256": "accb7553226b4845e80881231de012f08cc09a800167f569a2f5599a4b077fe3",
+    "ja": "公開されているPostGISのWindowsバンドルにpgRoutingが含まれるため、GISビルド基盤の重複整備は不要です。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgrouting.source:c8e2c18b13fc8599626c28c2f30cd48aa6aa13d946baa00a7f413623cb0ceafa": {
+    "extension": "pgrouting",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "The official PostGIS 3.7.0 Windows page now advertises pgRouting 4.0.2, while the previously audited immutable PG18 bundle SQL runtime reported pgRouting 4.0.1 (the DLL basename libpgrouting-4.0.dll is not a precise version). Do not attribute 4.0.2 to that exact ZIP or infer source/build provenance, rights/NOTICE closure or pgextwin public GET authority.",
+    "sourceBlobSha256": "c8e2c18b13fc8599626c28c2f30cd48aa6aa13d946baa00a7f413623cb0ceafa",
+    "ja": "PostGIS 3.7.0のWindows公式ページはpgRouting 4.0.2を案内しています。一方、以前調査したPostgreSQL 18向けの特定のZIPでは、SQLで確認したバージョンは4.0.1でした。DLL名のlibpgrouting-4.0.dllだけでは詳細なバージョンを特定できません。このZIPのビルド元、利用条件と必要なライセンス表示、pgextwinが取得を案内するための許可は未確認です。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgvector.notPlannedReason:f716370dfedbaabb35b082a2ca0bc674fa0b45594ca33ab432d260a4434de00d": {
+    "extension": "pgvector",
+    "field": "notPlannedReason",
+    "sourceEn": "Upstream supplies an nmake build path and conda-forge publishes win-64 packages; standard EDB installations are not necessarily ABI-compatible with conda packages.",
+    "sourceBlobSha256": "f716370dfedbaabb35b082a2ca0bc674fa0b45594ca33ab432d260a4434de00d",
+    "ja": "上流にnmakeでのビルド手順があり、conda-forgeでもWindows向けパッケージが公開されています。ただし通常のEDB版PostgreSQLとCondaのパッケージはABI互換とは限りません。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgvector.source:120f9a541e69bbdfc8b3a7ceb461c893cd98982cb54ed579ddb5ff9dc412aacc": {
+    "extension": "pgvector",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "win-64 package published; use the matching conda PostgreSQL environment. Not a drop-in EDB/PostgreSQL installer.",
+    "sourceBlobSha256": "120f9a541e69bbdfc8b3a7ceb461c893cd98982cb54ed579ddb5ff9dc412aacc",
+    "ja": "win-64パッケージが公開されています。対応するCondaのPostgreSQL環境で使用してください。通常のEDB/PostgreSQLインストールにそのまま追加できるものではありません。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "plpgsql_check.roadmap.rationale:4b49e23a44df3790a316ff9f5c9158404e363576f95b53bffe485eabc4a325e3": {
+    "extension": "plpgsql_check",
+    "field": "roadmap.rationale",
+    "sourceEn": "First pilot: documented native MSVC/Meson path, PostgreSQL 14–19 upstream support, deterministic linting scenario and high developer value. Validate PL/pgSQL internal symbol linkage, ABI and DLL exports before any release.",
+    "sourceBlobSha256": "4b49e23a44df3790a316ff9f5c9158404e363576f95b53bffe485eabc4a325e3",
+    "ja": "第1パイロットとして、文書化されたMSVC/Mesonビルド、上流のPG14〜19対応、再現性のある静的解析テスト、開発者への価値を評価しました。リリース前にPL/pgSQL内部シンボルのリンク、ABI、DLLエクスポートを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "postgis.notPlannedReason:88cf835e58ef41cbefbb7f49f75dacfd5524fec9dcc6a956a3b81d1c683ef6e5": {
+    "extension": "postgis",
+    "field": "notPlannedReason",
+    "sourceEn": "Official PostGIS Windows binary/installer routes exist but release coverage differs by PostgreSQL major; duplicating the GIS toolchain for a native build is not currently planned. External original GET remains a separate gated candidate.",
+    "sourceBlobSha256": "88cf835e58ef41cbefbb7f49f75dacfd5524fec9dcc6a956a3b81d1c683ef6e5",
+    "ja": "PostGIS公式のWindowsバイナリやインストーラーは、PostgreSQLのバージョンによって提供状況が異なります。pgextwinでGISツールチェーンを構築して独自に配布する予定は現在ありません。提供元のZIPを直接取得する方法は、別途検討されています。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "postgis.source:642a5feb6333de2c76d8d5a41ae10a7187de97c51069f429ff3861a9bfbddd25": {
+    "extension": "postgis",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Official PostGIS 3.7.0 page (checked 2026-11-13) lists released Windows installers for PG18-19, PG15-17 installers forthcoming, and additional binaries under Unreleased Versions. A separately audited PG18 3.7.0 original ZIP is only a pinned candidate: source-to-binary producer provenance, complete dependency/NOTICE rights and formal pgextwin download authorization remain unverified.",
+    "sourceBlobSha256": "642a5feb6333de2c76d8d5a41ae10a7187de97c51069f429ff3861a9bfbddd25",
+    "ja": "2026年11月13日確認。PostGIS 3.7.0の公式ページでは、PostgreSQL 18・19向けインストーラーを公開済み、15〜17向けを公開予定と案内しており、未リリース版の欄にもバイナリが掲載されています。別途調査したPostgreSQL 18向け3.7.0のZIPは候補です。ソースとビルド成果物の対応、依存関係の利用条件と必要なライセンス表示、pgextwinが取得を案内するための正式な許可は未確認です。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "timescaledb.notPlannedReason:f0c34eae0b2f6447bb0db6228e6cd2962b6fe2be199a3b328cd9b9603440c217": {
+    "extension": "timescaledb",
+    "field": "notPlannedReason",
+    "sourceEn": "Upstream publishes matching Windows ZIPs and installation documentation; complex native build and upgrade surface better handled upstream.",
+    "sourceBlobSha256": "f0c34eae0b2f6447bb0db6228e6cd2962b6fe2be199a3b328cd9b9603440c217",
+    "ja": "上流公式がWindows向けZIPとインストール手順を公開しているため、複雑なネイティブビルドとアップグレード対応は上流に委ねます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "timescaledb.source:2e8c42de8b0fdac3e97839fe9e573373e8442227367176d3184f47f1a0c69964": {
+    "extension": "timescaledb",
+    "field": "windowsBinarySources.notes",
+    "sourceEn": "Release 2.30.2 includes Windows amd64 archives for PostgreSQL 16–18. Check runtime libraries and upstream version matrix.",
+    "sourceBlobSha256": "2e8c42de8b0fdac3e97839fe9e573373e8442227367176d3184f47f1a0c69964",
+    "ja": "2.30.2リリースにはPostgreSQL 16〜18向けのWindows amd64アーカイブがあります。実行時ライブラリと上流の対応バージョン表をご確認ください。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "wal2json.roadmap.rationale:1d071125a492a01997004f7a2d444cac7cd3e480f01961aeaec7d0a30350d7e0": {
+    "extension": "wal2json",
+    "field": "roadmap.rationale",
+    "sourceEn": "Useful CDC JSON plugin and substantial standard-Windows availability gap, with upstream Visual Studio project and slot-based test. PG18 compile/runtime, output callback ABI and deterministic logical decoding must pass an explicit pilot gate.",
+    "sourceBlobSha256": "1d071125a492a01997004f7a2d444cac7cd3e480f01961aeaec7d0a30350d7e0",
+    "ja": "CDC向けJSONプラグインで、通常版Windows向けの配布が不足しています。上流のVisual Studioプロジェクトとレプリケーションスロットを用いたテストを活用し、PG18でのビルド・実行、出力コールバックのABI、決定的な論理デコードを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  }
+}

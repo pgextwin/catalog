@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,follow">
+  <title>pgextwin — Choose language</title>
+  <link rel="alternate" hreflang="en" href="{{siteBaseUrl}}en/">
+  <link rel="alternate" hreflang="ja" href="{{siteBaseUrl}}ja/">
+  <link rel="alternate" hreflang="x-default" href="{{siteBaseUrl}}">
+  <script>
+    (function () {
+      var preferred = (navigator.languages && navigator.languages[0]) || navigator.language || "";
+      var language = /^ja(?:[-_]|$)/i.test(preferred) ? "ja" : "en";
+      var destination = new URL(language + "/", window.location.href);
+      destination.search = window.location.search;
+      destination.hash = window.location.hash;
+      window.location.replace(destination.href);
+    }());
+  </script>
+</head>
+<body>
+  <main>
+    <h1>pgextwin</h1>
+    <p>Choose your language / 言語を選択してください。</p>
+    <p><a href="./en/" lang="en">English</a> | <a href="./ja/" lang="ja">日本語</a></p>
+  </main>
+</body>
+</html>

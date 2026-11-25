@@ -1,0 +1,450 @@
+{
+  "hypopg.distribution": {
+    "extension": "hypopg",
+    "purpose": "distribution",
+    "sourceEn": "Hypothetical index planning without creating indexes",
+    "sourceBlobSha256": "fe8198ea0348fbd6aad423aac96b0719d53c6078bf4bdc170a6654c200ace428",
+    "ja": "実際にインデックスを作成せず、仮想インデックスで実行計画を検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "orafce.distribution": {
+    "extension": "orafce",
+    "purpose": "distribution",
+    "sourceEn": "Oracle-compatible functions and packages for community PostgreSQL.",
+    "sourceBlobSha256": "01b5b06bed70fabfacf3c59313014d0df252f4ad891224ed864ad52c55b9fb7f",
+    "ja": "コミュニティ版PostgreSQL向けのOracle互換関数とパッケージ。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_bigm.distribution": {
+    "extension": "pg_bigm",
+    "purpose": "distribution",
+    "sourceEn": "2-gram full text search extension for PostgreSQL.",
+    "sourceBlobSha256": "2bca7ff922df6d6862fd99ecdb92e3bd330a67886744c1a095c173dff46c4b6a",
+    "ja": "PostgreSQL向けの2文字単位の全文検索拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_cron.distribution": {
+    "extension": "pg_cron",
+    "purpose": "distribution",
+    "sourceEn": "Cron-based job scheduler for PostgreSQL.",
+    "sourceBlobSha256": "9721cf76b06273c7deda4d118ff3e94cc5d7819bdd0a90978675a390767c9718",
+    "ja": "PostgreSQL向けのcron形式のジョブスケジューラー。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_failover_slots.distribution": {
+    "extension": "pg_failover_slots",
+    "purpose": "distribution",
+    "sourceEn": "Maintain logical replication slots across PostgreSQL failover",
+    "sourceBlobSha256": "1907627ad95d64c3e55334ac282731f9516445bbd5de79ecefcace9c47cd82fc",
+    "ja": "PostgreSQLのフェイルオーバー後も論理レプリケーションスロットを引き継ぎます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_hint_plan.distribution": {
+    "extension": "pg_hint_plan",
+    "purpose": "distribution",
+    "sourceEn": "Execution-plan hinting extension for PostgreSQL.",
+    "sourceBlobSha256": "46d24747523edacdedcc8539c6085267c1e739262feec5084d9492fb6af676dd",
+    "ja": "PostgreSQLの実行計画にヒントを与える拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_ivm.distribution": {
+    "extension": "pg_ivm",
+    "purpose": "distribution",
+    "sourceEn": "Incremental View Maintenance extension for PostgreSQL.",
+    "sourceBlobSha256": "52522413187c641ad09d97c0136a6904d7957681a0b9ab9b6b00530f2587106b",
+    "ja": "PostgreSQL向けの増分ビュー保守機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_partman.distribution": {
+    "extension": "pg_partman",
+    "purpose": "distribution",
+    "sourceEn": "Time-based and ID-based partition maintenance; optional BGW DLL included. SQL features work without preload.",
+    "sourceBlobSha256": "4fb942252506837884af476e88cd82985a74ab4ebea844168d4d118737217abd",
+    "ja": "時刻・IDに基づくパーティションを管理します。任意機能のBGW DLLを同梱し、SQL機能は事前ロードなしで利用できます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_permissions.distribution": {
+    "extension": "pg_permissions",
+    "purpose": "distribution",
+    "sourceEn": "Audit PostgreSQL object permissions",
+    "sourceBlobSha256": "21ecb91dea2ac0a6fe5803a1098d79c74c35f0b46742a82f90c0a99770c766a5",
+    "ja": "PostgreSQLのオブジェクトに付与された権限を監査します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_profile.distribution": {
+    "extension": "pg_profile",
+    "purpose": "distribution",
+    "sourceEn": "Historical PostgreSQL workload reports",
+    "sourceBlobSha256": "e04a33f92f18cea52d8d9c3d44bdd5e9bd7e918f991aa49407b0dbf5f825faa1",
+    "ja": "PostgreSQLの負荷や稼働状況を過去のデータからレポートします。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_qualstats.distribution": {
+    "extension": "pg_qualstats",
+    "purpose": "distribution",
+    "sourceEn": "Predicate statistics collection extension for PostgreSQL.",
+    "sourceBlobSha256": "7a056e9497e653cedbe426cf670ddcf09ab02bd40e088197d5d17c674f9c351b",
+    "ja": "PostgreSQLの条件式に関する統計情報を収集する拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_repack.distribution": {
+    "extension": "pg_repack",
+    "purpose": "distribution",
+    "sourceEn": "Online table and index reorganization utility for PostgreSQL.",
+    "sourceBlobSha256": "8d4eef059b5a88bdf92837ac07b36eabd1ecdaedc562d45b03c3b1691be06222",
+    "ja": "PostgreSQLのテーブルとインデックスをオンラインで再編成するユーティリティ。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_show_plans.distribution": {
+    "extension": "pg_show_plans",
+    "purpose": "distribution",
+    "sourceEn": "View execution plans for running PostgreSQL queries",
+    "sourceBlobSha256": "1fa1594428ab9cbe8081ad728b52eb68fe28cd690bc0dca2c91c0a2ee43701c9",
+    "ja": "実行中のPostgreSQLクエリの実行計画を表示します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_squeeze.distribution": {
+    "extension": "pg_squeeze",
+    "purpose": "distribution",
+    "sourceEn": "Removes unused space from a table and optionally sorts tuples according to a particular index",
+    "sourceBlobSha256": "1d82897d7b8813417a18d7a6a5669f4a0c224767af3f3444eaefd33b997e3bdd",
+    "ja": "テーブルの空き領域を回収し、必要に応じて指定したインデックス順に行を並べ替えます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_stat_monitor.distribution": {
+    "extension": "pg_stat_monitor",
+    "purpose": "distribution",
+    "sourceEn": "Time-bucketed query statistics for PostgreSQL.",
+    "sourceBlobSha256": "d6fce95a05aab3c240cfff5c429781869f25e67317d6ce07ae3306802e77f803",
+    "ja": "PostgreSQLの時間区間ごとのクエリ統計を収集する拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_store_plans.distribution": {
+    "extension": "pg_store_plans",
+    "purpose": "distribution",
+    "sourceEn": "SQL execution plan statistics",
+    "sourceBlobSha256": "3639ce1eb2a5c4870a8b51612877e4030d00dae9359bf1ddfa4e138843688b39",
+    "ja": "SQL実行計画の統計情報を収集する拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_track_settings.distribution": {
+    "extension": "pg_track_settings",
+    "purpose": "distribution",
+    "sourceEn": "Track PostgreSQL configuration and role setting changes",
+    "sourceBlobSha256": "ceef8f4099dd14493f78c905b61f5548bc996fc5ed4293c92de2a27e81491212",
+    "ja": "PostgreSQLの構成とロールごとの設定の変更を記録します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_variables.distribution": {
+    "extension": "pg_variables",
+    "purpose": "distribution",
+    "sourceEn": "Session variables for PostgreSQL",
+    "sourceBlobSha256": "be561b0d98fe996fa02e956027b5c428242c8aaddd97d5f992d9076edb1287b3",
+    "ja": "PostgreSQLでセッション変数を扱う拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_wait_sampling.distribution": {
+    "extension": "pg_wait_sampling",
+    "purpose": "distribution",
+    "sourceEn": "Collect sampling statistics for PostgreSQL wait events",
+    "sourceBlobSha256": "fdf925818bd57f05c4552b3fab4946d8ef5567313bf87f81567a036207b6bfac",
+    "ja": "PostgreSQLの待機イベントをサンプリングして統計を集めます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgaudit.distribution": {
+    "extension": "pgaudit",
+    "purpose": "distribution",
+    "sourceEn": "Detailed session and object audit logging for PostgreSQL.",
+    "sourceBlobSha256": "316205e0e1bd463f6279af16a4c9a938946f562e5916068c5ca54a77f81ac6c7",
+    "ja": "PostgreSQLのセッション操作とオブジェクト操作を詳細に監査記録する拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgtap.distribution": {
+    "extension": "pgtap",
+    "purpose": "distribution",
+    "sourceEn": "TAP-compatible PostgreSQL unit testing",
+    "sourceBlobSha256": "b2ab80dc30b205c3920640615882d76317e9e84651ea9e6df56dac145a7bea47",
+    "ja": "PostgreSQLでTAP形式の単体テストを行う拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pldebugger.distribution": {
+    "extension": "pldebugger",
+    "purpose": "distribution",
+    "sourceEn": "Debug PL/pgSQL functions in PostgreSQL",
+    "sourceBlobSha256": "fcccd7add18e45ceed71da06b272c42a087cf747d2bae7bf5ea3f07ba0b253d0",
+    "ja": "PostgreSQLのPL/pgSQL関数をデバッグします。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "plpgsql_check.distribution": {
+    "extension": "plpgsql_check",
+    "purpose": "distribution",
+    "sourceEn": "Static analysis and diagnostic checks for PL/pgSQL functions.",
+    "sourceBlobSha256": "a3487dea606bc6a55b2e4553168d79a60420eeeec2cbcaebfe8841c8dd784e4a",
+    "ja": "PL/pgSQL関数の静的解析と問題診断を行う拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "set_user.distribution": {
+    "extension": "set_user",
+    "purpose": "distribution",
+    "sourceEn": "Controlled PostgreSQL user switching with auditing and privilege-management safeguards.",
+    "sourceBlobSha256": "f1dea06e1f78427fa232f64c4cc828c48a0e6bcbe9bba2c7405acc27c3e20295",
+    "ja": "監査と権限管理の保護機構を備えたPostgreSQLユーザー切替機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "wal2json.distribution": {
+    "extension": "wal2json",
+    "purpose": "distribution",
+    "sourceEn": "Logical decoding output plugin emitting JSON",
+    "sourceBlobSha256": "580e6655fbd320b396a0aec159ad6c2d58748606ed315a7a8ae545216432bf48",
+    "ja": "論理デコードの結果をJSONで出力するプラグイン。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "hypopg.landscape": {
+    "extension": "hypopg",
+    "purpose": "landscape",
+    "sourceEn": "Hypothetical index planning without creating indexes",
+    "sourceBlobSha256": "fe8198ea0348fbd6aad423aac96b0719d53c6078bf4bdc170a6654c200ace428",
+    "ja": "実際にインデックスを作成せず、仮想インデックスで実行計画を検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "oracle_fdw.landscape": {
+    "extension": "oracle_fdw",
+    "purpose": "landscape",
+    "sourceEn": "Oracle foreign-data wrapper",
+    "sourceBlobSha256": "0c61a67cc6c30e0c44d08830014fc979a67e38824fa99e332ecc388fbec7e0e4",
+    "ja": "Oracleデータベースに接続する外部データラッパー。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "orafce.landscape": {
+    "extension": "orafce",
+    "purpose": "landscape",
+    "sourceEn": "Oracle-compatible functions and packages on community PostgreSQL",
+    "sourceBlobSha256": "dc82ef632f3cb4a361ef0548fac3b7883976e580288902c03a550cbed7377959",
+    "ja": "コミュニティ版PostgreSQL向けのOracle互換関数・パッケージ。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_bigm.landscape": {
+    "extension": "pg_bigm",
+    "purpose": "landscape",
+    "sourceEn": "2-gram full-text search",
+    "sourceBlobSha256": "53e4ba745c5905105a2c5f5e63c92e6852adb3f12b92c72ecf6bf2b65f76d302",
+    "ja": "2文字単位の全文検索。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_cron.landscape": {
+    "extension": "pg_cron",
+    "purpose": "landscape",
+    "sourceEn": "Cron scheduler",
+    "sourceBlobSha256": "33d2816d744a97353e9aabb13f321ea98c8547ccf6944b984b3ef8661b6d819e",
+    "ja": "cron形式のジョブスケジューラー。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_failover_slots.landscape": {
+    "extension": "pg_failover_slots",
+    "purpose": "landscape",
+    "sourceEn": "Maintain logical replication slots across PostgreSQL failover",
+    "sourceBlobSha256": "1907627ad95d64c3e55334ac282731f9516445bbd5de79ecefcace9c47cd82fc",
+    "ja": "PostgreSQLのフェイルオーバー後も論理レプリケーションスロットを引き継ぎます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_hint_plan.landscape": {
+    "extension": "pg_hint_plan",
+    "purpose": "landscape",
+    "sourceEn": "Planner hints",
+    "sourceBlobSha256": "2c059a43a9e997634572211cae3d6a1910249d423d9d7ba1707b44139cadb5a3",
+    "ja": "クエリプランナーへのヒント指定。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_ivm.landscape": {
+    "extension": "pg_ivm",
+    "purpose": "landscape",
+    "sourceEn": "Incremental view maintenance",
+    "sourceBlobSha256": "f922bf5b41f39bae0d911884a03f04ab6f1aa71fd2939477dfcae8eced1d124d",
+    "ja": "マテリアライズドビューの増分保守。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_partman.landscape": {
+    "extension": "pg_partman",
+    "purpose": "landscape",
+    "sourceEn": "Time-based and ID-based partition maintenance",
+    "sourceBlobSha256": "415265ffbe9c43ddb31d2352359fa94258ada80f23d5b699a1784059855474d9",
+    "ja": "時刻・IDに基づくパーティションの保守。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_permissions.landscape": {
+    "extension": "pg_permissions",
+    "purpose": "landscape",
+    "sourceEn": "Audit PostgreSQL object permissions",
+    "sourceBlobSha256": "21ecb91dea2ac0a6fe5803a1098d79c74c35f0b46742a82f90c0a99770c766a5",
+    "ja": "PostgreSQLのオブジェクトに付与された権限を監査します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_profile.landscape": {
+    "extension": "pg_profile",
+    "purpose": "landscape",
+    "sourceEn": "Historical PostgreSQL workload reports",
+    "sourceBlobSha256": "e04a33f92f18cea52d8d9c3d44bdd5e9bd7e918f991aa49407b0dbf5f825faa1",
+    "ja": "PostgreSQLの負荷や稼働状況を過去のデータからレポートします。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_qualstats.landscape": {
+    "extension": "pg_qualstats",
+    "purpose": "landscape",
+    "sourceEn": "Predicate statistics",
+    "sourceBlobSha256": "1f6d75f93b92c6cabce8461feba35ecb5bdbed08b6cbb58723bf8e1314adc8d1",
+    "ja": "条件式に関する統計情報。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_repack.landscape": {
+    "extension": "pg_repack",
+    "purpose": "landscape",
+    "sourceEn": "Online relation reorganization",
+    "sourceBlobSha256": "bc52f601642630649016a1fc821ed6269f37f2ce139323612eaf959785d3d22d",
+    "ja": "リレーションのオンライン再編成。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_show_plans.landscape": {
+    "extension": "pg_show_plans",
+    "purpose": "landscape",
+    "sourceEn": "View execution plans for running PostgreSQL queries",
+    "sourceBlobSha256": "1fa1594428ab9cbe8081ad728b52eb68fe28cd690bc0dca2c91c0a2ee43701c9",
+    "ja": "実行中のPostgreSQLクエリの実行計画を表示します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_sphere.landscape": {
+    "extension": "pg_sphere",
+    "purpose": "landscape",
+    "sourceEn": "Spherical geometry and astronomy",
+    "sourceBlobSha256": "d1fddc2010a3ee6fc9119c2f0d9539ed871ee707434b46deb3e75cda30d40128",
+    "ja": "球面幾何および天文学向けの拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_squeeze.landscape": {
+    "extension": "pg_squeeze",
+    "purpose": "landscape",
+    "sourceEn": "Removes unused space from a table and optionally sorts tuples according to a particular index",
+    "sourceBlobSha256": "1d82897d7b8813417a18d7a6a5669f4a0c224767af3f3444eaefd33b997e3bdd",
+    "ja": "テーブルの空き領域を回収し、必要に応じて指定したインデックス順に行を並べ替えます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_stat_monitor.landscape": {
+    "extension": "pg_stat_monitor",
+    "purpose": "landscape",
+    "sourceEn": "Time-bucketed query performance monitoring",
+    "sourceBlobSha256": "dfc2467cb0833b1bf919d7b4b5a02ce649f2d3714285ecc6ae02602f844af449",
+    "ja": "時間区間ごとのクエリ性能監視。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_store_plans.landscape": {
+    "extension": "pg_store_plans",
+    "purpose": "landscape",
+    "sourceEn": "SQL execution plan statistics",
+    "sourceBlobSha256": "3639ce1eb2a5c4870a8b51612877e4030d00dae9359bf1ddfa4e138843688b39",
+    "ja": "SQL実行計画の統計情報を収集する拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_track_settings.landscape": {
+    "extension": "pg_track_settings",
+    "purpose": "landscape",
+    "sourceEn": "Track PostgreSQL configuration and role setting changes",
+    "sourceBlobSha256": "ceef8f4099dd14493f78c905b61f5548bc996fc5ed4293c92de2a27e81491212",
+    "ja": "PostgreSQLの構成とロールごとの設定の変更を記録します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_variables.landscape": {
+    "extension": "pg_variables",
+    "purpose": "landscape",
+    "sourceEn": "Session variables for PostgreSQL",
+    "sourceBlobSha256": "be561b0d98fe996fa02e956027b5c428242c8aaddd97d5f992d9076edb1287b3",
+    "ja": "PostgreSQLでセッション変数を扱う拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_wait_sampling.landscape": {
+    "extension": "pg_wait_sampling",
+    "purpose": "landscape",
+    "sourceEn": "Collect sampling statistics for PostgreSQL wait events",
+    "sourceBlobSha256": "fdf925818bd57f05c4552b3fab4946d8ef5567313bf87f81567a036207b6bfac",
+    "ja": "PostgreSQLの待機イベントをサンプリングして統計を集めます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgaudit.landscape": {
+    "extension": "pgaudit",
+    "purpose": "landscape",
+    "sourceEn": "Auditing",
+    "sourceBlobSha256": "7710e744fbd800b5e74db9c5fe7e6dc3fe1bb4949855c55642ff6f2c0987a1c0",
+    "ja": "監査ログ取得。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgrouting.landscape": {
+    "extension": "pgrouting",
+    "purpose": "landscape",
+    "sourceEn": "Network routing extension",
+    "sourceBlobSha256": "8423c6b642bef10db28e5274cb991f70203882835cfbc122fdc1db1deedf9f93",
+    "ja": "ネットワーク経路探索の拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgtap.landscape": {
+    "extension": "pgtap",
+    "purpose": "landscape",
+    "sourceEn": "TAP-compatible PostgreSQL unit testing",
+    "sourceBlobSha256": "b2ab80dc30b205c3920640615882d76317e9e84651ea9e6df56dac145a7bea47",
+    "ja": "PostgreSQLでTAP形式の単体テストを行う拡張機能。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgvector.landscape": {
+    "extension": "pgvector",
+    "purpose": "landscape",
+    "sourceEn": "Vector similarity search",
+    "sourceBlobSha256": "fadbfd5d8ff18ac0f156c94952e1f648f67c17ca5034e43c17428a5f5f4425b2",
+    "ja": "ベクトル類似度検索。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pldebugger.landscape": {
+    "extension": "pldebugger",
+    "purpose": "landscape",
+    "sourceEn": "Debug PL/pgSQL functions in PostgreSQL",
+    "sourceBlobSha256": "fcccd7add18e45ceed71da06b272c42a087cf747d2bae7bf5ea3f07ba0b253d0",
+    "ja": "PostgreSQLのPL/pgSQL関数をデバッグします。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "plpgsql_check.landscape": {
+    "extension": "plpgsql_check",
+    "purpose": "landscape",
+    "sourceEn": "PL/pgSQL static analysis and profiling",
+    "sourceBlobSha256": "6fa16be7d336ea591719bcd54618ef7f9d879e4cebf07d5148b79de853c04f37",
+    "ja": "PL/pgSQLの静的解析とプロファイリング。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "postgis.landscape": {
+    "extension": "postgis",
+    "purpose": "landscape",
+    "sourceEn": "Spatial types and GIS functions",
+    "sourceBlobSha256": "4952fc7d77995dfece25567283b165936289eb06bfcdbe693619147100e47060",
+    "ja": "地理空間データ型とGIS関数。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "set_user.landscape": {
+    "extension": "set_user",
+    "purpose": "landscape",
+    "sourceEn": "Controlled privilege switching",
+    "sourceBlobSha256": "fe6aabed24d3b3e131b2b9e940dfce3efe85039f4d4cf2ceb42cb552c0bcbc2e",
+    "ja": "権限を制御したユーザー切替。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "timescaledb.landscape": {
+    "extension": "timescaledb",
+    "purpose": "landscape",
+    "sourceEn": "Timeseries hypertables and compression",
+    "sourceBlobSha256": "a1b870f498156af4048d59daaeb5942aadf8e8622d75c249edb2a348513893c0",
+    "ja": "時系列データのハイパーテーブルと圧縮。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "wal2json.landscape": {
+    "extension": "wal2json",
+    "purpose": "landscape",
+    "sourceEn": "Logical decoding output plugin emitting JSON",
+    "sourceBlobSha256": "580e6655fbd320b396a0aec159ad6c2d58748606ed315a7a8ae545216432bf48",
+    "ja": "論理デコードの結果をJSONで出力するプラグイン。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  }
+}
