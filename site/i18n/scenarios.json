@@ -1,0 +1,266 @@
+{
+  "hypopg:hypothetical-index-changes-plan:4273c885497816d01ba8b8f5fce5683f3488c4773ab9ecaa7fd0127a3a07aa44": {
+    "extension": "hypopg",
+    "scenarioId": "hypothetical-index-changes-plan",
+    "sourceEn": "Create a hypothetical index in the same backend, verify EXPLAIN changes from Seq Scan to Index Scan with no physical index, and verify reset restores the baseline.",
+    "sourceBlobSha256": "4273c885497816d01ba8b8f5fce5683f3488c4773ab9ecaa7fd0127a3a07aa44",
+    "ja": "同じセッションで仮想インデックスを作成し、実体のインデックスなしでEXPLAINがSeq ScanからIndex Scanへ変化し、リセット後は元の実行計画に戻ることを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "orafce:oracle-compat-last-day:fc5b1cd026e5b80f2547c50d94edcca52f2c87bcf54cedc831c0832a88c58b67": {
+    "extension": "orafce",
+    "scenarioId": "oracle-compat-last-day",
+    "sourceEn": "Validate Oracle last_day leap-year date handling",
+    "sourceBlobSha256": "fc5b1cd026e5b80f2547c50d94edcca52f2c87bcf54cedc831c0832a88c58b67",
+    "ja": "Oracle互換のlast_day関数がうるう年の日付を正しく扱うことを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "orafce:oracle-compat-nvl:e7a5e913074841acd6a5c38d56ceb36e1947fc62c1234ce4fa3f3d1c0e869007": {
+    "extension": "orafce",
+    "scenarioId": "oracle-compat-nvl",
+    "sourceEn": "Validate Oracle nvl null substitution",
+    "sourceBlobSha256": "e7a5e913074841acd6a5c38d56ceb36e1947fc62c1234ce4fa3f3d1c0e869007",
+    "ja": "Oracle互換のnvl関数がNULLを正しく置換することを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_bigm:gin-bigram-search:9709f666aa2a8fcf70c2e76545d893058110adc4c87074684445975bbc74aba8": {
+    "extension": "pg_bigm",
+    "scenarioId": "gin-bigram-search",
+    "sourceEn": "Builds a GIN index with gin_bigm_ops and verifies a LIKE/likequery bigram search returns the expected row.",
+    "sourceBlobSha256": "9709f666aa2a8fcf70c2e76545d893058110adc4c87074684445975bbc74aba8",
+    "ja": "gin_bigm_opsでGINインデックスを作成し、LIKE/likequeryによる2-gram検索が期待する行を返すことを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_cron:scheduled-job-executes:1f8b0efc2ff900a8eb60eeeebf3c57ebbb078a6eadda32d30199c8915607c0a2": {
+    "extension": "pg_cron",
+    "scenarioId": "scheduled-job-executes",
+    "sourceEn": "Schedules a one-second cron job in background-worker mode and verifies the job inserts a probe row.",
+    "sourceBlobSha256": "1f8b0efc2ff900a8eb60eeeebf3c57ebbb078a6eadda32d30199c8915607c0a2",
+    "ja": "バックグラウンドワーカーモードで1秒間隔のcronジョブを登録し、検証用の行が挿入されることを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_failover_slots:preload-library-start-worker:36adfe019aa5f81977822858e29a1404645225238a6636d98314a9a7bd13f5a7": {
+    "extension": "pg_failover_slots",
+    "scenarioId": "preload-library-start-worker",
+    "sourceEn": "Starts PostgreSQL with shared preload, confirms the pg_failover_slots worker starts, the pg_failover_slots.version GUC is visible, and the server log records the worker start. No CREATE EXTENSION: this is a shared-preload library with no SQL extension.",
+    "sourceBlobSha256": "36adfe019aa5f81977822858e29a1404645225238a6636d98314a9a7bd13f5a7",
+    "ja": "事前ロードを有効にしてPostgreSQLを起動し、ワーカーの起動、設定項目pg_failover_slots.versionの参照、サーバーログの起動記録を確認します。このライブラリは事前ロードで動作し、CREATE EXTENSIONは不要です。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_hint_plan:planner-hints-applied:ff4dbe94cc6d95081d2627426c8d054572906ab424bb415a09126289eafffb47": {
+    "extension": "pg_hint_plan",
+    "scenarioId": "planner-hints-applied",
+    "sourceEn": "Verifies SeqScan and IndexScan hints change the observed EXPLAIN plan to the requested scan shapes.",
+    "sourceBlobSha256": "ff4dbe94cc6d95081d2627426c8d054572906ab424bb415a09126289eafffb47",
+    "ja": "SeqScanとIndexScanのヒントにより、EXPLAINの実行計画が指定したスキャン方式へ変化することを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_ivm:immv-reflects-dml:0067bf76102073011b98b57f9108281617ec25b8f7b5c67af22dc441c477cb42": {
+    "extension": "pg_ivm",
+    "scenarioId": "immv-reflects-dml",
+    "sourceEn": "Creates an IMMV and verifies INSERT, UPDATE, and DELETE changes are reflected immediately in its rows and aggregate values.",
+    "sourceBlobSha256": "0067bf76102073011b98b57f9108281617ec25b8f7b5c67af22dc441c477cb42",
+    "ja": "IMMVを作成し、INSERT・UPDATE・DELETEの変更が行と集計値に即時反映されることを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_ivm:immv-definition-retrievable:e87a0fc81a2ea25a8008cf8cde343dcb2b50c38997e4cab99701666221df98cb": {
+    "extension": "pg_ivm",
+    "scenarioId": "immv-definition-retrievable",
+    "sourceEn": "Verifies pgivm.get_immv_def returns the definition of the created IMMV.",
+    "sourceBlobSha256": "e87a0fc81a2ea25a8008cf8cde343dcb2b50c38997e4cab99701666221df98cb",
+    "ja": "pgivm.get_immv_defが作成済みIMMVの定義を返すことを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_partman:partition-maintenance-routing:944ff7b2f5fa384317fcb173821bae8752a6f37e3023fa59dd85448b103518fd": {
+    "extension": "pg_partman",
+    "scenarioId": "partition-maintenance-routing",
+    "sourceEn": "Create and maintain a time-partitioned parent, verify routed INSERTs and child partitions",
+    "sourceBlobSha256": "944ff7b2f5fa384317fcb173821bae8752a6f37e3023fa59dd85448b103518fd",
+    "ja": "日付パーティションを作成・保守し、INSERTの子テーブルへの振り分けと子パーティションを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_partman:sql-without-preload:546deefcc5311cfd272bcae30de2fa9337e32793b3320b9486155fe1b801a356": {
+    "extension": "pg_partman",
+    "scenarioId": "sql-without-preload",
+    "sourceEn": "Verify SQL partition routing remains functional without loading the optional BGW DLL.",
+    "sourceBlobSha256": "546deefcc5311cfd272bcae30de2fa9337e32793b3320b9486155fe1b801a356",
+    "ja": "任意のBGW DLLをロードしなくても、SQLによるパーティション振り分けが正しく機能することを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_partman:bgw-automatic-partition-replenishment:059cc6ad03f7c3f757c031ec94539749b88ef8d8cb0c3d25d709c26d3044724e": {
+    "extension": "pg_partman",
+    "scenarioId": "bgw-automatic-partition-replenishment",
+    "sourceEn": "Preload optional Windows background worker and verify an unprivileged maintenance role automatically replenishes a deliberately removed partition on PostgreSQL 14–18.",
+    "sourceBlobSha256": "059cc6ad03f7c3f757c031ec94539749b88ef8d8cb0c3d25d709c26d3044724e",
+    "ja": "PostgreSQL 14〜18で任意機能のWindowsバックグラウンドワーカーを事前ロードし、非管理者の保守ロールが削除済みの子パーティションを自動補充することを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_permissions:permission-target-and-diffs:076c0c78f6c9d142a03ab98260e67d9c9e603ae1c535f0a7389d3c60302212ee": {
+    "extension": "pg_permissions",
+    "scenarioId": "permission-target-and-diffs",
+    "sourceEn": "Creates pg_permissions, records desired privileges in public.permission_target, grants partial privileges, and verifies public.permission_diffs() detects both missing and extra grants.",
+    "sourceBlobSha256": "076c0c78f6c9d142a03ab98260e67d9c9e603ae1c535f0a7389d3c60302212ee",
+    "ja": "pg_permissionsを作成し、期待する権限をpublic.permission_targetに登録します。一部の権限を付与し、public.permission_diffs()が権限の不足と過剰を検出することを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_permissions:permission-views-reflect-grants:5fb8d1201fdedc4c3f5de718338857ee0cf26a5b3c9224e76c430699d07df161": {
+    "extension": "pg_permissions",
+    "scenarioId": "permission-views-reflect-grants",
+    "sourceEn": "Verifies public.schema_permissions and public.table_permissions reflect granted and ungranted privileges accurately.",
+    "sourceBlobSha256": "5fb8d1201fdedc4c3f5de718338857ee0cf26a5b3c9224e76c430699d07df161",
+    "ja": "public.schema_permissionsとpublic.table_permissionsに、付与済みの権限と付与されていない権限が正しく表示されることを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_profile:create-profile-and-list-local-server:60835e777b791b1bdfaf3af3dc07bfa881f518a865fa74f21a627da63a43a434": {
+    "extension": "pg_profile",
+    "scenarioId": "create-profile-and-list-local-server",
+    "sourceEn": "Creates pg_profile in a disposable database with dblink and plpgsql, verifies SQL version 4.16, and checks that show_servers() reports the enabled local server.",
+    "sourceBlobSha256": "60835e777b791b1bdfaf3af3dc07bfa881f518a865fa74f21a627da63a43a434",
+    "ja": "検証用データベースにdblinkとplpgsqlを用意してpg_profileを作成し、SQL版が4.16であることと、show_servers()に有効なローカルサーバーが表示されることを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_qualstats:predicate-statistics-collected:97939d42246de57c2f84e79e9a8aa941b8be0633b12d64593e0706e52d370148": {
+    "extension": "pg_qualstats",
+    "scenarioId": "predicate-statistics-collected",
+    "sourceEn": "Executes real predicates and verifies predicate rows are collected and exposed through both pg_qualstats and pg_qualstats_pretty.",
+    "sourceBlobSha256": "97939d42246de57c2f84e79e9a8aa941b8be0633b12d64593e0706e52d370148",
+    "ja": "実際の条件式を実行し、pg_qualstatsとpg_qualstats_prettyから統計行を取得できることを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_repack:table-repack-preserves-rows:f15ca2d815c4250ad07a6e7ff23b21dea59d480485c55481953272444c2292d8": {
+    "extension": "pg_repack",
+    "scenarioId": "table-repack-preserves-rows",
+    "sourceEn": "Runs pg_repack.exe against a real table and verifies row-count preservation and a changed relation filenode after the physical rewrite.",
+    "sourceBlobSha256": "f15ca2d815c4250ad07a6e7ff23b21dea59d480485c55481953272444c2292d8",
+    "ja": "実テーブルでpg_repack.exeを実行し、行数の保持と物理再編成後のfilenode変更を検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_show_plans:plans-function-and-view:2148a2e5ebb0fbd2f0b739cb45c5abe83acccf4be00f1e2051d328602c2abee4": {
+    "extension": "pg_show_plans",
+    "scenarioId": "plans-function-and-view",
+    "sourceEn": "Creates SQL version 2.1 under shared preload and invokes pg_show_plans() and pg_show_plans_q.",
+    "sourceBlobSha256": "2148a2e5ebb0fbd2f0b739cb45c5abe83acccf4be00f1e2051d328602c2abee4",
+    "ja": "事前ロードを有効にしてSQL版2.1を作成し、pg_show_plans()とpg_show_plans_qを呼び出します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_squeeze:squeeze-table-with-index-and-toast:c13e783677177a93d12670ec457673515b118ca0f7701872d238b31ded836736": {
+    "extension": "pg_squeeze",
+    "scenarioId": "squeeze-table-with-index-and-toast",
+    "sourceEn": "Creates SQL version 1.9 with shared preload and logical WAL, then runs the upstream table, clustering-index, and TOAST squeeze cases and checks that the data is intact.",
+    "sourceBlobSha256": "c13e783677177a93d12670ec457673515b118ca0f7701872d238b31ded836736",
+    "ja": "事前ロードとWALの論理レベルを有効にしてSQL版1.9を作成します。テーブル、クラスタリング用インデックス、TOASTを対象とする上流のテストを実行し、処理後もデータが保持されることを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_squeeze:autostart-and-stop-scheduler:4a9d50c64b739af8e042380e175bd22920b31316ff349199b36f1e98d7b7aaee": {
+    "extension": "pg_squeeze",
+    "scenarioId": "autostart-and-stop-scheduler",
+    "sourceEn": "Restarts the same cluster with scheduler autostart enabled, observes the worker in pg_stat_activity, then calls squeeze.stop_worker() and waits for the worker to exit.",
+    "sourceBlobSha256": "4a9d50c64b739af8e042380e175bd22920b31316ff349199b36f1e98d7b7aaee",
+    "ja": "同じクラスタでスケジューラーの自動起動を有効にして再起動します。pg_stat_activityでワーカーを確認し、squeeze.stop_worker()を呼び出して終了を待ちます。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_stat_monitor:preload-records-time-bucket:7804088453a894315b2b6533f635cfd78e58d5764d8136e4d0170669fb0cc058": {
+    "extension": "pg_stat_monitor",
+    "scenarioId": "preload-records-time-bucket",
+    "sourceEn": "Confirm preloaded monitor records a real query in query-time buckets",
+    "sourceBlobSha256": "7804088453a894315b2b6533f635cfd78e58d5764d8136e4d0170669fb0cc058",
+    "ja": "事前ロードした監視機能が実際のクエリを時間区間別に記録することを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_stat_monitor:stat-monitor-version:24311cd60e44c6b3f9c988ff812cb506e372d52c35ba609a471376b8a9e273f7": {
+    "extension": "pg_stat_monitor",
+    "scenarioId": "stat-monitor-version",
+    "sourceEn": "Verify extension version, query counters and shutdown cleanup",
+    "sourceBlobSha256": "24311cd60e44c6b3f9c988ff812cb506e372d52c35ba609a471376b8a9e273f7",
+    "ja": "拡張機能のバージョン、クエリ回数、終了時の後処理を確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_store_plans:real-query-plan-capture:49f5c13ed29ef28c52228d6f0baa519f0261191df4a8e73ecb7b97986fb4856f": {
+    "extension": "pg_store_plans",
+    "scenarioId": "real-query-plan-capture",
+    "sourceEn": "Check recorded plan and calls for a real statement after shared preload.",
+    "sourceBlobSha256": "49f5c13ed29ef28c52228d6f0baa519f0261191df4a8e73ecb7b97986fb4856f",
+    "ja": "shared_preload_librariesで事前読み込み後、実際のSQLに対する記録済み実行計画と実行回数を確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_track_settings:snapshot-and-settings-query:6fe6f8a9be40372c7ed1befd4e2096d4e5a1d422bbbdea44087b2e4d395fc7bc": {
+    "extension": "pg_track_settings",
+    "scenarioId": "snapshot-and-settings-query",
+    "sourceEn": "Creates pg_track_settings, takes a settings snapshot via pg_track_settings_snapshot(), and verifies pg_track_settings() and pg_track_reboot_log() return expected records.",
+    "sourceBlobSha256": "6fe6f8a9be40372c7ed1befd4e2096d4e5a1d422bbbdea44087b2e4d395fc7bc",
+    "ja": "pg_track_settingsを作成し、pg_track_settings_snapshot()で設定を保存します。pg_track_settings()とpg_track_reboot_log()が期待した記録を返すことを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_track_settings:track-setting-change-diff-and-log:329fb3dfa6c46d7ad67388cca83c1a5349a17b5c74c716e56ccb4d48ac7c7abd": {
+    "extension": "pg_track_settings",
+    "scenarioId": "track-setting-change-diff-and-log",
+    "sourceEn": "Changes work_mem between two snapshots and verifies pg_track_settings_log() and pg_track_settings_diff() report the recorded change accurately.",
+    "sourceBlobSha256": "329fb3dfa6c46d7ad67388cca83c1a5349a17b5c74c716e56ccb4d48ac7c7abd",
+    "ja": "2回の設定記録の間にwork_memを変更し、pg_track_settings_log()とpg_track_settings_diff()にその変更が正しく表示されることを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_variables:variable-transaction-and-sessions:707edccff2982ab98656b58ed87a3a24edd375824fb0934cb0ec0cc31505321e": {
+    "extension": "pg_variables",
+    "scenarioId": "variable-transaction-and-sessions",
+    "sourceEn": "Check set/get, transaction rollback and separated backend sessions.",
+    "sourceBlobSha256": "707edccff2982ab98656b58ed87a3a24edd375824fb0934cb0ec0cc31505321e",
+    "ja": "変数の設定・取得、トランザクションのロールバック、別々のバックエンドセッション間の分離を確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pg_wait_sampling:create-extension-and-query-collector:fcf272ee9e0f73adb4c46ee2571c709d18d7065af20feacffb406c42f10c6b8a": {
+    "extension": "pg_wait_sampling",
+    "scenarioId": "create-extension-and-query-collector",
+    "sourceEn": "Starts PostgreSQL with shared preload, creates SQL version 1.1, and queries current waits, collector history, and collector profile.",
+    "sourceBlobSha256": "fcf272ee9e0f73adb4c46ee2571c709d18d7065af20feacffb406c42f10c6b8a",
+    "ja": "事前ロードを有効にしてPostgreSQLを起動し、SQL版1.1を作成します。現在の待機イベントと、収集機能の履歴およびプロファイルを照会します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgaudit:audit-log-read-write-ddl:eaaecd6e53d9086275f5930d61a9692a5cea756488b6d89fc2164344536165c1": {
+    "extension": "pgaudit",
+    "scenarioId": "audit-log-read-write-ddl",
+    "sourceEn": "Executes DDL, INSERT, and SELECT operations and verifies corresponding DDL, WRITE, and READ AUDIT entries in the PostgreSQL server log.",
+    "sourceBlobSha256": "eaaecd6e53d9086275f5930d61a9692a5cea756488b6d89fc2164344536165c1",
+    "ja": "DDL・INSERT・SELECTを実行し、サーバーログに対応するDDL・WRITE・READのAUDIT記録があることを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pgtap:tap-positive-negative-assertions:4c1e80feac15f967d2f1dceb8e8a7ecfa1f816e866060e112d81fdc2bec103d9": {
+    "extension": "pgtap",
+    "scenarioId": "tap-positive-negative-assertions",
+    "sourceEn": "Verify successful TAP and deliberately failed TAP assertion.",
+    "sourceBlobSha256": "4c1e80feac15f967d2f1dceb8e8a7ecfa1f816e866060e112d81fdc2bec103d9",
+    "ja": "TAP形式で成功するアサーションと、意図的に失敗させたアサーションの結果を検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "pldebugger:preload-and-query-debugger-proxy:c0cf64067f0a7fdb2e5520fe94ceda0233b683cbdd3cbedf43aad02250b7033e": {
+    "extension": "pldebugger",
+    "scenarioId": "preload-and-query-debugger-proxy",
+    "sourceEn": "Preloads plugin_debugger, creates SQL extension pldbgapi at version 1.1, and queries the native debugger proxy API for the current PostgreSQL version and backend PID.",
+    "sourceBlobSha256": "c0cf64067f0a7fdb2e5520fe94ceda0233b683cbdd3cbedf43aad02250b7033e",
+    "ja": "plugin_debuggerを事前ロードし、SQL拡張機能pldbgapiのバージョン1.1を作成します。デバッガーのプロキシAPIからPostgreSQLのバージョンとバックエンドのプロセスIDを取得します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "plpgsql_check:detect-invalid-record-field:484bba507f0939070ce3f5c837d84bb3eadefb27282397f837dce4d18becc89c": {
+    "extension": "plpgsql_check",
+    "scenarioId": "detect-invalid-record-field",
+    "sourceEn": "Diagnoses a missing record field on an empty-table loop without executing the function, then verifies the diagnostic disappears after a correction.",
+    "sourceBlobSha256": "484bba507f0939070ce3f5c837d84bb3eadefb27282397f837dce4d18becc89c",
+    "ja": "関数を実行せずに空テーブルのループで未定義レコードフィールドを検出し、修正後に診断が消えることを確認します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "set_user:role-transition-and-reset:9645bead738dd32671a6be1c2c8b863d9e9adc193f8fc37f4c3f2f5fb09afce9": {
+    "extension": "set_user",
+    "scenarioId": "role-transition-and-reset",
+    "sourceEn": "Transitions current_user to a target role, resets to the original superuser, and verifies both state changes and server-log transition entries.",
+    "sourceBlobSha256": "9645bead738dd32671a6be1c2c8b863d9e9adc193f8fc37f4c3f2f5fb09afce9",
+    "ja": "current_userを指定ロールへ切り替えて元の管理者に戻し、状態変更とサーバーログの切替記録を検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  },
+  "wal2json:logical-dml-json:9be590e70ac6fbb687a95b8b6ae110d4ef2348ff7e0ab53a7f0f362cd27d4562": {
+    "extension": "wal2json",
+    "scenarioId": "logical-dml-json",
+    "sourceEn": "Start a logical slot with wal2json format-version 1, commit INSERT, UPDATE and DELETE, decode JSON, assert all three change kinds, and clean up the slot.",
+    "sourceBlobSha256": "9be590e70ac6fbb687a95b8b6ae110d4ef2348ff7e0ab53a7f0f362cd27d4562",
+    "ja": "wal2jsonのフォーマットバージョン1で論理レプリケーションスロットを作成し、INSERT・UPDATE・DELETEをコミットしてJSONをデコードし、3種類の変更とスロットの後片付けを検証します。",
+    "migratedFrom": "pgextwin/website@aced2a326b7038ca8c55a6d763493152a571c92c:locale.js"
+  }
+}

@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "homeTeaser": {
+    "en": {
+      "eyebrow": "Windows CLI · v{version} · {releaseBadge}",
+      "heading": "Download packages with the Windows CLI",
+      "commands": [
+        {
+          "title": "pgvector for PostgreSQL 18",
+          "command": ".\\pgextwin.exe download pgvector --pg 18"
+        },
+        {
+          "title": "pgextwin ZIPs for PostgreSQL 18",
+          "command": ".\\pgextwin.exe download-all --pg 18"
+        }
+      ],
+      "descriptionHtml": "Use <code>download</code> for one named item or <code>download-all</code> for a batch. Set <code>--pg</code> to your PostgreSQL major version.",
+      "downloadLabel": "Download CLI v{version} ({exeSizeMb})",
+      "guideLabel": "Commands and SHA-256 verification"
+    },
+    "ja": {
+      "eyebrow": "Windows CLI · v{version} · {releaseBadge}",
+      "heading": "Windows CLIでパッケージを取得",
+      "commands": [
+        {
+          "title": "PostgreSQL 18用のpgvector",
+          "command": ".\\pgextwin.exe download pgvector --pg 18"
+        },
+        {
+          "title": "PostgreSQL 18用のpgextwin配布ZIP",
+          "command": ".\\pgextwin.exe download-all --pg 18"
+        }
+      ],
+      "descriptionHtml": "<code>download</code>で名前を指定して取得し、<code>download-all</code>でまとめて取得します。<code>--pg</code>でPostgreSQLのメジャーバージョンを指定します。",
+      "downloadLabel": "CLI v{version} をダウンロード（{exeSizeMb}）",
+      "guideLabel": "使い方とSHA-256の確認方法"
+    }
+  },
+  "cliPage": {
+    "en": {
+      "metaDescription": "Download PostgreSQL extensions, tools, and drivers for Windows x64. CLI v{version} download, command usage, and SHA-256 verification.",
+      "pageTitle": "pgextwin — Windows CLI v{version}",
+      "skipLink": "Skip to CLI download",
+      "eyebrow": "pgextwin CLI",
+      "h1": "Windows CLI v{version}",
+      "lead": "Download PostgreSQL extension ZIPs on Windows, now including spatial bundles, tools, and drivers. Downloading also works on machines without PostgreSQL installed.",
+      "heroDescriptionHtml": "Browse what is available with <code>list</code> and <code>search</code>, fetch one item by name with <code>download</code>, or take a whole selection with <code>download-all</code>. Set <code>--pg</code> to your PostgreSQL major version.",
+      "navAriaLabel": "CLI navigation",
+      "nav": {
+        "download": "Get the CLI",
+        "commands": "Commands",
+        "checksum": "Verify SHA-256",
+        "catalog": "Extension catalog"
+      },
+      "downloadEyebrow": "Windows x64 · {releaseBadge} · Released {publishedDate}",
+      "downloadHeading": "Get the CLI",
+      "downloadExeLabel": "Download pgextwin.exe ({exeSizeMb})",
+      "releaseLinkLabel": "GitHub Release v{version}",
+      "checksumsLinkLabel": "View SHA256SUMS.txt",
+      "exeSizeLabel": "EXE size: {exeBytesFormatted} bytes",
+      "exeShaLabel": "EXE SHA-256: ",
+      "afterDownloadText": "After downloading, run the following in PowerShell. Compare the displayed SHA-256 with the value above or the value in SHA256SUMS.txt.",
+      "commandsHeading": "Commands",
+      "commandsIntroHtml": "Replace placeholders in <code>&lt;angle brackets&gt;</code> with your values. Options in <code>[square brackets]</code> are optional.",
+      "commandGroups": [
+        {
+          "heading": "Browse and search",
+          "commands": [
+            ".\\pgextwin.exe list [--category <category>] [--pg <major|all>] [--format <text|json>]",
+            ".\\pgextwin.exe search <term> [--category <category>] [--pg <major|all>] [--format <text|json>]"
+          ],
+          "noteHtml": "Categories are <code>extensions</code>, <code>spatial</code>, <code>tools</code>, and <code>drivers</code>."
+        },
+        {
+          "heading": "Download one named item",
+          "commands": [
+            ".\\pgextwin.exe download <item> [--version <version>] [--pg <major|all>] [--category <category>] [--output <dir>]",
+            ".\\pgextwin.exe download <item> --source pgextwin --pg <major> [--version <version>] [--output <dir>]"
+          ],
+          "noteHtml": "Named downloads use external providers by default. Add <code>--version</code> to select an exact version recorded in the Catalog, for external packages and for pgextwin-distributed extensions fetched with <code>--source pgextwin</code>."
+        },
+        {
+          "heading": "Download packages in bulk",
+          "commands": [
+            ".\\pgextwin.exe download-all --pg <major|all> [--output <dir>] [--latest|--fixed]",
+            ".\\pgextwin.exe download-all --source external [--pg <major|all>] [--category <category>] [--output <dir>]"
+          ],
+          "noteHtml": "Bulk downloads use the current pgextwin feed by default. Use <code>--fixed</code> for the historical pgextwin snapshot. External downloads include all recorded PostgreSQL majors when you omit <code>--pg</code>. Use <code>--output</code> to choose an existing directory, or save to the current directory by default. Add <code>--verbose</code> for detailed diagnostics."
+        },
+        {
+          "heading": "Show help or the CLI version",
+          "commands": [
+            ".\\pgextwin.exe --help",
+            ".\\pgextwin.exe --version"
+          ],
+          "noteHtml": null
+        }
+      ],
+      "examplesHeading": "Examples",
+      "examples": [
+        {
+          "title": "Download pgvector for PostgreSQL 18",
+          "command": ".\\pgextwin.exe download pgvector --pg 18"
+        },
+        {
+          "title": "Download pgvector 0.8.7 for PostgreSQL 18",
+          "command": ".\\pgextwin.exe download pgvector --version 0.8.7 --pg 18"
+        },
+        {
+          "title": "Download HypoPG 1.4.4 for PostgreSQL 15",
+          "command": ".\\pgextwin.exe download hypopg --source pgextwin --pg 15 --version 1.4.4"
+        },
+        {
+          "title": "List external extensions for PostgreSQL 18",
+          "command": ".\\pgextwin.exe list --category extensions --pg 18"
+        },
+        {
+          "title": "Search for vector packages for PostgreSQL 18",
+          "command": ".\\pgextwin.exe search vector --pg 18"
+        },
+        {
+          "title": "Download external extension ZIPs for PostgreSQL 18",
+          "command": ".\\pgextwin.exe download-all --source external --pg 18 --category extensions"
+        },
+        {
+          "title": "Download pgextwin ZIPs for PostgreSQL 18",
+          "command": ".\\pgextwin.exe download-all --pg 18"
+        },
+        {
+          "title": "Download the psqlODBC driver",
+          "command": ".\\pgextwin.exe download psqlodbc"
+        },
+        {
+          "title": "Download PostGIS for PostgreSQL 19",
+          "command": ".\\pgextwin.exe download postgis --pg 19"
+        },
+        {
+          "title": "Download pgRouting for PostgreSQL 19",
+          "command": ".\\pgextwin.exe download pgrouting --pg 19"
+        }
+      ],
+      "includedHeading": "Current external selection",
+      "includedFooter": "The CLI reads the current selection from the Catalog’s download records. No expiring approval is needed, and every downloaded file is verified against its pinned SHA-256 and size. Downloads also work on machines without PostgreSQL installed.",
+      "flowEyebrow": "Three steps to download",
+      "flowHeading": "Three steps to download",
+      "flowSteps": [
+        {
+          "title": "1. Download pgextwin.exe",
+          "bodyHtml": "Use the download button above and save the EXE in your preferred folder."
+        },
+        {
+          "title": "2. Run a command",
+          "bodyHtml": "Open PowerShell in that folder. Use <code>download</code> with the item name and add <code>--version</code> if you need a specific external release. Use <code>download-all</code> for a bulk selection. Set <code>--pg</code> to your PostgreSQL major version."
+        },
+        {
+          "title": "3. Verify your ZIP",
+          "bodyHtml": "Check the ZIP's SHA-256, then follow the provider's installation instructions."
+        }
+      ],
+      "checksumHeading": "ZIP verification example",
+      "checksumText": "Replace the example file name with the downloaded ZIP and compare the SHA-256 with the download information or provider's published checksum.",
+      "verifyHeading": "Advanced local verification",
+      "verifyBlocks": [
+        {
+          "descriptionHtml": "<code>verify external</code> checks local provider ZIPs against a review ledger, including SHA-256, size, and ZIP structure.",
+          "command": ".\\pgextwin.exe verify external --ledger <file> --input-dir <dir> --pg <major|all>"
+        },
+        {
+          "descriptionHtml": "<code>verify report</code> authenticates a signed report for one extension using independently pinned local inputs.",
+          "command": ".\\pgextwin.exe verify report <item> --pg <major> --catalog-dir <dir> --policy <file> --policy-sha256 <hex> --trusted-root-sha256 <hex> --p1-verifier-sha256 <hex> --report <file> --signature <file> --authority-key <pem> --authority-key-sha256 <hex>"
+        }
+      ],
+      "cautionHeading": "Before you use the downloads",
+      "cautionBody": "Third-party ZIPs come from their respective providers. Check PostgreSQL compatibility and licenses. Official PostgreSQL 14 support ended on {pg14EolDate}. The CLI is download-only; it does not install extensions or change settings.",
+      "releaseNotesHeading": "What's new",
+      "releaseNotesTitle": "CLI v{version}",
+      "backToCatalog": "Back to catalog"
+    },
+    "ja": {
+      "metaDescription": "PostgreSQL拡張機能・ツール・ドライバをWindows x64でダウンロード。CLI v{version}のダウンロード、コマンド例、SHA-256照合方法。",
+      "pageTitle": "pgextwin — Windows CLI v{version}",
+      "skipLink": "CLIのダウンロードへ",
+      "eyebrow": "pgextwin CLI",
+      "h1": "Windows CLI v{version}",
+      "lead": "PostgreSQL拡張機能のZIPに加えて、空間拡張・ツール・ドライバもWindowsでダウンロードできます。PostgreSQLが入っていない環境でも、ダウンロードだけなら使えます。",
+      "heroDescriptionHtml": "<code>list</code>や<code>search</code>で対象を探し、<code>download</code>で名前を指定して取得できます。まとめて取得する場合は<code>download-all</code>を使います。<code>--pg</code>でお使いのPostgreSQLのメジャーバージョンを指定してください。",
+      "navAriaLabel": "ページ内ナビゲーション",
+      "nav": {
+        "download": "CLIを入手",
+        "commands": "コマンドの使い方",
+        "checksum": "SHA-256を確認",
+        "catalog": "拡張機能一覧"
+      },
+      "downloadEyebrow": "Windows x64 · {releaseBadge} · {publishedDate}公開",
+      "downloadHeading": "CLIを入手",
+      "downloadExeLabel": "pgextwin.exe をダウンロード（{exeSizeMb}）",
+      "releaseLinkLabel": "GitHubでリリース情報を見る",
+      "checksumsLinkLabel": "SHA256SUMS.txt を表示",
+      "exeSizeLabel": "EXEサイズ：{exeBytesFormatted} バイト",
+      "exeShaLabel": "EXEのSHA-256：",
+      "afterDownloadText": "ダウンロード後、PowerShellで次のコマンドを実行してください。表示されたSHA-256が上記の値またはSHA256SUMS.txtの値と一致することを確認します。",
+      "commandsHeading": "コマンドの使い方",
+      "commandsIntroHtml": "<code>&lt; &gt;</code>で囲んだ箇所は実際の値に置き換えてください。<code>[ ]</code>で囲んだオプションは省略できます。",
+      "commandGroups": [
+        {
+          "heading": "一覧表示と検索",
+          "commands": [
+            ".\\pgextwin.exe list [--category <category>] [--pg <major|all>] [--format <text|json>]",
+            ".\\pgextwin.exe search <term> [--category <category>] [--pg <major|all>] [--format <text|json>]"
+          ],
+          "noteHtml": "カテゴリは<code>extensions</code>（拡張機能）、<code>spatial</code>（空間拡張）、<code>tools</code>（ツール）、<code>drivers</code>（ドライバー）です。"
+        },
+        {
+          "heading": "名前を指定して取得",
+          "commands": [
+            ".\\pgextwin.exe download <item> [--version <version>] [--pg <major|all>] [--category <category>] [--output <dir>]",
+            ".\\pgextwin.exe download <item> --source pgextwin --pg <major> [--version <version>] [--output <dir>]"
+          ],
+          "noteHtml": "既定では外部の提供元から取得します。<code>--version</code>でカタログに記録されたバージョンを指定できます（外部パッケージと、<code>--source pgextwin</code>で取得するpgextwin配布の拡張機能の両方）。"
+        },
+        {
+          "heading": "まとめて取得",
+          "commands": [
+            ".\\pgextwin.exe download-all --pg <major|all> [--output <dir>] [--latest|--fixed]",
+            ".\\pgextwin.exe download-all --source external [--pg <major|all>] [--category <category>] [--output <dir>]"
+          ],
+          "noteHtml": "既定ではpgextwinの最新の配布一覧を使います。過去の固定版を使うには<code>--fixed</code>を指定します。外部の配布物を取得するときに<code>--pg</code>を省略すると、カタログに記録されたすべてのPostgreSQLメジャーバージョンが対象になります。<code>--output</code>で既存のフォルダーを指定できます。省略時は作業中のフォルダーに保存します。詳細な実行ログを表示するには<code>--verbose</code>を付けます。"
+        },
+        {
+          "heading": "ヘルプとCLIのバージョンを表示",
+          "commands": [
+            ".\\pgextwin.exe --help",
+            ".\\pgextwin.exe --version"
+          ],
+          "noteHtml": null
+        }
+      ],
+      "examplesHeading": "コマンド例",
+      "examples": [
+        {
+          "title": "PostgreSQL 18用のpgvectorを取得",
+          "command": ".\\pgextwin.exe download pgvector --pg 18"
+        },
+        {
+          "title": "PostgreSQL 18用のpgvector 0.8.7を取得",
+          "command": ".\\pgextwin.exe download pgvector --version 0.8.7 --pg 18"
+        },
+        {
+          "title": "PostgreSQL 15用のHypoPG 1.4.4を取得",
+          "command": ".\\pgextwin.exe download hypopg --source pgextwin --pg 15 --version 1.4.4"
+        },
+        {
+          "title": "PostgreSQL 18用の外部拡張機能を一覧表示",
+          "command": ".\\pgextwin.exe list --category extensions --pg 18"
+        },
+        {
+          "title": "PostgreSQL 18用のベクトル関連パッケージを検索",
+          "command": ".\\pgextwin.exe search vector --pg 18"
+        },
+        {
+          "title": "PostgreSQL 18用の外部拡張機能ZIPをまとめて取得",
+          "command": ".\\pgextwin.exe download-all --source external --pg 18 --category extensions"
+        },
+        {
+          "title": "PostgreSQL 18用のpgextwin配布ZIPをまとめて取得",
+          "command": ".\\pgextwin.exe download-all --pg 18"
+        },
+        {
+          "title": "psqlODBCドライバーを取得",
+          "command": ".\\pgextwin.exe download psqlodbc"
+        },
+        {
+          "title": "PostgreSQL 19用のPostGISを取得",
+          "command": ".\\pgextwin.exe download postgis --pg 19"
+        },
+        {
+          "title": "PostgreSQL 19用のpgRoutingを取得",
+          "command": ".\\pgextwin.exe download pgrouting --pg 19"
+        }
+      ],
+      "includedHeading": "現在の外部ダウンロード対象",
+      "includedFooter": "CLIはカタログの取得レコードから最新の対象一覧を読み込みます。期限付きの許可は不要で、取得したファイルはハッシュとサイズで照合します。PostgreSQLがインストールされていない環境でも、ダウンロードのみに使えます。",
+      "flowEyebrow": "使い方は3ステップ",
+      "flowHeading": "使い方は3ステップ",
+      "flowSteps": [
+        {
+          "title": "1. pgextwin.exeを取得",
+          "bodyHtml": "上のボタンからEXEをダウンロードし、使用するフォルダーに保存します。"
+        },
+        {
+          "title": "2. コマンドを実行",
+          "bodyHtml": "そのフォルダーでPowerShellを開きます。<code>download</code>に取得したい名前を指定します。外部配布物のバージョンを指定する場合は<code>--version</code>を付けます。まとめて取得する場合は<code>download-all</code>を使います。<code>--pg</code>でPostgreSQLのメジャーバージョンを指定します。"
+        },
+        {
+          "title": "3. ZIPを照合",
+          "bodyHtml": "取得したZIPのSHA-256を確認し、提供元の導入手順に従ってください。"
+        }
+      ],
+      "checksumHeading": "ZIPの照合例",
+      "checksumText": "実際のファイル名に置き換えて実行し、提供元やダウンロード結果のSHA-256と照合してください。",
+      "verifyHeading": "ローカルファイルの検証",
+      "verifyBlocks": [
+        {
+          "descriptionHtml": "<code>verify external</code>は、取得済みの外部ZIPをレビュー記録と照合し、SHA-256、ファイルサイズ、ZIPの構造を確認します。",
+          "command": ".\\pgextwin.exe verify external --ledger <file> --input-dir <dir> --pg <major|all>"
+        },
+        {
+          "descriptionHtml": "<code>verify report</code>は、別途確認したハッシュ値と手元のファイルを使って、拡張機能1件の署名付きレポートを認証します。",
+          "command": ".\\pgextwin.exe verify report <item> --pg <major> --catalog-dir <dir> --policy <file> --policy-sha256 <hex> --trusted-root-sha256 <hex> --p1-verifier-sha256 <hex> --report <file> --signature <file> --authority-key <pem> --authority-key-sha256 <hex>"
+        }
+      ],
+      "cautionHeading": "ご利用前の注意",
+      "cautionBody": "外部配布物は、それぞれの提供元が公開しています。対応するPostgreSQLバージョンとライセンスを確認してください。PostgreSQL 14の公式サポートは{pg14EolDate}に終了しました。CLIはダウンロード専用で、拡張機能のインストールや設定変更は行いません。",
+      "releaseNotesHeading": "リリースノート",
+      "releaseNotesTitle": "CLI v{version}",
+      "backToCatalog": "カタログへ戻る"
+    }
+  }
+}

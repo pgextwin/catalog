@@ -1,0 +1,58 @@
+{
+  "id": 453794527,
+  "tag_name": "cli-v0.6.0",
+  "name": "pgextwin CLI v0.6.0",
+  "html_url": "https://github.com/pgextwin/catalog/releases/tag/cli-v0.6.0",
+  "published_at": "2026-11-21T15:43:38Z",
+  "prerelease": true,
+  "draft": false,
+  "target_commitish": "561e1d3947c963d8fd919b9f8d7ef97aca66276f",
+  "tagCommit": "561e1d3947c963d8fd919b9f8d7ef97aca66276f",
+  "assets": [
+    {
+      "id": 776040166,
+      "name": "DOTNET-LICENSE.txt",
+      "size": 1139,
+      "digest": "sha256:d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "browser_download_url": "https://github.com/pgextwin/catalog/releases/download/cli-v0.6.0/DOTNET-LICENSE.txt",
+      "content_type": "application/octet-stream",
+      "state": "uploaded"
+    },
+    {
+      "id": 776040198,
+      "name": "DOTNET-THIRD-PARTY-NOTICES.txt",
+      "size": 93617,
+      "digest": "sha256:e3a241a6cf35167d82bf7e081de9641c59d10d2dbd8824409817bed31980d407",
+      "browser_download_url": "https://github.com/pgextwin/catalog/releases/download/cli-v0.6.0/DOTNET-THIRD-PARTY-NOTICES.txt",
+      "content_type": "application/octet-stream",
+      "state": "uploaded"
+    },
+    {
+      "id": 776040227,
+      "name": "pgextwin.exe",
+      "size": 13696554,
+      "digest": "sha256:0845a9838910ce362f39c07d005a09011c5237c4285d97d9b3afe036ce6dc371",
+      "browser_download_url": "https://github.com/pgextwin/catalog/releases/download/cli-v0.6.0/pgextwin.exe",
+      "content_type": "application/octet-stream",
+      "state": "uploaded"
+    },
+    {
+      "id": 776040292,
+      "name": "pgextwin.spdx.json",
+      "size": 8600,
+      "digest": "sha256:1370119b12068ec95ab19ec5fc32954a0c523ea49a712bd13673733b31dc03be",
+      "browser_download_url": "https://github.com/pgextwin/catalog/releases/download/cli-v0.6.0/pgextwin.spdx.json",
+      "content_type": "application/octet-stream",
+      "state": "uploaded"
+    },
+    {
+      "id": 776040364,
+      "name": "SHA256SUMS.txt",
+      "size": 350,
+      "digest": "sha256:c3a3fcf8daff949e7166eaa036add94f0156cf2df55bf2aea0829123b86de744",
+      "browser_download_url": "https://github.com/pgextwin/catalog/releases/download/cli-v0.6.0/SHA256SUMS.txt",
+      "content_type": "application/octet-stream",
+      "state": "uploaded"
+    }
+  ]
+}

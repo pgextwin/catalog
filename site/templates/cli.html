@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{metaDescription}}">
+  <title>{{pageTitle}}</title>
+  <link rel="canonical" href="{{siteBaseUrl}}{{lang}}/cli.html">
+  <link rel="alternate" hreflang="en" href="{{siteBaseUrl}}en/cli.html">
+  <link rel="alternate" hreflang="ja" href="{{siteBaseUrl}}ja/cli.html">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#download-heading">{{skipLink}}</a>
+  <header class="site-header"><div class="shell">
+    <nav class="language-nav" aria-label="{{navLanguageLabel}}">
+      {{languageNavHtml}}
+    </nav>
+    <p class="eyebrow">{{eyebrow}}</p>
+    <h1>{{h1}}</h1>
+    <p class="lead">{{lead}}</p>
+    <p class="cli-hero-description">{{heroDescriptionHtml}}</p>
+    <nav class="jump-nav" aria-label="{{navAriaLabel}}">
+      <a class="jump-nav-primary" href="#download-heading">{{navDownload}}</a>
+      <a href="#commands-heading">{{navCommands}}</a>
+      <a href="#checksum-heading">{{navChecksum}}</a>
+      <a href="./">{{navCatalog}}</a>
+    </nav>
+  </div></header>
+  <main class="shell cli-page">
+    <section class="cli-download" aria-labelledby="download-heading">
+      <p class="eyebrow">{{downloadEyebrow}}</p>
+      <h2 id="download-heading">{{downloadHeading}}</h2>
+      <div class="cli-download-actions">
+        <a class="download-link" href="{{exeUrl}}">{{downloadExeLabel}}</a>
+        <a href="{{releaseUrl}}">{{releaseLinkLabel}}</a>
+        <a href="{{checksumsUrl}}">{{checksumsLinkLabel}}</a>
+      </div>
+      <p class="cli-exe-size">{{exeSizeLabel}}</p>
+      <p class="cli-sha"><strong>{{exeShaLabel}}</strong><code>{{exeSha256}}</code></p>
+      <p>{{afterDownloadText}}</p>
+      <pre><code>Get-FileHash .\pgextwin.exe -Algorithm SHA256</code></pre>
+    </section>
+    <section aria-labelledby="commands-heading">
+      <h2 id="commands-heading">{{commandsHeading}}</h2>
+      <p>{{commandsIntroHtml}}</p>
+      {{commandGroupsHtml}}
+      <h3>{{examplesHeading}}</h3>
+      <div class="cli-command-list">
+        {{examplesHtml}}
+      </div>
+      <div class="cli-included">
+        <h3>{{includedHeading}}</h3>
+        <ul>{{includedItemsHtml}}</ul>
+        <p>{{includedFooter}}</p>
+      </div>
+    </section>
+    <section aria-labelledby="flow-heading">
+      <p class="eyebrow">{{flowEyebrow}}</p>
+      <h2 id="flow-heading">{{flowHeading}}</h2>
+      <ol class="cli-flow-steps">
+        {{flowStepsHtml}}
+      </ol>
+    </section>
+    <section class="info" aria-labelledby="checksum-heading">
+      <h2 id="checksum-heading">{{checksumHeading}}</h2>
+      <p>{{checksumText}}</p>
+      <pre><code>Get-FileHash .\downloaded-file.zip -Algorithm SHA256</code></pre>
+    </section>
+    <section aria-labelledby="verify-heading">
+      <h2 id="verify-heading">{{verifyHeading}}</h2>
+      {{verifyBlocksHtml}}
+    </section>
+    <section class="cli-caution" role="note" aria-labelledby="caution-heading">
+      <h2 id="caution-heading">{{cautionHeading}}</h2>
+      <p>{{cautionBody}}</p>
+    </section>
+    <section aria-labelledby="release-notes-heading">
+      <h2 id="release-notes-heading">{{releaseNotesHeading}}</h2>
+      <div class="cli-release-notes">
+        <article lang="{{lang}}" class="cli-note-block">
+          <h3>{{releaseNotesTitle}}</h3>
+          <p>{{releaseNotesBodyHtml}}</p>
+          <p><a href="{{releaseUrl}}">{{releaseLinkLabel}}</a></p>
+        </article>
+      </div>
+    </section>
+    <p class="cli-back"><a href="./">{{backToCatalog}}</a></p>
+  </main>
+</body>
+</html>

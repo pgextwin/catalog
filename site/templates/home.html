@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="{{lang}}" data-filters-url="../{{filtersFilename}}" data-generated-utc-date="{{effectiveDate}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{metaDescription}}">
+  <title>{{title}}</title>
+  <link rel="canonical" href="{{siteBaseUrl}}{{lang}}/">
+  <link rel="alternate" hreflang="en" href="{{siteBaseUrl}}en/">
+  <link rel="alternate" hreflang="ja" href="{{siteBaseUrl}}ja/">
+  <link rel="alternate" hreflang="x-default" href="{{siteBaseUrl}}">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#extensions-heading">{{skipToDownloads}}</a>
+  <header class="site-header">
+    <div class="shell">
+      <nav class="language-nav" aria-label="{{navLanguageLabel}}">{{languageNavHtml}}</nav>
+      <p class="eyebrow">{{heroEyebrow}}</p>
+      <h1>{{heroHeading}}</h1>
+      <p class="lead">{{heroLead}}</p>
+      <nav class="jump-nav" aria-label="{{jumpNavAria}}">
+        <a class="jump-nav-primary" href="#extensions-heading">{{jumpBrowseDownloads}}</a>
+        <a href="./cli.html">{{jumpCliLabel}}</a>
+        <a href="#landscape-heading">{{jumpLandscape}}</a>
+        <a href="#about-heading">{{jumpAbout}}</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="info quickstart" aria-labelledby="quickstart-heading">
+      <p class="eyebrow">{{quickstartEyebrow}}</p>
+      <h2 id="quickstart-heading">{{quickstartHeading}}</h2>
+      <ol class="quickstart-steps">
+        {{quickstartStepsHtml}}
+      </ol>
+    </section>
+
+    <section aria-labelledby="extensions-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">{{catalogEyebrow}}</p>
+          <h2 id="extensions-heading">{{catalogHeading}}</h2>
+        </div>
+      </div>
+
+      <div class="catalog-hint" role="note"><strong>{{catalogHintTitle}}<span id="catalog-count">{{catalogCountText}}</span></strong><p>{{catalogHintBody}}</p></div>
+      <div class="filters" aria-label="{{filtersAria}}">
+        <div class="filter-field filter-field--search">
+          <label for="search">{{searchLabel}}</label>
+          <input id="search" name="search" type="search" autocomplete="off" placeholder="{{searchPlaceholder}}">
+        </div>
+        <div class="filter-field">
+          <label for="pg-filter">{{pgFilterLabel}}</label>
+          <select id="pg-filter" name="pg-filter">
+            <option value="">{{allPgVersions}}</option>
+            {{pgFilterOptionsHtml}}
+          </select>
+        </div>
+      </div>
+
+      <div id="status" class="status" role="status" aria-live="polite">{{catalogStatusText}}</div>
+      <p id="results-count" class="results-count" role="status" aria-live="polite">{{resultsCountText}}</p>
+      <div id="empty-state" class="empty-state" role="status" hidden>{{catalogEmptyFiltered}}</div>
+      <div id="extensions" class="extension-grid">
+        {{extensionsHtml}}
+      </div>
+    </section>
+
+    <section class="cli-home-teaser" aria-labelledby="cli-home-heading">
+      {{cliHomeTeaserHtml}}
+    </section>
+
+    <section class="landscape-section" aria-labelledby="landscape-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="landscape-heading">{{landscapeHeading}}</h2>
+        </div>
+      </div>
+      <p>{{landscapeIntro}}</p>
+
+      <p class="landscape-disclaimer">{{landscapeDisclaimer}}</p>
+
+      <div class="filters landscape-filters" aria-label="{{landscapeFiltersAria}}">
+        <div class="filter-field">
+          <label for="landscape-search">{{landscapeSearchLabel}}</label>
+          <input id="landscape-search" type="search" autocomplete="off" placeholder="{{landscapeSearchPlaceholder}}">
+        </div>
+        <div class="filter-field">
+          <label for="landscape-filter">{{landscapeFilterLabel}}</label>
+          <select id="landscape-filter">
+            <option value="">{{landscapeFilterAll}}</option>
+            {{landscapeFilterGroupsHtml}}
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="landscape-source-filter">{{landscapeSourceFilterLabel}}</label>
+          <select id="landscape-source-filter">
+            <option value="">{{landscapeSourceAll}}</option>
+            {{landscapeSourceOptionsHtml}}
+          </select>
+        </div>
+      </div>
+      <div id="landscape-status" class="status" role="status" aria-live="polite">{{landscapeStatusText}}</div>
+      <p id="landscape-count" class="results-count" role="status" aria-live="polite">{{landscapeCountText}}</p>
+      <p id="landscape-empty" class="empty-state" hidden>{{landscapeEmptyFiltered}}</p>
+      <div id="landscape-grid" class="extension-grid">
+        {{landscapeGridHtml}}
+      </div>
+    </section>
+
+    <section class="info" aria-labelledby="lifecycle-heading">
+      <p class="eyebrow">{{lifecycleEyebrow}}</p>
+      <h2 id="lifecycle-heading">{{lifecycleHeading}}</h2>
+      <p>{{lifecycleBodyHtml}}</p>
+      <div id="lifecycle-notice" class="lifecycle-notice" aria-live="polite">
+        {{lifecycleNoticeHtml}}
+      </div>
+    </section>
+
+    <section class="info" aria-labelledby="integrity-heading">
+      <p class="eyebrow">{{integrityEyebrow}}</p>
+      <h2 id="integrity-heading">{{integrityHeading}}</h2>
+      <p>{{integrityBody}}</p>
+      <pre><code>Get-FileHash .\downloaded-file.zip -Algorithm SHA256</code></pre>
+    </section>
+
+    <section class="info" aria-labelledby="about-heading">
+      <p class="eyebrow">{{aboutEyebrow}}</p>
+      <h2 id="about-heading">{{aboutHeading}}</h2>
+      <p>{{aboutBody}}</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell">
+      <a href="https://github.com/pgextwin">{{footerGithub}}</a>
+      <a href="https://github.com/pgextwin/catalog">{{footerCatalog}}</a>
+      <a href="./cli.html">{{footerCli}}</a>
+      <section class="release-limitations" role="note" aria-labelledby="release-limitations-title">
+        <h2 id="release-limitations-title">{{releaseLimitationsTitle}}</h2>
+        <p>{{releaseLimitationsBody}}</p>
+      </section>
+    </div>
+  </footer>
+
+  <script src="../site.js" defer></script>
+</body>
+</html>
