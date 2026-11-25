@@ -47,7 +47,7 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                     "intakeClass": "distributed", "ledgerPath": "packages/pg_cron.json",
                 }],
             }
-            (root / "identities" / "index.candidate.json").write_text(json.dumps(base_idx), "utf-8")
+            (root / "index.json").write_text(json.dumps(base_idx), "utf-8")
             for name in ("pgtap", "pg_variables", "pg_store_plans"):
                 real_id = json.loads((ROOT / "identities" / f"{name}.json").read_text("utf-8"))
                 real_id["research"]["evidenceUrls"] = ["https://github.com/" + real_id["upstreamRepository"]]
@@ -58,7 +58,7 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                 cur = next(r for r in ledger["releases"] if r["releaseId"] == ledger["latestReleaseId"])
                 expected_release_url = f"https://github.com/pgextwin/{name}/releases/tag/{cur['releaseTag']}"
 
-                before_idx = (root / "identities" / "index.candidate.json").read_bytes()
+                before_idx = (root / "index.json").read_bytes()
                 before_id = id_path.read_bytes()
 
                 # Wrong ledger name fails closed.
@@ -70,7 +70,7 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                 with self.assertRaises(SystemExit) as rejected:
                     run_update(root, runner_tmp, name)
                 self.assertNotIn(rejected.exception.code, (None, 0))
-                self.assertEqual((root / "identities" / "index.candidate.json").read_bytes(), before_idx)
+                self.assertEqual((root / "index.json").read_bytes(), before_idx)
                 self.assertEqual(id_path.read_bytes(), before_id)
 
                 # Mismatched identityBlobSha fails closed.
@@ -81,27 +81,27 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                 with self.assertRaises(SystemExit) as rejected:
                     run_update(root, runner_tmp, name)
                 self.assertNotIn(rejected.exception.code, (None, 0))
-                self.assertEqual((root / "identities" / "index.candidate.json").read_bytes(), before_idx)
+                self.assertEqual((root / "index.json").read_bytes(), before_idx)
                 self.assertEqual(id_path.read_bytes(), before_id)
 
-                # Valid run updates identities/<name>.json and identities/index.candidate.json only.
+                # Valid run updates identities/<name>.json and index.json only.
                 (runner_tmp / "verified-catalog-record.json").write_text(
                     json.dumps({"identityBlobSha": blob_sha}), "utf-8"
                 )
                 run_update(root, runner_tmp, name)
                 updated_id = json.loads(id_path.read_text("utf-8"))
                 self.assertEqual(updated_id["research"]["evidenceUrls"][0], expected_release_url)
-                updated_idx = json.loads((root / "identities" / "index.candidate.json").read_text("utf-8"))
+                updated_idx = json.loads((root / "index.json").read_text("utf-8"))
                 self.assertIn(name, updated_idx["extensions"])
                 self.assertFalse((root / "extensions").exists())
                 self.assertFalse((root / "landscape").exists())
-                self.assertFalse((root / "index.json").exists())
+                self.assertFalse((root / "identities" / "index.candidate.json").exists())
 
-            before_idx = (root / "identities" / "index.candidate.json").read_bytes()
+            before_idx = (root / "index.json").read_bytes()
             with self.assertRaises(SystemExit) as rejected:
                 run_update(root, runner_tmp, "unregistered")
             self.assertNotIn(rejected.exception.code, (None, 0))
-            self.assertEqual((root / "identities" / "index.candidate.json").read_bytes(), before_idx)
+            self.assertEqual((root / "index.json").read_bytes(), before_idx)
 
     def test_schema_dependency_precedes_real_record_validation_without_duplicate_ci(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -156,6 +156,7 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn('LC_ALL=C sort', workflow)
         self.assertNotIn("extensions/", workflow)
         self.assertNotIn("landscape/", workflow)
+        self.assertNotIn("index.candidate.json", workflow)
         self.assertNotIn("gh pr merge", workflow)
 
 
@@ -189,7 +190,7 @@ class VerifiedReleaseWorkflowContractTests(unittest.TestCase):
                                 capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("identityBlobSha", script)
-        self.assertIn('git diff --cached --quiet -- identities/index.candidate.json', script)
+        self.assertIn('git diff --cached --quiet -- index.json', script)
         self.assertIn("LC_ALL=C sort", script)
 
 

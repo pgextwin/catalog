@@ -154,6 +154,7 @@ class CatalogChatRequestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             shutil.copytree(ROOT / "identities", root / "identities")
+            shutil.copy2(ROOT / "index.json", root / "index.json")
             (root / "packages").mkdir()
             # Existing update artifact: writes only packages/<name>.json, evidence, audit.json.
             (root / "packages" / "pg_cron.json").write_bytes((ROOT / "packages" / "pg_cron.json").read_bytes())
@@ -167,11 +168,11 @@ class CatalogChatRequestTests(unittest.TestCase):
                 ["audit.json", "packages/pg_cron.json", "verified-catalog-record.json"],
             )
 
-            # First-intake artifact: writes packages/<name>.json + identities/<name>.json + index.candidate.json + evidence.
-            idx = json.loads((root / "identities" / "index.candidate.json").read_text("utf-8"))
+            # First-intake artifact: writes packages/<name>.json + identities/<name>.json + index.json + evidence.
+            idx = json.loads((root / "index.json").read_text("utf-8"))
             idx["extensions"].remove("pgtap")
             idx["identities"] = [e for e in idx["identities"] if e["name"] != "pgtap"]
-            (root / "identities" / "index.candidate.json").write_text(json.dumps(idx), "utf-8")
+            (root / "index.json").write_text(json.dumps(idx), "utf-8")
             pgtap_id = json.loads((root / "identities" / "pgtap.json").read_text("utf-8"))
             pgtap_id["research"]["evidenceUrls"] = ["https://github.com/theory/pgtap"]
             (root / "identities" / "pgtap.json").write_text(json.dumps(pgtap_id), "utf-8")
@@ -190,8 +191,8 @@ class CatalogChatRequestTests(unittest.TestCase):
                 sorted(str(p.relative_to(first_out)) for p in first_out.rglob("*") if p.is_file()),
                 [
                     "audit.json",
-                    "identities/index.candidate.json",
                     "identities/pgtap.json",
+                    "index.json",
                     "packages/pgtap.json",
                     "verified-catalog-record.json",
                 ],

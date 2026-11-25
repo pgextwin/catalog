@@ -411,21 +411,25 @@ def project_distribution_from_identity(
     return derived
 
 
-def load_distributed_records(repo_root: Path, catalog_paths: dict) -> list[dict]:
+def _read_v3_index(repo_root: Path, catalog_paths: dict) -> dict:
     index = read_json(repo_root / catalog_paths["index"])
-    if index.get("schemaVersion") != 2 or not isinstance(index.get("extensions"), list):
-        raise ValueError("Invalid catalog index.json")
-    names = index["extensions"]
-    if names != sorted(set(names)) or not all(EXT_NAME_RE.fullmatch(n) for n in names):
-        raise ValueError("Catalog index extensions must be unique, sorted, and valid")
-
-    identities_index = read_json(repo_root / catalog_paths["identitiesIndex"])
     if (
-        type(identities_index) is not dict
-        or identities_index.get("schemaVersion") != 3
-        or identities_index.get("extensions") != names
+        type(index) is not dict
+        or index.get("schemaVersion") != 3
+        or index.get("identitiesDir") != catalog_paths["identitiesDir"]
+        or index.get("packagesDir") != catalog_paths["packagesDir"]
+        or not isinstance(index.get("extensions"), list)
+        or not isinstance(index.get("identities"), list)
     ):
-        raise ValueError("Invalid or mismatched identities index")
+        raise ValueError("Invalid catalog v3 index.json")
+    return index
+
+
+def load_distributed_records(repo_root: Path, catalog_paths: dict) -> list[dict]:
+    index = _read_v3_index(repo_root, catalog_paths)
+    names = index["extensions"]
+    if names != sorted(set(names)) or not all(isinstance(n, str) and EXT_NAME_RE.fullmatch(n) for n in names):
+        raise ValueError("Catalog index extensions must be unique, sorted, and valid")
 
     records: list[dict] = []
     pkg_dir = repo_root / catalog_paths["packagesDir"]
@@ -452,14 +456,7 @@ def load_distributed_records(repo_root: Path, catalog_paths: dict) -> list[dict]
 
 
 def load_landscape_registry(repo_root: Path, catalog_paths: dict) -> list[dict]:
-    identities_index = read_json(repo_root / catalog_paths["identitiesIndex"])
-    if (
-        type(identities_index) is not dict
-        or identities_index.get("schemaVersion") != 3
-        or not isinstance(identities_index.get("identities"), list)
-        or not isinstance(identities_index.get("extensions"), list)
-    ):
-        raise ValueError("Invalid identities candidate index")
+    identities_index = _read_v3_index(repo_root, catalog_paths)
 
     entries = identities_index["identities"]
     dist_names = identities_index["extensions"]

@@ -182,8 +182,8 @@ try
         return JsonSerializer.Serialize(payload);
     }
 
-    var candidateIndex = MakeCandidateIndex(["pg_cron", "pg_hint_plan"], DefaultIdentities());
-    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"), candidateIndex);
+    var v3Index = MakeCandidateIndex(["pg_cron", "pg_hint_plan"], DefaultIdentities());
+    File.WriteAllText(Path.Combine(v3Path, "index.json"), v3Index);
     File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"), MakeLedger("pg_cron", false));
     File.WriteAllText(Path.Combine(v3Path, "packages", "pg_hint_plan.json"), MakeLedger("pg_hint_plan", true, includeDefaults: true));
 
@@ -199,11 +199,11 @@ try
           cron.ReleaseTag == "v1.0-windows.1" && cron.Preload == "optional",
         "new-format latest release selected by latestReleaseId excluding unavailableMajors");
 
-    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"),
+    File.WriteAllText(Path.Combine(v3Path, "index.json"),
         MakeCandidateIndex(["pg_cron", "pg_cron"], DefaultIdentities()));
     Denies(() => CatalogReader.LoadLocal(v3Path), "new-format duplicated roster denied");
 
-    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"),
+    File.WriteAllText(Path.Combine(v3Path, "index.json"),
         MakeCandidateIndex(["pg_cron", "pg_hint_plan"],
         [
             new { name = "pg_cron", path = "identities/pg_cron.json", intakeClass = "research-only" },
@@ -211,7 +211,7 @@ try
         ]));
     Denies(() => CatalogReader.LoadLocal(v3Path), "new-format research-only roster member denied");
 
-    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"),
+    File.WriteAllText(Path.Combine(v3Path, "index.json"),
         MakeCandidateIndex(["pg_cron", "pg_hint_plan"],
         [
             new { name = "pg_cron", path = "identities/pg_cron.json", intakeClass = "distributed", ledgerPath = "extensions/pg_cron.json" },
@@ -219,7 +219,7 @@ try
         ]));
     Denies(() => CatalogReader.LoadLocal(v3Path), "new-format wrong ledgerPath denied");
 
-    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"), candidateIndex);
+    File.WriteAllText(Path.Combine(v3Path, "index.json"), v3Index);
     File.WriteAllText(Path.Combine(v3Path, "packages", "pg_cron.json"),
         MakeLedger("pg_cron", false, architecture: "arm64"));
     Denies(() => CatalogReader.LoadLocal(v3Path), "new-format wrong architecture denied");
@@ -244,6 +244,11 @@ try
     File.Delete(Path.Combine(v3Path, "packages", "pg_hint_plan.json"));
     Denies(() => CatalogReader.LoadLocal(v3Path), "new-format missing package ledger denied");
 
+    File.WriteAllText(Path.Combine(v3Path, "packages", "pg_hint_plan.json"), MakeLedger("pg_hint_plan", true, includeDefaults: true));
+    File.Delete(Path.Combine(v3Path, "index.json"));
+    File.WriteAllText(Path.Combine(v3Path, "identities", "index.candidate.json"), v3Index);
+    Denies(() => CatalogReader.LoadLocal(v3Path), "candidate-only index without root index.json denied");
+
     var emptyDir = Path.Combine(v3Path, "empty");
     Directory.CreateDirectory(emptyDir);
     Denies(() => CatalogReader.LoadLocal(emptyDir), "neither Catalog layout present denied");
@@ -251,23 +256,14 @@ try
 finally { Directory.Delete(v3Path, recursive: true); }
 
 // Check the actual checkout in CI (no network/cryptographic trust claims).
-if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "identities", "index.candidate.json")))
+if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
 {
-    var records = CatalogReader.LoadLocal(Directory.GetCurrentDirectory());
-    using var localIndex = StrictJson.Parse(File.ReadAllBytes(Path.Combine("identities", "index.candidate.json")));
-    Check(records.Count == localIndex.RootElement.GetProperty("extensions").GetArrayLength(),
-        "actual local Catalog contains exactly its indexed records (untrusted)");
-    using var feedCohort = StrictJson.Parse(File.ReadAllBytes("config/cli-feed-majors.json"));
-    var feedMajors = feedCohort.RootElement.GetProperty("postgresqlMajors").EnumerateArray()
-        .Select(major => major.GetString()).ToArray();
-    Check(feedMajors.Length > 0 && records.All(record =>
-        feedMajors.All(major => record.Versions.Any(version => version.Major == major))),
-        "actual local Catalog covers all configured feed majors");
-}
-else if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "index.json")))
-{
+    Check(!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "identities", "index.candidate.json")),
+        "actual local Catalog does not retain identities/index.candidate.json");
     var records = CatalogReader.LoadLocal(Directory.GetCurrentDirectory());
     using var localIndex = StrictJson.Parse(File.ReadAllBytes("index.json"));
+    Check(localIndex.RootElement.GetProperty("schemaVersion").GetInt32() == 3,
+        "actual local Catalog uses v3 root index.json");
     Check(records.Count == localIndex.RootElement.GetProperty("extensions").GetArrayLength(),
         "actual local Catalog contains exactly its indexed records (untrusted)");
     using var feedCohort = StrictJson.Parse(File.ReadAllBytes("config/cli-feed-majors.json"));

@@ -230,7 +230,7 @@ def main():
         event = os.environ.get("GITHUB_EVENT_NAME")
         require(event in ("schedule", "workflow_dispatch", "issue_comment"), "unsupported event")
         root = Path(args.catalog_root)
-        index = json.loads((root / "identities" / "index.candidate.json").read_text("utf-8"))
+        index = json.loads((root / "index.json").read_text("utf-8"))
         _validate_v3_index(index)
         records = {name: json.loads((root / package_ledger.DIRECTORY / (name + ".json")).read_text("utf-8"))
                    for name in index["extensions"]}

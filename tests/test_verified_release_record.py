@@ -342,7 +342,7 @@ class IdentityLedgerContractTests(unittest.TestCase):
     def test_identity_blob_sha_and_first_intake_projection_fail_closed(self):
         pgtap_id = json.loads((self.ROOT / "identities" / "pgtap.json").read_text("utf-8"))
         pgtap_ledger = package_ledger.read_record(self.ROOT / "packages" / "pgtap.json")
-        idx = json.loads((self.ROOT / "identities" / "index.candidate.json").read_text("utf-8"))
+        idx = json.loads((self.ROOT / "index.json").read_text("utf-8"))
         idx["extensions"].remove("pgtap")
         idx["identities"] = [e for e in idx["identities"] if e["name"] != "pgtap"]
         pre_id = copy.deepcopy(pgtap_id)
@@ -350,7 +350,7 @@ class IdentityLedgerContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "identities").mkdir()
-            (root / "identities" / "index.candidate.json").write_text(json.dumps(idx), "utf-8")
+            (root / "index.json").write_text(json.dumps(idx), "utf-8")
             id_path = root / "identities" / "pgtap.json"
             self.assertIsNone(identity_blob_sha(id_path))
             id_path.write_text(json.dumps(pre_id), "utf-8")
@@ -359,8 +359,8 @@ class IdentityLedgerContractTests(unittest.TestCase):
             projected = project_first_intake_files(
                 "pgtap", pgtap_ledger, expected_identity_blob_sha=blob_sha, root=root
             )
-            self.assertEqual(set(projected), {"identities/pgtap.json", "identities/index.candidate.json"})
-            self.assertIn("pgtap", projected["identities/index.candidate.json"]["extensions"])
+            self.assertEqual(set(projected), {"identities/pgtap.json", "index.json"})
+            self.assertIn("pgtap", projected["index.json"]["extensions"])
             self.assertTrue(
                 projected["identities/pgtap.json"]["research"]["evidenceUrls"][0].startswith(
                     "https://github.com/pgextwin/pgtap/releases/tag/"

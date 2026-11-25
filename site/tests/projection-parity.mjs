@@ -274,9 +274,14 @@ function main() {
 
   // Load raw Catalog sources
   const distIndex = readJson(join(repoRoot, inputs.catalogPaths.index));
-  const identitiesIndex = readJson(join(repoRoot, inputs.catalogPaths.identitiesIndex));
-  assert.equal(identitiesIndex.schemaVersion, 3, "Expected schemaVersion 3 on identities index");
-  assert.deepEqual(identitiesIndex.extensions, distIndex.extensions, "identities index extensions differ from index.json");
+  assert.equal(distIndex.schemaVersion, 3, "Expected schemaVersion 3 on index.json");
+  assert.equal(distIndex.identitiesDir, inputs.catalogPaths.identitiesDir, "identitiesDir mismatch");
+  assert.equal(distIndex.packagesDir, inputs.catalogPaths.packagesDir, "packagesDir mismatch");
+  const distributedEntryNames = distIndex.identities
+    .filter((entry) => entry.intakeClass === "distributed")
+    .map((entry) => entry.name)
+    .sort();
+  assert.deepEqual([...distIndex.extensions].sort(), distributedEntryNames, "extensions roster disagrees with identities");
   const directRecords = readJson(join(repoRoot, inputs.catalogPaths.externalDirectGet)).records;
   const standaloneRecords = readJson(join(repoRoot, inputs.catalogPaths.externalStandaloneGet)).records;
   const pgSnapBytes = readFileSync(join(repoRoot, inputs.postgresqlLifecycle.snapshotPath));
@@ -298,7 +303,7 @@ function main() {
       pkg,
     };
   });
-  const landscapeRegistry = identitiesIndex.identities.map((entry) => {
+  const landscapeRegistry = distIndex.identities.map((entry) => {
     assert.equal(entry.path, `${inputs.catalogPaths.identitiesDir}/${entry.name}.json`);
     const identity = readJson(join(repoRoot, inputs.catalogPaths.identitiesDir, `${entry.name}.json`));
     assert.equal(identity.intake.class, entry.intakeClass);
@@ -306,7 +311,7 @@ function main() {
   });
 
   // Expected Landscape displayed IDs (46)
-  const expectedLandscapeIds = new Set(identitiesIndex.identities.map((entry) => entry.name));
+  const expectedLandscapeIds = new Set(distIndex.identities.map((entry) => entry.name));
   for (const [name, dec] of Object.entries(decisionsCfg.decisions)) {
     if (dec.displayName) expectedLandscapeIds.add(name);
   }

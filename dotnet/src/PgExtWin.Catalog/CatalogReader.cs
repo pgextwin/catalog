@@ -21,22 +21,24 @@ public static class CatalogReader
     public static IReadOnlyList<CatalogEntry> LoadLocal(string directory)
     {
         var full = Path.GetFullPath(directory);
-        var candidateIndexPath = Path.Combine(full, "identities", "index.candidate.json");
-        if (File.Exists(candidateIndexPath))
-            return LoadIdentitiesAndLedgers(full, candidateIndexPath);
-        return LoadLegacyV2(full);
+        using var index = Read(Path.Combine(full, "index.json"));
+        var root = index.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            throw new InvalidDataException("Invalid Catalog index");
+        var version = Int(root, "schemaVersion");
+        if (version == 3)
+            return LoadIdentitiesAndLedgers(full, root);
+        if (version == 2)
+            return LoadLegacyV2(full, root);
+        throw new InvalidDataException("Unsupported Catalog schemaVersion");
     }
 
-    private static IReadOnlyList<CatalogEntry> LoadIdentitiesAndLedgers(string full, string candidateIndexPath)
+    private static IReadOnlyList<CatalogEntry> LoadIdentitiesAndLedgers(string full, JsonElement root)
     {
-        using var index = Read(candidateIndexPath);
-        var root = index.RootElement;
-        if (root.ValueKind != JsonValueKind.Object || Int(root, "schemaVersion") != 3)
-            throw new InvalidDataException("Catalog v3 required");
         if (String(root, "identitiesDir") != "identities" || String(root, "packagesDir") != "packages")
             throw new InvalidDataException("Invalid Catalog v3 directories");
         var ordered = ParseOrderedExtensions(root);
-        ValidateCandidateIdentities(root, ordered);
+        ValidateV3Identities(root, ordered);
         var pkgPath = Path.Combine(full, "packages");
         if (!Directory.Exists(pkgPath))
             throw new InvalidDataException("Catalog packages directory missing");
@@ -101,13 +103,10 @@ public static class CatalogReader
         return entries;
     }
 
-    private static IReadOnlyList<CatalogEntry> LoadLegacyV2(string full)
+    private static IReadOnlyList<CatalogEntry> LoadLegacyV2(string full, JsonElement root)
     {
         var extPath = Path.Combine(full, "extensions");
         if (!Directory.Exists(extPath)) throw new InvalidDataException("Catalog extensions directory missing");
-        using var index = Read(Path.Combine(full, "index.json"));
-        var root = index.RootElement;
-        if (Int(root, "schemaVersion") != 2) throw new InvalidDataException("Catalog v2 required");
         var ordered = ParseOrderedExtensions(root);
         var actual = Directory.EnumerateFiles(extPath, "*.json", SearchOption.TopDirectoryOnly)
             .Select(Path.GetFileNameWithoutExtension).Order(StringComparer.Ordinal).ToArray();
@@ -163,7 +162,7 @@ public static class CatalogReader
         return ordered;
     }
 
-    private static void ValidateCandidateIdentities(JsonElement root, IReadOnlyList<string> ordered)
+    private static void ValidateV3Identities(JsonElement root, IReadOnlyList<string> ordered)
     {
         var identities = root.GetProperty("identities");
         if (identities.ValueKind != JsonValueKind.Array)

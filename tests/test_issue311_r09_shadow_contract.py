@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import unittest
 
+from scripts import package_ledger
+
 ROOT=Path(__file__).resolve().parents[1]
 SHADOW=ROOT/"metadata/issue311-r09-shadow-nonpublishing.json"
 class PrivatePreview(unittest.TestCase):
@@ -11,7 +13,9 @@ class PrivatePreview(unittest.TestCase):
     def setUpClass(cls):
         cls.e=json.loads(SHADOW.read_text("utf8"))
         cls.index=json.loads((ROOT/"index.json").read_text("utf8"))
-        cls.record=json.loads((ROOT/"extensions/orafce.json").read_text("utf8"))
+        cls.record=package_ledger.website_record(
+            package_ledger.read_record(ROOT/"packages/orafce.json")
+        )
         cls.majors=json.loads((ROOT/"config/cli-feed-majors.json").read_text("utf8"))
     def test_exact_immutable_source(self):
         e=self.e;s=e["source"]
@@ -28,7 +32,7 @@ class PrivatePreview(unittest.TestCase):
         self.assertEqual(s["r09ArtifactId"],12989134273)
         self.assertEqual(s["r09ArtifactActualZipSha256"],"a6a9e5a02d45eb4dd71419726c8e1a55c701b9e4befa6935e7e3d7e8db698cb6")
     def test_historical_shadow_stays_inert_as_verified_catalog_advances(self):
-        self.assertEqual(self.index["schemaVersion"],2)
+        self.assertEqual(self.index["schemaVersion"],3)
         self.assertEqual(self.index["extensions"],sorted(set(self.index["extensions"])))
         self.assertIn("orafce",self.index["extensions"])
         # The R09 receipt is an immutable historical nonpublishing snapshot.

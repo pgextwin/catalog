@@ -20,12 +20,12 @@ import tempfile
 try:
     from scripts.verified_release_record import (
         Denied, FIRST_RELEASE_SOURCES, INTAKE_ALLOWED, identity_blob_sha,
-        project_first_intake_files, read_candidate_index, read_identity,
+        project_first_intake_files, read_identity, read_index_v3,
     )
 except ModuleNotFoundError:
     from verified_release_record import (
         Denied, FIRST_RELEASE_SOURCES, INTAKE_ALLOWED, identity_blob_sha,
-        project_first_intake_files, read_candidate_index, read_identity,
+        project_first_intake_files, read_identity, read_index_v3,
     )
 
 REPO = "pgextwin/catalog"
@@ -343,10 +343,10 @@ def eligible_existing_record_prs(selected):
 
     A signed first Release may generate a PR, but merging its identity/roster
     changes is not an automated operation. Check protected main, not PR code.
-    Fail closed if the protected candidate index, identity, and ledger disagree.
+    Fail closed if the protected v3 index, identity, and ledger disagree.
     """
     try:
-        index = read_candidate_index(Path("identities") / "index.candidate.json")
+        index = read_index_v3(Path("index.json"))
     except (Denied, OSError, ValueError, TypeError, KeyError) as exc:
         raise AutoMergeDenied("protected Catalog index missing or inconsistent: " + str(exc)) from exc
     names = index["extensions"]

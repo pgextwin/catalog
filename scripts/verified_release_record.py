@@ -179,12 +179,12 @@ def read_identity(path, *, expected_name=None):
     return doc
 
 
-def read_candidate_index(path):
-    """Read and strictly validate identities/index.candidate.json (schema v3)."""
+def read_index_v3(path):
+    """Read and strictly validate root index.json (schema v3)."""
     target = Path(path)
     require(
         target.is_file() and not target.is_symlink() and 0 < target.stat().st_size <= 262144,
-        "missing or oversized Catalog candidate v3 index",
+        "missing or oversized Catalog v3 index",
     )
     index = json.loads(target.read_text("utf-8"), object_pairs_hook=_unique_json_object)
     require(
@@ -193,7 +193,7 @@ def read_candidate_index(path):
         and type(index["schemaVersion"]) is int and index["schemaVersion"] == 3
         and index["identitiesDir"] == "identities"
         and index["packagesDir"] == package_ledger.DIRECTORY,
-        "invalid Catalog candidate v3 index schema",
+        "invalid Catalog v3 index schema",
     )
     extensions = index["extensions"]
     require(
@@ -203,27 +203,27 @@ def read_candidate_index(path):
         "invalid or duplicate Catalog distribution roster",
     )
     identities = index["identities"]
-    require(type(identities) is list and bool(identities), "invalid Catalog candidate v3 identities list")
+    require(type(identities) is list and bool(identities), "invalid Catalog v3 identities list")
     seen = set()
     distributed_entries = {}
     for entry in identities:
         require(
             type(entry) is dict and {"name", "path", "intakeClass"}.issubset(entry)
             and set(entry).issubset({"name", "path", "intakeClass", "ledgerPath"}),
-            "invalid Catalog candidate v3 identity entry",
+            "invalid Catalog v3 identity entry",
         )
         name = entry["name"]
         require(
             type(name) is str and _NEW_NAME.fullmatch(name) is not None and name not in seen
             and entry["path"] == f"identities/{name}.json"
             and entry["intakeClass"] in ("distributed", "research-only"),
-            "invalid or duplicate Catalog candidate v3 identity entry",
+            "invalid or duplicate Catalog v3 identity entry",
         )
         seen.add(name)
         if entry["intakeClass"] == "distributed":
             require(
                 entry.get("ledgerPath") == f"{package_ledger.DIRECTORY}/{name}.json",
-                "missing/invalid ledgerPath in Catalog candidate v3 index",
+                "missing/invalid ledgerPath in Catalog v3 index",
             )
             distributed_entries[name] = entry
         else:
@@ -231,53 +231,9 @@ def read_candidate_index(path):
     require(
         [entry["name"] for entry in identities] == sorted(seen)
         and set(distributed_entries) == set(extensions),
-        "Catalog candidate v3 index roster and identities disagree",
+        "Catalog v3 index roster and identities disagree",
     )
     return index
-
-
-def load_first_release_registry(path):
-    """Pure legacy parser retained only for out-of-scope build_identities.py until PR-3b."""
-    path = Path(path)
-    if not path.is_file() or path.is_symlink() or not 0 < path.stat().st_size <= 65536:
-        raise ValueError("missing or oversized protected first-Release manifest")
-    def unique(pairs):
-        out = {}
-        for key, value in pairs:
-            if key in out:
-                raise ValueError("duplicate protected first-Release manifest field")
-            out[key] = value
-        return out
-    doc = json.loads(path.read_text("utf-8"), object_pairs_hook=unique)
-    if (type(doc) is not dict or set(doc) != {"schemaVersion", "entries"}
-            or type(doc["schemaVersion"]) is not int or doc["schemaVersion"] != 1):
-        raise ValueError("invalid first-Release manifest schema")
-    entries = doc["entries"]
-    if type(entries) is not list or not 3 <= len(entries) <= 128 - len(ALLOWED):
-        raise ValueError("unsafe protected first-Release manifest size")
-    sources, metadata = {}, {}
-    for row in entries:
-        if type(row) is not dict or set(row) != {
-            "name", "upstreamRepository", "displayName", "description", "license"
-        }:
-            raise ValueError("invalid first-Release manifest entry schema")
-        name, upstream = row["name"], row["upstreamRepository"]
-        if (type(name) is not str or not _NEW_NAME.fullmatch(name)
-                or name in ALLOWED or name in sources or type(upstream) is not str
-                or not _NEW_UPSTREAM.fullmatch(upstream)):
-            raise ValueError("unregistered or duplicate first-Release identity")
-        for field in ("displayName", "description", "license"):
-            value = row[field]
-            if (type(value) is not str or not 1 <= len(value) <= 500
-                    or any(ord(c) < 32 for c in value)):
-                raise ValueError("unsafe first-Release display metadata")
-        sources[name] = upstream
-        metadata[name] = (row["displayName"], row["description"], row["license"])
-    if (list(sources) != sorted(sources)
-            or any(sources.get(name) != upstream
-                   for name, upstream in SEALED_FIRST_RELEASE_UPSTREAM.items())):
-        raise ValueError("historical first-Release sources changed or registry unsorted")
-    return sources, metadata
 
 
 def load_identities_intake(identities_dir):
@@ -287,8 +243,6 @@ def load_identities_intake(identities_dir):
         raise ValueError("missing or invalid Catalog identities directory")
     historical_sources, first_sources, first_meta, identities = {}, {}, {}, {}
     for entry in sorted(directory.iterdir()):
-        if entry.name == "index.candidate.json":
-            continue
         if entry.is_symlink() or not entry.is_file() or entry.suffix != ".json":
             raise ValueError("unexpected entry in Catalog identities directory: " + entry.name)
         stem = entry.stem
@@ -685,10 +639,10 @@ def map_verified_release(existing, release, ext, contract, assets, digests,
 
 
 def project_first_intake_files(name, ledger, *, expected_identity_blob_sha, root=Path(".")):
-    """Compute first-intake identities/<name>.json and identities/index.candidate.json updates.
+    """Compute first-intake identities/<name>.json and root index.json updates.
 
     Enforces that the protected identity blob on main matches expected_identity_blob_sha
-    from verification time (fail closed). Never reads index.json or landscape/**.
+    from verification time (fail closed). Never reads legacy extensions/ or landscape/**.
     """
     root = Path(root)
     require(isinstance(name, str) and name in FIRST_RELEASE_SOURCES,
@@ -738,7 +692,7 @@ def project_first_intake_files(name, ledger, *, expected_identity_blob_sha, root
         and isinstance(published_at, str) and len(published_at) >= 10,
         "missing independently verified public first-Release identity",
     )
-    index = read_candidate_index(root / "identities" / "index.candidate.json")
+    index = read_index_v3(root / "index.json")
     require(name not in index["extensions"],
             "first-intake index is not a protected unregistered source")
 
@@ -775,5 +729,5 @@ def project_first_intake_files(name, ledger, *, expected_identity_blob_sha, root
     updated_index["identities"] = [entries_by_name[n] for n in sorted(entries_by_name)]
     return {
         f"identities/{name}.json": updated_identity,
-        "identities/index.candidate.json": updated_index,
+        "index.json": updated_index,
     }

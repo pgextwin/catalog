@@ -5,19 +5,25 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from scripts import identity_records
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class PGroongaLandscapeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.record = json.loads((ROOT / "landscape/extensions/pgroonga.json").read_text(encoding="utf-8"))
-        cls.index = json.loads((ROOT / "landscape/index.json").read_text(encoding="utf-8"))
+        cls.identity = json.loads((ROOT / "identities/pgroonga.json").read_text(encoding="utf-8"))
+        cls.record = identity_records.project_landscape_v1(cls.identity)
+        cls.index = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))
         cls.schema = json.loads((ROOT / "schema/landscape-extension.schema.json").read_text(encoding="utf-8"))
         cls.validator = Draft202012Validator(cls.schema, format_checker=FormatChecker())
 
     def test_exact_landscape_entry_and_schema(self):
-        self.assertEqual(self.index["extensions"].count("pgroonga"), 1)
+        entries = [item for item in self.index["identities"] if item["name"] == "pgroonga"]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["intakeClass"], "research-only")
+        self.assertNotIn("pgroonga", self.index["extensions"])
         self.assertEqual(self.record["name"], "pgroonga")
         self.assertEqual(list(self.validator.iter_errors(self.record)), [])
 

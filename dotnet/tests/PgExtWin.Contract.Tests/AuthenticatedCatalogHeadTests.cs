@@ -12,6 +12,7 @@ internal static class AuthenticatedCatalogHeadTests
         public bool Signed = true;
         public bool CiSuccess = true;
         public bool MutateHead = false;
+        public bool LegacyV2Index = false;
         public bool BadRecord = false;
         public bool BadIdentity = false;
         public bool ResearchOnlyIdentity = false;
@@ -136,35 +137,46 @@ internal static class AuthenticatedCatalogHeadTests
                         { schemaVersion = 1, postgresqlMajors = Majors, optionalPostgresqlMajor = "19" })
                     : JsonSerializer.Serialize(new { schemaVersion = 1, postgresqlMajors = Majors });
             }
-            else if (path == "/pgextwin/catalog/" + Head + "/identities/index.candidate.json")
+            else if (path == "/pgextwin/catalog/" + Head + "/index.json")
             {
-                var identityEntries = Inventory
-                    .Distinct(StringComparer.Ordinal)
-                    .Select(n => (object)new
-                    {
-                        name = n,
-                        path = "identities/" + n + ".json",
-                        intakeClass = "distributed",
-                        ledgerPath = "packages/" + n + ".json"
-                    })
-                    .ToList();
-                if (RosterOverride is null)
+                if (LegacyV2Index)
                 {
-                    identityEntries.Add(new
+                    body = JsonSerializer.Serialize(new
                     {
-                        name = "postgis",
-                        path = "identities/postgis.json",
-                        intakeClass = "research-only"
+                        schemaVersion = 2,
+                        extensions = Inventory
                     });
                 }
-                body = JsonSerializer.Serialize(new
+                else
                 {
-                    schemaVersion = 3,
-                    identitiesDir = "identities",
-                    packagesDir = "packages",
-                    extensions = Inventory,
-                    identities = identityEntries
-                });
+                    var identityEntries = Inventory
+                        .Distinct(StringComparer.Ordinal)
+                        .Select(n => (object)new
+                        {
+                            name = n,
+                            path = "identities/" + n + ".json",
+                            intakeClass = "distributed",
+                            ledgerPath = "packages/" + n + ".json"
+                        })
+                        .ToList();
+                    if (RosterOverride is null)
+                    {
+                        identityEntries.Add(new
+                        {
+                            name = "postgis",
+                            path = "identities/postgis.json",
+                            intakeClass = "research-only"
+                        });
+                    }
+                    body = JsonSerializer.Serialize(new
+                    {
+                        schemaVersion = 3,
+                        identitiesDir = "identities",
+                        packagesDir = "packages",
+                        extensions = Inventory,
+                        identities = identityEntries
+                    });
+                }
             }
             else if (path.StartsWith("/pgextwin/catalog/" + Head + "/identities/", StringComparison.Ordinal))
             {
@@ -271,8 +283,8 @@ internal static class AuthenticatedCatalogHeadTests
                 new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/config/cli-feed-majors.json")),
             "raw allowlist permits config/cli-feed-majors.json");
         check(AuthenticatedCatalogHead.IsApprovedCatalogUri(
-                new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/identities/index.candidate.json")),
-            "raw allowlist permits identities/index.candidate.json");
+                new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/index.json")),
+            "raw allowlist permits root index.json");
         check(AuthenticatedCatalogHead.IsApprovedCatalogUri(
                 new Uri($"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/identities/pg_cron.json")),
             "raw allowlist permits identities/<name>.json");
@@ -281,10 +293,11 @@ internal static class AuthenticatedCatalogHeadTests
             "raw allowlist permits packages/<name>.json");
         foreach (var deniedRaw in new[]
         {
-            $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/index.json",
+            $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/identities/index.candidate.json",
             $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/extensions/pg_cron.json",
             $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/packages/index.candidate.json",
             $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/landscape/index.json",
+            "https://raw.githubusercontent.com/pgextwin/catalog/main/index.json",
             "https://raw.githubusercontent.com/pgextwin/catalog/main/identities/index.candidate.json",
             $"http://raw.githubusercontent.com/pgextwin/catalog/{Head}/packages/pg_cron.json",
             $"https://raw.githubusercontent.com/pgextwin/catalog/{Head}/identities/../secrets.json"
@@ -304,19 +317,19 @@ internal static class AuthenticatedCatalogHeadTests
                 check(session.Commit == Head, "latest immutable commit selected");
                 check(File.Exists(Path.Combine(session.CatalogPath, "config", "cli-feed-majors.json")),
                     "exact immutable feed cohort fetched");
-                check(File.Exists(Path.Combine(session.CatalogPath, "identities", "index.candidate.json")),
-                    "exact immutable candidate index fetched");
+                check(File.Exists(Path.Combine(session.CatalogPath, "index.json")),
+                    "exact immutable v3 root index fetched");
                 check(File.Exists(Path.Combine(session.CatalogPath, "identities", "pg_cron.json")),
                     "exact immutable Catalog identity fetched");
                 check(File.Exists(Path.Combine(session.CatalogPath, "packages", "pg_cron.json")),
                     "exact immutable Catalog package ledger fetched");
                 check(!Directory.Exists(Path.Combine(session.CatalogPath, "extensions")) &&
-                      !File.Exists(Path.Combine(session.CatalogPath, "index.json")),
-                    "authenticated head session excludes legacy v2 files");
+                      !File.Exists(Path.Combine(session.CatalogPath, "identities", "index.candidate.json")),
+                    "authenticated head session excludes legacy v2 extensions and candidate index");
                 check(fixture.RequestedRawPaths.All(p =>
-                    !p.EndsWith("/index.json", StringComparison.Ordinal) &&
+                    !p.Contains("index.candidate", StringComparison.Ordinal) &&
                     !p.Contains("/extensions/", StringComparison.Ordinal)),
-                    "authenticated head fetches only new-format raw paths");
+                    "authenticated head fetches only formalized v3 raw paths");
                 check(fixture.HeadReads == 2, "latest head verified before and after");
                 var latest = await AuthenticatedLatestReleasePins.ResolveAsync(session, "all", fixture);
                 check(latest.Count == 70, "latest 14x5 release asset mapping");
@@ -424,7 +437,7 @@ internal static class AuthenticatedCatalogHeadTests
             }
             check(Directory.GetFileSystemEntries(parent).Length == 0,
                 "latest verified snapshot disposed without leftovers");
-            foreach (var fault in new[] { "branch", "signature", "ci", "race", "record", "identity", "research-only", "403" })
+            foreach (var fault in new[] { "branch", "signature", "ci", "race", "legacy-v2-index", "record", "identity", "research-only", "403" })
             {
                 using var fixture = new FixtureHandler
                 {
@@ -432,6 +445,7 @@ internal static class AuthenticatedCatalogHeadTests
                     Signed = fault != "signature",
                     CiSuccess = fault != "ci",
                     MutateHead = fault == "race",
+                    LegacyV2Index = fault == "legacy-v2-index",
                     BadRecord = fault == "record",
                     BadIdentity = fault == "identity",
                     ResearchOnlyIdentity = fault == "research-only",

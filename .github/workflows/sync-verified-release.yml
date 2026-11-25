@@ -115,7 +115,7 @@ jobs:
           else
             echo "base_identity_sha=MISSING" >> "$GITHUB_OUTPUT"
           fi
-          echo "base_index_sha=$(git hash-object identities/index.candidate.json)" >> "$GITHUB_OUTPUT"
+          echo "base_index_sha=$(git hash-object index.json)" >> "$GITHUB_OUTPUT"
           python scripts/verify_signed_fleet_release.py \
             --extension "$EXTENSION" --release-tag "$RELEASE_TAG" \
             --record-output "packages/$EXTENSION.json" \
@@ -133,11 +133,11 @@ jobs:
           from scripts.package_ledger import json_bytes, read_record
           from scripts.verified_release_record import FIRST_RELEASE_SOURCES
           from scripts.verified_release_record import (
-              Denied, project_first_intake_files, read_candidate_index,
+              Denied, project_first_intake_files, read_index_v3,
           )
           name = os.environ["EXTENSION"]
-          index_path = Path("identities/index.candidate.json")
-          data = read_candidate_index(index_path)
+          index_path = Path("index.json")
+          data = read_index_v3(index_path)
           names = data["extensions"]
           if name not in names:
               if name not in FIRST_RELEASE_SOURCES:
@@ -191,10 +191,9 @@ jobs:
                 cp "identities/$EXTENSION.json" "$stage/identities/$EXTENSION.json"
               fi
             fi
-            actual_idx_sha="$(git hash-object identities/index.candidate.json)"
+            actual_idx_sha="$(git hash-object index.json)"
             if [[ "$actual_idx_sha" != "$BASE_INDEX_SHA" ]]; then
-              mkdir -p "$stage/identities"
-              cp identities/index.candidate.json "$stage/identities/index.candidate.json"
+              cp index.json "$stage/index.json"
             fi
           fi
       - name: Preserve immutable verification evidence (never a Release asset)
@@ -247,8 +246,8 @@ jobs:
             echo "::error::Catalog proposal branch already exists; do not overwrite or duplicate it."
             exit 1
           fi
-          if [[ "$(git hash-object identities/index.candidate.json)" != "$BASE_INDEX_SHA" ]]; then
-            echo "::error::Catalog candidate index changed after verification; refuse stale overwrite"
+          if [[ "$(git hash-object index.json)" != "$BASE_INDEX_SHA" ]]; then
+            echo "::error::Catalog v3 index changed after verification; refuse stale overwrite"
             exit 1
           fi
           if [[ "$BASE_LEDGER_SHA" == MISSING ]]; then
@@ -279,15 +278,15 @@ jobs:
             cp "$stage/identities/$EXTENSION.json" "identities/$EXTENSION.json"
             staged_candidates+=("identities/$EXTENSION.json")
           fi
-          if [[ -f "$stage/identities/index.candidate.json" ]]; then
+          if [[ -f "$stage/index.json" ]]; then
             if [[ "$BASE_LEDGER_SHA" != MISSING ]]; then
-              echo "::error::Existing-extension update must not modify identities/index.candidate.json"
+              echo "::error::Existing-extension update must not modify index.json"
               exit 1
             fi
-            cp "$stage/identities/index.candidate.json" "identities/index.candidate.json"
-            staged_candidates+=("identities/index.candidate.json")
+            cp "$stage/index.json" "index.json"
+            staged_candidates+=("index.json")
           elif [[ "$BASE_LEDGER_SHA" == MISSING ]]; then
-            echo "::error::First Catalog release requires updated identities/index.candidate.json"
+            echo "::error::First Catalog release requires updated index.json"
             exit 1
           fi
           git switch -c "$branch"
@@ -300,8 +299,8 @@ jobs:
             if [[ -f "$stage/identities/$EXTENSION.json" ]] && ! git diff --cached --quiet -- "identities/$EXTENSION.json"; then
               expected_paths+=("identities/$EXTENSION.json")
             fi
-            if ! git diff --cached --quiet -- identities/index.candidate.json; then
-              expected_paths+=("identities/index.candidate.json")
+            if ! git diff --cached --quiet -- index.json; then
+              expected_paths+=("index.json")
             fi
           fi
           expected="$(printf '%s\n' "${expected_paths[@]}" | LC_ALL=C sort)"

@@ -297,10 +297,8 @@ class CatalogV2ValidationTests(unittest.TestCase):
 
 class CatalogIdentitiesConsistencyTests(unittest.TestCase):
     def _copy_catalog(self, dest: Path) -> Path:
-        for directory in ("extensions", "packages", "landscape", "identities", "schema"):
+        for directory in ("packages", "identities", "schema"):
             shutil.copytree(ROOT / directory, dest / directory)
-        (dest / "config").mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ROOT / "config" / "first-release-registry.json", dest / "config" / "first-release-registry.json")
         shutil.copy2(ROOT / "index.json", dest / "index.json")
         return dest
 
@@ -327,30 +325,36 @@ class CatalogIdentitiesConsistencyTests(unittest.TestCase):
 
     def test_fails_when_description_or_override_is_altered(self):
         cases = (
-            ("pg_hint_plan.json", lambda doc: doc.update(description="Altered summary"), "description"),
+            ("pg_hint_plan.json", lambda doc: doc.update(description="Altered summary"), "description", True),
             (
                 "pg_hint_plan.json",
-                lambda doc: doc["research"].update(descriptionOverride="Altered override"),
+                lambda doc: doc["research"].update(descriptionOverride=doc["description"]),
                 "descriptionOverride",
+                False,
             ),
-            ("hypopg.json", lambda doc: doc.update(description="Altered hypopg summary"), "description"),
+            ("hypopg.json", lambda doc: doc.update(description="Altered hypopg summary"), "description", True),
         )
-        for filename, mutate, needle in cases:
+        for filename, mutate, needle, via_catalog in cases:
             with self.subTest(filename=filename, needle=needle), tempfile.TemporaryDirectory() as tmp:
                 root = self._copy_catalog(Path(tmp))
                 self._mutate_json(root / "identities" / filename, mutate)
-                errors = validate_catalog.validate_identities(root)
+                if via_catalog:
+                    errors, _ = validate_catalog.validate_catalog(verify_remote=False, root=root)
+                else:
+                    errors = validate_catalog.validate_identities(root)
                 self.assertTrue(any(needle in err for err in errors), errors)
 
     def test_fails_when_research_only_or_landscape_field_is_dropped_or_altered(self):
+        from scripts import validate_landscape
+
         cases = (
-            ("postgis.json", lambda doc: doc["research"].pop("notPlannedReasonJa"), "notPlannedReasonJa"),
-            ("http.json", lambda doc: doc["research"].pop("candidateRationale"), "candidateRationale"),
-            ("hypopg.json", lambda doc: doc["research"].pop("roadmap"), "roadmap"),
-            ("pgvector.json", lambda doc: doc["research"].pop("externalSourceRegistry"), "externalSourceRegistry"),
+            ("postgis.json", lambda doc: doc["research"].pop("notPlannedReason"), "not-planned reason"),
+            ("http.json", lambda doc: doc["research"].pop("candidateRationale"), "candidate rationale"),
+            ("hypopg.json", lambda doc: doc["research"].update(status="implemented"), "status"),
+            ("pgvector.json", lambda doc: doc["research"].update(externalSourceRegistry="../bad"), "externalSourceRegistry"),
             (
                 "pgroonga.json",
-                lambda doc: doc["research"]["windowsBinarySources"][0].update(notes="altered note"),
+                lambda doc: doc["research"].update(windowsBinarySources="bad"),
                 "windowsBinarySources",
             ),
         )
@@ -358,7 +362,7 @@ class CatalogIdentitiesConsistencyTests(unittest.TestCase):
             with self.subTest(filename=filename, needle=needle), tempfile.TemporaryDirectory() as tmp:
                 root = self._copy_catalog(Path(tmp))
                 self._mutate_json(root / "identities" / filename, mutate)
-                errors = validate_catalog.validate_identities(root)
+                errors = validate_catalog.validate_identities(root) + validate_landscape.validate_landscape(root)
                 self.assertTrue(any(needle in err for err in errors), errors)
 
     def test_fails_if_research_only_is_promoted_to_distribution(self):
@@ -387,7 +391,7 @@ class CatalogIdentitiesConsistencyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._copy_catalog(Path(tmp))
             self._mutate_json(
-                root / "identities" / "index.candidate.json",
+                root / "index.json",
                 lambda doc: doc["extensions"].append("http"),
             )
             errors = validate_catalog.validate_identities(root)
@@ -416,7 +420,7 @@ class CatalogIdentitiesConsistencyTests(unittest.TestCase):
             with self.subTest(filename=filename, needle=needle), tempfile.TemporaryDirectory() as tmp:
                 root = self._copy_catalog(Path(tmp))
                 self._mutate_json(root / "identities" / filename, mutate)
-                errors = validate_catalog.validate_identities(root)
+                errors, _ = validate_catalog.validate_catalog(verify_remote=False, root=root)
                 self.assertTrue(any(needle in err for err in errors), errors)
 
     def test_fails_on_missing_extra_stale_index_or_unmapped_extension_field(self):
@@ -435,20 +439,23 @@ class CatalogIdentitiesConsistencyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._copy_catalog(Path(tmp))
             self._mutate_json(
-                root / "identities" / "index.candidate.json",
+                root / "index.json",
                 lambda doc: doc.update(identities=doc["identities"][:-1]),
             )
             errors = validate_catalog.validate_identities(root)
-            self.assertTrue(any("index.candidate.json" in err for err in errors), errors)
+            self.assertTrue(any("index.json" in err for err in errors), errors)
 
         with tempfile.TemporaryDirectory() as tmp:
             root = self._copy_catalog(Path(tmp))
             self._mutate_json(
-                root / "extensions" / "hypopg.json",
-                lambda doc: doc.update(unmappedExtensionField="unexpected"),
+                root / "identities" / "hypopg.json",
+                lambda doc: doc.update(unmappedField="unexpected"),
             )
             errors = validate_catalog.validate_identities(root)
-            self.assertTrue(any("unmapped field" in err for err in errors), errors)
+            self.assertTrue(
+                any("unmappedField" in err or "Additional properties" in err for err in errors),
+                errors,
+            )
 
 
 class CatalogIdentitiesReaderTests(unittest.TestCase):
@@ -469,7 +476,6 @@ class CatalogIdentitiesReaderTests(unittest.TestCase):
             errors, count = validate_catalog.validate_catalog(
                 verify_remote=False,
                 root=root,
-                include_legacy_union_check=False,
             )
             self.assertEqual([], errors)
             self.assertEqual(26, count)
@@ -490,7 +496,6 @@ class CatalogIdentitiesReaderTests(unittest.TestCase):
                 errors, _ = validate_catalog.validate_catalog(
                     verify_remote=False,
                     root=root,
-                    include_legacy_union_check=False,
                 )
                 self.assertTrue(any(needle in err for err in errors), errors)
 
@@ -499,7 +504,7 @@ class CatalogIdentitiesReaderTests(unittest.TestCase):
             root = self._copy_identities_only_catalog(Path(tmp))
             (root / "identities" / "hypopg.json").unlink()
             errors, _ = validate_catalog.validate_catalog(
-                verify_remote=False, root=root, include_legacy_union_check=False
+                verify_remote=False, root=root
             )
             self.assertTrue(any("missing identity file" in err for err in errors), errors)
 
@@ -508,7 +513,7 @@ class CatalogIdentitiesReaderTests(unittest.TestCase):
             self._mutate_json(root / "index.json", lambda doc: doc["extensions"].remove("hypopg"))
             (root / "packages" / "hypopg.json").unlink()
             errors, _ = validate_catalog.validate_catalog(
-                verify_remote=False, root=root, include_legacy_union_check=False
+                verify_remote=False, root=root
             )
             self.assertTrue(any("not listed in index.json" in err for err in errors), errors)
 
@@ -520,7 +525,7 @@ class CatalogIdentitiesReaderTests(unittest.TestCase):
                 lambda doc: doc.update(extensions=sorted([*doc["extensions"], "http"])),
             )
             errors, _ = validate_catalog.validate_catalog(
-                verify_remote=False, root=root, include_legacy_union_check=False
+                verify_remote=False, root=root
             )
             self.assertTrue(any("intake.class" in err or "distributed" in err for err in errors), errors)
 

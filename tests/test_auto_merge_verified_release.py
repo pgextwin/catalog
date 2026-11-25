@@ -332,7 +332,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
         id_path = "identities/pgtap.json"
         valid_first = [{"filename": "packages/pgtap.json", "status": "added"},
                        {"filename": id_path, "status": "modified"},
-                       {"filename": "identities/index.candidate.json", "status": "modified"}]
+                       {"filename": "index.json", "status": "modified"}]
         for changed in (valid_first,
                         [{"filename": "packages/pgtap.json", "status": "added"}],
                         [{"filename": id_path, "status": "modified"}],
@@ -375,7 +375,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                     "name": n, "path": f"identities/{n}.json",
                     "intakeClass": "distributed", "ledgerPath": f"packages/{n}.json",
                 } for n in sorted(ext_names)]
-                (root / "identities" / "index.candidate.json").write_text(json.dumps({
+                (root / "index.json").write_text(json.dumps({
                     "schemaVersion": 3, "identitiesDir": "identities",
                     "packagesDir": "packages", "extensions": ext_names,
                     "identities": ident_entries,
@@ -430,7 +430,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
             id_path = root / "identities" / "pgtap.json"
             id_path.write_text(json.dumps(pgtap_id, indent=2) + "\n", encoding="utf-8")
             blob_sha = mod.identity_blob_sha(id_path)
-            (root / "identities" / "index.candidate.json").write_text(json.dumps({
+            (root / "index.json").write_text(json.dumps({
                 "schemaVersion": 3, "identitiesDir": "identities", "packagesDir": "packages",
                 "extensions": ["pg_cron"],
                 "identities": [{
@@ -444,8 +444,8 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                 os.chdir(root)
                 projected = mod.first_release_projection(
                     "pgtap", ledger, expected_identity_blob_sha=blob_sha)
-                self.assertEqual(set(projected), {"identities/pgtap.json", "identities/index.candidate.json"})
-                self.assertEqual(projected["identities/index.candidate.json"]["extensions"], ["pg_cron", "pgtap"])
+                self.assertEqual(set(projected), {"identities/pgtap.json", "index.json"})
+                self.assertEqual(projected["index.json"]["extensions"], ["pg_cron", "pgtap"])
                 self.assertIn(
                     "https://github.com/pgextwin/pgtap/releases/tag/v1.3.4-windows.2",
                     projected["identities/pgtap.json"]["research"]["evidenceUrls"],
@@ -467,7 +467,7 @@ class FleetSignedCatalogMerge(unittest.TestCase):
                 # Already indexed must fail.
                 id_path.write_text(json.dumps({**pgtap_id, "description": ledger["description"]}, indent=2) + "\n")
                 new_blob = mod.identity_blob_sha(id_path)
-                (root / "identities" / "index.candidate.json").write_text(json.dumps({
+                (root / "index.json").write_text(json.dumps({
                     "schemaVersion": 3, "identitiesDir": "identities", "packagesDir": "packages",
                     "extensions": ["pg_cron", "pgtap"],
                     "identities": [

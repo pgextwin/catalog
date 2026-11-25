@@ -5,6 +5,8 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from scripts import identity_records
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,12 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 class HttpWindowsResearchBoundaryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.entry = json.loads(
-            (ROOT / "landscape/extensions/http.json").read_text(encoding="utf-8")
+        cls.identity = json.loads(
+            (ROOT / "identities/http.json").read_text(encoding="utf-8")
         )
-        cls.landscape = json.loads(
-            (ROOT / "landscape/index.json").read_text(encoding="utf-8")
-        )
+        cls.entry = identity_records.project_landscape_v1(cls.identity)
         cls.catalog = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))
         cls.schema = json.loads(
             (ROOT / "schema/landscape-extension.schema.json").read_text(encoding="utf-8")
@@ -26,7 +26,11 @@ class HttpWindowsResearchBoundaryTests(unittest.TestCase):
     def test_research_entry_is_schema_valid_but_not_distributed(self):
         validator = Draft202012Validator(self.schema, format_checker=FormatChecker())
         self.assertEqual([], list(validator.iter_errors(self.entry)))
-        self.assertEqual(self.landscape["extensions"].count("http"), 1)
+        http_entries = [
+            item for item in self.catalog["identities"] if item["name"] == "http"
+        ]
+        self.assertEqual(len(http_entries), 1)
+        self.assertEqual(http_entries[0]["intakeClass"], "research-only")
         self.assertNotIn("http", self.catalog["extensions"])
         self.assertNotIn("pgextwinCatalogName", self.entry)
         self.assertEqual(self.entry["name"], "http")

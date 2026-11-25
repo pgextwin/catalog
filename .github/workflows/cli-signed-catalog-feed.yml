@@ -15,7 +15,6 @@ on:
       - "scripts/package_ledger.py"
       - "packages/*.json"
       - "index.json"
-      - "extensions/*.json"
       - "tests/test_cli_signed_feed.py"
       - ".github/workflows/cli-signed-catalog-feed.yml"
 

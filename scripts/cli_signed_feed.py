@@ -144,12 +144,59 @@ def declared_majors(root, *, first_supported=15):
 
 def catalog_names(root, directory):
     index = strict_object(source_bytes(root, "index.json").decode("utf-8"))
-    names = index["extensions"]
-    if index.get("schemaVersion") != 2 or not isinstance(names, list) or not 1 <= len(names) <= MAX_FLEET or (
-        any(not isinstance(n, str) or len(n) > 64 or not EXTENSION.fullmatch(n) for n in names) or
-        names != sorted(names) or len(names) != len(set(names)) or
-        sorted(p.stem for p in (root / directory).glob("*.json")) != names
+    schema_version = index.get("schemaVersion")
+    if type(schema_version) is not int or schema_version not in (2, 3):
+        raise ValueError("Catalog extension inventory incomplete")
+    names = index.get("extensions")
+    if (
+        not isinstance(names, list)
+        or not 1 <= len(names) <= MAX_FLEET
+        or any(not isinstance(n, str) or len(n) > 64 or not EXTENSION.fullmatch(n) for n in names)
+        or names != sorted(names)
+        or len(names) != len(set(names))
     ):
+        raise ValueError("Catalog extension inventory incomplete")
+    if schema_version == 3:
+        if (
+            set(index) != {"schemaVersion", "identitiesDir", "packagesDir", "extensions", "identities"}
+            or index.get("identitiesDir") != "identities"
+            or index.get("packagesDir") != ledger.DIRECTORY
+            or directory != ledger.DIRECTORY
+        ):
+            raise ValueError("Catalog extension inventory incomplete")
+        identities = index.get("identities")
+        if not isinstance(identities, list) or not identities:
+            raise ValueError("Catalog extension inventory incomplete")
+        seen = set()
+        distributed = []
+        for entry in identities:
+            if (
+                type(entry) is not dict
+                or not {"name", "path", "intakeClass"}.issubset(entry)
+                or not set(entry).issubset({"name", "path", "intakeClass", "ledgerPath"})
+            ):
+                raise ValueError("Catalog extension inventory incomplete")
+            name = entry["name"]
+            intake_class = entry["intakeClass"]
+            if (
+                not isinstance(name, str)
+                or len(name) > 64
+                or not EXTENSION.fullmatch(name)
+                or name in seen
+                or entry["path"] != f"identities/{name}.json"
+                or intake_class not in ("distributed", "research-only")
+            ):
+                raise ValueError("Catalog extension inventory incomplete")
+            seen.add(name)
+            if intake_class == "distributed":
+                if entry.get("ledgerPath") != f"{ledger.DIRECTORY}/{name}.json":
+                    raise ValueError("Catalog extension inventory incomplete")
+                distributed.append(name)
+            elif "ledgerPath" in entry:
+                raise ValueError("Catalog extension inventory incomplete")
+        if [entry["name"] for entry in identities] != sorted(seen) or distributed != names:
+            raise ValueError("Catalog extension inventory incomplete")
+    if sorted(p.stem for p in (root / directory).glob("*.json")) != names:
         raise ValueError("Catalog extension inventory incomplete")
     return names
 
