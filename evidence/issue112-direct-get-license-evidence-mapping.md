@@ -62,15 +62,19 @@ psqlODBC を1行として数える。経緯は「結果概要」を参照）
   原本は、オーナー決定 A（2026-11-26）により、インストーラが指定
   する公式ページから決定的に抽出した条文テキスト
   （`evidence/ms-vc14-redist-license-terms.txt`）で固定した。
+  その後、最終独立監査（Opus、2026-11-26）の指摘 F-1 により、当該
+  テキストは再頒布パッケージのエンドユーザー向けライセンス条項
+  （EULA）であると表示を正し、再頒布許諾の根拠連鎖（Visual Studio
+  2026 ライセンス条項 §7 Distributable Code と再頒布リスト）自体を
+  同じ決定 A の方法で取得・固定した（照合記録 §4 の F-1 追補）。
   実施記録は `evidence/issue112-standalone-get-license-verification.md`
   §4。これにより未決の残件は消滅した。
 
 ## 結果概要
 
 - direct-get.json: 24行中 **成立24・未決0**
-- standalone-get.json: 3行中 **成立3・未決0**（PgBouncer 1行と
-  psqlODBC 18.00.0006 の x64 / x86 2行。本対応表では psqlODBC を
-  1行として数える。経緯: PR4 時点では未決3。E3 PR5 で登録時相当の
+- standalone-get.json: 3レコード（対応表では2行）中 **成立2・未決0**（PgBouncer 1行と
+  psqlODBC 18.00.0006 の x64 / x86 2レコード＝対応表では1行。経緯: PR4 時点では未決3。E3 PR5 で登録時相当の
   原本照合を実施して成立へ移したが、再監査が未決と判定し、PR6 の
   深化でも配布条件の充足確認と一部部品の版・原本確定が残ったため
   未決に戻った。その後、オーナー決定（2026-11-26、K4 解釈 B）に
@@ -108,10 +112,10 @@ psqlODBC を1行として数える。経緯は「結果概要」を参照）
 | pg_crash | 0.3 | BSD-3-Clause | 17 | pg_crash-17-public-v0.3-1.zip（34325 B, sha256 808f56bd6c4b…） | direct-get.json | —（単体成果物） | 成立 | 2026-11-17 緩和レビュー（文書＋受領 JSON）: BSD-3-Clause を ACCEPT と判定し、正確な版のソースコミットを固定。受領 JSON のバイト数・SHA-256 が台帳行と完全一致（機械照合済み） |
 | pglogical | 2.4.8 | PostgreSQL | 18 | pglogical-2.4.8-pg18-w1-x64.zip（176460 B, sha256 1f69a4528b50…） | direct-get.json | —（単体成果物） | 成立 | 2026-11-17 緩和レビュー（文書＋受領 JSON）: PostgreSQL License を ACCEPT と判定し、正確な版のソース／生成元コミットを固定。受領 JSON のバイト数・SHA-256 が台帳行と完全一致（機械照合済み） |
 | pg_crash | 0.3 | BSD-3-Clause | 18 | pg_crash-18-public-v0.3-1.zip（34331 B, sha256 37b9dbb8e385…） | direct-get.json | —（単体成果物） | 成立 | 2026-11-17 緩和レビュー（文書＋受領 JSON）: BSD-3-Clause を ACCEPT と判定し、正確な版のソースコミットを固定。受領 JSON のバイト数・SHA-256 が台帳行と完全一致（機械照合済み） |
-| postgis | 3.6.2 | Multiple (PostGIS, pgRouting and bundled components) | 15 | postgis-bundle-pg15-3.6.2x64.zip（123986945 B, sha256 520c3fd7ebf9…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
-| postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 16 | postgis-bundle-pg16-3.7.0x64.zip（84037123 B, sha256 9fd299d661a0…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
-| postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 17 | postgis-bundle-pg17-3.7.0x64.zip（84044726 B, sha256 eceb7ed45276…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
-| postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 18 | postgis-bundle-pg18-3.7.0x64.zip（83739256 B, sha256 ac9e9486b3f9…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
+| postgis | 3.6.2 | Multiple (PostGIS, pgRouting and bundled components) | 15 | postgis-bundle-pg15-3.6.2x64.zip（123986945 B, sha256 520c3fd7ebf9…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群 | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
+| postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 16 | postgis-bundle-pg16-3.7.0x64.zip（84037123 B, sha256 9fd299d661a0…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群 | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
+| postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 17 | postgis-bundle-pg17-3.7.0x64.zip（84044726 B, sha256 eceb7ed45276…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群 | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
+| postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 18 | postgis-bundle-pg18-3.7.0x64.zip（83739256 B, sha256 ac9e9486b3f9…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群 | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
 | postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 19 | postgis-bundle-pg19-3.7.0x64.zip（83705586 B, sha256 5d5630aa0405…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（明細表は PG15–18 用のみ存在。PG19 は登録コミットの照合完了記録による） | 成立 | 登録コミット 92e508b（#491）: コミット本文に「登録前に同梱物全ての版別ライセンス照合を完了」と記録され、ZIP のバイト数・SHA-256 が台帳行と一致。制限: PG19 専用の同梱物別明細表は存在しない（PG15–18 の表を PG19 の明細として流用していない） |
 | pgbouncer | 1.26.1 | ISC | — | pgbouncer-1.26.1-windows-x86_64.zip（2540874 B, sha256 5d3fa0bc9bd4…） | standalone-get.json | pgbouncer 本体＋静的リンク部品（libevent・OpenSSL） | 成立 | E3 PR6 の深化記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、ZIP 内 COPYRIGHT が台帳ピンと一致し上流原本ともテキスト同一（CRLF 化のみ）。PR5 の「第三者依存なし」は誤りで、exe は libevent 2.1.13-stable と OpenSSL 3.6.5 を静的リンク（提供元の固定コミットのビルド定義と実バイナリで確定）。両部品の原本は版固定で対応付け、再配布許諾を確認した。Apache-2.0 文と libevent の表示が ZIP 内に存在しない点は上流配布物の配布形態の特性として記録し、オーナー決定（2026-11-26、K4 解釈 B）により成立（根拠は判定基準の K4 注記） |
-| psqlodbc | 18.00.0006 | LGPL-2.0-or-later | — | psqlodbc_x64.msi（4587520 B, sha256 8962543113df…）／psqlodbc_x86.msi（4087808 B, sha256 b5e3d749a148…） | standalone-get.json | MSI 内に libpq 18.6・OpenSSL 3.5.9・MSVC ランタイム 14.51.36247.0 を同梱 | 成立 | PR-1（2026-11-26）の部品単位照合記録 `evidence/issue112-standalone-get-license-verification.md` §4 と機械可読マニフェスト `evidence/issue112-standalone-get-component-pins.json`（`pin_upstream_originals.py --verify` 済み）: 両 MSI とも上流原本が台帳固定値と完全一致し、全部品の版・固定原本・再配布許諾を確定。libpq は REL_18_STABLE ブランチビルドのため REL_18_6 の COPYRIGHT で固定。MSVC ランタイムは版固定 VC_redist 本体とのペイロードバイト一致で同定し、条文テキストはオーナー決定 A によりインストーラ指定の公式ページから決定的抽出したテキストで固定。旧 13.02.0000 行は CVE 対象版等のため台帳から削除（引退注記は照合記録 §4） |
+| psqlodbc | 18.00.0006 | LGPL-2.0-or-later | — | psqlodbc_x64.msi（4587520 B, sha256 8962543113df…）／psqlodbc_x86.msi（4087808 B, sha256 b5e3d749a148…） | standalone-get.json | MSI 内に libpq 18.6・OpenSSL 3.5.9・MSVC ランタイム 14.51.36247.0 を同梱 | 成立 | PR-1（2026-11-26）の部品単位照合記録 `evidence/issue112-standalone-get-license-verification.md` §4 と機械可読マニフェスト `evidence/issue112-standalone-get-component-pins.json`（`pin_upstream_originals.py --verify` 済み）: 両 MSI とも上流原本が台帳固定値と完全一致し、全部品の版・固定原本・再配布許諾を確定。libpq は REL_18_STABLE ブランチビルドのため REL_18_6 の COPYRIGHT で固定。MSVC ランタイムは版固定 VC_redist 本体とのペイロードバイト一致で同定し、再頒布許諾は Visual Studio 2026 ライセンス条項 §7（Distributable Code）と再頒布リストの連鎖で確認して両文書をオーナー決定 A の方法で固定した（決定 A の条文テキスト自体は再頒布パッケージのエンドユーザー向けライセンス条項であり、最終独立監査 F-1 の指摘により表示を正した）。旧 13.02.0000 行は CVE 対象版等のため台帳から削除（引退注記は照合記録 §4） |

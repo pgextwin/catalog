@@ -23,7 +23,12 @@ PostGIS と psqlODBC の2行は固定原本の不足により解釈 B の根拠�
 `evidence/issue112-standalone-get-component-pins.json` に集約し、
 MSVC ランタイムの再頒布条件の固定原本はオーナー決定 A
 （2026-11-26）によりインストーラ指定の公式ページから決定的に
-抽出した条文テキストで固定した。項目4の対応付けは
+抽出した条文テキストで固定した。その後、最終独立監査（Opus、
+2026-11-26）の指摘 F-1 により、当該テキストは再頒布パッケージの
+エンドユーザー向けライセンス条項（EULA）であると表示を正し、
+再頒布許諾の根拠連鎖（Visual Studio 2026 ライセンス条項 §7 と
+再頒布リスト）自体を同じ方法で取得・固定した（照合記録 §4 の
+F-1 追補）。項目4の対応付けは
 成立26・未決0 となり、未決の残件は消滅した（下記）。
 対象: J05 決定（旧 external-11 署名 admission は更新せず、失効後は検証側の
 observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（終了条件7項目）と
@@ -160,6 +165,11 @@ observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（�
    （aka.ms/VCRedistLicense → visualstudio.microsoft.com の
    VS2026 VC++ v14 再頒布条項）から決定的に抽出した条文テキスト
    （`evidence/ms-vc14-redist-license-terms.txt`）で固定した。
+   なお当該テキストは再頒布パッケージの EULA であり、再頒布許諾の
+   根拠は VS 2026 ライセンス条項 §7（Distributable Code）と
+   再頒布リストの連鎖である（最終独立監査 F-1 の指摘による表示
+   是正と連鎖の固定を同日に実施した。照合記録 §4 の F-1 追補を
+   参照）。
    項目4の K4 対応付けの現行状態は **成立26・未決0** であり、
    未決の残件は消滅した。実施記録は照合記録
    `evidence/issue112-standalone-get-license-verification.md` §4。
@@ -200,9 +210,8 @@ observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（�
 対応表: `evidence/issue112-direct-get-license-evidence-mapping.md`
 
 - direct-get.json: 24行中 **成立24・未決0**
-- standalone-get.json: 3行中 **成立3・未決0**（PgBouncer 1行と
-  psqlODBC 18.00.0006 の x64 / x86 2行。対応表では psqlODBC を
-  1行として数える。E3 PR6 で深化した時点では PgBouncer のみ成立、
+- standalone-get.json: 3レコード（対応表では2行）中 **成立2・未決0**（PgBouncer 1行と
+  psqlODBC 18.00.0006 の x64 / x86 2レコード＝対応表では1行。E3 PR6 で深化した時点では PgBouncer のみ成立、
   psqlODBC は未決の残件だった。PostGIS 3.6.2（PG14）行は
   オーナー決定 D3（2026-11-26）により引退し、psqlODBC は PR-1
   （2026-11-26）で成立とした。下記）

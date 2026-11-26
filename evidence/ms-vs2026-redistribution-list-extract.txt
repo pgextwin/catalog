@@ -1,0 +1,21 @@
+Distributable Code for Visual Studio 2026
+Distributable Code Files for Visual Studio 2026 and later
+The following section is the "Distributable List" or the "REDIST.TXT" that is referenced in the "Distributable Code" section of the Microsoft Software License Terms for Visual Studio Enterprise, Visual Studio Professional, Visual Studio Community, and Visual Studio Build Tools ("the software"). If you have a validly licensed copy of such software, you may copy and distribute with your program the unmodified form of the files listed below, subject to the License Terms for the software.
+Important
+Files and components marked as "pre-release" or "preview" in the software are not licensed for redistribution.
+Visual C++ Runtime Files
+Subject to the License Terms for the software, you may copy and distribute the following files, unmodified, as a part of the installation package of your program:
+[VisualStudioFolder]\VC\Redist\MSVC\[version]\MergeModules\Microsoft_VC145_CRT_[arch].msm
+[VisualStudioFolder]\VC\Redist\MSVC\[version]\MergeModules\Microsoft_VC145_CXXAMP_[arch].msm
+[VisualStudioFolder]\VC\Redist\MSVC\[version]\MergeModules\Microsoft_VC145_MFCLOC_[arch].msm
+[VisualStudioFolder]\VC\Redist\MSVC\[version]\MergeModules\Microsoft_VC145_MFC_[arch].msm
+[VisualStudioFolder]\VC\Redist\MSVC\[version]\MergeModules\Microsoft_VC145_OpenMP_[arch].msm
+Subject to the License Terms for the software, you may copy and distribute with your program any of the files within the following folder and its subfolders except as noted below. You may not modify these files.
+[VisualStudioFolder]\VC\redist
+The same Visual C++ Runtime Redistributable package is available from Latest supported Visual C++ Redistributable downloads and Download Visual Studio Tools. Distribution of the Visual C++ Runtime Redistributable package, merge modules, and individual binaries obtained from those pages is limited to licensed Visual Studio users and is subject to its license terms.
+Note
+You may not distribute the contents of the following folders (please see List of Utilities and Build Tools for Visual Studio for allowed usage for development/testing purposes):
+[VisualStudioFolder]VC\Redist\MSVC\[version]\debug_nonredist
+[VisualStudioFolder]\VC\Redist\MSVC\[version]\onecore\debug_nonredist
+Subject to the License Terms for the software, you may copy and distribute the following files with your program in your program's application local folder or by deploying them into the Global Assembly Cache (GAC):
+[VisualStudioFolder]\VC\Tools\MSVC\[version]\atlmfc\lib\[arch]\mfcmifc80.dll

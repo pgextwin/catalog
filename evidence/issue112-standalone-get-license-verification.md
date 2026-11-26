@@ -32,8 +32,13 @@ PR7（#547）で3行ともいったん**成立**としたが、最終確認監�
 最終確認監査で不足とされた MSVC ランタイムの再頒布条件の固定原本は、
 オーナー決定 A（2026-11-26）により、インストーラが指定する公式
 ページから決定的に抽出した条文テキストで固定した。実施記録は §4。
-これにより未決の残件は消滅し、両台帳合計は 26行中 成立26・未決0 と
-なった。§3 は引退した 13.02.0000 の照合記録として保持する。
+その後、最終独立監査（Opus、2026-11-26）の指摘 F-1 により、決定 A の
+テキストは再頒布許諾そのものではなく、再頒布パッケージのエンド
+ユーザー向けライセンス条項（EULA）であると表示を正し、再頒布許諾の
+根拠連鎖（Visual Studio 2026 ライセンス条項 §7 Distributable Code と、
+それが指定する再頒布リスト）自体を同じ決定 A の方法で取得・固定した
+（§4 の F-1 追補）。これにより未決の残件は消滅し、両台帳合計は
+26行中 成立26・未決0 となった。§3 は引退した 13.02.0000 の照合記録として保持する。
 根拠: Established under owner decision 2026-11-26 (K4 interpretation B): component identification, pinned originals, and redistribution permission confirmed for each component license; license texts not reproduced inside upstream's distribution artifacts are recorded as a distribution-form characteristic of the upstream artifact.
 
 ## PR5 記録の訂正（事実誤り）
@@ -414,6 +419,84 @@ redistributionUnconfirmedCount = 0）。
   されていない。**x86 には vcruntime140_1.dll 自体が存在しない**
   （x86 の msvcp140.dll は VCRUNTIME140.dll のみを import する）。
 
+#### 最終独立監査 F-1 への追補（2026-11-26）
+
+最終独立監査（Opus）は、決定 A で固定したテキストについて次の指摘を
+した（F-1、major）。当該テキストは「MICROSOFT VISUAL C++ V14
+REDISTRIBUTABLE and RUNTIME」のエンドユーザー向けライセンス条項
+（EULA）であり、その許諾はインストールと使用のみで、SCOPE OF
+LICENSE はエンドユーザーによる配布を禁じており、Distributable Code
+の節は存在しない。したがって、これを「再頒布条件の固定原本」と
+表示するのは誤りであり、実際の再頒布許諾である再頒布リストは題名の
+引用のみで URL・取得記録がなく、同リストが従うべき Visual Studio
+ライセンス条項も同定・固定されていなかった。
+
+是正として、本記録とマニフェストの表示を次のとおり正した。
+
+- 決定 A のテキストは「再頒布パッケージの、インストーラが指定する
+  エンドユーザー向けライセンス条項（EULA）」— 部品の同一性と条項の
+  固定 — と表示する。再頒布条件の原本ではない。
+- EULA の配布禁止条項との整合: 当該条項は再頒布パッケージのエンド
+  ユーザー使用許諾者に対するもので、Visual Studio ライセンシー
+  （本件では上流 psqlODBC プロジェクト）の Distributable Code 上の
+  権利とは別のものである。再頒布許諾は下記の連鎖で成立する。
+  (1) Visual Studio 2026 ライセンス条項 §7「Distributable Code」は、
+  Distributable List（https://aka.ms/vs/18/redistribution）に載る
+  コードのオブジェクトコード形式のコピー・配布を許諾し、さらに
+  「You may permit distributors of your applications to copy and
+  distribute the Distributable Code as part of those applications.」
+  と第三者による配布も許諾する。§7 の Distribution Requirements
+  （主要機能の追加、配布先への保護条項の要求、Microsoft への補償）は
+  VS ライセンシー（上流）を拘束する条件である。
+  (2) 同リスト「Visual C++ Runtime Files」の節は「Subject to the
+  License Terms for the software, you may copy and distribute with
+  your program any of the files within the following folder and its
+  subfolders」と定めて `[VisualStudioFolder]\VC\redist` を挙げて
+  おり、同梱 DLL はそのフォルダツリーのファイルを無改変でアプリ
+  フォルダに配置したものである。
+  (3) pgextwin は上流のインストーラ自体を無改変で再頒布しており、
+  DLL は §7 が許諾する上流アプリケーションの一部として届く。
+- 連鎖の両文書を、決定 A と同じ方法（公式ページの決定的取得＋抽出
+  テキストの固定）で取得・固定した。取得記録（2026-11-26 20:32 JST
+  取得）:
+  - 再頒布リスト: 開始 URL https://aka.ms/vs/18/redistribution
+    → 301 → https://learn.microsoft.com/visualstudio/releases/vs18/redistribution
+    → 302 → https://learn.microsoft.com/en-us/visualstudio/releases/vs18/redistribution
+    → 301 → https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution
+    （200）。ページ全体は 48,465 B、SHA-256
+    `0a6dd952d5f9041384d9b8b9391c9e6ef1be9c67f4d466646a07937a27383708`。
+    抽出テキスト（ページ題名＋「Distributable Code Files for Visual
+    Studio 2026 and later」節の前文＋「Visual C++ Runtime Files」節
+    全文）は 2,574 B、SHA-256
+    `6e7d1d483db1b0981216b7144b2dabb10cbf9b232ef4ea9105b0b3a736d37fb8`。
+    写しを `evidence/ms-vs2026-redistribution-list-extract.txt` として
+    コミットした。抽出方法は `evidence/tools/capture_ms_redist.py`
+    （コミット済み、標準ライブラリのみ）。
+  - Visual Studio 2026 ライセンス条項: 公式ページ
+    https://visualstudio.microsoft.com/license-terms/vs2026-ga-pro-enterprise/
+    （https://aka.ms/VisualStudioLicenses が指定する条項インデックス
+    からのリンク。ページ全体は 237,501 B、SHA-256
+    `d1f309e9f252ec308284c27719023d9d08d291e524d85ca24b87755bc8c9cd92`）。
+    ページは条文を埋め込み文書として提示しており、その実体は
+    https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual_Studio_2026-License-Enterprise_Professional_ENU.docx
+    （67,523 B、SHA-256
+    `dd2ab92a7c2bb90dd509e16572707a34b13bc0bc09b9199d115f25594ac39053`、
+    リダイレクトなしの 200）。抽出テキスト（文書の同一性ヘッダ＋
+    §7 DISTRIBUTABLE CODE 全文）は 2,229 B、SHA-256
+    `ee9e5bd7c24aac5782e259451c29df20e5d6d26c258b77f2017397108ffbfc15`。
+    写しを `evidence/ms-vs2026-distributable-code-terms-extract.txt`
+    としてコミットした。抽出方法は
+    `evidence/tools/capture_ms_vs_terms.py`（コミット済み）。文書の
+    同一性は「MICROSOFT SOFTWARE LICENSE TERMS — MICROSOFT VISUAL
+    STUDIO ENTERPRISE 2026, VISUAL STUDIO PROFESSIONAL 2026, AND
+    TRIAL EDITION」「Last Updated: October 1, 2025」による。
+- 抽出の忠実度上の制限（F-6）: 両 DOCX 抽出とも自動採番
+  （word/numbering.xml）は再現されないため、箇条書きの番号・記号は
+  失われ、「this Section 8」「clause (ii)」のような相互参照は宙に
+  浮く。文言自体は完全である。決定 A の EULA 抽出スクリプト
+  （`evidence/tools/extract_ms_terms.py`、本追補でリポジトリへ
+  コミットした。F-5）も同じ制限を持つ。
+
 ### 部品ファイルと固定原本（マニフェスト再掲）
 
 #### psqlodbc_x64.msi の部品ファイル（全 22 ファイル中 PE 10 件）
@@ -447,6 +530,8 @@ redistributionUnconfirmedCount = 0）。
 | OpenSSL | https://raw.githubusercontent.com/openssl/openssl/45e844fa2a14ec92d146bd8f5778ac130b6625fb/LICENSE.txt | 10,175 | `7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a` |
 | Microsoft Visual C++ Runtime | https://download.visualstudio.microsoft.com/download/pr/ebdab8e5-1d7b-4d9f-a11b-cbb1720c3b12/843068991DAAA1F73AD9F6239BCE4D0F6A07A51F18C37EA2A867E9BECA71295C/VC_redist.x64.exe | 18,731,856 | `843068991daaa1f73ad9f6239bce4d0f6a07a51f18c37ea2a867e9beca71295c` |
 | Microsoft Visual C++ Runtime | https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/（抽出テキストのコミット済み写し: `evidence/ms-vc14-redist-license-terms.txt`） | 11,877 | `5169806e806b0ae92d8843298d7f83098117841df70a75d0dc42295ce13f7336` |
+| Microsoft Visual C++ Runtime | https://visualstudio.microsoft.com/license-terms/vs2026-ga-pro-enterprise/ §7 Distributable Code（抽出テキストのコミット済み写し: `evidence/ms-vs2026-distributable-code-terms-extract.txt`） | 2,229 | `ee9e5bd7c24aac5782e259451c29df20e5d6d26c258b77f2017397108ffbfc15` |
+| Microsoft Visual C++ Runtime | https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution「Visual C++ Runtime Files」（抽出テキストのコミット済み写し: `evidence/ms-vs2026-redistribution-list-extract.txt`） | 2,574 | `6e7d1d483db1b0981216b7144b2dabb10cbf9b232ef4ea9105b0b3a736d37fb8` |
 
 #### psqlodbc_x86.msi の部品ファイル（全 22 ファイル中 PE 10 件）
 
@@ -479,6 +564,37 @@ redistributionUnconfirmedCount = 0）。
 | OpenSSL | https://raw.githubusercontent.com/openssl/openssl/45e844fa2a14ec92d146bd8f5778ac130b6625fb/LICENSE.txt | 10,175 | `7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a` |
 | Microsoft Visual C++ Runtime | https://download.visualstudio.microsoft.com/download/pr/57eef8ae-a341-46c3-b0bc-c041027b54cd/F0BAB33A302B3CDB2E11113760D016F54FD3D2632C65BA7834FAC4F0ABD7F1A3/VC_redist.x86.exe | 6,941,536 | `f0bab33a302b3cdb2e11113760d016f54fd3d2632c65ba7834fac4f0abd7f1a3` |
 | Microsoft Visual C++ Runtime | https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/（抽出テキストのコミット済み写し: `evidence/ms-vc14-redist-license-terms.txt`） | 11,877 | `5169806e806b0ae92d8843298d7f83098117841df70a75d0dc42295ce13f7336` |
+| Microsoft Visual C++ Runtime | https://visualstudio.microsoft.com/license-terms/vs2026-ga-pro-enterprise/ §7 Distributable Code（抽出テキストのコミット済み写し: `evidence/ms-vs2026-distributable-code-terms-extract.txt`） | 2,229 | `ee9e5bd7c24aac5782e259451c29df20e5d6d26c258b77f2017397108ffbfc15` |
+| Microsoft Visual C++ Runtime | https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution「Visual C++ Runtime Files」（抽出テキストのコミット済み写し: `evidence/ms-vs2026-redistribution-list-extract.txt`） | 2,574 | `6e7d1d483db1b0981216b7144b2dabb10cbf9b232ef4ea9105b0b3a736d37fb8` |
+
+#### 両 MSI 共通の文書ファイルとインストーラ足場（F-8）
+
+File テーブル全22行のうち、コード部品に帰属しない残りは次の8件の
+文書ファイルであり、x64 / x86 の両 MSI にバイト同一で含まれる
+（マニフェストでは「psqlODBC documentation」部品として帰属させた。
+ドライバ本体と同じく上流 psqlODBC 自身の文書であり、同梱の LGPL
+条件の下で上流インストーラ内に無改変で含まれる）。
+
+| ファイル | バイト数 | SHA-256 |
+|---|---|---|
+| `README.txt` | 222 | `7fe72ed0793f02b61a21e711ebda0ea19889a2636d54eea647ecd9273e767861` |
+| `config-opt.html` | 7,794 | `c934b8dd1dbe642ae7a09bba714ffa52e69365f73318542be9684908b91120c5` |
+| `config.html` | 16,728 | `0506c66c60982d332f90e22137f0d88e73719903cc691992ca507dc1ebe1fbb8` |
+| `editConfiguration.jpg` | 65,220 | `61938d6aeac9237480c452bdbb2466ab2558e9444d3c68c76eb6484c18351ac6` |
+| `release-7.3.html` | 29,923 | `6d79dee32aebff9e16b5f2e1a826b2bd9a5b4362838550c378c25220779e0d61` |
+| `release.html` | 126,758 | `d318a149ec27b1f2ce78d33cc00af5db598f3eccbc1224080795fd7f88843d30` |
+| `unix-compilation.html` | 2,331 | `47557c888e295737fe6d6379dce4f47a6408afe8944f51a8c5ee56373459e1f5` |
+| `win32-compilation.html` | 9,986 | `86b3692b4ec74d39ef1aca0ec487695975cffaef3efe7a6ca378df96bbf59443` |
+
+インストーラ足場: 両 MSI の Binary テーブルにあるのは WixUI の
+ビットマップ／アイコンのストリーム6件（`WixUI_Bmp_Up`、
+`WixUI_Bmp_New`、`WixUI_Bmp_Banner`、`WixUI_Bmp_Dialog`、
+`WixUI_Ico_Info`、`WixUI_Ico_Exclam`）のみであり、CustomAction
+テーブルもカスタムアクション DLL も存在しない。これらは WiX
+Toolset が生成する標準ダイアログ資産で、上流 MSI の内部にのみ
+存在する足場であり、独立の配布部品ではない（マニフェストでは
+「Installer scaffolding (WiX Toolset WixUI assets)」部品として
+処分を明記した）。
 
 ### 配布条件と結論（psqlODBC 18.00.0006）
 
@@ -491,9 +607,13 @@ redistributionUnconfirmedCount = 0）。
   存在しない点は、上流配布物の配布形態の特性として記録する
   （K4 解釈 B）。
 - MSVC ランタイムは、版固定 VC_redist 本体のハッシュ固定とペイ
-  ロードのバイト一致で同定を確定し、条文テキストはオーナー決定 A
-  の方法で固定し、再頒布許諾は Microsoft 公式の再頒布リストで
-  確認した。
+  ロードのバイト一致で同定を確定した。再頒布許諾は、Visual Studio
+  2026 ライセンス条項 §7（Distributable Code）と、それが指定する
+  再頒布リスト「Visual C++ Runtime Files」の節の連鎖で確認し、両文書
+  とも決定 A の方法で取得・固定した。決定 A で固定した条文テキスト
+  自体は再頒布パッケージのエンドユーザー向けライセンス条項
+  （EULA）であり、部品の同一性・条項の固定として保持する
+  （F-1 追補を参照）。
 
 **結論: 成立**（オーナー決定 2026-11-26、K4 解釈 B、および条文固定に
 ついて同日のオーナー決定 A）。全部品について同定・原本固定・再配布
@@ -510,6 +630,28 @@ CVE-2026-120057..120067 の対象版であること、同梱 OpenSSL 1.1.1l が
 サポート終了済みであること、VS 2017 再頒布条件の固定原本が存在
 しないこと。旧行の照合記録は本記録 §3 とカタログコミット
 `7480a281` の時点の台帳に保存される（Git 履歴は書き換えない）。
+
+### 公開 E2E の実施記録（F-9）と CLI ロールアウトの受諾記録（F-2）
+
+公開取得 E2E（`issue112-external-public-get-e2e`）は、main の
+Validate 成功を契機に自動実行され、両 MSI レコードを含む公開経路の
+取得が実地に成功したことを記録する（最終独立監査 F-9 への対応）。
+
+- Run 45807636365（main `5ab788b`、PR #552 マージ後）: success
+- Run 45808080532（main `3dc1a27`、PR #553 マージ後）: success
+
+CLI ロールアウト（最終独立監査 F-2 への対応）: 2レコード化の前提
+である修正済み CLI v0.6.1 は、データ変更（PR #552）に先立って
+2026-11-26 19:52 JST に公開済みだったが、サイトの CLI ポインタ
+（`site/cli-release.json`）は cli-v0.6.0 を指したままだった。本追補
+PR でポインタを cli-v0.6.1 へ移した。PR #552 のマージ以降、
+CLI v0.6.0 以前は現行の standalone-get.json の解析で
+`InvalidDataException` により fail-closed する（standalone 取得に
+加え、外部項目の既定一覧表示とカテゴリ未指定の `download` も
+対象。不正なバイトが配信されることはない）。オーナーは、本追補 PR
+の承認（2026-11-26）をもって、この旧 CLI の失敗期間を受諾したもの
+として記録する。利用者は外部取得に CLI v0.6.1 以降が必要である
+（`docs/cli-authenticated-latest-catalog.md` に明記）。
 
 
 ## 対応表への反映
