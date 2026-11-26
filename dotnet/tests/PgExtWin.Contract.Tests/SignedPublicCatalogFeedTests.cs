@@ -114,6 +114,15 @@ internal static class SignedPublicCatalogFeedTests
         Reject("malformed PG19 digest is denied before PG15 selection");
         pg19["sha256"] = new string('b', 64);
 
+        // Consumer-side unknown majors: a package row for a major the
+        // signed cohort does not declare, and a request for such a major,
+        // are both rejected even though every other field is well-formed.
+        var pg20 = Package("wal2json", "20", "1.0", 30, new string('b', 64), Commit);
+        wal2jsonRows.Add(pg20);
+        Reject("signed v3 consumer rejects a package row for an undeclared PG20 major");
+        wal2jsonRows.Remove(pg20);
+        Reject("requesting an undeclared PG20 major is denied", "20");
+
         var hypopgReleases = extensions[0]!["releases"]!.AsArray();
         var latestHypopgRows = hypopgReleases[1]!["packages"]!.AsArray();
         var originalPg16 = latestHypopgRows[1]!;
@@ -236,6 +245,20 @@ internal static class SignedPublicCatalogFeedTests
         catch (InvalidDataException ex) when (ex.Message.Contains("Sigstore verification failed", StringComparison.Ordinal))
         { denied = true; }
         check(denied && handler.Remaining == 0, "invalid signature bundle fails before version selection");
+
+        // Post-publication tampering: the feed bytes no longer match the
+        // bundle that was issued for them. Identity fields and JSON shape
+        // stay intact, so only the Sigstore verification over the exact
+        // bytes can (and must) reject this before any pin is selected.
+        var tamperedFeed = JsonNode.Parse(optional)!.AsObject();
+        var tamperedPackage = tamperedFeed["extensions"]![0]!["releases"]![1]!["packages"]![0]!;
+        tamperedPackage["sha256"] = new string('e', 64);
+        QueuePair(JsonSerializer.SerializeToUtf8Bytes(tamperedFeed));
+        denied = false;
+        try { await SignedPublicCatalogFeed.AcquireAsync("15", handler: handler); }
+        catch (InvalidDataException ex) when (ex.Message.Contains("Sigstore verification failed", StringComparison.Ordinal))
+        { denied = true; }
+        check(denied && handler.Remaining == 0, "tampered published feed bytes fail Sigstore verification before selection");
 
     }
 
