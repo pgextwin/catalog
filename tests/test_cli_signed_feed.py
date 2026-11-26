@@ -539,6 +539,24 @@ gh() {
         with self.assertRaisesRegex(ValueError, "admission license evidence mismatch"):
             self.generate()
 
+    def test_history_rejects_license_evidence_swapped_from_another_version(self):
+        # Evidence that exists but belongs to a different version (the
+        # current v1 Release's LICENSE pin) is not the v0 package's
+        # version-specific license evidence, on either side of the record.
+        current_evidence = {"name": "PostgreSQL",
+                            "evidenceUrls": [f"https://github.com/pgextwin/hypopg/blob/{SHA}/LICENSE"]}
+        path, data = self.add_history()
+        data["releaseInventory"]["history"][0]["packages"][0]["license"] = deepcopy(current_evidence)
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "admission license evidence mismatch"):
+            self.generate()
+
+        path, data = self.add_history()
+        self.admissions[ADMISSION, "hypopg"]["releaseInventory"]["current"]["licensesByMajor"]["15"] = (
+            deepcopy(current_evidence))
+        with self.assertRaisesRegex(ValueError, "admission license evidence mismatch"):
+            self.generate()
+
     def test_legacy_history_checks_zip_digest_without_version_specific_license_record(self):
         self.add_history()
         record = self.admissions[ADMISSION, "hypopg"]

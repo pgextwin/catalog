@@ -120,6 +120,21 @@ class DirectGetIntakeTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         validate_intake(doc)
 
+    def test_license_url_must_be_the_release_tag_evidence(self):
+        # The license evidence must be the LICENSE of the very release the
+        # record pins: evidence of another version (or an unpinned commit)
+        # is a different version's license, not this asset's.
+        for url in (
+            "https://github.com/trickle-labs/pg-trickle/blob/v0.0.0/LICENSE",
+            "https://github.com/trickle-labs/pg-trickle/blob/v9.9.9/LICENSE",
+            "https://github.com/trickle-labs/pg-trickle/blob/" + "a" * 40 + "/LICENSE",
+        ):
+            with self.subTest(url=url):
+                doc = copy.deepcopy(self.data)
+                doc["records"][0]["licenseUrl"] = url
+                with self.assertRaises(ValueError):
+                    validate_intake(doc)
+
     def test_held_initial_sources_not_eligible(self):
         doc = copy.deepcopy(self.data)
         row = doc["records"][0]

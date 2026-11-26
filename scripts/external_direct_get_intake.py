@@ -107,8 +107,8 @@ def validate_intake(doc):
         require(type(row["licenseSpdx"]) is str
                 and len(row["licenseSpdx"]) >= 3
                 and type(row["licenseUrl"]) is str
-                and row["licenseUrl"].startswith("https://github.com/" + name + "/blob/")
-                and row["licenseUrl"].endswith("/LICENSE")
+                and row["licenseUrl"] ==
+                    "https://github.com/" + name + "/blob/" + tag + "/LICENSE"
                 and type(row["noticeTreatment"]) is str
                 and len(row["noticeTreatment"]) >= 60
                 and type(row["dependencyTreatment"]) is str
