@@ -4,7 +4,7 @@
  *
  * Independently reads raw Catalog inputs (index.json, packages/*.json,
  * identities/*, external/*, pinned postgresql.json, and
- * cli-v0.6.0 release snapshot) and verifies projection parity against the
+ * cli-v0.6.1 release snapshot) and verifies projection parity against the
  * statically generated site in --site.
  *
  * Writes evidence JSON to --output (default: <site>/../pages-projection-parity.json).

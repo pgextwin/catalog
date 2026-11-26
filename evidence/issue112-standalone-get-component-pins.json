@@ -15,7 +15,7 @@
       "unaccountedPeCount": 0,
       "unpinnedOriginalCount": 0,
       "redistributionUnconfirmedCount": 0,
-      "countsNote": "All counts are 0. The single formerly unpinned original - the Microsoft VC++ license-terms text (VC_redist 14.51.36247.0 contains NO embedded License.rtf; HyperlinkLicense bundle generation) - is pinned per owner decision A (2026-11-26) as the deterministically extracted text of the official terms document designated by the installer (aka.ms/VCRedistLicense -> visualstudio.microsoft.com VS2026 VC++ v14 redist terms), committed at evidence/ms-vc14-redist-license-terms.txt; see the Microsoft Visual C++ Runtime component's pinnedOriginals and pinningStatus.",
+      "countsNote": "All counts are 0. The single formerly unpinned original - the Microsoft VC++ license-terms text (VC_redist 14.51.36247.0 contains NO embedded License.rtf; HyperlinkLicense bundle generation) - is pinned per owner decision A (2026-11-26) as the deterministically extracted text of the official terms document designated by the installer (aka.ms/VCRedistLicense -> visualstudio.microsoft.com VS2026 VC++ v14 redist terms), committed at evidence/ms-vc14-redist-license-terms.txt; see the Microsoft Visual C++ Runtime component's pinnedOriginals and pinningStatus. Follow-up (Opus final audit F-1, 2026-11-26): the decision-A terms text is re-labeled as the component's installer-designated end-user license terms (EULA); the redistribution grant itself - the Visual Studio 2026 redistribution list and section 7 (Distributable Code) of the Visual Studio 2026 license terms - is now captured and pinned decision-A-style in the Microsoft Visual C++ Runtime component's pinnedOriginals. Counts unchanged (all 0).",
       "components": [
         {
           "component": "psqlODBC",
@@ -103,7 +103,7 @@
               "memberPath": "LicenseAgreementDlg/LicenseText (installer/lgpl.rtf)",
               "bytes": 48209,
               "sha256": "46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd",
-              "note": "Extracted in Step 1.2 to work/license-dialog-rtf.txt; GNU LGPL Version 2.1, February 1999 text. This is the in-artifact license notice evidence."
+              "note": "Extracted in Step 1.2 to work/license-dialog-rtf.txt (a non-repository working record in the Neon M3 residuals working cache; the pinned bytes are independently reproducible from the hash-pinned MSI itself, whose member this is); GNU LGPL Version 2.1, February 1999 text. This is the in-artifact license notice evidence."
             }
           ]
         },
@@ -183,12 +183,12 @@
           "linkType": "dynamic-dll",
           "version": "14.51.36247.0",
           "versionEvidence": "PE VS_VERSIONINFO FileVersion 14.51.36247.0 on both DLLs. Version mapping to the official redistributable: Microsoft's winget-pkgs manifest Microsoft.VCRedist.2015+.x64 version 14.51.36247.0 (an exact four-part match to the DLL FileVersion) gives the immutable download.visualstudio.microsoft.com URL below; the downloaded VC_redist.x64.exe itself carries FileVersion 14.51.36247.0 and its SHA-256 equals the manifest's InstallerSha256. DEFINITIVE PROOF: vcruntime140.dll and msvcp140.dll extracted from that exe's payload cabinets (vc_runtimeMinimum_x64 cab1.cab members vcruntime140.dll_amd64 / msvcp140.dll_amd64) are BYTE-IDENTICAL to the two DLLs bundled in the psqlODBC MSI (same byte sizes and SHA-256 values listed in artifactPaths). 14.51.x is the Visual Studio 2026 generation of the v14 redistributable (14.50.35719.0 = VS 2026 RTM generation; 14.51.36247.0 superseded by 14.52.37029.0). NOT bundled in the MSI: vcruntime140_1.dll (imported by msvcp140.dll and pgxalib.dll - a system VC++ Redistributable dependency, not distributed by this artifact; it IS present in the redist payload, 50,112 B, sha256 a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e) and concrt140.dll (absent from the MSI and not imported by any bundled binary).",
-          "license": "Microsoft Software License Terms - Visual C++ Redistributable (Distributable Code)",
+          "license": "Microsoft Visual C++ v14 Redistributable and Runtime - installer-designated end-user license terms (EULA); redistribution governed by the Visual Studio 2026 license terms, section 7 (Distributable Code) - see redistributionBasis",
           "redistributionPermitted": true,
-          "redistributionBasis": "Microsoft's official 'Visual Studio Redistribution' list for Visual Studio 2026 (the Distributable Code / REDIST list referenced by the VS license terms), 'Visual C++ Runtime Files' section, states: subject to the License Terms, you may copy and distribute with your program any of the files within [VisualStudioFolder]\\VC\\redist and its subfolders, unmodified (the two bundled DLLs are files of that folder tree, shipped unmodified in the app folder of the upstream MSI); the same section separately blesses unmodified distribution of the CRT merge modules (Microsoft_VC145_CRT_[arch].msm) as part of an installation package. Verified by reading the live list on 2026-11-26 (see pinningStatus for why this list itself could not be commit-pinned).",
+          "redistributionBasis": "Redistribution permission chain (pinned in pinnedOriginals; follow-up to the Opus final audit finding F-1, 2026-11-26): (1) The Visual Studio 2026 license terms (Microsoft Visual Studio Enterprise 2026 / Professional 2026), section 7 'Distributable Code', provide: 'You may copy and distribute the object code form of code listed on the Distributable List located at https://aka.ms/vs/18/redistribution', and separately permit third-party distribution: 'You may permit distributors of your applications to copy and distribute the Distributable Code as part of those applications.' Section 7's Distribution Requirements (add significant primary functionality; require distributors and external end users to agree to protective terms; indemnify Microsoft) bind the Visual Studio licensee who builds the application - here the upstream psqlODBC project, whose application is the driver itself. (2) The Distributable List so designated (Microsoft's official 'Visual Studio Redistribution' list for Visual Studio 2026, Microsoft Learn), 'Visual C++ Runtime Files' section, states: subject to the License Terms, you may copy and distribute with your program any of the files within [VisualStudioFolder]\\VC\\redist and its subfolders, unmodified (the two bundled DLLs are files of that folder tree, shipped unmodified in the app folder of the upstream MSI); the same section separately blesses unmodified distribution of the CRT merge modules (Microsoft_VC145_CRT_[arch].msm) as part of an installation package. (3) pgextwin redistributes upstream's own installer unchanged, so the DLLs reach end users inside the application whose distribution section 7 licenses, through the third-party-distribution permission in (1). The decision-A pinned text (evidence/ms-vc14-redist-license-terms.txt) is NOT this grant: it is the redistributable package's end-user license terms (EULA) - see the reconciliation in pinningStatus.",
           "inArtifactNoticePresent": false,
           "inArtifactNoticePaths": [],
-          "pinningStatus": "RESOLVED by owner decision A (2026-11-26). Factual record: Anchor 1 outer file pinned and hash-verified (below), but this version's VC_redist.x64.exe contains NO embedded License.rtf: the bundle uses WixStandardBootstrapperApplication.HyperlinkLicense (BurnManifest UX payload 'WixStandardBootstrapperApplication.HyperlinkLicense' = wixstdba.dll; theme control EulaHyperlink) and its en-US theme text reads 'The license terms for [WixBundleName] are available from https://aka.ms/VCRedistLicense'. A full byte scan found no '{\\rtf' anywhere in the exe or its payload MSIs (vc_runtimeMinimum_x64.msi sha256 bab5d0257e6a18a4a008e683442e3077b38172dd61af3cb1c588b46724a714e2, vc_runtimeAdditional_x64.msi sha256 476427800c1c958dc4e71d9a0f2f3983b2608da70835db9ee5f3b8ac387e9617). Anchor 2: the VS 2026 redistribution list is published to Microsoft Learn from Microsoft's INTERNAL DevDiv RECON repo (the Learn page's original_content_git_url points to devdiv.visualstudio.com ... visualstudio-release-docs/releases/2026/redistribution.md), not from the public MicrosoftDocs/visualstudio-docs repo (which contains no docs/releases tree at all), and MicrosoftDocs/cpp-docs-pr is not readable with the available credentials - so no public commit-pinnable raw original of the list exists. Substitute evidence adopted by decision A: the terms text is pinned as the deterministically extracted text of the official terms document the installer designates (see the microsoft-license-terms-extracted-text entry in pinnedOriginals), alongside the hash-pinned outer VC_redist.x64.exe and the redistribution confirmation from Microsoft's official Visual Studio 2026 redistribution list recorded in redistributionBasis.",
+          "pinningStatus": "RESOLVED by owner decision A (2026-11-26). Factual record: Anchor 1 outer file pinned and hash-verified (below), but this version's VC_redist.x64.exe contains NO embedded License.rtf: the bundle uses WixStandardBootstrapperApplication.HyperlinkLicense (BurnManifest UX payload 'WixStandardBootstrapperApplication.HyperlinkLicense' = wixstdba.dll; theme control EulaHyperlink) and its en-US theme text reads 'The license terms for [WixBundleName] are available from https://aka.ms/VCRedistLicense'. A full byte scan found no '{\\rtf' anywhere in the exe or its payload MSIs (vc_runtimeMinimum_x64.msi sha256 bab5d0257e6a18a4a008e683442e3077b38172dd61af3cb1c588b46724a714e2, vc_runtimeAdditional_x64.msi sha256 476427800c1c958dc4e71d9a0f2f3983b2608da70835db9ee5f3b8ac387e9617). Anchor 2: the VS 2026 redistribution list is published to Microsoft Learn from Microsoft's INTERNAL DevDiv RECON repo (the Learn page's original_content_git_url points to devdiv.visualstudio.com ... visualstudio-release-docs/releases/2026/redistribution.md), not from the public MicrosoftDocs/visualstudio-docs repo (which contains no docs/releases tree at all), and MicrosoftDocs/cpp-docs-pr is not readable with the available credentials - so no public commit-pinnable raw original of the list exists. Substitute evidence adopted by decision A: the terms text is pinned as the deterministically extracted text of the official terms document the installer designates (see the microsoft-license-terms-extracted-text entry in pinnedOriginals), alongside the hash-pinned outer VC_redist.x64.exe and the redistribution confirmation from Microsoft's official Visual Studio 2026 redistribution list recorded in redistributionBasis. FOLLOW-UP (Opus final audit F-1, resolved 2026-11-26): the audit found that the decision-A text is the redistributable package's END-USER license terms (EULA): its only grant is to install and use copies, and its SCOPE OF LICENSE prohibits end-user licensees from distributing the software; it is therefore re-labeled in this manifest as the component's installer-designated license terms (identity/terms of the component), not as the redistribution-conditions original. Reconciliation: the EULA binds end-user licensees of the redistributable package; it does not address the Visual Studio licensee's separate Distributable Code rights. The redistribution grant chain is now captured and pinned decision-A-style (deterministic page capture + extracted text, committed): the Visual Studio 2026 license terms section 7 (Distributable Code) and the Distributable List it designates - see the microsoft-vs-license-terms-extracted-text and microsoft-redistribution-list-extracted-text entries in pinnedOriginals and the chain in redistributionBasis. This closes K4-B clause 3 for this component in substance as well as in form.",
           "pinnedOriginals": [
             {
               "url": "https://download.visualstudio.microsoft.com/download/pr/ebdab8e5-1d7b-4d9f-a11b-cbb1720c3b12/843068991DAAA1F73AD9F6239BCE4D0F6A07A51F18C37EA2A867E9BECA71295C/VC_redist.x64.exe",
@@ -211,9 +211,114 @@
               "docxSha256": "08651651a7602fc7c0e2763de0fde1ff9f868df2780597cd1775ee9d6441c783",
               "capturedAt": "2026-11-26 19:56 JST",
               "committedCopy": "evidence/ms-vc14-redist-license-terms.txt",
-              "note": "Owner decision A (2026-11-26): the VC++ license-terms text is pinned as the deterministically extracted text of the official terms document designated by the installer itself (the VC_redist bundle's HyperlinkLicense target, aka.ms/VCRedistLicense). The landing page presents the terms through an embedded-document iframe naming Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx on visualstudio.microsoft.com; the extracted text is the body text of that DOCX (word/document.xml paragraphs in document order), reproduced byte-exact in the committed copy. Extraction method: work/extract_ms_terms.py in the Neon M3 residuals working cache (stdlib-only, re-running it against the same page/document bytes reproduces the same text). The terms document is architecture-neutral and covers both the x64 and x86 slices. Document identity inside the text: 'MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT VISUAL C++ V14 REDISTRIBUTABLE and RUNTIME', Last Updated: October 1, 2025, EULA ID: Cpp_v14_ENU.1033."
+              "note": "RE-LABELED (Opus final audit F-1, 2026-11-26): this entry pins the component's installer-designated END-USER license terms (EULA) - the identity/terms document of the redistributable package. It is NOT the redistribution-conditions original: its SCOPE OF LICENSE prohibits distribution by end-user licensees. The redistribution grant is pinned separately in this component's pinnedOriginals (redistribution list + VS 2026 license terms section 7). Owner decision A (2026-11-26): the VC++ license-terms text is pinned as the deterministically extracted text of the official terms document designated by the installer itself (the VC_redist bundle's HyperlinkLicense target, aka.ms/VCRedistLicense). The landing page presents the terms through an embedded-document iframe naming Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx on visualstudio.microsoft.com; the extracted text is the body text of that DOCX (word/document.xml paragraphs in document order), reproduced byte-exact in the committed copy. Extraction method: evidence/tools/extract_ms_terms.py (committed to this repository; stdlib-only, re-running it against the same page/document bytes reproduces the same text; originally written in the Neon M3 residuals working cache). The terms document is architecture-neutral and covers both the x64 and x86 slices. Document identity inside the text: 'MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT VISUAL C++ V14 REDISTRIBUTABLE and RUNTIME', Last Updated: October 1, 2025, EULA ID: Cpp_v14_ENU.1033.",
+              "documentRole": "installer-designated end-user license terms (EULA) for the redistributable package; identity/terms of the component, NOT the redistribution grant",
+              "extractionFidelityNote": "Automatic numbering generated from word/numbering.xml is not rendered by the extraction (it reads w:t, w:tab and w:br only), so list item markers are absent and cross-references such as 'this Section 8' and 'the foregoing clause (ii)' dangle. The wording itself is complete. (Opus final audit F-6.)",
+              "pinSemantics": "bytes/sha256 pin the extracted text committed at committedCopy; the source page's own bytes are pinned separately as pageBytes/pageSha256 (the page is a mutable CMS page, so its bytes are not the pinned original)."
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution",
+              "sourceType": "microsoft-redistribution-list-extracted-text",
+              "bytes": 2574,
+              "sha256": "6e7d1d483db1b0981216b7144b2dabb10cbf9b232ef4ea9105b0b3a736d37fb8",
+              "designatedBy": "https://aka.ms/vs/18/redistribution (the Distributable List location named in section 7 of the Visual Studio 2026 license terms)",
+              "redirectChain": "https://aka.ms/vs/18/redistribution -> 301 -> https://learn.microsoft.com/visualstudio/releases/vs18/redistribution -> 302 -> https://learn.microsoft.com/en-us/visualstudio/releases/vs18/redistribution -> 301 -> https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution",
+              "pageBytes": 48465,
+              "pageSha256": "0a6dd952d5f9041384d9b8b9391c9e6ef1be9c67f4d466646a07937a27383708",
+              "capturedAt": "2026-11-26 20:32 JST",
+              "committedCopy": "evidence/ms-vs2026-redistribution-list-extract.txt",
+              "pinSemantics": "bytes/sha256 pin the extracted text committed at committedCopy; the source page's own bytes are pinned separately as pageBytes/pageSha256 (the page is a mutable CMS page, so its bytes are not the pinned original).",
+              "note": "Added by the F-1 follow-up (2026-11-26). Microsoft's official Visual Studio 2026 redistribution list (the Distributable List referenced by the VS license terms), captured decision-A-style because the list is published to Microsoft Learn from Microsoft's internal visualstudio-release-docs repo and has no public commit-pinnable original (see pinningStatus). The committed extract contains the page title, the 'Distributable Code Files for Visual Studio 2026 and later' preamble (the grant sentence and the pre-release note) and the complete 'Visual C++ Runtime Files' section. Extraction method: evidence/tools/capture_ms_redist.py (committed; stdlib-only HTML block extraction, deterministic against the same page bytes)."
+            },
+            {
+              "url": "https://visualstudio.microsoft.com/license-terms/vs2026-ga-pro-enterprise/",
+              "sourceType": "microsoft-vs-license-terms-extracted-text",
+              "bytes": 2229,
+              "sha256": "ee9e5bd7c24aac5782e259451c29df20e5d6d26c258b77f2017397108ffbfc15",
+              "pageBytes": 237501,
+              "pageSha256": "d1f309e9f252ec308284c27719023d9d08d291e524d85ca24b87755bc8c9cd92",
+              "docxUrl": "https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual_Studio_2026-License-Enterprise_Professional_ENU.docx",
+              "docxBytes": 67523,
+              "docxSha256": "dd2ab92a7c2bb90dd509e16572707a34b13bc0bc09b9199d115f25594ac39053",
+              "capturedAt": "2026-11-26 20:32 JST",
+              "committedCopy": "evidence/ms-vs2026-distributable-code-terms-extract.txt",
+              "pinSemantics": "bytes/sha256 pin the extracted text committed at committedCopy; the source page's own bytes are pinned separately as pageBytes/pageSha256 (the page is a mutable CMS page, so its bytes are not the pinned original).",
+              "note": "Added by the F-1 follow-up (2026-11-26). The Visual Studio 2026 license terms (Enterprise / Professional edition page, linked from the license-terms index designated by https://aka.ms/VisualStudioLicenses) - the 'License Terms' the redistribution list is subject to. The committed extract contains the document identity header (title, editions, Last Updated: October 1, 2025) and the complete section 7, DISTRIBUTABLE CODE: the Distributable List grant, third-party distribution permission, Distribution Requirements and Distribution Restrictions. The page presents the terms through an embedded-document iframe naming the DOCX above; the extract is the deterministic paragraph extraction of that DOCX sliced to the identity header + section 7. Extraction method: evidence/tools/capture_ms_vs_terms.py (committed; stdlib-only). Fidelity limit (as F-6): automatic numbering from word/numbering.xml is not rendered, so the section's lettered sub-paragraph markers do not appear; the wording is complete."
             }
           ]
+        },
+        {
+          "component": "psqlODBC documentation",
+          "artifactPaths": [
+            {
+              "path": "README.txt",
+              "bytes": 222,
+              "sha256": "7fe72ed0793f02b61a21e711ebda0ea19889a2636d54eea647ecd9273e767861"
+            },
+            {
+              "path": "config-opt.html",
+              "bytes": 7794,
+              "sha256": "c934b8dd1dbe642ae7a09bba714ffa52e69365f73318542be9684908b91120c5"
+            },
+            {
+              "path": "config.html",
+              "bytes": 16728,
+              "sha256": "0506c66c60982d332f90e22137f0d88e73719903cc691992ca507dc1ebe1fbb8"
+            },
+            {
+              "path": "editConfiguration.jpg",
+              "bytes": 65220,
+              "sha256": "61938d6aeac9237480c452bdbb2466ab2558e9444d3c68c76eb6484c18351ac6"
+            },
+            {
+              "path": "release-7.3.html",
+              "bytes": 29923,
+              "sha256": "6d79dee32aebff9e16b5f2e1a826b2bd9a5b4362838550c378c25220779e0d61"
+            },
+            {
+              "path": "release.html",
+              "bytes": 126758,
+              "sha256": "d318a149ec27b1f2ce78d33cc00af5db598f3eccbc1224080795fd7f88843d30"
+            },
+            {
+              "path": "unix-compilation.html",
+              "bytes": 2331,
+              "sha256": "47557c888e295737fe6d6379dce4f47a6408afe8944f51a8c5ee56373459e1f5"
+            },
+            {
+              "path": "win32-compilation.html",
+              "bytes": 9986,
+              "sha256": "86b3692b4ec74d39ef1aca0ec487695975cffaef3efe7a6ca378df96bbf59443"
+            }
+          ],
+          "linkType": "documentation",
+          "version": "18.00.0006 (shipped with the driver)",
+          "versionEvidence": "MSI File table (Step 1.2 inventory): the same eight documentation files ship in both the x64 and x86 MSIs, byte-identical (same sizes and SHA-256 values in both inventories). Together with the 10 DLLs and 4 PDBs attributed to the code components, they account for all 22 File-table rows.",
+          "license": "LGPL-2.0-or-later (upstream psqlODBC's own documentation, under the driver's license)",
+          "redistributionPermitted": true,
+          "redistributionBasis": "Upstream's own documentation files, shipped unmodified inside upstream's installer under the same LGPL terms as the driver (see the psqlODBC component). Attribution added per the Opus final audit F-8.",
+          "inArtifactNoticePresent": false,
+          "inArtifactNoticePaths": []
+        },
+        {
+          "component": "Installer scaffolding (WiX Toolset WixUI assets)",
+          "artifactPaths": [],
+          "binaryTableStreams": [
+            "WixUI_Bmp_Up",
+            "WixUI_Bmp_New",
+            "WixUI_Bmp_Banner",
+            "WixUI_Bmp_Dialog",
+            "WixUI_Ico_Info",
+            "WixUI_Ico_Exclam"
+          ],
+          "linkType": "installer-resource",
+          "version": "WiX Toolset WixUI dialog set (upstream build tooling output)",
+          "versionEvidence": "MSI Binary table (Step 1.2 inventory): exactly these six bitmap/icon streams, in both MSIs. There is NO CustomAction table and no custom-action DLL in the standalone MSI, so no installer code component exists.",
+          "license": "Microsoft Reciprocal License (MS-RL) - WiX Toolset",
+          "redistributionPermitted": true,
+          "redistributionBasis": "Stock WixUI bitmap/icon resources generated by the WiX Toolset into the installer at build time; installer scaffolding that ships only inside upstream's own MSI, not a separately distributed component. One-line disposition recorded per the Opus final audit F-8 (K4-B clause 1 names installer plugins when an installer is distributed; the only installer-resident assets are these dialog resources).",
+          "inArtifactNoticePresent": false,
+          "inArtifactNoticePaths": []
         }
       ],
       "architecture": "x64"
@@ -302,7 +407,7 @@
               "archiveSha256": "b5e3d749a148d56b184984b23305794c3d602317b30215945a5ca7c5233dc24a",
               "bytes": 48209,
               "memberPath": "LicenseAgreementDlg/LicenseText (installer/lgpl.rtf)",
-              "note": "Extracted from the x86 MSI to work/license-dialog-rtf-x86.txt; cmp-verified BYTE-IDENTICAL to the x64 extraction (work/license-dialog-rtf.txt). GNU LGPL Version 2.1, February 1999 text. This is the in-artifact license notice evidence.",
+              "note": "Extracted from the x86 MSI to work/license-dialog-rtf-x86.txt; cmp-verified BYTE-IDENTICAL to the x64 extraction (work/license-dialog-rtf.txt). GNU LGPL Version 2.1, February 1999 text. This is the in-artifact license notice evidence. (Both extraction files are non-repository working records in the Neon M3 residuals working cache; the pinned bytes are independently reproducible from the hash-pinned MSIs.)",
               "sha256": "46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd",
               "sourceType": "msi-embedded-license-dialog",
               "url": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x86.msi"
@@ -388,7 +493,7 @@
           "component": "Microsoft Visual C++ Runtime",
           "inArtifactNoticePaths": [],
           "inArtifactNoticePresent": false,
-          "license": "Microsoft Software License Terms - Visual C++ Redistributable (Distributable Code)",
+          "license": "Microsoft Visual C++ v14 Redistributable and Runtime - installer-designated end-user license terms (EULA); redistribution governed by the Visual Studio 2026 license terms, section 7 (Distributable Code) - see redistributionBasis",
           "linkType": "dynamic-dll",
           "pinnedOriginals": [
             {
@@ -412,17 +517,122 @@
               "docxSha256": "08651651a7602fc7c0e2763de0fde1ff9f868df2780597cd1775ee9d6441c783",
               "capturedAt": "2026-11-26 19:56 JST",
               "committedCopy": "evidence/ms-vc14-redist-license-terms.txt",
-              "note": "Owner decision A (2026-11-26): the VC++ license-terms text is pinned as the deterministically extracted text of the official terms document designated by the installer itself (the VC_redist bundle's HyperlinkLicense target, aka.ms/VCRedistLicense). The landing page presents the terms through an embedded-document iframe naming Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx on visualstudio.microsoft.com; the extracted text is the body text of that DOCX (word/document.xml paragraphs in document order), reproduced byte-exact in the committed copy. Extraction method: work/extract_ms_terms.py in the Neon M3 residuals working cache (stdlib-only, re-running it against the same page/document bytes reproduces the same text). The terms document is architecture-neutral and covers both the x64 and x86 slices. Document identity inside the text: 'MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT VISUAL C++ V14 REDISTRIBUTABLE and RUNTIME', Last Updated: October 1, 2025, EULA ID: Cpp_v14_ENU.1033."
+              "note": "RE-LABELED (Opus final audit F-1, 2026-11-26): this entry pins the component's installer-designated END-USER license terms (EULA) - the identity/terms document of the redistributable package. It is NOT the redistribution-conditions original: its SCOPE OF LICENSE prohibits distribution by end-user licensees. The redistribution grant is pinned separately in this component's pinnedOriginals (redistribution list + VS 2026 license terms section 7). Owner decision A (2026-11-26): the VC++ license-terms text is pinned as the deterministically extracted text of the official terms document designated by the installer itself (the VC_redist bundle's HyperlinkLicense target, aka.ms/VCRedistLicense). The landing page presents the terms through an embedded-document iframe naming Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx on visualstudio.microsoft.com; the extracted text is the body text of that DOCX (word/document.xml paragraphs in document order), reproduced byte-exact in the committed copy. Extraction method: evidence/tools/extract_ms_terms.py (committed to this repository; stdlib-only, re-running it against the same page/document bytes reproduces the same text; originally written in the Neon M3 residuals working cache). The terms document is architecture-neutral and covers both the x64 and x86 slices. Document identity inside the text: 'MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT VISUAL C++ V14 REDISTRIBUTABLE and RUNTIME', Last Updated: October 1, 2025, EULA ID: Cpp_v14_ENU.1033.",
+              "documentRole": "installer-designated end-user license terms (EULA) for the redistributable package; identity/terms of the component, NOT the redistribution grant",
+              "extractionFidelityNote": "Automatic numbering generated from word/numbering.xml is not rendered by the extraction (it reads w:t, w:tab and w:br only), so list item markers are absent and cross-references such as 'this Section 8' and 'the foregoing clause (ii)' dangle. The wording itself is complete. (Opus final audit F-6.)",
+              "pinSemantics": "bytes/sha256 pin the extracted text committed at committedCopy; the source page's own bytes are pinned separately as pageBytes/pageSha256 (the page is a mutable CMS page, so its bytes are not the pinned original)."
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution",
+              "sourceType": "microsoft-redistribution-list-extracted-text",
+              "bytes": 2574,
+              "sha256": "6e7d1d483db1b0981216b7144b2dabb10cbf9b232ef4ea9105b0b3a736d37fb8",
+              "designatedBy": "https://aka.ms/vs/18/redistribution (the Distributable List location named in section 7 of the Visual Studio 2026 license terms)",
+              "redirectChain": "https://aka.ms/vs/18/redistribution -> 301 -> https://learn.microsoft.com/visualstudio/releases/vs18/redistribution -> 302 -> https://learn.microsoft.com/en-us/visualstudio/releases/vs18/redistribution -> 301 -> https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution",
+              "pageBytes": 48465,
+              "pageSha256": "0a6dd952d5f9041384d9b8b9391c9e6ef1be9c67f4d466646a07937a27383708",
+              "capturedAt": "2026-11-26 20:32 JST",
+              "committedCopy": "evidence/ms-vs2026-redistribution-list-extract.txt",
+              "pinSemantics": "bytes/sha256 pin the extracted text committed at committedCopy; the source page's own bytes are pinned separately as pageBytes/pageSha256 (the page is a mutable CMS page, so its bytes are not the pinned original).",
+              "note": "Added by the F-1 follow-up (2026-11-26). Microsoft's official Visual Studio 2026 redistribution list (the Distributable List referenced by the VS license terms), captured decision-A-style because the list is published to Microsoft Learn from Microsoft's internal visualstudio-release-docs repo and has no public commit-pinnable original (see pinningStatus). The committed extract contains the page title, the 'Distributable Code Files for Visual Studio 2026 and later' preamble (the grant sentence and the pre-release note) and the complete 'Visual C++ Runtime Files' section. Extraction method: evidence/tools/capture_ms_redist.py (committed; stdlib-only HTML block extraction, deterministic against the same page bytes)."
+            },
+            {
+              "url": "https://visualstudio.microsoft.com/license-terms/vs2026-ga-pro-enterprise/",
+              "sourceType": "microsoft-vs-license-terms-extracted-text",
+              "bytes": 2229,
+              "sha256": "ee9e5bd7c24aac5782e259451c29df20e5d6d26c258b77f2017397108ffbfc15",
+              "pageBytes": 237501,
+              "pageSha256": "d1f309e9f252ec308284c27719023d9d08d291e524d85ca24b87755bc8c9cd92",
+              "docxUrl": "https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual_Studio_2026-License-Enterprise_Professional_ENU.docx",
+              "docxBytes": 67523,
+              "docxSha256": "dd2ab92a7c2bb90dd509e16572707a34b13bc0bc09b9199d115f25594ac39053",
+              "capturedAt": "2026-11-26 20:32 JST",
+              "committedCopy": "evidence/ms-vs2026-distributable-code-terms-extract.txt",
+              "pinSemantics": "bytes/sha256 pin the extracted text committed at committedCopy; the source page's own bytes are pinned separately as pageBytes/pageSha256 (the page is a mutable CMS page, so its bytes are not the pinned original).",
+              "note": "Added by the F-1 follow-up (2026-11-26). The Visual Studio 2026 license terms (Enterprise / Professional edition page, linked from the license-terms index designated by https://aka.ms/VisualStudioLicenses) - the 'License Terms' the redistribution list is subject to. The committed extract contains the document identity header (title, editions, Last Updated: October 1, 2025) and the complete section 7, DISTRIBUTABLE CODE: the Distributable List grant, third-party distribution permission, Distribution Requirements and Distribution Restrictions. The page presents the terms through an embedded-document iframe naming the DOCX above; the extract is the deterministic paragraph extraction of that DOCX sliced to the identity header + section 7. Extraction method: evidence/tools/capture_ms_vs_terms.py (committed; stdlib-only). Fidelity limit (as F-6): automatic numbering from word/numbering.xml is not rendered, so the section's lettered sub-paragraph markers do not appear; the wording is complete."
             }
           ],
-          "pinningStatus": "RESOLVED by owner decision A (2026-11-26) - same single item as the x64 slice. Anchor 1 outer file pinned and hash-verified (below), and this version's VC_redist.x86.exe likewise contains NO embedded License.rtf (byte scan for '{\\rtf' over the whole exe: zero hits - same HyperlinkLicense bundle generation as x64). The license-terms text itself is the architecture-neutral VS2026 VC++ v14 redist terms document designated by the installer (aka.ms/VCRedistLicense); decision A pins it as the deterministically extracted text from that official page (see the microsoft-license-terms-extracted-text entry in pinnedOriginals), shared with the x64 slice.",
-          "redistributionBasis": "Same as the x64 slice: Microsoft's official 'Visual Studio Redistribution' list for Visual Studio 2026 (Distributable Code / REDIST list), 'Visual C++ Runtime Files' section, permits copying and distributing with your program any of the files within [VisualStudioFolder]\\VC\\redist and its subfolders, unmodified; the two bundled DLLs are files of that folder tree (x86 subtree), shipped unmodified in the app folder of the upstream MSI.",
+          "pinningStatus": "RESOLVED by owner decision A (2026-11-26) - same single item as the x64 slice. Anchor 1 outer file pinned and hash-verified (below), and this version's VC_redist.x86.exe likewise contains NO embedded License.rtf (byte scan for '{\\rtf' over the whole exe: zero hits - same HyperlinkLicense bundle generation as x64). The license-terms text itself is the architecture-neutral VS2026 VC++ v14 redist terms document designated by the installer (aka.ms/VCRedistLicense); decision A pins it as the deterministically extracted text from that official page (see the microsoft-license-terms-extracted-text entry in pinnedOriginals), shared with the x64 slice. FOLLOW-UP (Opus final audit F-1, resolved 2026-11-26): the audit found that the decision-A text is the redistributable package's END-USER license terms (EULA): its only grant is to install and use copies, and its SCOPE OF LICENSE prohibits end-user licensees from distributing the software; it is therefore re-labeled in this manifest as the component's installer-designated license terms (identity/terms of the component), not as the redistribution-conditions original. Reconciliation: the EULA binds end-user licensees of the redistributable package; it does not address the Visual Studio licensee's separate Distributable Code rights. The redistribution grant chain is now captured and pinned decision-A-style (deterministic page capture + extracted text, committed): the Visual Studio 2026 license terms section 7 (Distributable Code) and the Distributable List it designates - see the microsoft-vs-license-terms-extracted-text and microsoft-redistribution-list-extracted-text entries in pinnedOriginals and the chain in redistributionBasis. This closes K4-B clause 3 for this component in substance as well as in form.",
+          "redistributionBasis": "Same chain as the x64 slice (follow-up to the Opus final audit finding F-1, 2026-11-26; the two captures in pinnedOriginals are architecture-neutral and shared): (1) Visual Studio 2026 license terms section 7 'Distributable Code' permits copying and distributing the object code form of code listed on the Distributable List (https://aka.ms/vs/18/redistribution) and permits distributors of the application to copy and distribute the Distributable Code as part of those applications; its Distribution Requirements bind the Visual Studio licensee (the upstream psqlODBC project). (2) The Distributable List's 'Visual C++ Runtime Files' section permits copying and distributing with your program any of the files within [VisualStudioFolder]\\VC\\redist and its subfolders, unmodified; the two bundled DLLs are files of that folder tree (x86 subtree), shipped unmodified in the app folder of the upstream MSI. (3) The decision-A pinned text is the redistributable package's end-user license terms (EULA), not this grant - see pinningStatus.",
           "redistributionPermitted": true,
           "version": "14.51.36247.0",
           "versionEvidence": "PE VS_VERSIONINFO FileVersion 14.51.36247.0 on both DLLs, machine 0x014c. Version mapping to the official redistributable: Microsoft's winget-pkgs manifest Microsoft.VCRedist.2015+.x86 version 14.51.36247.0 (an exact four-part match to the DLL FileVersion) gives the immutable download.visualstudio.microsoft.com URL below; the downloaded VC_redist.x86.exe itself carries FileVersion 14.51.36247.0 and its SHA-256 equals the manifest's InstallerSha256. DEFINITIVE PROOF: vcruntime140.dll and msvcp140.dll extracted from that exe's payload (embedded cabinet at offset 629,352; member a2 = the vc_runtimeMinimum_x86 cabinet containing vcruntime140.dll_x86 / msvcp140.dll_x86; the a0 payload MSI identifies as 'Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.51.36247') are BYTE-IDENTICAL to the two DLLs bundled in the psqlODBC x86 MSI (cmp clean; same byte sizes and SHA-256 values listed in artifactPaths). 14.51.x is the Visual Studio 2026 generation of the v14 redistributable. NOT bundled in the MSI: vcruntime140_1.dll does not exist in the x86 v14 runtime at all (the x86 msvcp140.dll imports VCRUNTIME140.dll only; the redist payload carries vcruntime140_threads.dll_x86 instead, which the MSI also does not bundle and nothing imports), and concrt140.dll (present in the redist payload but absent from the MSI and not imported by any bundled binary). CRT is dynamically linked (all payload DLLs import VCRUNTIME140.dll / api-ms-win-crt-*), not /MT."
+        },
+        {
+          "component": "psqlODBC documentation",
+          "artifactPaths": [
+            {
+              "path": "README.txt",
+              "bytes": 222,
+              "sha256": "7fe72ed0793f02b61a21e711ebda0ea19889a2636d54eea647ecd9273e767861"
+            },
+            {
+              "path": "config-opt.html",
+              "bytes": 7794,
+              "sha256": "c934b8dd1dbe642ae7a09bba714ffa52e69365f73318542be9684908b91120c5"
+            },
+            {
+              "path": "config.html",
+              "bytes": 16728,
+              "sha256": "0506c66c60982d332f90e22137f0d88e73719903cc691992ca507dc1ebe1fbb8"
+            },
+            {
+              "path": "editConfiguration.jpg",
+              "bytes": 65220,
+              "sha256": "61938d6aeac9237480c452bdbb2466ab2558e9444d3c68c76eb6484c18351ac6"
+            },
+            {
+              "path": "release-7.3.html",
+              "bytes": 29923,
+              "sha256": "6d79dee32aebff9e16b5f2e1a826b2bd9a5b4362838550c378c25220779e0d61"
+            },
+            {
+              "path": "release.html",
+              "bytes": 126758,
+              "sha256": "d318a149ec27b1f2ce78d33cc00af5db598f3eccbc1224080795fd7f88843d30"
+            },
+            {
+              "path": "unix-compilation.html",
+              "bytes": 2331,
+              "sha256": "47557c888e295737fe6d6379dce4f47a6408afe8944f51a8c5ee56373459e1f5"
+            },
+            {
+              "path": "win32-compilation.html",
+              "bytes": 9986,
+              "sha256": "86b3692b4ec74d39ef1aca0ec487695975cffaef3efe7a6ca378df96bbf59443"
+            }
+          ],
+          "linkType": "documentation",
+          "version": "18.00.0006 (shipped with the driver)",
+          "versionEvidence": "MSI File table (Step 1.2 inventory): the same eight documentation files ship in both the x64 and x86 MSIs, byte-identical (same sizes and SHA-256 values in both inventories). Together with the 10 DLLs and 4 PDBs attributed to the code components, they account for all 22 File-table rows.",
+          "license": "LGPL-2.0-or-later (upstream psqlODBC's own documentation, under the driver's license)",
+          "redistributionPermitted": true,
+          "redistributionBasis": "Upstream's own documentation files, shipped unmodified inside upstream's installer under the same LGPL terms as the driver (see the psqlODBC component). Attribution added per the Opus final audit F-8.",
+          "inArtifactNoticePresent": false,
+          "inArtifactNoticePaths": []
+        },
+        {
+          "component": "Installer scaffolding (WiX Toolset WixUI assets)",
+          "artifactPaths": [],
+          "binaryTableStreams": [
+            "WixUI_Bmp_Up",
+            "WixUI_Bmp_New",
+            "WixUI_Bmp_Banner",
+            "WixUI_Bmp_Dialog",
+            "WixUI_Ico_Info",
+            "WixUI_Ico_Exclam"
+          ],
+          "linkType": "installer-resource",
+          "version": "WiX Toolset WixUI dialog set (upstream build tooling output)",
+          "versionEvidence": "MSI Binary table (Step 1.2 inventory): exactly these six bitmap/icon streams, in both MSIs. There is NO CustomAction table and no custom-action DLL in the standalone MSI, so no installer code component exists.",
+          "license": "Microsoft Reciprocal License (MS-RL) - WiX Toolset",
+          "redistributionPermitted": true,
+          "redistributionBasis": "Stock WixUI bitmap/icon resources generated by the WiX Toolset into the installer at build time; installer scaffolding that ships only inside upstream's own MSI, not a separately distributed component. One-line disposition recorded per the Opus final audit F-8 (K4-B clause 1 names installer plugins when an installer is distributed; the only installer-resident assets are these dialog resources).",
+          "inArtifactNoticePresent": false,
+          "inArtifactNoticePaths": []
         }
       ],
-      "countsNote": "All counts are 0. The single formerly unpinned original - the Microsoft VC++ license-terms text (VC_redist 14.51.36247.0 contains NO embedded License.rtf; HyperlinkLicense bundle generation) - is pinned per owner decision A (2026-11-26) as the deterministically extracted text of the official terms document designated by the installer (aka.ms/VCRedistLicense -> visualstudio.microsoft.com VS2026 VC++ v14 redist terms), committed at evidence/ms-vc14-redist-license-terms.txt; see the Microsoft Visual C++ Runtime component's pinnedOriginals and pinningStatus.",
+      "countsNote": "All counts are 0. The single formerly unpinned original - the Microsoft VC++ license-terms text (VC_redist 14.51.36247.0 contains NO embedded License.rtf; HyperlinkLicense bundle generation) - is pinned per owner decision A (2026-11-26) as the deterministically extracted text of the official terms document designated by the installer (aka.ms/VCRedistLicense -> visualstudio.microsoft.com VS2026 VC++ v14 redist terms), committed at evidence/ms-vc14-redist-license-terms.txt; see the Microsoft Visual C++ Runtime component's pinnedOriginals and pinningStatus. Follow-up (Opus final audit F-1, 2026-11-26): the decision-A terms text is re-labeled as the component's installer-designated end-user license terms (EULA); the redistribution grant itself - the Visual Studio 2026 redistribution list and section 7 (Distributable Code) of the Visual Studio 2026 license terms - is now captured and pinned decision-A-style in the Microsoft Visual C++ Runtime component's pinnedOriginals. Counts unchanged (all 0).",
       "crossChannelProvenance": "Byte-identical download from https://ftp.postgresql.org/pub/odbc/releases/REL-18_00_0006/psqlodbc_x86.msi (HTTP 200, zero redirects); cmp clean in the x86 Step 1.1-equivalent check (PROGRESS.md Part E). GitHub URL answers HTTP 302 to release-assets.githubusercontent.com, then 200 with Content-Length 4087808.",
       "originalBytes": 4087808,
       "originalProviderUrl": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x86.msi",
@@ -435,5 +645,6 @@
       "unaccountedPeCount": 0,
       "unpinnedOriginalCount": 0
     }
-  ]
+  ],
+  "schemaNotes": "pgextwin-standalone-get-component-pins/v1, with additive fields introduced by the Opus-audit F-1/F-8 follow-up (2026-11-26): pinnedOriginals entries of an extracted-text sourceType carry pinSemantics (bytes/sha256 pin the committed extracted text; pageBytes/pageSha256 pin the mutable source page) and may carry documentRole and extractionFidelityNote; components may carry binaryTableStreams (MSI Binary-table resources that are not files) and the linkType values documentation / installer-resource for non-code content."
 }

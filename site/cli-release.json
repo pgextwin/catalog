@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "repository": "pgextwin/catalog",
-  "tag": "cli-v0.6.0",
-  "expectedReleaseId": 453794527,
-  "expectedTagCommit": "561e1d3947c963d8fd919b9f8d7ef97aca66276f",
-  "snapshotPath": "site/snapshots/cli-v0.6.0-release.json",
-  "snapshotSha256": "9a955708916b289359e314b7f7215f518e71235cb7dc71e7fa6c688253b2bcf3",
+  "tag": "cli-v0.6.1",
+  "expectedReleaseId": 459281962,
+  "expectedTagCommit": "a51931f686dd9ba8be475603357b6c7a6abc2280",
+  "snapshotPath": "site/snapshots/cli-v0.6.1-release.json",
+  "snapshotSha256": "7d508d83be1380bb6a06f2c1ff9adca313c34462f5f2be025eb51cccdebe1eb9",
   "releaseNotesSummary": {
     "en": "v{version} ({publishedDate}) downloads pgextwin-distributed extensions at an exact version from the signed Catalog. For example, HypoPG for PostgreSQL 15 is available as the latest 1.4.5 and as 1.4.4 via <code>download hypopg --source pgextwin --pg 15 --version 1.4.4</code>. It also covers the external catalog including the PostgreSQL 19 OSGeo bundle (PostGIS 3.7.0 and pgRouting 4.0.1); external extensions and spatial bundles are available for PostgreSQL 15-19. The published EXE is {exeBytesFormatted} bytes ({exeSizeMb}).",
     "ja": "v{version}（{publishedDate}）は、署名付きカタログからpgextwin配布の拡張機能をバージョン指定で取得できます。たとえばPostgreSQL 15用のHypoPGは、最新版1.4.5に加えて<code>download hypopg --source pgextwin --pg 15 --version 1.4.4</code>で1.4.4も取得できます。PostgreSQL 19向けのOSGeoバンドル（PostGIS 3.7.0、pgRouting 4.0.1）を含む外部カタログにも対応し、外部拡張・空間バンドルはPostgreSQL 15〜19で取得できます。公開EXEは{exeBytesFormatted}バイト（{exeSizeMb}）です。"

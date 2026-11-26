@@ -1,3 +1,7 @@
 # Signed metadata must retain the exact bytes issued and verified by Sigstore.
 external/signed-direct-get/** -text
 dotnet/tests/PgExtWin.Contract.Tests/fixtures/** -text
+# Pinned Microsoft terms extracts: their recorded SHA-256 values are over LF bytes.
+evidence/ms-vc14-redist-license-terms.txt -text
+evidence/ms-vs2026-redistribution-list-extract.txt -text
+evidence/ms-vs2026-distributable-code-terms-extract.txt -text

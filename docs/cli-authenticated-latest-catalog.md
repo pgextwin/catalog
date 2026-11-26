@@ -14,6 +14,8 @@ local policies are inputs to `pgextwin verify report`.
 
 Automatic downloads require CLI v0.6.0 once the v3 feed becomes the public latest. CLI v0.4.0 and v0.5.0 read the previous v2 format.
 
+External downloads (the `external/direct-get.json` / `external/standalone-get.json` records) require CLI v0.6.1 or later. v0.6.1 accepts multi-architecture standalone records (for example psqlODBC 18.00.0006 as separate x64 and x86 records). Earlier CLIs fail closed with an `InvalidDataException` when parsing the current standalone record set — they serve no incorrect bytes — so upgrade to v0.6.1 for external downloads.
+
 A protected-main signed-feed publisher runs only after an independently verified exact-main `Validate catalog` push SUCCESS. A GitHub Actions OIDC signer signs `catalog-latest.json` using Sigstore; a separate write-scoped job cryptographically validates the original signed bytes before create-only Release publication as the repository's latest Release.
 
 Each public feed Release has a create-only `catalog-feed-<40-char-sha>` tag and exactly:
