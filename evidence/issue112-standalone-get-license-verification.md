@@ -5,9 +5,15 @@ E3 PR5 で作成し、E3 再監査（`~/workspace/e3-audit/REAUDIT.md` の M3）
 `external/standalone-get.json` の全3行。再監査の判定は「3行とも未決」
 であり、本記録はその不足（同梱・静的リンク部品ごとの固定上流原本と
 配布条件の対応）を埋めるためのものである。PR6 時点の結論は3行とも
-未決だったが、その後オーナー決定（2026-11-26、K4 解釈 B）により
-**結論は3行とも成立**となった。各行に列挙する不足事項は、上流
-配布物の配布形態の特性として記録する。根拠: Established under owner decision 2026-11-26 (K4 interpretation B): component identification, pinned originals, and redistribution permission confirmed for each component license; license texts not reproduced inside upstream's distribution artifacts are recorded as a distribution-form characteristic of the upstream artifact.
+未決だった。その後、オーナー決定（2026-11-26、K4 解釈 B）により
+PR7（#547）で3行ともいったん**成立**としたが、最終確認監査
+（M3）が、PostGIS と psqlODBC の2行は本記録自体に固定原本の不足が
+明記されており解釈 B の根拠を満たさないとして FAIL と判定した。
+これを受けてオーナー決定（2026-11-26、選択肢 B）により、この2行は
+**未決**に戻り、PgBouncer のみ**成立**のままとなった。未決の2行は
+明記された残件として F フェーズの台帳管理へ引き継ぎ、E3 はこの
+状態で完了する。解釈 B 自体は引き続き採用する判定基準である。
+根拠: Established under owner decision 2026-11-26 (K4 interpretation B): component identification, pinned originals, and redistribution permission confirmed for each component license; license texts not reproduced inside upstream's distribution artifacts are recorded as a distribution-form characteristic of the upstream artifact.
 
 ## PR5 記録の訂正（事実誤り）
 
@@ -150,14 +156,12 @@ GUI 固有の部品のみを挙げる。
 追加のライセンス文が含まれる可能性は本記録では検証していない。
 さらに上記のとおり、版・原本を確定できない部品が残る。
 
-**結論: 成立**（オーナー決定 2026-11-26、K4 解釈 B。本記録冒頭の
-根拠文のとおり）。PR6 時点で未決の根拠とした事項は、上流配布物の
-配布形態の特性として次のとおり記録する: (1) ランタイム大半の
-ライセンス文が配布物内になく、配布条件の充足をファイルレベルでは
-確認できない。(2) libthai、libdatrie、graphite2、libffi、brotli、
-libb2、readline、GMP、GSL、FreeXL、libunistring、ATK、
-GNU.Gettext.dll は版の確定またはコミット固定原本の取得ができて
-いない。(3) GDAL 内の Arrow 静的リンクの有無と範囲が未検証。
+**結論: 未決。** 残る不足: (1) ランタイム大半のライセンス文が配布物内に
+なく、配布条件の充足をファイルレベルで確認できない。(2) libthai、
+libdatrie、graphite2、libffi、brotli、libb2、readline、GMP、GSL、
+FreeXL、libunistring、ATK、GNU.Gettext.dll は版の確定または
+コミット固定原本の取得ができていない。(3) GDAL 内の Arrow 静的リンクの
+有無と範囲が未検証。
 
 ## 2. pgbouncer 1.26.1
 
@@ -247,13 +251,10 @@ PR5 は「実行ファイル2件はいずれも pgbouncer プロジェクト自�
 - MSVC ランタイムは Microsoft の再頒布条件でアプリケーションと共に
   再頒布が許諾される部類だが、条件の原本をコミット固定で示す手段がない。
 
-**結論: 成立**（オーナー決定 2026-11-26、K4 解釈 B。本記録冒頭の
-根拠文のとおり）。PR6 時点で未決の根拠とした事項は、上流配布物の
-配布形態の特性として次のとおり記録する: (1) libpq（PostgreSQL 13.4）と
-OpenSSL 1.1.1l のライセンス原本は版固定で対応付けられたが、両部品の
-表示が配布物内に存在しない。(2) MSVC ランタイム 14.16.27033.0 は
-版同定のみで、条件の固定原本がない（再配布は Microsoft の再頒布条件で
-許諾される部類であることは上記のとおり）。
+**結論: 未決。** 残る不足: (1) libpq（PostgreSQL 13.4）と OpenSSL 1.1.1l の
+ライセンス原本は版固定で対応付けられたが、両部品の表示が配布物内に
+存在せず、配布条件の充足を配布物の範囲で確認できない。
+(2) MSVC ランタイム 14.16.27033.0 は版同定のみで、条件の固定原本がない。
 
 ## 対応表への反映
 
@@ -261,5 +262,12 @@ OpenSSL 1.1.1l のライセンス原本は版固定で対応付けられたが�
 いったん**未決**へ戻った（direct-get 24行と合わせて 27行中
 成立24・未決3、再監査の判定と一致）。その後、表示を含まない配布形態に
 対する K4 の扱いについてオーナー決定（2026-11-26、解釈 B）が下り、
-3行とも**成立**となった（27行中 成立27・未決0）。終了記録
-（`j05-observe-only-retirement.md`）の項目4も本決定に合わせて更新した。
+PR7（#547）で3行ともいったん**成立**となった（27行中 成立27・未決0）。
+しかし最終確認監査（M3）が、PostGIS と psqlODBC の2行は本記録自体に
+固定原本の不足が明記されており解釈 B の根拠を満たさないとして FAIL と
+判定した。オーナー決定（2026-11-26、選択肢 B）により、この2行は
+**未決**に戻り、対応表は 27行中 **成立25・未決2** となった。
+PgBouncer は成立のままである。未決の2行は明記された残件として
+F フェーズの台帳管理へ引き継ぎ、E3 はこの状態で完了する。終了記録
+（`j05-observe-only-retirement.md`）の項目4・項目7も本決定に合わせて
+更新した。
