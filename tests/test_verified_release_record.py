@@ -181,6 +181,35 @@ class RecordTests(unittest.TestCase):
         with self.assertRaisesRegex(Denied, "established license evidence missing for PG15"):
             mapped(name, (current, *revision[1:]))
 
+    def test_rollover_rejects_license_evidence_from_previous_source_commit(self):
+        # The new Release's PG15 evidence must be pinned at the new source
+        # commit; reusing the previous version's evidence (a real, valid
+        # LICENSE pin, but of the old source) is a version swap.
+        name = "hypopg"
+        current = mapped(name)
+        old_tag = "v1.4.2-windows.1"
+        current["latest"]["releaseTag"] = old_tag
+        current["releaseInventory"]["current"]["releaseTag"] = old_tag
+        current["upstream"]["version"] = "1.4.2"
+        for pg in current["postgresql"].values():
+            pg["downloadUrl"] = pg["downloadUrl"].replace("v1.4.3-windows.3", old_tag)
+        repo = "pgextwin/hypopg"
+        assets = [{"name": pg["asset"], "id": int(major), "state": "uploaded",
+                   "digest": "sha256:" + pg["sha256"], "browser_download_url": pg["downloadUrl"]}
+                  for major, pg in current["postgresql"].items()]
+        assets.append({"name": "SHA256SUMS.txt", "id": 100, "state": "uploaded",
+                       "browser_download_url": f"https://github.com/{repo}/releases/download/{old_tag}/SHA256SUMS.txt"})
+        previous = {"tag_name": old_tag, "id": 101, "draft": False,
+                    "published_at": current["latest"]["publishedAt"], "assets": assets}
+        base, rel, ext, tc, asset_map, sums = (current, *fixture(name)[1:])
+        swapped = licenses(name, [14, 15, 16, 17, 18])
+        swapped["15"] = {"name": "PostgreSQL",
+                         "evidenceUrls": [f"https://github.com/pgextwin/hypopg/blob/{'d' * 40}/LICENSE"]}
+        with self.assertRaisesRegex(Denied, "packaging license evidence must use the new source commit for PG15"):
+            map_verified_release(base, rel, ext, tc, asset_map, sums, "c" * 40,
+                                 [14, 15, 16, 17, 18], licenses_by_major=swapped,
+                                 load_previous=lambda tag: ("a" * 40, previous))
+
     def test_rollover_rejects_available_old_zip_missing_license_evidence(self):
         current = mapped("hypopg")
         current["upstream"]["perPostgresql"] = {"16": {"version": "1.4.2"}}
