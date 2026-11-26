@@ -1,11 +1,12 @@
 name: Archive pin audit
 
-# Periodic full online re-verification of every signed GET-only pin
-# archive, including expired history. Per-PR validation
-# (scripts/validate_public_get_pin.py without --all-online) authenticates
-# only the current latest-referenced pin and still-valid admissions
-# online; expired archives confer no authorization and are re-verified
-# here instead.
+# Manual full online re-verification of every signed GET-only pin
+# archive, including expired history. Since E3 PR4 retired the J05
+# observe-only dependency, per-PR validation no longer invokes
+# scripts/validate_public_get_pin.py at all; this workflow_dispatch
+# audit is the only remaining online re-verification path. Expired
+# archives confer no authorization; they are re-verified here only as
+# frozen history.
 on:
   workflow_dispatch:
 

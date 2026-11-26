@@ -404,12 +404,15 @@ class Tests(unittest.TestCase):
                  "qualified_cohort/run-1233", "qualified_cohort/run-1234"])
             self.assertEqual(verified_entries(online=False), [])
 
-    def test_integration_is_required_in_catalog_validate_job(self):
-        workflow = (ROOT / ".github/workflows/validate.yml").read_text("utf-8")
+    def test_validator_is_retired_from_per_pr_validation(self):
+        # E3 PR4 (J05 retirement): the current Catalog state no longer
+        # references the expired qualified_cohort admission, so the signed
+        # pin validator must not run in per-PR validation. It survives only
+        # in the manual archive-pin-audit workflow, which re-verifies the
+        # frozen archives (including expired history) with --all-online.
         command = "python scripts/validate_public_get_pin.py --catalog ."
-        self.assertIn("run: " + command, workflow)
-        self.assertIn("GH_TOKEN: "+chr(36)+"{{ github.token }}", workflow)
-        self.assertEqual(workflow.count(command), 1)
+        workflow = (ROOT / ".github/workflows/validate.yml").read_text("utf-8")
+        self.assertNotIn(command, workflow)
         self.assertNotIn("windows-latest", workflow)
         candidate = (ROOT / ".github/workflows/cli-candidate.yml").read_text("utf-8")
         pr_paths = candidate.split("  pull_request:", 1)[1].split("permissions:", 1)[0]
@@ -417,8 +420,14 @@ class Tests(unittest.TestCase):
                      "scripts/validate_public_get_pin.py"):
             self.assertIn(f"- '{path}'", pr_paths)
         self.assertNotIn("'extensions/**'", pr_paths)
-        self.assertEqual(candidate.count(command), 1)
+        self.assertNotIn(command, candidate)
+        # The Windows byte-fidelity check over the frozen signed metadata
+        # is retained; only the online Sigstore re-verification retired.
         self.assertIn("git hash-object --no-filters -- $file", candidate)
+        audit = (ROOT / ".github/workflows/archive-pin-audit.yml").read_text("utf-8")
+        self.assertIn("workflow_dispatch:", audit)
+        self.assertEqual(audit.count(command + " --all-online"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

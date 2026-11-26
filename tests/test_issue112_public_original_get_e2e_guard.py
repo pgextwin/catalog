@@ -189,9 +189,13 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
                      'gh release upload', 'contents: write', 'id-token: write',
                      '--external-admission', '--external-bundle'):
             self.assertNotIn(text, WF + PS)
-        # Historical archival validation is deliberately retained in general Validate.
-        self.assertIn('python scripts/validate_public_get_pin.py --catalog .',
-                      (ROOT / '.github/workflows/validate.yml').read_text())
+        # E3 PR4 (J05 retirement): per-PR Validate no longer re-verifies the
+        # expired admission online; historical archival validation is
+        # deliberately retained only in the manual archive-pin-audit workflow.
+        self.assertNotIn('python scripts/validate_public_get_pin.py --catalog .',
+                         (ROOT / '.github/workflows/validate.yml').read_text())
+        self.assertIn('python scripts/validate_public_get_pin.py --catalog . --all-online',
+                      (ROOT / '.github/workflows/archive-pin-audit.yml').read_text())
 
 
 if __name__ == '__main__':
