@@ -2,36 +2,6 @@
   "schemaVersion": "pgextwin-standalone-get/v1",
   "records": [
     {
-      "item": "postgis",
-      "category": "spatial",
-      "pgMajor": "14",
-      "upstreamVersion": "3.6.2",
-      "pgroutingVersion": "4.0.1",
-      "assetName": "postgis-bundle-pg14x64-setup-3.6.2-1.exe",
-      "originalBytes": 104787481,
-      "originalSha256": "f245ddfb104abc14cc2b3533f9023d005e71a493e210b2694caef14637cb5594",
-      "originalProviderUrl": "https://ftp.postgresql.org/pub/postgis/pg14/v3.6.2/win64/postgis-bundle-pg14x64-setup-3.6.2-1.exe",
-      "license": "Multiple (PostGIS and pgRouting primarily GPL-2.0-or-later)",
-      "latest": true,
-      "licenseEvidence": [
-        {
-          "url": "https://raw.githubusercontent.com/postgis/postgis/08d9b9f749fa3531591055db2a736bfb6df47006/LICENSE.TXT",
-          "file": "LICENSE.TXT",
-          "sha256": "81749eea887e78402c9b85896cd629b155bc29256927f818f01001f038146391"
-        },
-        {
-          "url": "https://raw.githubusercontent.com/pgRouting/pgrouting/8988eebdff0e01327c9d48fe7c80b437dc9bc992/LICENSE",
-          "file": "LICENSE",
-          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
-        },
-        {
-          "url": "https://raw.githubusercontent.com/pgRouting/pgrouting/8988eebdff0e01327c9d48fe7c80b437dc9bc992/README.md",
-          "file": "README.md",
-          "sha256": "267633489eded7cdb9992b61169b5d025830c5b28d9eb53bea83c0180fc9b765"
-        }
-      ]
-    },
-    {
       "item": "pgbouncer",
       "category": "tools",
       "pgMajor": null,

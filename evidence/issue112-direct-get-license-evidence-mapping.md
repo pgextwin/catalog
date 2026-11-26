@@ -1,8 +1,10 @@
 # Direct GET 台帳行と登録時ライセンス照合証跡の対応表
 
 E3 PR4（DESIGN.md §4.4 手順④）の成果物。`external/direct-get.json`（24行）と
-`external/standalone-get.json`（3行）の全行について、各行の固定値（版・PG・成果物）
-を、登録・更新時点の原本バイトによるライセンス照合証跡へ対応付ける。
+`external/standalone-get.json`（2行。作成時は3行で、PostGIS 3.6.2（PG14）行は
+オーナー決定 D3（2026-11-26）により引退・削除した。経緯は「結果概要」を参照）
+の全行について、各行の固定値（版・PG・成果物）を、登録・更新時点の
+原本バイトによるライセンス照合証跡へ対応付ける。
 
 ## 判定基準
 
@@ -41,11 +43,18 @@ E3 PR4（DESIGN.md §4.4 手順④）の成果物。`external/direct-get.json`�
   戻り、PgBouncer のみ**成立**のままとなった。未決の2行は明記された
   残件として F フェーズの台帳管理へ引き継ぐ。実施記録は
   `evidence/issue112-standalone-get-license-verification.md`。
+  その後の残件解消では、PostGIS 行について原本チャネル（OSGeo）の
+  実在確認を行った結果、OSGeo の PG14 ディレクトリの最新は 3.6.1 で、
+  3.6.2 の成果物（EXE・ZIP とも）が存在しないことが判明した（Case D）。
+  オーナー決定 D3（2026-11-26）により、3.6.1 への版下げは行わず、
+  PostGIS 3.6.2（PG14）行自体を台帳から引退（削除）した。根拠には
+  PG14 の上流サポート終了（2026-11-12）も含まれる。これにより
+  未決の残件は psqlODBC 1行のみとなった。
 
 ## 結果概要
 
 - direct-get.json: 24行中 **成立24・未決0**
-- standalone-get.json: 3行中 **成立1・未決2**（PR4 時点では未決3。
+- standalone-get.json: 2行中 **成立1・未決1**（PR4 時点では未決3。
   E3 PR5 で登録時相当の原本照合を実施して成立へ移したが、再監査が
   未決と判定し、PR6 の深化でも配布条件の充足確認と一部部品の
   版・原本確定が残ったため未決に戻った。その後、オーナー決定
@@ -53,7 +62,9 @@ E3 PR4（DESIGN.md §4.4 手順④）の成果物。`external/direct-get.json`�
   最終確認監査（M3）が PostGIS と psqlODBC の2行について固定原本の
   不足を理由に FAIL と判定し、オーナー決定（2026-11-26、選択肢 B）
   によりこの2行は未決に戻った。PgBouncer のみ成立）
-- 合計: 27行中 **成立25・未決2**
+- 合計: 26行中 **成立25・未決1**（未決は psqlODBC のみ。PostGIS 3.6.2
+  （PG14）行はオーナー決定 D3（2026-11-26）により引退し、対応表からも
+  削除した。引退の根拠は上記「照合方法」の D3 記録を参照）
 
 ## 対応表
 
@@ -84,6 +95,5 @@ E3 PR4（DESIGN.md §4.4 手順④）の成果物。`external/direct-get.json`�
 | postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 17 | postgis-bundle-pg17-3.7.0x64.zip（84044726 B, sha256 eceb7ed45276…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
 | postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 18 | postgis-bundle-pg18-3.7.0x64.zip（83739256 B, sha256 ac9e9486b3f9…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
 | postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 19 | postgis-bundle-pg19-3.7.0x64.zip（83705586 B, sha256 5d5630aa0405…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（明細表は PG15–18 用のみ存在。PG19 は登録コミットの照合完了記録による） | 成立 | 登録コミット 92e508b（#491）: コミット本文に「登録前に同梱物全ての版別ライセンス照合を完了」と記録され、ZIP のバイト数・SHA-256 が台帳行と一致。制限: PG19 専用の同梱物別明細表は存在しない（PG15–18 の表を PG19 の明細として流用していない） |
-| postgis | 3.6.2 | Multiple (PostGIS and pgRouting primarily GPL-2.0-or-later) | 14 | postgis-bundle-pg14x64-setup-3.6.2-1.exe（104787481 B, sha256 f245ddfb104a…） | standalone-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 未決 | E3 PR6 の深化記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、拡張部品と主要ランタイム（GDAL 3.9.2・GEOS 3.14.1・PROJ 8.2.1・OpenSSL 3.0.7・GTK スタック等）の版別ライセンス原本をコミット固定で対応付けた。一方、ランタイム大半のライセンス文が配布物内に実在せず配布条件の充足を確認できず、一部部品（libthai・GMP・FreeXL 等）は版・原本が未確定。再監査 M3 の未決判定を維持 |
 | pgbouncer | 1.26.1 | ISC | — | pgbouncer-1.26.1-windows-x86_64.zip（2540874 B, sha256 5d3fa0bc9bd4…） | standalone-get.json | pgbouncer 本体＋静的リンク部品（libevent・OpenSSL） | 成立 | E3 PR6 の深化記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、ZIP 内 COPYRIGHT が台帳ピンと一致し上流原本ともテキスト同一（CRLF 化のみ）。PR5 の「第三者依存なし」は誤りで、exe は libevent 2.1.13-stable と OpenSSL 3.6.5 を静的リンク（提供元の固定コミットのビルド定義と実バイナリで確定）。両部品の原本は版固定で対応付け、再配布許諾を確認した。Apache-2.0 文と libevent の表示が ZIP 内に存在しない点は上流配布物の配布形態の特性として記録し、オーナー決定（2026-11-26、K4 解釈 B）により成立（根拠は判定基準の K4 注記） |
 | psqlodbc | 13.02.0000 | LGPL-2.0-or-later | — | psqlodbc_13_02_0000-x64.zip（3868961 B, sha256 0d2f93c43752…） | standalone-get.json | MSI 内に libpq・OpenSSL 1.1・MSVC ランタイムを同梱 | 未決 | E3 PR6 の深化記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、ZIP 内 README.txt と上流 license.txt が台帳ピンと一致。同梱部品の版を確定し原本を版固定で対応付けた（libpq = PostgreSQL 13.4、OpenSSL 1.1.1l）が、両部品の表示が MSI 内に存在せず配布条件の充足を確認できず、MSVC ランタイム 14.16.27033.0 は版同定のみで条件の固定原本がない |
