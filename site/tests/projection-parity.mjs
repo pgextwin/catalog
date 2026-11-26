@@ -618,10 +618,16 @@ function main() {
     for (const status of ["implemented", "external-direct", "external-standalone", "candidate", "license-excluded", "not-planned"]) {
       countByStatus[status] = siteJs.filterLandscape(filtersData.landscape, { lang: "en", status }).length;
     }
+    // build_pages renders one landscape card per distinct standalone item
+    // (records are grouped by item), plus the pgrouting bundle companion
+    // when postgis is distributed standalone; derive the expected count
+    // from external/standalone-get.json instead of hardcoding it.
+    const standaloneItemNames = new Set(standaloneRecords.map((r) => r.extension || r.item));
+    if (standaloneItemNames.has("postgis")) standaloneItemNames.add("pgrouting");
     assert.deepEqual(countByStatus, {
       implemented: 26,
       "external-direct": 7,
-      "external-standalone": 4,
+      "external-standalone": standaloneItemNames.size,
       candidate: 4,
       "license-excluded": 4,
       "not-planned": 3,
