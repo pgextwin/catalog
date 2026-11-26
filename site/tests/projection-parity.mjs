@@ -346,6 +346,8 @@ function main() {
     assert.equal(distRecords.length, 26);
     assert.equal(landscapeRegistry.length, 34);
     assert.equal(directRecords.length, 24);
+    // Standalone record count tracks external/standalone-get.json: pgbouncer
+    // plus the two psqlODBC 18.00.0006 architecture records (x64 + x86 MSI).
     assert.equal(standaloneRecords.length, 3);
     assert.equal(expectedLandscapeIds.size, 46);
     assert.equal(filtersData.extensions.length, 26);
@@ -358,7 +360,7 @@ function main() {
       landscapeRegistry: 34,
       landscapeDisplayed: 46,
       externalDirect: 24,
-      externalStandalone: 3,
+      externalStandalone: standaloneRecords.length,
     };
   });
 

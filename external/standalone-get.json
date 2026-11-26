@@ -29,23 +29,47 @@
       "item": "psqlodbc",
       "category": "drivers",
       "pgMajor": null,
-      "upstreamVersion": "13.02.0000",
-      "assetName": "psqlodbc_13_02_0000-x64.zip",
-      "originalBytes": 3868961,
-      "originalSha256": "0d2f93c43752019c5e35f4369b1c32b40671f90a833dff3c7273569b6cbf1808",
-      "originalProviderUrl": "https://ftp.postgresql.org/pub/odbc/versions.old/msi/psqlodbc_13_02_0000-x64.zip",
+      "upstreamVersion": "18.00.0006",
+      "assetName": "psqlodbc_x64.msi",
+      "originalBytes": 4587520,
+      "originalSha256": "8962543113df83410b74f113db1ef80717b65a1dc7869e18c24bd852dd65535f",
+      "originalProviderUrl": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x64.msi",
       "license": "LGPL-2.0-or-later",
       "latest": true,
       "licenseEvidence": [
         {
-          "url": "https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/ccd36c486ab2eb1c2a7cb0692666a96e34f81427/license.txt",
+          "url": "https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/96fa03dbc968c40920c907bf18d3b4cbd8efeebc/license.txt",
           "file": "license.txt",
           "sha256": "3892f5f0585c553b72d0d4942d5a75935d0e8b0dcd0f5caa000a6853d648c67b"
         },
         {
-          "url": "https://ftp.postgresql.org/pub/odbc/versions.old/msi/psqlodbc_13_02_0000-x64.zip",
-          "file": "README.txt",
-          "sha256": "6c0f9eeb65345061c45a12916f58037b434fe687eb91fccb360f32f35ca44991"
+          "url": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x64.msi",
+          "file": "installer/lgpl.rtf (MSI LicenseAgreementDlg LicenseText)",
+          "sha256": "46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd"
+        }
+      ]
+    },
+    {
+      "item": "psqlodbc",
+      "category": "drivers",
+      "pgMajor": null,
+      "upstreamVersion": "18.00.0006",
+      "assetName": "psqlodbc_x86.msi",
+      "originalBytes": 4087808,
+      "originalSha256": "b5e3d749a148d56b184984b23305794c3d602317b30215945a5ca7c5233dc24a",
+      "originalProviderUrl": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x86.msi",
+      "license": "LGPL-2.0-or-later",
+      "latest": true,
+      "licenseEvidence": [
+        {
+          "url": "https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/96fa03dbc968c40920c907bf18d3b4cbd8efeebc/license.txt",
+          "file": "license.txt",
+          "sha256": "3892f5f0585c553b72d0d4942d5a75935d0e8b0dcd0f5caa000a6853d648c67b"
+        },
+        {
+          "url": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x86.msi",
+          "file": "installer/lgpl.rtf (MSI LicenseAgreementDlg LicenseText)",
+          "sha256": "46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd"
         }
       ]
     }
