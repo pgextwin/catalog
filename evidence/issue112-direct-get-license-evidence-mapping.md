@@ -26,19 +26,21 @@ E3 PR4（DESIGN.md §4.4 手順④）の成果物。`external/direct-get.json`�
 - 緩和レビュー受領 JSON（`evidence/issue112-relaxed-external-fetch-20261117.json` の
   `downloaded`）のバイト数・SHA-256 と pglogical／pg_crash 8行: 全行一致。
 - OSGeo PG19 行: 登録コミット 92e508b 本文記載の ZIP バイト数・SHA-256 が台帳行と一致。
-- standalone 3行（E3 PR5、2026-11-26）: 配布物を台帳固定値で取得し直し、
-  サイズ・SHA-256 の完全一致、配布物内ライセンス文書と台帳ピン済み上流
-  原本の byte 照合、配布物の展開による同梱物の列挙、配布条件の確認を
-  実施した。実施記録は
+- standalone 3行（E3 PR5 で照合実施、PR6 で深化・訂正）: 配布物を
+  台帳固定値で取得し直し、サイズ・SHA-256 の完全一致を確認。PR5 の
+  照合記録に対し、再監査（M3）の指摘で PR6 が部品単位の深化を行い、
+  PR5 の事実誤り（PgBouncer の静的リンク部品の見落とし等）を訂正した。
+  3行とも**未決**である。実施記録は
   `evidence/issue112-standalone-get-license-verification.md`。
 
 ## 結果概要
 
 - direct-get.json: 24行中 **成立24・未決0**
-- standalone-get.json: 3行中 **成立3・未決0**（PR4 時点では未決3。
-  E3 PR5 で登録時相当の原本照合を実施し、
-  `evidence/issue112-standalone-get-license-verification.md` を証跡として成立へ移行）
-- 合計: 27行中 **成立27・未決0**
+- standalone-get.json: 3行中 **成立0・未決3**（PR4 時点では未決3。
+  E3 PR5 で登録時相当の原本照合を実施して成立へ移したが、再監査が
+  未決と判定し、PR6 の深化でも配布条件の充足確認と一部部品の
+  版・原本確定が残ったため未決に戻る）
+- 合計: 27行中 **成立24・未決3**
 
 ## 対応表
 
@@ -69,6 +71,6 @@ E3 PR4（DESIGN.md §4.4 手順④）の成果物。`external/direct-get.json`�
 | postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 17 | postgis-bundle-pg17-3.7.0x64.zip（84044726 B, sha256 eceb7ed45276…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
 | postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 18 | postgis-bundle-pg18-3.7.0x64.zip（83739256 B, sha256 ac9e9486b3f9…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | OSGeo bundle ライセンスレビュー: 台帳の正確な SHA-256・サイズ固定への適用を明記し、同梱物ごとに照合（登録 #439 で同梱） |
 | postgis | 3.7.0 | Multiple (PostGIS, pgRouting and bundled components) | 19 | postgis-bundle-pg19-3.7.0x64.zip（83705586 B, sha256 5d5630aa0405…） | direct-get.json | PostGIS 本体＋pgRouting＋同梱物群（明細表は PG15–18 用のみ存在。PG19 は登録コミットの照合完了記録による） | 成立 | 登録コミット 92e508b（#491）: コミット本文に「登録前に同梱物全ての版別ライセンス照合を完了」と記録され、ZIP のバイト数・SHA-256 が台帳行と一致。制限: PG19 専用の同梱物別明細表は存在しない（PG15–18 の表を PG19 の明細として流用していない） |
-| postgis | 3.6.2 | Multiple (PostGIS and pgRouting primarily GPL-2.0-or-later) | 14 | postgis-bundle-pg14x64-setup-3.6.2-1.exe（104787481 B, sha256 f245ddfb104a…） | standalone-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 成立 | E3 PR5 の登録時相当照合記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、台帳 licenseEvidence の上流原本3件（PostGIS LICENSE.TXT・pgRouting LICENSE／README）が台帳ピンと byte 一致、EXE 内 bin/COPYING が pgRouting LICENSE ピンとバイト一致、拡張コンポーネント全件を版別に照合（SFCGAL 2.2.0・MobilityDB 1.3.0-rc1 は正確な版の上流原本で照合）。PR4 時点では登録コミット 6b6d15f が件名のみで未決だった |
-| pgbouncer | 1.26.1 | ISC | — | pgbouncer-1.26.1-windows-x86_64.zip（2540874 B, sha256 5d3fa0bc9bd4…） | standalone-get.json | —（単体成果物） | 成立 | E3 PR5 の登録時相当照合記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、ZIP 内 COPYRIGHT（848 B）が台帳ピンと一致し、上流原本（831 B）ともテキスト同一（CRLF 化のみ）。同梱物は pgbouncer プロジェクト自身のみ。PR4 時点では未決だった |
-| psqlodbc | 13.02.0000 | LGPL-2.0-or-later | — | psqlodbc_13_02_0000-x64.zip（3868961 B, sha256 0d2f93c43752…） | standalone-get.json | MSI 内に libpq・OpenSSL 1.1・MSVC ランタイムを同梱 | 成立 | E3 PR5 の登録時相当照合記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、ZIP 内 README.txt（許諾文と著作権表示）が台帳ピンと一致、上流 license.txt（LGPL 全文）も台帳ピンと一致、MSI 全22ファイルを列挙して同梱物を同定。PR4 時点では未決だった |
+| postgis | 3.6.2 | Multiple (PostGIS and pgRouting primarily GPL-2.0-or-later) | 14 | postgis-bundle-pg14x64-setup-3.6.2-1.exe（104787481 B, sha256 f245ddfb104a…） | standalone-get.json | PostGIS 本体＋pgRouting＋同梱物群（PG14 セットアップ EXE。OSGeo レビュー文書の対象範囲外） | 未決 | E3 PR6 の深化記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、拡張部品と主要ランタイム（GDAL 3.9.2・GEOS 3.14.1・PROJ 8.2.1・OpenSSL 3.0.7・GTK スタック等）の版別ライセンス原本をコミット固定で対応付けた。一方、ランタイム大半のライセンス文が配布物内に実在せず配布条件の充足を確認できず、一部部品（libthai・GMP・FreeXL 等）は版・原本が未確定。再監査 M3 の未決判定を維持 |
+| pgbouncer | 1.26.1 | ISC | — | pgbouncer-1.26.1-windows-x86_64.zip（2540874 B, sha256 5d3fa0bc9bd4…） | standalone-get.json | pgbouncer 本体＋静的リンク部品（libevent・OpenSSL） | 未決 | E3 PR6 の深化記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、ZIP 内 COPYRIGHT が台帳ピンと一致し上流原本ともテキスト同一（CRLF 化のみ）。PR5 の「第三者依存なし」は誤りで、exe は libevent 2.1.13-stable と OpenSSL 3.6.5 を静的リンク（提供元の固定コミットのビルド定義と実バイナリで確定）。両部品の原本は版固定で対応付けたが、Apache-2.0 文と libevent の表示が ZIP 内に存在せず、配布条件の充足を確認できない |
+| psqlodbc | 13.02.0000 | LGPL-2.0-or-later | — | psqlodbc_13_02_0000-x64.zip（3868961 B, sha256 0d2f93c43752…） | standalone-get.json | MSI 内に libpq・OpenSSL 1.1・MSVC ランタイムを同梱 | 未決 | E3 PR6 の深化記録 `evidence/issue112-standalone-get-license-verification.md`: 配布物が台帳固定値と完全一致、ZIP 内 README.txt と上流 license.txt が台帳ピンと一致。同梱部品の版を確定し原本を版固定で対応付けた（libpq = PostgreSQL 13.4、OpenSSL 1.1.1l）が、両部品の表示が MSI 内に存在せず配布条件の充足を確認できず、MSVC ランタイム 14.16.27033.0 は版同定のみで条件の固定原本がない |
