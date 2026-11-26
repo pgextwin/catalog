@@ -392,7 +392,7 @@ internal static class SignedPublicCatalogFeedTests
     private static async Task CheckCliAsync(Action<bool, string> check)
     {
         var version = await InvokeCliAsync("--version");
-        check(version.ExitCode == 0 && version.Output.Trim() == "0.6.0", "CLI reports 0.6.0");
+        check(version.ExitCode == 0 && version.Output.Trim() == "0.6.1", "CLI reports 0.6.1");
         var help = await InvokeCliAsync("download", "--help");
         check(help.ExitCode == 0 && help.Error.Contains("--source pgextwin --pg MAJOR [--version EXACT]", StringComparison.Ordinal),
             "named internal help documents exact download");
