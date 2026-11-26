@@ -13,6 +13,17 @@ PR7（#547）で3行ともいったん**成立**としたが、最終確認監�
 **未決**に戻り、PgBouncer のみ**成立**のままとなった。未決の2行は
 明記された残件として F フェーズの台帳管理へ引き継ぎ、E3 はこの
 状態で完了する。解釈 B 自体は引き続き採用する判定基準である。
+
+その後、PostGIS 行についてはオーナー決定 D3（2026-11-26）により
+台帳からの引退が決まり、`external/standalone-get.json` から当該行を
+削除した。決定の経緯: 原本チャネル（OSGeo）の PG14 ディレクトリの
+最新は 3.6.1 で、3.6.2 の成果物（EXE・ZIP とも）が存在しなかった
+（Case D）。3.6.1 への版下げは行わない。PG14 は上流サポート終了済み
+（2026-11-12）であり、署名 feed の対象範囲にも PG14 は含まれて
+いない。したがって PostGIS 行は未決の残件ではなくなり、F フェーズへ
+の引き継ぎ対象からも外れた。未決の残件は psqlODBC のみである
+（両台帳合計で成立25・未決1）。下記 §1 の部品単位の記録は、
+引退前の照合記録としてそのまま保持する。
 根拠: Established under owner decision 2026-11-26 (K4 interpretation B): component identification, pinned originals, and redistribution permission confirmed for each component license; license texts not reproduced inside upstream's distribution artifacts are recorded as a distribution-form characteristic of the upstream artifact.
 
 ## PR5 記録の訂正（事実誤り）
@@ -50,6 +61,10 @@ PR6 の実測で判明した PR5 記録の誤りを明示して訂正する。
 「配布物内」列は、当該部品のライセンス文書が配布物内に実在するか。
 
 ## 1. postgis 3.6.2（PG14 セットアップ EXE）
+
+（本行はオーナー決定 D3（2026-11-26）により台帳から引退した。
+以下の記録は引退前の照合記録として保持するもので、現在の台帳行では
+ない。引退の根拠は冒頭の D3 記録を参照）
 
 ### 配布物の同一性
 
@@ -271,3 +286,8 @@ PgBouncer は成立のままである。未決の2行は明記された残件と
 F フェーズの台帳管理へ引き継ぎ、E3 はこの状態で完了する。終了記録
 （`j05-observe-only-retirement.md`）の項目4・項目7も本決定に合わせて
 更新した。
+
+その後、PostGIS 行はオーナー決定 D3（2026-11-26）により台帳から
+引退した（冒頭の D3 記録を参照）。対応表は 26行中
+**成立25・未決1** となり、未決の残件は psqlODBC のみとなった。
+PostGIS 行は残件として F フェーズへ引き継がない。
