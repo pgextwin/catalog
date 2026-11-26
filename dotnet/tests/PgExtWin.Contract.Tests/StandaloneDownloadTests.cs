@@ -47,6 +47,36 @@ internal static class StandaloneDownloadTests
         });
     }
 
+    private static byte[] MultiArchManifest(bool duplicateAsset = false)
+    {
+        var sha256 = Convert.ToHexStringLower(SHA256.HashData(Original));
+        object Row(string asset) => new
+        {
+            item = "psqlodbc",
+            category = "drivers",
+            pgMajor = (string?)null,
+            upstreamVersion = "18.00.0006",
+            assetName = asset,
+            originalBytes = Original.Length,
+            originalSha256 = sha256,
+            originalProviderUrl =
+                "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/" + asset,
+            license = "Synthetic test license",
+            latest = true,
+            licenseEvidence = new[]
+            {
+                new { url = "https://example.invalid/releases/v1/LICENSE", file = "LICENSE", sha256 }
+            }
+        };
+        return JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            schemaVersion = "pgextwin-standalone-get/v1",
+            records = duplicateAsset
+                ? new[] { Row("psqlodbc_x64.msi"), Row("psqlodbc_x64.msi") }
+                : new[] { Row("psqlodbc_x64.msi"), Row("psqlodbc_x86.msi") }
+        });
+    }
+
     private sealed class Network(byte[] manifest, string? fault = null) : HttpMessageHandler
     {
         internal List<string> Requests { get; } = [];
@@ -90,6 +120,28 @@ internal static class StandaloneDownloadTests
                 "Category, case-insensitive search, latest and major-independent matching apply together");
             check(network.Requests.SequenceEqual([RawCatalog + "standalone-get.json"]),
                 "Driver browsing reads catalog pins without requesting originals or PostgreSQL");
+        }
+
+        var multiArch = ExternalSignedCatalogCohort.ParseDownloads(MultiArchManifest(), standalone: true);
+        check(multiArch.Count == 2,
+            "Two same-item same-version standalone records with distinct assets parse");
+        var selected = ExternalSignedCatalogCohort.SelectDownloads(multiArch, "all", "psqlodbc", null);
+        check(selected.Count == 2 &&
+            selected.Select(pin => pin.AssetName).Distinct().Count() == 2,
+            "Selecting the multi-architecture item returns both architecture pins");
+        var selectedByVersion = ExternalSignedCatalogCohort.SelectDownloads(
+            multiArch, "all", "psqlodbc", "18.00.0006");
+        check(selectedByVersion.Count == 2,
+            "Exact-version selection also returns both architecture pins");
+        try
+        {
+            ExternalSignedCatalogCohort.ParseDownloads(
+                MultiArchManifest(duplicateAsset: true), standalone: true);
+            check(false, "A true duplicate standalone record (same asset) must fail");
+        }
+        catch (InvalidDataException)
+        {
+            check(true, "A true duplicate standalone record (same asset) must fail");
         }
 
         var parent = Path.Combine(Path.GetTempPath(), "pgextwin-standalone-test-" + Guid.NewGuid().ToString("N"));
