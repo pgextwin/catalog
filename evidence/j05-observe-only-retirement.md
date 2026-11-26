@@ -4,9 +4,14 @@
 更新: E3 PR5（監査是正、2026-11-26）で項目4と手順④の結果を更新した。
 さらに E3 再監査（M3）が standalone 3行を未決と判定したため、PR6
 （2026-11-26）で証跡を部品単位まで深化させ、項目4の K4 対応付けは
-standalone 3行について**未完（未決）**に改めた。その後、オーナー決定
-（2026-11-26、K4 解釈 B）により3行とも成立となり、項目4の K4
-対応付けは完了した（下記）。
+standalone 3行について**未完（未決）**に改めた。その後、PR7
+（#547）でオーナー決定（2026-11-26、K4 解釈 B）により3行とも成立
+とし、項目4の K4 対応付けは完了したとしたが、最終確認監査（M3）が
+PostGIS と psqlODBC の2行は固定原本の不足により解釈 B の根拠を
+満たさないとして FAIL と判定した。オーナー決定（2026-11-26、
+選択肢 B）により、この2行は未決の残件として F フェーズの台帳管理へ
+引き継ぎ、E3 はこの状態で完了する。項目4の対応付けは
+成立25・未決2である（下記）。
 対象: J05 決定（旧 external-11 署名 admission は更新せず、失効後は検証側の
 observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（終了条件7項目）と
 §4.4（E3 の手順）。本記録は証跡の所在を示すものであり、J05 の再発行・再署名は
@@ -89,7 +94,8 @@ observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（�
    公開 E2E ワークフロー（cli-published-e2e / issue112-external-public-get-e2e）
    は本 PR で変更していない。
 4. **中核4点の維持 — 署名・完全性・認可は維持。K4 の対応付けは
-   standalone 3行についても完了（オーナー決定 2026-11-26、K4 解釈 B）。**
+   成立25・未決2（PostGIS と psqlODBC は未決の残件として
+   F フェーズへ引き継ぐ）。**
    DESIGN §4.2 項目4の正本は「現用対象に適用される署名・完全性・認可・
    ライセンス検証の維持（Direct GET の登録・更新時ライセンス原本照合
    証跡との対応付けを含む）」である。PR4 時点の本記録は署名 feed の
@@ -108,8 +114,20 @@ observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（�
    Direct GET については部品同定・原本固定・各部品ライセンスの
    再配布許諾確認をもって K4 が充足するとされ、配布物内に再現
    されないライセンス文は上流配布物の配布形態の特性として記録する
-   こととなった。これにより standalone 3行は成立となり、対応表は
-   成立27・未決0、項目4の K4 対応付けは完了した。根拠: Established under owner decision 2026-11-26 (K4 interpretation B): component identification, pinned originals, and redistribution permission confirmed for each component license; license texts not reproduced inside upstream's distribution artifacts are recorded as a distribution-form characteristic of the upstream artifact.
+   こととなった。根拠: Established under owner decision 2026-11-26 (K4 interpretation B): component identification, pinned originals, and redistribution permission confirmed for each component license; license texts not reproduced inside upstream's distribution artifacts are recorded as a distribution-form characteristic of the upstream artifact.
+   PR7（#547）ではこの根拠により standalone 3行は成立となり、
+   対応表は成立27・未決0、項目4の K4 対応付けは完了したとした。
+   しかし最終確認監査（M3）は、PostGIS（libthai・libdatrie の版と
+   固定原本が未確定、GMP・FreeXL は原本未取得、GDAL 内の Arrow
+   静的リンクが未検証）と psqlODBC（MSVC ランタイムの再頒布条件の
+   固定原本がない）の2行について、照合記録自体に固定原本の不足が
+   明記されており、上記の根拠が求める「固定原本」を満たさないとして
+   FAIL と判定した。PgBouncer は全部品の版・固定原本・再配布許諾が
+   記録されており成立のままである。オーナー決定（2026-11-26、
+   選択肢 B）により、この2行は未決に戻し、対応表は
+   **成立25・未決2** となった。項目4の K4 対応付けは、未決の2行を
+   明記された残件として F フェーズの台帳管理へ引き継ぐ形で扱い、
+   E3 はこの状態で完了する。
    署名・完全性・認可の各境界は本 PR 群で変更しておらず、
    既存テストで維持を確認している。
 5. **履歴証跡の固定 — 成立。**
@@ -128,20 +146,23 @@ observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（�
    その存在を固定している。
 7. **監視役目の終了 — 終了条件はそろった（ジョブ終了操作自体は
    本 PR の範囲外）。**
-   項目1〜3・5・6 の証跡はそろい、項目4の K4 対応付けも
-   オーナー決定（2026-11-26、K4 解釈 B）による standalone 3行の
-   成立で完了したため、J05 監視の安全な終了条件はそろった。
-   運用監視ジョブ自体の終了は親タスク側の別作業であり、本 PR では
-   行わない。
+   項目1〜3・5・6 の証跡はそろった。項目4については、オーナー決定
+   （2026-11-26、選択肢 B）により、未決の2行（PostGIS と
+   psqlODBC）を明記された残件として F フェーズの台帳管理へ
+   引き継ぐことをもって、J05 監視の安全な終了条件はそろったものと
+   する。PR7（#547）で記載した「standalone 3行の成立
+   （成立27・未決0）を根拠とする完了」の文言は、本決定により
+   置き換えられる。運用監視ジョブ自体の終了は親タスク側の別作業で
+   あり、本 PR では行わない。
 
 ## 手順④ ライセンス証跡対応付けの結果
 
 対応表: `evidence/issue112-direct-get-license-evidence-mapping.md`
 
 - direct-get.json: 24行中 **成立24・未決0**
-- standalone-get.json: 3行中 **成立3・未決0**（E3 PR6 で深化のうえ、
-  オーナー決定 2026-11-26（K4 解釈 B）で成立。下記）
-- 合計: 27行中 **成立27・未決0**
+- standalone-get.json: 3行中 **成立1・未決2**（E3 PR6 で深化。
+  PgBouncer のみ成立、PostGIS と psqlODBC は未決の残件。下記）
+- 合計: 27行中 **成立25・未決2**
 
 PR4 時点では standalone の3行（postgis 3.6.2（PG14 セットアップ EXE）、
 pgbouncer 1.26.1、psqlodbc 13.02.0000）が未決だった。理由は登録
@@ -159,8 +180,13 @@ pgbouncer 1.26.1、psqlodbc 13.02.0000）が未決だった。理由は登録
 部品の見落とし、PostGIS の DLL 列挙漏れ等）を訂正した。深化後も、
 配布物内に部品のライセンス表示がなく配布条件の充足を確認できない
 部品と、版・原本が未確定の部品が残ったため、3行ともいったん未決の
-ままとした。最終的に、オーナー決定（2026-11-26、K4 解釈 B）により
-3行とも成立となり、項目4の K4 対応付けは完了した。
+ままとした。その後 PR7（#547）で、オーナー決定（2026-11-26、
+K4 解釈 B）により3行ともいったん成立としたが、最終確認監査
+（M3）が PostGIS と psqlODBC の2行は固定原本の不足により解釈 B の
+根拠を満たさないとして FAIL と判定した。オーナー決定
+（2026-11-26、選択肢 B）により、この2行は未決に戻り、項目4の
+K4 対応付けは成立25・未決2となった。未決の2行は明記された残件
+として F フェーズの台帳管理へ引き継ぎ、E3 はこの状態で完了する。
 
 ## R10（ExternalOriginalBatchStager）の扱い
 
