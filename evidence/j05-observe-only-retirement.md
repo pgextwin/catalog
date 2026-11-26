@@ -1,6 +1,8 @@
 # J05 observe-only 終了記録（E3 PR4）
 
 記録日: 2026-11-26（JST）
+更新: E3 PR5（監査是正、2026-11-26）で項目4と手順④の結果を更新した
+（standalone 3行の K4 対応付けが成立し、27行全てが成立）。
 対象: J05 決定（旧 external-11 署名 admission は更新せず、失効後は検証側の
 observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（終了条件7項目）と
 §4.4（E3 の手順）。本記録は証跡の所在を示すものであり、J05 の再発行・再署名は
@@ -82,9 +84,17 @@ observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（�
    ベースライン、対象コードは不変更）で `ExternalDirectGetTests` を含む。
    公開 E2E ワークフロー（cli-published-e2e / issue112-external-public-get-e2e）
    は本 PR で変更していない。
-4. **署名 feed の成立 — 成立。**
-   `.NET --signed-feed` PASS 94 checks（同ベースライン）。`cli_signed_feed.py`
-   と feed 契約は本 PR の変更対象外。
+4. **中核4点の維持 — 成立（E3 PR5 で更新）。**
+   DESIGN §4.2 項目4の正本は「現用対象に適用される署名・完全性・認可・
+   ライセンス検証の維持（Direct GET の登録・更新時ライセンス原本照合
+   証跡との対応付けを含む）」である。PR4 時点の本記録は署名 feed の
+   成立（`.NET --signed-feed` PASS 94 checks、`cli_signed_feed.py` と
+   feed 契約は変更対象外）に限っており、監査で不成立と判定された。
+   PR5 で K4 の対応付けが完了した: 対応表の27行全てが成立
+   （direct-get 24行は PR4 で成立、standalone 3行は PR5 の登録時相当
+   照合記録 `evidence/issue112-standalone-get-license-verification.md`
+   で成立）。署名・完全性・認可の各境界は本 PR 群で変更しておらず、
+   既存テストで維持を確認している。
 5. **履歴証跡の固定 — 成立。**
    Run 44030098818 の admission 原本と Sigstore attestation は Catalog Git 内に
    凍結保存されている（`external/signed-direct-get/qualified_cohort/run-44030098818/`、
@@ -108,16 +118,19 @@ observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（�
 対応表: `evidence/issue112-direct-get-license-evidence-mapping.md`
 
 - direct-get.json: 24行中 **成立24・未決0**
-- standalone-get.json: 3行中 **成立0・未決3**
-- 合計: 27行中 **成立24・未決3**
+- standalone-get.json: 3行中 **成立3・未決0**（E3 PR5 で解消。下記）
+- 合計: 27行中 **成立27・未決0**
 
-未決の3行（いずれも standalone-get.json）: postgis 3.6.2（PG14 セットアップ
-EXE）、pgbouncer 1.26.1、psqlodbc 13.02.0000。理由は共通で、登録コミット
-6b6d15f が件名のみで照合内容の記録がなく、台帳外の登録時照合記録が確認
-できないため（台帳内 licenseEvidence 自体はコミット固定 URL＋ライセンス
-バイト SHA-256 で版固有に固定されている）。未決はライセンス無効を意味
-しない。将来、登録時の照合記録が発見されれば対応表を更新して成立へ移せる。
-CLI 取得時の新しい照合ゲートは増設していない。
+PR4 時点では standalone の3行（postgis 3.6.2（PG14 セットアップ EXE）、
+pgbouncer 1.26.1、psqlodbc 13.02.0000）が未決だった。理由は登録
+コミット 6b6d15f が件名のみで照合内容の記録がなく、台帳外の登録時
+照合記録が確認できなかったためである。E3 PR5（監査是正）で、3行とも
+配布物を台帳固定値で取得し直し、サイズ・SHA-256 の完全一致、配布物内
+ライセンス文書と台帳ピン済み上流原本の byte 照合、同梱物の列挙、
+配布条件の確認を実施し、実施記録
+`evidence/issue112-standalone-get-license-verification.md` を証跡として
+成立へ移した（各行の成立範囲は同記録に明記）。CLI 取得時の新しい
+照合ゲートは増設していない。
 
 ## R10（ExternalOriginalBatchStager）の扱い
 

@@ -102,6 +102,19 @@ public static class SignedPublicCatalogFeed
             proof.VerifiedTimestamps.Count == 0)
             throw new InvalidDataException("Sigstore certificate source SHA, SLSA or time mismatches signed Catalog");
 
+        // The SDK verifies the DSSE envelope, the certificate and the
+        // transparency log, but it does not bind the statement subject to
+        // the fetched artifact. Bind the exact feed bytes here: without
+        // this, a feed whose bytes were changed after publication would
+        // still be accepted with a genuine bundle.
+        var feedSha256 = StrictJson.Sha256(feedBytes);
+        var subject = proof.Statement?.Subject?.FirstOrDefault(s => s.Name == "catalog-latest.json");
+        if (subject is null ||
+            !subject.Digest.TryGetValue("sha256", out var subjectSha256) ||
+            !string.Equals(subjectSha256, feedSha256, StringComparison.Ordinal))
+            throw new InvalidDataException(
+                "Catalog feed Sigstore verification failed: statement subject digest does not match the fetched feed bytes");
+
         progress?.Invoke($"FEED_SIGSTORE_VERIFIED catalog_commit={commit} trust=CATALOG_ONLY");
         var cohort = PostgresqlFeedCohort.Parse(root);
         var pins = SelectPins(root, cohort, pgSelection, extension, version);

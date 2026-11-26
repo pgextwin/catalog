@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using PgExtWin.Releases;
@@ -186,7 +187,6 @@ internal static class SignedPublicCatalogFeedTests
         check(fetched.Tag == tag && fetched.Feed.SequenceEqual(optional) &&
               fetched.Bundle.SequenceEqual(bundle) && cohort.Optional == "19" && handler.Remaining == 0,
             "signed reader resolves the single latest v3 feed and pins the bundle to its tag");
-
         QueuePair(complete);
         fetched = await SignedPublicCatalogFeed.FetchFeedAsync(http);
         using var completeJson = JsonDocument.Parse(fetched.Feed);
@@ -260,6 +260,66 @@ internal static class SignedPublicCatalogFeedTests
         { denied = true; }
         check(denied && handler.Remaining == 0, "tampered published feed bytes fail Sigstore verification before selection");
 
+        await CheckRealBundleAsync(check);
+    }
+
+    // Isolation for the tamper checks above (audit m2): the synthetic pair
+    // uses an invalid "{}" bundle, so its failures cannot show that the byte
+    // change itself is the cause. The fixtures are the real published feed
+    // and Sigstore bundle of the catalog-feed Release tagged with the full
+    // Catalog commit bfd2bdcc (feed SHA-256 a1a41fb6…). The untampered pair
+    // must verify and select; the same pair with exactly one feed byte
+    // changed, or exactly one bundle byte changed, must be rejected by
+    // Sigstore verification.
+    private static async Task CheckRealBundleAsync(Action<bool, string> check)
+    {
+        const string realTag = "catalog-feed-bfd2bdcc7088144743dcd0f6ed8a781a97fd04db";
+        var fixtureDir = Path.Combine(AppContext.BaseDirectory, "fixtures");
+        var realFeed = await File.ReadAllBytesAsync(Path.Combine(fixtureDir, "catalog-latest.json"));
+        var realBundle = await File.ReadAllBytesAsync(Path.Combine(fixtureDir, "catalog-latest.sigstore.json"));
+
+        async Task<SignedPublicCatalogFeed.Selection> AcquireRealAsync(byte[] feedBytes, byte[] bundleBytes)
+        {
+            using var handler = new FeedHandler();
+            const string asset = "catalog-latest.json";
+            var tagged = Tagged + realTag + "/" + asset;
+            handler.Redirect(Latest + asset, tagged);
+            handler.Redirect(tagged, Cdn + asset);
+            handler.Bytes(Cdn + asset, feedBytes);
+            const string bundleAsset = "catalog-latest.sigstore.json";
+            var taggedBundle = Tagged + realTag + "/" + bundleAsset;
+            handler.Redirect(taggedBundle, Cdn + bundleAsset);
+            handler.Bytes(Cdn + bundleAsset, bundleBytes);
+            var selection = await SignedPublicCatalogFeed.AcquireAsync("15", "hypopg", "1.4.5", handler: handler);
+            if (handler.Remaining != 0) throw new InvalidOperationException("unused queued exchanges");
+            return selection;
+        }
+
+        var selected = await AcquireRealAsync(realFeed, realBundle);
+        var pin = selected.Pins.Single();
+        check(Identity(pin) == ("hypopg", "15", "v1.4.5-windows.2",
+                "hypopg-1.4.5-pg15-windows-x64.zip", CurrentDigest, 770933732),
+            "real signed feed and bundle verify and select the published HypoPG pin");
+
+        // One byte inside a package digest value: the JSON stays well-formed
+        // and every identity field is untouched, so only the Sigstore
+        // signature over the exact bytes can reject this feed.
+        var tamperedFeed = realFeed.ToArray();
+        var digestAt = Encoding.ASCII.GetString(tamperedFeed).IndexOf(CurrentDigest, StringComparison.Ordinal);
+        tamperedFeed[digestAt] = (byte)'6';
+        var denied = false;
+        try { await AcquireRealAsync(tamperedFeed, realBundle); }
+        catch (InvalidDataException ex) when (ex.Message.Contains("Sigstore verification failed", StringComparison.Ordinal))
+        { denied = true; }
+        check(denied, "one-byte tampering of a really signed feed fails Sigstore verification");
+
+        var tamperedBundle = realBundle.ToArray();
+        tamperedBundle[tamperedBundle.Length / 2] ^= 0x01;
+        denied = false;
+        try { await AcquireRealAsync(realFeed, tamperedBundle); }
+        catch (InvalidDataException ex) when (ex.Message.Contains("Sigstore verification failed", StringComparison.Ordinal))
+        { denied = true; }
+        check(denied, "one-byte tampering of the real Sigstore bundle fails verification");
     }
 
     private sealed class FeedHandler : HttpMessageHandler
