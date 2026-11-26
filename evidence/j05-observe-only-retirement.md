@@ -1,0 +1,140 @@
+# J05 observe-only 終了記録（E3 PR4）
+
+記録日: 2026-11-26（JST）
+対象: J05 決定（旧 external-11 署名 admission は更新せず、失効後は検証側の
+observe-only とする）の終了処理。設計正本は `DESIGN.md` §4.2（終了条件7項目）と
+§4.4（E3 の手順）。本記録は証跡の所在を示すものであり、J05 の再発行・再署名は
+一切行っていない。
+
+## 実施した変更
+
+### Build（pgextwin/build、ブランチ `proposal-e/e3-pr4-j05-cutoff`、コミット 704d11b）
+
+- `.github/workflows/external-direct-get-issuer.yml`
+  - `workflow_dispatch` の選択肢から `qualified_cohort` を削除（残りは
+    pg_trickle / hypopg / portalcorp_pgvector で、従来どおり存続）
+  - job の `if` 条件から `qualified_cohort` を削除
+  - 取得ステップの reviewed 系3方向フェッチ（pg_trickle / reviewed_pg14_17 /
+    reviewed_pg18）を単一取得へ戻した
+  - issuer ステップの `qualified_cohort` 分岐と専用 env（ORIGINAL_PG18_DIR /
+    ORIGINAL_PG14_17_DIR）・後始末行を削除
+  - independent-verify の 11件分岐と 5/7件分岐（いずれも cohort 形状専用）を削除。
+    未知のレコード数は従来どおり fail-closed（"unsupported exact signed cohort"）
+  - propose-public-pin-pr の `qualified_cohort` ケースを削除
+- `scripts/external-direct-get-issuer.py`: 共有の owner-run 検証
+  `validate_original_owner_run` の許可集合から `qualified_cohort` を削除。
+  孤児化した cohort issuer／pin-pr モジュールが直接起動されても検証で拒否される
+- テスト: 退役状態を固定するよう更新（hypopg-cohort テストの選択肢集合、
+  qualified-cohort テストの workflow 形状アサーション）＋ issuer テストに
+  `test_retired_qualified_cohort_dispatch_is_denied` を追加
+- cohort 専用モジュール群（qualified-cohort-issuer / -pin-pr、reviewed-*、
+  originals.sh の reviewed_* ターゲット）の物理削除は DESIGN §4.5 により E4 の
+  担当範囲であり、本 PR では到達不能化までにとどめる
+
+### Catalog（pgextwin/catalog、同名ブランチ）
+
+- `.github/workflows/validate.yml`: 署名 pin 検証器
+  （`scripts/validate_public_get_pin.py`）のステップを削除。通常 CI が失効済み
+  admission のオンライン Sigstore 検証に依存する状態を解消した
+- `.github/workflows/cli-candidate.yml`: Windows ステップから検証器の呼び出しと
+  専用 env を削除。署名メタデータの Git blob バイト忠実性チェック
+  （`git hash-object --no-filters`）は存続し、ステップ名をバイト確認のみの
+  名称へ変更。PR パストリガーは変更なし
+- `.github/workflows/archive-pin-audit.yml`: 挙動は不変（手動 dispatch +
+  `--all-online`）。ヘッダーコメントを現行状態（唯一のオンライン再検証経路）
+  に合わせて更新
+- テスト2件を退役後の状態へ更新（検証器が per-PR 経路に存在しないこと、
+  履歴監査に `--all-online` で残ること、バイト忠実性チェックが残ることを固定）
+- 新規証跡: `evidence/issue112-direct-get-license-evidence-mapping.md`（手順④の
+  対応表）と本記録
+
+## 実際の停止範囲
+
+- **自動発行**: 旧来から存在しない（issuer は `workflow_dispatch` 専用）。
+  スケジュール・イベント駆動の再発行経路は元々なく、本 PR でも新設していない
+- **手動再発行**: `qualified_cohort` の dispatch 選択肢、job 条件、取得・発行・
+  独立検証・pin PR の各分岐、および共有 owner-run 検証の受理を全て閉じた。
+  これにより Run 44030098818 型の11件 admission は、オーナー操作でも再発行
+  できない
+- **停止しないもの**: issuer の他選択肢（pg_trickle / hypopg /
+  portalcorp_pgvector）、共有の発行 App、保護 Environment
+  `external-direct-provider-publisher`、履歴監査（archive-pin-audit）、
+  署名 feed の契約（`cli_signed_feed.py` は別契約として不変更）、
+  `external_new_stable_watch.py`（履歴 diff の読み取りのみで認可効果なし）
+
+## DESIGN §4.2 終了条件7項目の判定
+
+1. **現在の参照の消滅 — 成立。**
+   現在の Catalog 状態から旧 admission へ届く実行経路はない。.NET の
+   `ExternalSignedCatalogCohort.StageLatestVerifiedAsync` と
+   `ExternalSignedDirectGetAdmission` には本番呼び出し元が存在せず
+   （`Program.cs` が呼ぶのは台帳のみを読む `DownloadAsync` /
+   `ListDownloadsAsync`）、本 PR で通常 CI（validate / cli-candidate）からの
+   検証器呼び出しも撤去した。残存は検証器スクリプト自体・テスト fixture・
+   手動履歴監査（項目6）のみ。到達不能な .NET 型の物理削除は §4.5 により E4。
+2. **自動・手動の再発行停止 — 成立。**
+   上記「実際の停止範囲」のとおり。証跡: Build コミット 704d11b の差分と、
+   拒否を固定する新規テスト `test_retired_qualified_cohort_dispatch_is_denied`
+   （PASS）。
+3. **Direct GET の成立 — 成立。**
+   CLI の本番経路は2台帳（direct-get.json / standalone-get.json）のみを読み、
+   旧 admission を参照しない。.NET 契約テスト 620 checks PASS（本 PR の変更前
+   ベースライン、対象コードは不変更）で `ExternalDirectGetTests` を含む。
+   公開 E2E ワークフロー（cli-published-e2e / issue112-external-public-get-e2e）
+   は本 PR で変更していない。
+4. **署名 feed の成立 — 成立。**
+   `.NET --signed-feed` PASS 94 checks（同ベースライン）。`cli_signed_feed.py`
+   と feed 契約は本 PR の変更対象外。
+5. **履歴証跡の固定 — 成立。**
+   Run 44030098818 の admission 原本と Sigstore attestation は Catalog Git 内に
+   凍結保存されている（`external/signed-direct-get/qualified_cohort/run-44030098818/`、
+   登録コミット 1b06cff）。原本の固定値: issuerRunId 44030098818、
+   issuedAt 2026-11-17T06:18:01Z、expiresAt 2026-11-18T06:18:01Z
+   （= 2026-11-18 15:18:01 JST、J05 記録と一致）、issuerCommit 3a874e70…、
+   catalogCommit 86e0ac5d…、App 5609317、Environment
+   external-direct-provider-publisher。`latest.json`（admissionSha256
+   b746769d…）を含む `external/` 配下は本 PR で一切変更していない
+   （git 差分ゼロを確認）。
+6. **履歴監査の保存 — 成立。**
+   `archive-pin-audit.yml` は手動 dispatch 専用のまま、検証器を `--all-online`
+   で呼び、全アーカイブ（失効分を含む）を再検証できる。更新後のテストが
+   その存在を固定している。
+7. **監視役目の終了 — 証跡は完備（ジョブ終了操作自体は本 PR の範囲外）。**
+   項目1〜6の証跡により、J05 監視の終了条件は記録上そろった。運用監視ジョブ
+   自体の終了は親タスク側の別作業であり、本 PR では行わない。
+
+## 手順④ ライセンス証跡対応付けの結果
+
+対応表: `evidence/issue112-direct-get-license-evidence-mapping.md`
+
+- direct-get.json: 24行中 **成立24・未決0**
+- standalone-get.json: 3行中 **成立0・未決3**
+- 合計: 27行中 **成立24・未決3**
+
+未決の3行（いずれも standalone-get.json）: postgis 3.6.2（PG14 セットアップ
+EXE）、pgbouncer 1.26.1、psqlodbc 13.02.0000。理由は共通で、登録コミット
+6b6d15f が件名のみで照合内容の記録がなく、台帳外の登録時照合記録が確認
+できないため（台帳内 licenseEvidence 自体はコミット固定 URL＋ライセンス
+バイト SHA-256 で版固有に固定されている）。未決はライセンス無効を意味
+しない。将来、登録時の照合記録が発見されれば対応表を更新して成立へ移せる。
+CLI 取得時の新しい照合ゲートは増設していない。
+
+## R10（ExternalOriginalBatchStager）の扱い
+
+同一 digest・同一条件の ZIP 構造／CRC 反復として整理対象だったが、精査の
+結果、**安全に除ける反復はなく、コードは変更しない**。検証は3回あるが、
+転送時（メモリ内バイト）と保存後（ディスク上の実ファイルを保持ハンドル
+経由で再読）は対象バイトの出所と時点が異なり、確定直前の再検証は §4.1
+No.8 が維持を命じる対象そのもの（ディレクトリロック・stage tree 検証・
+ハンドル解放をまたぎ、create-only atomic commit の直前）。保存後と確定
+直前の実バイト SHA-256／サイズ、保持ハンドルと file identity、stage tree、
+権限、確定時の適用認可、create-only atomic commit は全て現行どおり維持
+される。
+
+## テスト結果（変更前後）
+
+- Build direct-get 系7ファイル: 変更前 全 PASS → 変更後 全 PASS
+  （issuer テストは退役拒否の新規ケースを含む）
+- Catalog Python: 変更前 1090 tests OK → 変更後 1090 tests OK
+- Catalog .NET: 変更前ベースライン 全体 PASS 620 checks /
+  `--signed-feed` PASS 94 checks（本 PR は .NET コード不変更）

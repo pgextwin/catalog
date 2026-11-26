@@ -94,11 +94,9 @@ jobs:
         with:
           name: cli-r6-private-candidate
           path: ${{ runner.temp }}/cli-independent
-      - name: Verify signed GET-only metadata bytes and signature on Windows
+      - name: Verify signed GET-only metadata bytes on Windows
         if: github.event_name == 'pull_request'
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $files = @(git ls-files -- 'external/signed-direct-get/')
@@ -111,8 +109,6 @@ jobs:
               throw 'Signed metadata working-tree bytes differ from Git blob'
             }
           }
-          python scripts/validate_public_get_pin.py --catalog .
-          if ($LASTEXITCODE -ne 0) { throw 'Windows signed metadata verification failed' }
           Write-Output "WINDOWS_SIGNED_METADATA_BYTE_FIDELITY=PASS FILES=$($files.Count) PROVIDER_GET=NONE"
 
       - name: Parse versioned CLI release PowerShell without executing publication
