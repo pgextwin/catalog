@@ -1,0 +1,439 @@
+{
+  "schemaVersion": "pgextwin-standalone-get-component-pins/v1",
+  "rows": [
+    {
+      "row": "psqlodbc",
+      "assetName": "psqlodbc_x64.msi",
+      "originalProviderUrl": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x64.msi",
+      "originalBytes": 4587520,
+      "originalSha256": "8962543113df83410b74f113db1ef80717b65a1dc7869e18c24bd852dd65535f",
+      "crossChannelProvenance": "Byte-identical download from https://ftp.postgresql.org/pub/odbc/releases/REL-18_00_0006/psqlodbc_x64.msi (HTTP 200, zero redirects); cmp clean in Step 1.1.",
+      "archiveFormat": "msi",
+      "totalFiles": 22,
+      "totalPeCount": 10,
+      "totalDllCount": 10,
+      "unaccountedPeCount": 0,
+      "unpinnedOriginalCount": 0,
+      "redistributionUnconfirmedCount": 0,
+      "countsNote": "All counts are 0. The single formerly unpinned original - the Microsoft VC++ license-terms text (VC_redist 14.51.36247.0 contains NO embedded License.rtf; HyperlinkLicense bundle generation) - is pinned per owner decision A (2026-11-26) as the deterministically extracted text of the official terms document designated by the installer (aka.ms/VCRedistLicense -> visualstudio.microsoft.com VS2026 VC++ v14 redist terms), committed at evidence/ms-vc14-redist-license-terms.txt; see the Microsoft Visual C++ Runtime component's pinnedOriginals and pinningStatus.",
+      "components": [
+        {
+          "component": "psqlODBC",
+          "artifactPaths": [
+            {
+              "path": "podbc30a.dll",
+              "bytes": 657920,
+              "sha256": "0719fb503226e24ad228febfa57d5f05520dbc71e477b15b6223a63e7c6087d9"
+            },
+            {
+              "path": "podbc35w.dll",
+              "bytes": 677888,
+              "sha256": "22e3af2e100716bb3e95bcf40089ea53b997c2728a64d094a0dcb315c285bfbd"
+            },
+            {
+              "path": "psqlodbc30a.dll",
+              "bytes": 657920,
+              "sha256": "0719fb503226e24ad228febfa57d5f05520dbc71e477b15b6223a63e7c6087d9",
+              "note": "Installed by the MSI DuplicateFile table as a byte-identical copy of podbc30a.dll (same source file in installer/psqlodbcm_cpu.wxs)."
+            },
+            {
+              "path": "psqlodbc35w.dll",
+              "bytes": 677888,
+              "sha256": "22e3af2e100716bb3e95bcf40089ea53b997c2728a64d094a0dcb315c285bfbd",
+              "note": "Installed by the MSI DuplicateFile table as a byte-identical copy of podbc35w.dll (same source file in installer/psqlodbcm_cpu.wxs)."
+            },
+            {
+              "path": "pgenlist.dll",
+              "bytes": 31232,
+              "sha256": "f0a7ed0620a46f964486d2b5b35ad0337f9b6353377fe210e3dce5d01593b72d"
+            },
+            {
+              "path": "pgenlista.dll",
+              "bytes": 31232,
+              "sha256": "fc545a6eca23337c8fe4026e9f45f286fa2bf75d9b9764f05e675158d0e7d8e6"
+            },
+            {
+              "path": "pgxalib.dll",
+              "bytes": 45568,
+              "sha256": "5c744e46050491720be66279b612ad166cbd692346a254421aee90ac78cd1c98"
+            },
+            {
+              "path": "psqlodbc30a.pdb",
+              "bytes": 2387968,
+              "sha256": "91b0e286385f21f91d11ac9767385d7490c509e2dc6babdd0ffaf8d7a22f7dc1"
+            },
+            {
+              "path": "psqlodbc35w.pdb",
+              "bytes": 2461696,
+              "sha256": "fdd45b2b680d57db94c7530f38831839870a6ac3b0332c436b3131a6e74d6738"
+            },
+            {
+              "path": "pgenlist.pdb",
+              "bytes": 798720,
+              "sha256": "e5be682d02448d34554333cbdbeb1b421c4f74f490856476ce411d37df0f6aa5"
+            },
+            {
+              "path": "pgenlista.pdb",
+              "bytes": 798720,
+              "sha256": "16f321b3bc5870e3192aeb2fe63a9022d7ef526c9186140c6697a0d049e57744"
+            }
+          ],
+          "linkType": "dynamic-dll",
+          "version": "18.00.0006",
+          "versionEvidence": "PE VS_VERSIONINFO FileVersion/ProductVersion 18.00.0006 on podbc30a.dll and podbc35w.dll (upstream build outputs psqlodbc30a.dll/psqlodbc35w.dll); pgenlist/pgenlista/pgxalib are psqlODBC's own companion DLLs with no version resource (Step 1.2 inventory). The repo's only submodule (libs/mimalloc @ 229ec9cbdc81cf1ffb705cbd8a07503589847426) leaves no trace in the shipped DLLs (no mi_* exports/strings), so it is not a distributed component.",
+          "license": "LGPL-2.0-or-later",
+          "redistributionPermitted": true,
+          "redistributionBasis": "GNU Lesser/Library General Public License permits redistribution of unmodified binaries with license text provided; the distributed MSI itself presents the LGPL text in its license dialog and the upstream repo license file is pinned at the exact release commit.",
+          "inArtifactNoticePresent": true,
+          "inArtifactNoticePaths": [
+            "MSI LicenseAgreementDlg LicenseText (source: installer/lgpl.rtf at the release commit; GNU LGPL Version 2.1 text)"
+          ],
+          "pinnedOriginals": [
+            {
+              "url": "https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/96fa03dbc968c40920c907bf18d3b4cbd8efeebc/license.txt",
+              "sourceType": "github-raw-commit",
+              "bytes": 25746,
+              "sha256": "3892f5f0585c553b72d0d4942d5a75935d0e8b0dcd0f5caa000a6853d648c67b",
+              "note": "Repo license file at tag REL-18_00_0006 commit 96fa03dbc968c40920c907bf18d3b4cbd8efeebc; text is the GNU Library General Public License, Version 2, June 1991."
+            },
+            {
+              "url": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x64.msi",
+              "sourceType": "msi-embedded-license-dialog",
+              "archiveSha256": "8962543113df83410b74f113db1ef80717b65a1dc7869e18c24bd852dd65535f",
+              "memberPath": "LicenseAgreementDlg/LicenseText (installer/lgpl.rtf)",
+              "bytes": 48209,
+              "sha256": "46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd",
+              "note": "Extracted in Step 1.2 to work/license-dialog-rtf.txt; GNU LGPL Version 2.1, February 1999 text. This is the in-artifact license notice evidence."
+            }
+          ]
+        },
+        {
+          "component": "libpq (PostgreSQL)",
+          "artifactPaths": [
+            {
+              "path": "libpq.dll",
+              "bytes": 384000,
+              "sha256": "da48d4ac0ca160d1eb41a759605a48af8c8757ad8634d16682d7b7fa5fe6a469"
+            }
+          ],
+          "linkType": "dynamic-dll",
+          "version": "18.6",
+          "versionEvidence": "PE FileVersion string '18.6', fixed version 18.0.6.0, ProductName PostgreSQL; PDB path D:\\a\\psqlodbc\\psqlodbc\\postgres\\build\\... . Build provenance: .github/workflows/main.yml at psqlodbc commit 96fa03dbc968c40920c907bf18d3b4cbd8efeebc sets POSTGRESQL_SOURCE_TAG='REL_18_STABLE' and checks out postgres/postgres with actions/checkout ref=REL_18_STABLE (a branch - NO commit pin in the workflow), then builds with meson -Dssl=openssl. The shipped libpq therefore comes from the REL_18_STABLE branch in its 18.6 state. Pin choice: COPYRIGHT at the REL_18_6 release tag commit 724edf9bde9d356724ad384a2e196edc3c9f80f7 - and the COPYRIGHT fetched from the REL_18_STABLE branch itself is byte-identical (same size and SHA-256), so the pinned text is exactly the license text carried by the branch the workflow built from.",
+          "license": "PostgreSQL License",
+          "redistributionPermitted": true,
+          "redistributionBasis": "PostgreSQL License (BSD-style) permits redistribution in source and binary forms provided the copyright notice and license text are retained; the pinned COPYRIGHT is that text.",
+          "inArtifactNoticePresent": false,
+          "inArtifactNoticePaths": [],
+          "pinnedOriginals": [
+            {
+              "url": "https://raw.githubusercontent.com/postgres/postgres/724edf9bde9d356724ad384a2e196edc3c9f80f7/COPYRIGHT",
+              "sourceType": "github-raw-commit",
+              "bytes": 1198,
+              "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+              "note": "COPYRIGHT at tag REL_18_6 commit 724edf9bde9d356724ad384a2e196edc3c9f80f7. Verified standard PostgreSQL License text ('PostgreSQL Database Management System ... Portions Copyright (c) 1996-2026, PostgreSQL Global Development Group'). Byte-identical to COPYRIGHT on the REL_18_STABLE branch (independently fetched and hashed to the same values)."
+            }
+          ]
+        },
+        {
+          "component": "OpenSSL",
+          "artifactPaths": [
+            {
+              "path": "libcrypto-3-x64.dll",
+              "bytes": 6996480,
+              "sha256": "81bc67d537fcd320d8ede1c5a49506629f0fd04e42ec7e9b0bab70a822d4fba5"
+            },
+            {
+              "path": "libssl-3-x64.dll",
+              "bytes": 1294336,
+              "sha256": "0242e31713fa090d75c0cc2e17c4ee2cbc3a27ca53f7a45729f30983d593bcb1"
+            }
+          ],
+          "linkType": "dynamic-dll",
+          "version": "3.5.9",
+          "versionEvidence": "PE VS_VERSIONINFO FileVersion/ProductVersion 3.5.9 on both DLLs; embedded banner 'OpenSSL 3.5.9 29 Sep 2026'; .rdata source paths D:\\CFILES\\Projects\\WinSSL\\build\\versions\\3.5\\3.5.9\\... show the DLLs are the Shining Light Productions (slproweb) build of the OpenSSL 3.5.9 sources, matching the workflow at the psqlodbc tag commit (OPENSSL_VERSION='3_5_9', downloads Win64OpenSSL-3_5_9.exe from slproweb.com and copies its DLLs into the PostgreSQL build). Dynamically linked (libpq.dll imports both DLLs).",
+          "license": "Apache-2.0",
+          "redistributionPermitted": true,
+          "redistributionBasis": "Apache License 2.0 section 4 permits redistribution of unmodified binaries with the license text provided. NOTICE check (section 4(d)): the openssl/openssl source tree at the openssl-3.5.9 tag commit contains NO NOTICE file (root directory listing at commit 45e844fa2a14ec92d146bd8f5778ac130b6625fb contains LICENSE.txt and no NOTICE), so no NOTICE attribution obligations arise.",
+          "inArtifactNoticePresent": false,
+          "inArtifactNoticePaths": [],
+          "pinnedOriginals": [
+            {
+              "url": "https://raw.githubusercontent.com/openssl/openssl/45e844fa2a14ec92d146bd8f5778ac130b6625fb/LICENSE.txt",
+              "sourceType": "github-raw-commit",
+              "bytes": 10175,
+              "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+              "note": "LICENSE.txt (Apache License Version 2.0) at tag openssl-3.5.9 resolved commit 45e844fa2a14ec92d146bd8f5778ac130b6625fb."
+            }
+          ]
+        },
+        {
+          "component": "Microsoft Visual C++ Runtime",
+          "artifactPaths": [
+            {
+              "path": "vcruntime140.dll",
+              "bytes": 178616,
+              "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7"
+            },
+            {
+              "path": "msvcp140.dll",
+              "bytes": 643512,
+              "sha256": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca"
+            }
+          ],
+          "linkType": "dynamic-dll",
+          "version": "14.51.36247.0",
+          "versionEvidence": "PE VS_VERSIONINFO FileVersion 14.51.36247.0 on both DLLs. Version mapping to the official redistributable: Microsoft's winget-pkgs manifest Microsoft.VCRedist.2015+.x64 version 14.51.36247.0 (an exact four-part match to the DLL FileVersion) gives the immutable download.visualstudio.microsoft.com URL below; the downloaded VC_redist.x64.exe itself carries FileVersion 14.51.36247.0 and its SHA-256 equals the manifest's InstallerSha256. DEFINITIVE PROOF: vcruntime140.dll and msvcp140.dll extracted from that exe's payload cabinets (vc_runtimeMinimum_x64 cab1.cab members vcruntime140.dll_amd64 / msvcp140.dll_amd64) are BYTE-IDENTICAL to the two DLLs bundled in the psqlODBC MSI (same byte sizes and SHA-256 values listed in artifactPaths). 14.51.x is the Visual Studio 2026 generation of the v14 redistributable (14.50.35719.0 = VS 2026 RTM generation; 14.51.36247.0 superseded by 14.52.37029.0). NOT bundled in the MSI: vcruntime140_1.dll (imported by msvcp140.dll and pgxalib.dll - a system VC++ Redistributable dependency, not distributed by this artifact; it IS present in the redist payload, 50,112 B, sha256 a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e) and concrt140.dll (absent from the MSI and not imported by any bundled binary).",
+          "license": "Microsoft Software License Terms - Visual C++ Redistributable (Distributable Code)",
+          "redistributionPermitted": true,
+          "redistributionBasis": "Microsoft's official 'Visual Studio Redistribution' list for Visual Studio 2026 (the Distributable Code / REDIST list referenced by the VS license terms), 'Visual C++ Runtime Files' section, states: subject to the License Terms, you may copy and distribute with your program any of the files within [VisualStudioFolder]\\VC\\redist and its subfolders, unmodified (the two bundled DLLs are files of that folder tree, shipped unmodified in the app folder of the upstream MSI); the same section separately blesses unmodified distribution of the CRT merge modules (Microsoft_VC145_CRT_[arch].msm) as part of an installation package. Verified by reading the live list on 2026-11-26 (see pinningStatus for why this list itself could not be commit-pinned).",
+          "inArtifactNoticePresent": false,
+          "inArtifactNoticePaths": [],
+          "pinningStatus": "RESOLVED by owner decision A (2026-11-26). Factual record: Anchor 1 outer file pinned and hash-verified (below), but this version's VC_redist.x64.exe contains NO embedded License.rtf: the bundle uses WixStandardBootstrapperApplication.HyperlinkLicense (BurnManifest UX payload 'WixStandardBootstrapperApplication.HyperlinkLicense' = wixstdba.dll; theme control EulaHyperlink) and its en-US theme text reads 'The license terms for [WixBundleName] are available from https://aka.ms/VCRedistLicense'. A full byte scan found no '{\\rtf' anywhere in the exe or its payload MSIs (vc_runtimeMinimum_x64.msi sha256 bab5d0257e6a18a4a008e683442e3077b38172dd61af3cb1c588b46724a714e2, vc_runtimeAdditional_x64.msi sha256 476427800c1c958dc4e71d9a0f2f3983b2608da70835db9ee5f3b8ac387e9617). Anchor 2: the VS 2026 redistribution list is published to Microsoft Learn from Microsoft's INTERNAL DevDiv RECON repo (the Learn page's original_content_git_url points to devdiv.visualstudio.com ... visualstudio-release-docs/releases/2026/redistribution.md), not from the public MicrosoftDocs/visualstudio-docs repo (which contains no docs/releases tree at all), and MicrosoftDocs/cpp-docs-pr is not readable with the available credentials - so no public commit-pinnable raw original of the list exists. Substitute evidence adopted by decision A: the terms text is pinned as the deterministically extracted text of the official terms document the installer designates (see the microsoft-license-terms-extracted-text entry in pinnedOriginals), alongside the hash-pinned outer VC_redist.x64.exe and the redistribution confirmation from Microsoft's official Visual Studio 2026 redistribution list recorded in redistributionBasis.",
+          "pinnedOriginals": [
+            {
+              "url": "https://download.visualstudio.microsoft.com/download/pr/ebdab8e5-1d7b-4d9f-a11b-cbb1720c3b12/843068991DAAA1F73AD9F6239BCE4D0F6A07A51F18C37EA2A867E9BECA71295C/VC_redist.x64.exe",
+              "sourceType": "microsoft-versioned-download",
+              "bytes": 18731856,
+              "sha256": "843068991daaa1f73ad9f6239bce4d0f6a07a51f18c37ea2a867e9beca71295c",
+              "note": "Anchor 1 outer file: immutable /download/pr/ URL (never the aka.ms floating redirect), located via Microsoft's winget-pkgs manifest for Microsoft.VCRedist.2015+.x64 14.51.36247.0; downloaded bytes hash exactly to the manifest's InstallerSha256. NO License.rtf member exists inside (see pinningStatus) - the member pin required by PLAN section 3.4 Anchor 1 could not be completed for this version."
+            },
+            {
+              "url": "https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/",
+              "sourceType": "microsoft-license-terms-extracted-text",
+              "bytes": 11877,
+              "sha256": "5169806e806b0ae92d8843298d7f83098117841df70a75d0dc42295ce13f7336",
+              "designatedBy": "https://aka.ms/VCRedistLicense",
+              "redirectChain": "https://aka.ms/VCRedistLicense -> 301 -> https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/",
+              "pageBytes": 238435,
+              "pageSha256": "570914a701495d5e7542ee1398ff8490f9a922ce03b416a815b53284ee528462",
+              "docxUrl": "https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx",
+              "docxBytes": 39553,
+              "docxSha256": "08651651a7602fc7c0e2763de0fde1ff9f868df2780597cd1775ee9d6441c783",
+              "capturedAt": "2026-11-26 19:56 JST",
+              "committedCopy": "evidence/ms-vc14-redist-license-terms.txt",
+              "note": "Owner decision A (2026-11-26): the VC++ license-terms text is pinned as the deterministically extracted text of the official terms document designated by the installer itself (the VC_redist bundle's HyperlinkLicense target, aka.ms/VCRedistLicense). The landing page presents the terms through an embedded-document iframe naming Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx on visualstudio.microsoft.com; the extracted text is the body text of that DOCX (word/document.xml paragraphs in document order), reproduced byte-exact in the committed copy. Extraction method: work/extract_ms_terms.py in the Neon M3 residuals working cache (stdlib-only, re-running it against the same page/document bytes reproduces the same text). The terms document is architecture-neutral and covers both the x64 and x86 slices. Document identity inside the text: 'MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT VISUAL C++ V14 REDISTRIBUTABLE and RUNTIME', Last Updated: October 1, 2025, EULA ID: Cpp_v14_ENU.1033."
+            }
+          ]
+        }
+      ],
+      "architecture": "x64"
+    },
+    {
+      "architecture": "x86",
+      "archiveFormat": "msi",
+      "assetName": "psqlodbc_x86.msi",
+      "components": [
+        {
+          "artifactPaths": [
+            {
+              "bytes": 587776,
+              "path": "podbc30a.dll",
+              "sha256": "82df0b1179f79f37aa0dca426c1b1412da7b2c20ccf903b29dc4b944db0bd9b0"
+            },
+            {
+              "bytes": 601088,
+              "path": "podbc35w.dll",
+              "sha256": "81dac59e1080b4ab993df6f9c8d9177f4a831c6f03777739d5654e14a08612cf"
+            },
+            {
+              "bytes": 587776,
+              "note": "Installed by the MSI DuplicateFile table as a byte-identical copy of podbc30a.dll (same source file in installer/psqlodbcm_cpu.wxs).",
+              "path": "psqlodbc30a.dll",
+              "sha256": "82df0b1179f79f37aa0dca426c1b1412da7b2c20ccf903b29dc4b944db0bd9b0"
+            },
+            {
+              "bytes": 601088,
+              "note": "Installed by the MSI DuplicateFile table as a byte-identical copy of podbc35w.dll (same source file in installer/psqlodbcm_cpu.wxs).",
+              "path": "psqlodbc35w.dll",
+              "sha256": "81dac59e1080b4ab993df6f9c8d9177f4a831c6f03777739d5654e14a08612cf"
+            },
+            {
+              "bytes": 26112,
+              "path": "pgenlist.dll",
+              "sha256": "941e01d213bb9e6786437a1651bb5a0184830bd245ef147551760531543b44ab"
+            },
+            {
+              "bytes": 26112,
+              "path": "pgenlista.dll",
+              "sha256": "360674bb0890063fa18bfdf300e333a02b58f149fac31d3e411f4c014fca8930"
+            },
+            {
+              "bytes": 37888,
+              "path": "pgxalib.dll",
+              "sha256": "e97c459cecfdb5ac3c382921749da1f97ab4466778d9a033ef2ac92a90580267"
+            },
+            {
+              "bytes": 2445312,
+              "path": "psqlodbc30a.pdb",
+              "sha256": "cd0e4c922d44704b81c84750796648afbbd695367594f56a6bcf34c7887ebb5e"
+            },
+            {
+              "bytes": 2519040,
+              "path": "psqlodbc35w.pdb",
+              "sha256": "8b0bc806e5b9baff5eea318f20aee6f5bba2e7d1421a23c3c299f9f9e8441900"
+            },
+            {
+              "bytes": 798720,
+              "path": "pgenlist.pdb",
+              "sha256": "94fcfa190a5f0a27ba201b45e24c2cdb20be7f8d626b686c8d5de2aaed118eaa"
+            },
+            {
+              "bytes": 798720,
+              "path": "pgenlista.pdb",
+              "sha256": "be3ecafc39e5d83e3aa4df5735275ed54f57c34083519e96dc2ed0a3ced73073"
+            }
+          ],
+          "component": "psqlODBC",
+          "inArtifactNoticePaths": [
+            "MSI LicenseAgreementDlg LicenseText (source: installer/lgpl.rtf at the release commit; GNU LGPL Version 2.1 text) - extracted RTF is BYTE-IDENTICAL to the x64 MSI's (48,209 B, same SHA-256)"
+          ],
+          "inArtifactNoticePresent": true,
+          "license": "LGPL-2.0-or-later",
+          "linkType": "dynamic-dll",
+          "pinnedOriginals": [
+            {
+              "bytes": 25746,
+              "note": "SHARED with the x64 slice (same release commit 96fa03dbc968c40920c907bf18d3b4cbd8efeebc, tag REL-18_00_0006); referenced by hash from psqlodbc-pins.json. Text is the GNU Library General Public License, Version 2, June 1991.",
+              "sha256": "3892f5f0585c553b72d0d4942d5a75935d0e8b0dcd0f5caa000a6853d648c67b",
+              "sourceType": "github-raw-commit",
+              "url": "https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/96fa03dbc968c40920c907bf18d3b4cbd8efeebc/license.txt"
+            },
+            {
+              "archiveSha256": "b5e3d749a148d56b184984b23305794c3d602317b30215945a5ca7c5233dc24a",
+              "bytes": 48209,
+              "memberPath": "LicenseAgreementDlg/LicenseText (installer/lgpl.rtf)",
+              "note": "Extracted from the x86 MSI to work/license-dialog-rtf-x86.txt; cmp-verified BYTE-IDENTICAL to the x64 extraction (work/license-dialog-rtf.txt). GNU LGPL Version 2.1, February 1999 text. This is the in-artifact license notice evidence.",
+              "sha256": "46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd",
+              "sourceType": "msi-embedded-license-dialog",
+              "url": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x86.msi"
+            }
+          ],
+          "redistributionBasis": "Same as the x64 slice: GNU Lesser/Library General Public License permits redistribution of unmodified binaries with license text provided; the distributed MSI itself presents the LGPL text in its license dialog and the upstream repo license file is pinned at the exact release commit.",
+          "redistributionPermitted": true,
+          "version": "18.00.0006",
+          "versionEvidence": "PE VS_VERSIONINFO FileVersion/ProductVersion 18.00.0006 on podbc30a.dll and podbc35w.dll (MSI Property ProductName 'psqlODBC', ProductVersion 18.00.0006); all 10 PEs are machine 0x014c (i386, objdump pei-i386). pgenlist/pgenlista/pgxalib are psqlODBC's own companion DLLs with no version resource, as on x64. The repo's only submodule (libs/mimalloc @ 229ec9cbdc81cf1ffb705cbd8a07503589847426) leaves no trace in the shipped x64 DLLs and the x86 build uses the same source and workflow, so it is not a distributed component on either architecture."
+        },
+        {
+          "artifactPaths": [
+            {
+              "bytes": 332288,
+              "path": "libpq.dll",
+              "sha256": "9332cc850b986b33ce3d7ee00a291a49fc1f46ff519fd07fb3f297b0c862fd7e"
+            }
+          ],
+          "component": "libpq (PostgreSQL)",
+          "inArtifactNoticePaths": [],
+          "inArtifactNoticePresent": false,
+          "license": "PostgreSQL License",
+          "linkType": "dynamic-dll",
+          "pinnedOriginals": [
+            {
+              "bytes": 1198,
+              "note": "SHARED with the x64 slice (same version 18.6 state of the same branch); referenced by hash from psqlodbc-pins.json. COPYRIGHT at tag REL_18_6 commit 724edf9bde9d356724ad384a2e196edc3c9f80f7, byte-identical to COPYRIGHT on the REL_18_STABLE branch the workflow built from.",
+              "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+              "sourceType": "github-raw-commit",
+              "url": "https://raw.githubusercontent.com/postgres/postgres/724edf9bde9d356724ad384a2e196edc3c9f80f7/COPYRIGHT"
+            }
+          ],
+          "redistributionBasis": "PostgreSQL License (BSD-style) permits redistribution in source and binary forms provided the copyright notice and license text are retained; the pinned COPYRIGHT is that text.",
+          "redistributionPermitted": true,
+          "version": "18.6",
+          "versionEvidence": "PE FileVersion string '18.6', fixed version 18.0.6.0 (pefile VS_FIXEDFILEINFO), ProductName PostgreSQL, machine 0x014c; PDB path D:\\a\\psqlodbc\\psqlodbc\\postgres\\buildx86\\src\\interfaces\\libpq\\libpq.pdb - the same GHA provenance as x64 (postgres/postgres REL_18_STABLE branch per .github/workflows/main.yml at psqlodbc commit 96fa03db, x86 build directory), in its 18.6 state. Imports libssl-3.dll + libcrypto-3.dll dynamically; also Secur32/WLDAP32; no zlib/libintl/krb5 DLLs. The pinned COPYRIGHT is therefore the same original as the x64 slice."
+        },
+        {
+          "artifactPaths": [
+            {
+              "bytes": 4490752,
+              "path": "libcrypto-3.dll",
+              "sha256": "2daf2ad5346c7c51a3427a7db852d4c4f6ac5f9d78dada535aaff7ab716ac706"
+            },
+            {
+              "bytes": 1067520,
+              "path": "libssl-3.dll",
+              "sha256": "113e29a66da47888e3f51347d1a13fc8bb707d953c197d30fce16ab11372fb2b"
+            }
+          ],
+          "component": "OpenSSL",
+          "inArtifactNoticePaths": [],
+          "inArtifactNoticePresent": false,
+          "license": "Apache-2.0",
+          "linkType": "dynamic-dll",
+          "pinnedOriginals": [
+            {
+              "bytes": 10175,
+              "note": "SHARED with the x64 slice (same OpenSSL version 3.5.9); referenced by hash from psqlodbc-pins.json. LICENSE.txt (Apache License Version 2.0) at tag openssl-3.5.9 resolved commit 45e844fa2a14ec92d146bd8f5778ac130b6625fb.",
+              "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+              "sourceType": "github-raw-commit",
+              "url": "https://raw.githubusercontent.com/openssl/openssl/45e844fa2a14ec92d146bd8f5778ac130b6625fb/LICENSE.txt"
+            }
+          ],
+          "redistributionBasis": "Apache License 2.0 section 4 permits redistribution of unmodified binaries with the license text provided. NOTICE check (section 4(d)): as established for the x64 slice, the openssl/openssl source tree at the openssl-3.5.9 tag commit contains NO NOTICE file, so no NOTICE attribution obligations arise.",
+          "redistributionPermitted": true,
+          "version": "3.5.9",
+          "versionEvidence": "PE VS_VERSIONINFO FileVersion/ProductVersion 3.5.9 on both DLLs; embedded banner 'OpenSSL 3.5.9 29 Sep 2026'; .rdata source paths D:\\CFILES\\Projects\\WinSSL\\build\\versions\\3.5\\3.5.9\\temp_x86\\... show the DLLs are the Shining Light Productions (slproweb) Win32 build of the OpenSSL 3.5.9 sources (the 32-bit counterpart of the x64 slice's Win64OpenSSL-3_5_9). 32-bit DLL names carry no architecture suffix (libcrypto-3.dll / libssl-3.dll, vs libcrypto-3-x64.dll / libssl-3-x64.dll on x64). Dynamically linked (libpq.dll imports both DLLs). Same source version as x64, so the same LICENSE.txt pin applies."
+        },
+        {
+          "artifactPaths": [
+            {
+              "bytes": 123328,
+              "path": "vcruntime140.dll",
+              "sha256": "2fa6efc053203460a23d3a25158f227d895d2dadc63acc1a372da97c3a4281c3"
+            },
+            {
+              "bytes": 618944,
+              "path": "msvcp140.dll",
+              "sha256": "f0cda2a0cf1fe6fbbf579b9098462329d3aaa7513a207af2e0f33b01456e388a"
+            }
+          ],
+          "component": "Microsoft Visual C++ Runtime",
+          "inArtifactNoticePaths": [],
+          "inArtifactNoticePresent": false,
+          "license": "Microsoft Software License Terms - Visual C++ Redistributable (Distributable Code)",
+          "linkType": "dynamic-dll",
+          "pinnedOriginals": [
+            {
+              "bytes": 6941536,
+              "note": "Anchor 1 outer file: immutable /download/pr/ URL (never the aka.ms floating redirect), located via Microsoft's winget-pkgs manifest for Microsoft.VCRedist.2015+.x86 14.51.36247.0; downloaded bytes hash exactly to the manifest's InstallerSha256. NO License.rtf member exists inside (see pinningStatus) - the terms text is covered by the shared owner-decision-A pin described there.",
+              "sha256": "f0bab33a302b3cdb2e11113760d016f54fd3d2632c65ba7834fac4f0abd7f1a3",
+              "sourceType": "microsoft-versioned-download",
+              "url": "https://download.visualstudio.microsoft.com/download/pr/57eef8ae-a341-46c3-b0bc-c041027b54cd/F0BAB33A302B3CDB2E11113760D016F54FD3D2632C65BA7834FAC4F0ABD7F1A3/VC_redist.x86.exe"
+            },
+            {
+              "url": "https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/",
+              "sourceType": "microsoft-license-terms-extracted-text",
+              "bytes": 11877,
+              "sha256": "5169806e806b0ae92d8843298d7f83098117841df70a75d0dc42295ce13f7336",
+              "designatedBy": "https://aka.ms/VCRedistLicense",
+              "redirectChain": "https://aka.ms/VCRedistLicense -> 301 -> https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/",
+              "pageBytes": 238435,
+              "pageSha256": "570914a701495d5e7542ee1398ff8490f9a922ce03b416a815b53284ee528462",
+              "docxUrl": "https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx",
+              "docxBytes": 39553,
+              "docxSha256": "08651651a7602fc7c0e2763de0fde1ff9f868df2780597cd1775ee9d6441c783",
+              "capturedAt": "2026-11-26 19:56 JST",
+              "committedCopy": "evidence/ms-vc14-redist-license-terms.txt",
+              "note": "Owner decision A (2026-11-26): the VC++ license-terms text is pinned as the deterministically extracted text of the official terms document designated by the installer itself (the VC_redist bundle's HyperlinkLicense target, aka.ms/VCRedistLicense). The landing page presents the terms through an embedded-document iframe naming Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx on visualstudio.microsoft.com; the extracted text is the body text of that DOCX (word/document.xml paragraphs in document order), reproduced byte-exact in the committed copy. Extraction method: work/extract_ms_terms.py in the Neon M3 residuals working cache (stdlib-only, re-running it against the same page/document bytes reproduces the same text). The terms document is architecture-neutral and covers both the x64 and x86 slices. Document identity inside the text: 'MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT VISUAL C++ V14 REDISTRIBUTABLE and RUNTIME', Last Updated: October 1, 2025, EULA ID: Cpp_v14_ENU.1033."
+            }
+          ],
+          "pinningStatus": "RESOLVED by owner decision A (2026-11-26) - same single item as the x64 slice. Anchor 1 outer file pinned and hash-verified (below), and this version's VC_redist.x86.exe likewise contains NO embedded License.rtf (byte scan for '{\\rtf' over the whole exe: zero hits - same HyperlinkLicense bundle generation as x64). The license-terms text itself is the architecture-neutral VS2026 VC++ v14 redist terms document designated by the installer (aka.ms/VCRedistLicense); decision A pins it as the deterministically extracted text from that official page (see the microsoft-license-terms-extracted-text entry in pinnedOriginals), shared with the x64 slice.",
+          "redistributionBasis": "Same as the x64 slice: Microsoft's official 'Visual Studio Redistribution' list for Visual Studio 2026 (Distributable Code / REDIST list), 'Visual C++ Runtime Files' section, permits copying and distributing with your program any of the files within [VisualStudioFolder]\\VC\\redist and its subfolders, unmodified; the two bundled DLLs are files of that folder tree (x86 subtree), shipped unmodified in the app folder of the upstream MSI.",
+          "redistributionPermitted": true,
+          "version": "14.51.36247.0",
+          "versionEvidence": "PE VS_VERSIONINFO FileVersion 14.51.36247.0 on both DLLs, machine 0x014c. Version mapping to the official redistributable: Microsoft's winget-pkgs manifest Microsoft.VCRedist.2015+.x86 version 14.51.36247.0 (an exact four-part match to the DLL FileVersion) gives the immutable download.visualstudio.microsoft.com URL below; the downloaded VC_redist.x86.exe itself carries FileVersion 14.51.36247.0 and its SHA-256 equals the manifest's InstallerSha256. DEFINITIVE PROOF: vcruntime140.dll and msvcp140.dll extracted from that exe's payload (embedded cabinet at offset 629,352; member a2 = the vc_runtimeMinimum_x86 cabinet containing vcruntime140.dll_x86 / msvcp140.dll_x86; the a0 payload MSI identifies as 'Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.51.36247') are BYTE-IDENTICAL to the two DLLs bundled in the psqlODBC x86 MSI (cmp clean; same byte sizes and SHA-256 values listed in artifactPaths). 14.51.x is the Visual Studio 2026 generation of the v14 redistributable. NOT bundled in the MSI: vcruntime140_1.dll does not exist in the x86 v14 runtime at all (the x86 msvcp140.dll imports VCRUNTIME140.dll only; the redist payload carries vcruntime140_threads.dll_x86 instead, which the MSI also does not bundle and nothing imports), and concrt140.dll (present in the redist payload but absent from the MSI and not imported by any bundled binary). CRT is dynamically linked (all payload DLLs import VCRUNTIME140.dll / api-ms-win-crt-*), not /MT."
+        }
+      ],
+      "countsNote": "All counts are 0. The single formerly unpinned original - the Microsoft VC++ license-terms text (VC_redist 14.51.36247.0 contains NO embedded License.rtf; HyperlinkLicense bundle generation) - is pinned per owner decision A (2026-11-26) as the deterministically extracted text of the official terms document designated by the installer (aka.ms/VCRedistLicense -> visualstudio.microsoft.com VS2026 VC++ v14 redist terms), committed at evidence/ms-vc14-redist-license-terms.txt; see the Microsoft Visual C++ Runtime component's pinnedOriginals and pinningStatus.",
+      "crossChannelProvenance": "Byte-identical download from https://ftp.postgresql.org/pub/odbc/releases/REL-18_00_0006/psqlodbc_x86.msi (HTTP 200, zero redirects); cmp clean in the x86 Step 1.1-equivalent check (PROGRESS.md Part E). GitHub URL answers HTTP 302 to release-assets.githubusercontent.com, then 200 with Content-Length 4087808.",
+      "originalBytes": 4087808,
+      "originalProviderUrl": "https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x86.msi",
+      "originalSha256": "b5e3d749a148d56b184984b23305794c3d602317b30215945a5ca7c5233dc24a",
+      "redistributionUnconfirmedCount": 0,
+      "row": "psqlodbc",
+      "totalDllCount": 10,
+      "totalFiles": 22,
+      "totalPeCount": 10,
+      "unaccountedPeCount": 0,
+      "unpinnedOriginalCount": 0
+    }
+  ]
+}

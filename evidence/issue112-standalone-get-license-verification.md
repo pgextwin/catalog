@@ -1,4 +1,4 @@
-# standalone-get 台帳3行の版別ライセンス原本照合記録（E3 PR5＋PR6 深化）
+# standalone-get 台帳行の版別ライセンス原本照合記録（E3 PR5＋PR6 深化、PR-1 で psqlODBC 残件解消）
 
 E3 PR5 で作成し、E3 再監査（`~/workspace/e3-audit/REAUDIT.md` の M3）の
 指摘を受けて PR6（2026-11-26）で部品単位まで深化させた記録。対象は
@@ -24,6 +24,16 @@ PR7（#547）で3行ともいったん**成立**としたが、最終確認監�
 の引き継ぎ対象からも外れた。未決の残件は psqlODBC のみである
 （両台帳合計で成立25・未決1）。下記 §1 の部品単位の記録は、
 引退前の照合記録としてそのまま保持する。
+
+その後、psqlODBC の残件は PR-1（2026-11-26）で解消した。上流の
+最新版 18.00.0006（2026-11-02 のセキュリティリリース）へ x64 / x86 の
+両アーキテクチャで切り替え、部品単位の固定を機械可読マニフェスト
+`evidence/issue112-standalone-get-component-pins.json` に集約した。
+最終確認監査で不足とされた MSVC ランタイムの再頒布条件の固定原本は、
+オーナー決定 A（2026-11-26）により、インストーラが指定する公式
+ページから決定的に抽出した条文テキストで固定した。実施記録は §4。
+これにより未決の残件は消滅し、両台帳合計は 26行中 成立26・未決0 と
+なった。§3 は引退した 13.02.0000 の照合記録として保持する。
 根拠: Established under owner decision 2026-11-26 (K4 interpretation B): component identification, pinned originals, and redistribution permission confirmed for each component license; license texts not reproduced inside upstream's distribution artifacts are recorded as a distribution-form characteristic of the upstream artifact.
 
 ## PR5 記録の訂正（事実誤り）
@@ -238,6 +248,10 @@ PR5 は「実行ファイル2件はいずれも pgbouncer プロジェクト自�
 
 ## 3. psqlodbc 13.02.0000
 
+（本行は PR-1（2026-11-26）で 18.00.0006 へ切り替えて台帳から
+削除した。以下の記録は引退前の照合記録として保持するもので、
+現在の台帳行ではない。切替後の記録は §4）
+
 ### 配布物の同一性
 
 - `psqlodbc_13_02_0000-x64.zip`: 3,868,961 B、
@@ -271,6 +285,233 @@ PR5 は「実行ファイル2件はいずれも pgbouncer プロジェクト自�
 存在せず、配布条件の充足を配布物の範囲で確認できない。
 (2) MSVC ランタイム 14.16.27033.0 は版同定のみで、条件の固定原本がない。
 
+## 4. psqlodbc 18.00.0006（x64 / x86）— 残件解消（PR-1、2026-11-26）
+
+未決の残件だった psqlODBC 行は、上流の最新版 18.00.0006 へ切り替えて
+解消した。13.02.0000 の行は台帳から削除した（`latest: false` での残置は
+しない。引退注記は本節末尾）。切替はオーナー指示（2026-11-26）により
+x64 / x86 の両アーキテクチャで行い、台帳は `psqlodbc_x64.msi` と
+`psqlodbc_x86.msi` の2レコードとなった。同名・同版の2レコードを CLI が
+受理するための前提として、先行して PR-1a（#550）で
+`ExternalSignedCatalogCohort` の重複同一性キーに assetName を追加し、
+その修正を含む CLI v0.6.1 をリリースした（#551、タグ cli-v0.6.1、
+2026-11-26 19:52 JST）。部品単位の固定は機械可読マニフェスト
+`evidence/issue112-standalone-get-component-pins.json` を正本とし、本節は
+その再掲である（`pin_upstream_originals.py --verify` でマニフェストと
+本節の全ハッシュ・全サイズの一致を検証済み。両アーキテクチャとも
+unaccountedPeCount = 0、unpinnedOriginalCount = 0、
+redistributionUnconfirmedCount = 0）。
+
+### 配布物の同一性
+
+- `psqlodbc_x64.msi`: 4,587,520 B、SHA-256
+  `8962543113df83410b74f113db1ef80717b65a1dc7869e18c24bd852dd65535f`
+  — GitHub リリース（REL-18_00_0006）から取得。postgresql.org FTP の
+  同一ファイルともバイト一致（cmp クリーン）を確認した。
+- `psqlodbc_x86.msi`: 4,087,808 B、SHA-256
+  `b5e3d749a148d56b184984b23305794c3d602317b30215945a5ca7c5233dc24a`
+  — 同上（GitHub は 302 で release-assets CDN へ、FTP はリダイレクト
+  なしの 200）。
+- 両 MSI とも File テーブル全22行（DLL 10件＋PDB 4件＋文書8件）が
+  完全なインストールマニフェストであり、CustomAction テーブルは
+  存在しない。タグ REL-18_00_0006 は注釈付きタグを剥がしてコミット
+  `96fa03dbc968c40920c907bf18d3b4cbd8efeebc` に解決される。
+
+### 部品ごとの照合（要約）
+
+- **psqlODBC 本体**: podbc30a.dll / podbc35w.dll の FileVersion は
+  18.00.0006。WiX はビルド成果物 psqlodbc30a.dll / psqlodbc35w.dll を
+  この名前で導入し、DuplicateFile テーブルで psqlodbc30a.dll /
+  psqlodbc35w.dll という複製も配置する（pgenlist 系が import する
+  名前）。pgenlist.dll / pgenlista.dll / pgxalib.dll は版リソースを
+  持たない本体付属 DLL。リポジトリ唯一のサブモジュール libs/mimalloc
+  @`229ec9cbdc81cf1ffb705cbd8a07503589847426` は出荷 DLL 内に痕跡が
+  ない（mi_* エクスポート・文字列とも無し）。ライセンス上の注意:
+  リポジトリの license.txt の本文は GNU Library General Public
+  License Version 2（1991年6月）である一方、MSI のライセンス
+  ダイアログ（installer/lgpl.rtf）が表示するのは GNU LGPL Version 2.1
+  （1999年2月）であり、上流内部で版表記が一致していない。両方とも
+  固定したため、この不一致自体が証跡として残る。ダイアログ RTF は
+  x64 / x86 でバイト一致する。
+- **libpq**: FileVersion 文字列「18.6」（固定版 18.0.6.0、ProductName
+  PostgreSQL）。上流の GitHub Actions が postgres/postgres の
+  REL_18_STABLE ブランチ（ワークフローにコミット固定なし）を
+  チェックアウトし、OpenSSL 3_5_9 とともにビルドしたもの（PDB パス
+  が裏付け）。原本は REL_18_6 タグのコミット
+  `724edf9bde9d356724ad384a2e196edc3c9f80f7` の COPYRIGHT で固定した
+  （REL_18_STABLE ブランチ自体の COPYRIGHT とバイト一致を別途確認
+  済みであり、固定した文本はビルド元ブランチが保持する文本そのもの）。
+- **OpenSSL**: 両 DLL とも FileVersion 3.5.9（バナー「OpenSSL 3.5.9
+  29 Sep 2026」）。slproweb の Win64/Win32 OpenSSL-3_5_9 ビルド。
+  原本はタグ openssl-3.5.9 の解決コミット
+  `45e844fa2a14ec92d146bd8f5778ac130b6625fb` の LICENSE.txt
+  （Apache-2.0）。当該コミットのルートに NOTICE ファイルは存在
+  せず、Apache-2.0 §4(d) の対象はない。x86 側の DLL 名には
+  アーキテクチャ接尾辞がない（libcrypto-3.dll / libssl-3.dll）。
+- **Microsoft Visual C++ ランタイム**: vcruntime140.dll と
+  msvcp140.dll（ともに FileVersion 14.51.36247.0）がアプリフォルダに
+  同梱される。詳細は次項。
+
+### Microsoft 条文の固定（オーナー決定 A、2026-11-26）
+
+最終確認監査（M3）で不足とされた MSVC ランタイムの再頒布条件の固定
+原本は、計画した2点固定（版固定 VC_redist 本体内の License.rtf ＋
+コミット固定の再頒布リスト）がこの世代では物理的に不可能だったため、
+オーナー決定 A（2026-11-26）により代替証跡で固定した。事実関係:
+
+- 版対応は Microsoft の winget-pkgs マニフェスト
+  `Microsoft.VCRedist.2015+.x64` / `.x86` の版 14.51.36247.0（DLL の
+  FileVersion と4要素完全一致）で確定し、版固定 URL
+  （download.visualstudio.microsoft.com の /download/pr/ 形式。
+  aka.ms の浮動リダイレクトは使わない）から取得した VC_redist 本体の
+  SHA-256 がマニフェストの InstallerSha256 と完全一致した。さらに
+  本体内のペイロードを取り出し、同梱 DLL（vcruntime140.dll /
+  msvcp140.dll）がペイロードとバイト一致することを両アーキテクチャで
+  確認した（決定的な同一性証明）。
+- この世代の VC_redist 本体には License.rtf がそもそも含まれて
+  いない。Burn バンドルは WixStandardBootstrapperApplication の
+  HyperlinkLicense 形式で、条文の所在として
+  https://aka.ms/VCRedistLicense を指定するのみである（x64 本体と
+  ペイロード MSI `bab5d0257e6a18a4a008e683442e3077b38172dd61af3cb1c588b46724a714e2` /
+  `476427800c1c958dc4e71d9a0f2f3983b2608da70835db9ee5f3b8ac387e9617` の
+  全体を走査し `{\rtf` の出現が0件であることを確認。x86 本体も同様）。
+  再頒布リストの文書は Microsoft 社内リポジトリ
+  （visualstudio-release-docs）から Learn へ発行されており、公開の
+  コミット固定原本は存在しない。
+- 決定 A の固定方法: インストーラ自身が指定する公式ページから条文
+  テキストだけを決定的に抽出し、そのテキストを原本として固定する。
+  取得記録（2026-11-26 19:56 JST 取得）:
+  - 開始 URL: https://aka.ms/VCRedistLicense → 301 →
+    https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/
+    （200）。ページ全体は 238,435 B、SHA-256
+    `570914a701495d5e7542ee1398ff8490f9a922ce03b416a815b53284ee528462`。
+  - ページは条文を埋め込み文書として提示しており、その実体は
+    https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx
+    （39,553 B、SHA-256
+    `08651651a7602fc7c0e2763de0fde1ff9f868df2780597cd1775ee9d6441c783`、
+    リダイレクトなしの 200）。
+  - 抽出テキスト（DOCX の word/document.xml の段落を文書順に連結する
+    決定的抽出。再実行で同一バイトになることを確認済み）は
+    11,877 B、SHA-256
+    `5169806e806b0ae92d8843298d7f83098117841df70a75d0dc42295ce13f7336`。
+    写しを `evidence/ms-vc14-redist-license-terms.txt` として
+    コミットした。文書の同一性はテキスト内の「MICROSOFT SOFTWARE
+    LICENSE TERMS — MICROSOFT VISUAL C++ V14 REDISTRIBUTABLE and
+    RUNTIME」「Last Updated: October 1, 2025」「EULA ID:
+    Cpp_v14_ENU.1033」による。条文はアーキテクチャ中立であり、
+    x64 / x86 の両方に適用される。
+- 再頒布の実質は、Microsoft 公式の Visual Studio 2026 再頒布リスト
+  （Distributable Code）「Visual C++ Runtime Files」の節で確認した:
+  `[VisualStudioFolder]\VC\redist` 配下のファイルは無改変で自プロ
+  グラムとともにコピー・配布でき、同梱 DLL はまさにそのファイル群を
+  無改変でアプリフォルダに配置したものである。
+- **vcruntime140_1.dll の扱い（x64）**: 同梱の msvcp140.dll と
+  pgxalib.dll が import するが、MSI 内には配布されていない
+  （システム側の VC++ 再頒布可能ランタイムへの依存。VC_redist
+  ペイロード内には 50,112 B、SHA-256
+  `a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e`
+  として存在する）。concrt140.dll も同梱されず、何からも import
+  されていない。**x86 には vcruntime140_1.dll 自体が存在しない**
+  （x86 の msvcp140.dll は VCRUNTIME140.dll のみを import する）。
+
+### 部品ファイルと固定原本（マニフェスト再掲）
+
+#### psqlodbc_x64.msi の部品ファイル（全 22 ファイル中 PE 10 件）
+
+| 部品 | ファイル | バイト数 | SHA-256 |
+|---|---|---|---|
+| psqlODBC | `podbc30a.dll` | 657,920 | `0719fb503226e24ad228febfa57d5f05520dbc71e477b15b6223a63e7c6087d9` |
+| psqlODBC | `podbc35w.dll` | 677,888 | `22e3af2e100716bb3e95bcf40089ea53b997c2728a64d094a0dcb315c285bfbd` |
+| psqlODBC | `psqlodbc30a.dll` | 657,920 | `0719fb503226e24ad228febfa57d5f05520dbc71e477b15b6223a63e7c6087d9` |
+| psqlODBC | `psqlodbc35w.dll` | 677,888 | `22e3af2e100716bb3e95bcf40089ea53b997c2728a64d094a0dcb315c285bfbd` |
+| psqlODBC | `pgenlist.dll` | 31,232 | `f0a7ed0620a46f964486d2b5b35ad0337f9b6353377fe210e3dce5d01593b72d` |
+| psqlODBC | `pgenlista.dll` | 31,232 | `fc545a6eca23337c8fe4026e9f45f286fa2bf75d9b9764f05e675158d0e7d8e6` |
+| psqlODBC | `pgxalib.dll` | 45,568 | `5c744e46050491720be66279b612ad166cbd692346a254421aee90ac78cd1c98` |
+| psqlODBC | `psqlodbc30a.pdb` | 2,387,968 | `91b0e286385f21f91d11ac9767385d7490c509e2dc6babdd0ffaf8d7a22f7dc1` |
+| psqlODBC | `psqlodbc35w.pdb` | 2,461,696 | `fdd45b2b680d57db94c7530f38831839870a6ac3b0332c436b3131a6e74d6738` |
+| psqlODBC | `pgenlist.pdb` | 798,720 | `e5be682d02448d34554333cbdbeb1b421c4f74f490856476ce411d37df0f6aa5` |
+| psqlODBC | `pgenlista.pdb` | 798,720 | `16f321b3bc5870e3192aeb2fe63a9022d7ef526c9186140c6697a0d049e57744` |
+| libpq (PostgreSQL) | `libpq.dll` | 384,000 | `da48d4ac0ca160d1eb41a759605a48af8c8757ad8634d16682d7b7fa5fe6a469` |
+| OpenSSL | `libcrypto-3-x64.dll` | 6,996,480 | `81bc67d537fcd320d8ede1c5a49506629f0fd04e42ec7e9b0bab70a822d4fba5` |
+| OpenSSL | `libssl-3-x64.dll` | 1,294,336 | `0242e31713fa090d75c0cc2e17c4ee2cbc3a27ca53f7a45729f30983d593bcb1` |
+| Microsoft Visual C++ Runtime | `vcruntime140.dll` | 178,616 | `d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7` |
+| Microsoft Visual C++ Runtime | `msvcp140.dll` | 643,512 | `7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca` |
+
+固定原本:
+
+| 部品 | 原本 | バイト数 | SHA-256 |
+|---|---|---|---|
+| psqlODBC | https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/96fa03dbc968c40920c907bf18d3b4cbd8efeebc/license.txt | 25,746 | `3892f5f0585c553b72d0d4942d5a75935d0e8b0dcd0f5caa000a6853d648c67b` |
+| psqlODBC | https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x64.msi のメンバー `LicenseAgreementDlg/LicenseText (installer/lgpl.rtf)` | 48,209 | `46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd` |
+| libpq (PostgreSQL) | https://raw.githubusercontent.com/postgres/postgres/724edf9bde9d356724ad384a2e196edc3c9f80f7/COPYRIGHT | 1,198 | `3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd` |
+| OpenSSL | https://raw.githubusercontent.com/openssl/openssl/45e844fa2a14ec92d146bd8f5778ac130b6625fb/LICENSE.txt | 10,175 | `7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a` |
+| Microsoft Visual C++ Runtime | https://download.visualstudio.microsoft.com/download/pr/ebdab8e5-1d7b-4d9f-a11b-cbb1720c3b12/843068991DAAA1F73AD9F6239BCE4D0F6A07A51F18C37EA2A867E9BECA71295C/VC_redist.x64.exe | 18,731,856 | `843068991daaa1f73ad9f6239bce4d0f6a07a51f18c37ea2a867e9beca71295c` |
+| Microsoft Visual C++ Runtime | https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/（抽出テキストのコミット済み写し: `evidence/ms-vc14-redist-license-terms.txt`） | 11,877 | `5169806e806b0ae92d8843298d7f83098117841df70a75d0dc42295ce13f7336` |
+
+#### psqlodbc_x86.msi の部品ファイル（全 22 ファイル中 PE 10 件）
+
+| 部品 | ファイル | バイト数 | SHA-256 |
+|---|---|---|---|
+| psqlODBC | `podbc30a.dll` | 587,776 | `82df0b1179f79f37aa0dca426c1b1412da7b2c20ccf903b29dc4b944db0bd9b0` |
+| psqlODBC | `podbc35w.dll` | 601,088 | `81dac59e1080b4ab993df6f9c8d9177f4a831c6f03777739d5654e14a08612cf` |
+| psqlODBC | `psqlodbc30a.dll` | 587,776 | `82df0b1179f79f37aa0dca426c1b1412da7b2c20ccf903b29dc4b944db0bd9b0` |
+| psqlODBC | `psqlodbc35w.dll` | 601,088 | `81dac59e1080b4ab993df6f9c8d9177f4a831c6f03777739d5654e14a08612cf` |
+| psqlODBC | `pgenlist.dll` | 26,112 | `941e01d213bb9e6786437a1651bb5a0184830bd245ef147551760531543b44ab` |
+| psqlODBC | `pgenlista.dll` | 26,112 | `360674bb0890063fa18bfdf300e333a02b58f149fac31d3e411f4c014fca8930` |
+| psqlODBC | `pgxalib.dll` | 37,888 | `e97c459cecfdb5ac3c382921749da1f97ab4466778d9a033ef2ac92a90580267` |
+| psqlODBC | `psqlodbc30a.pdb` | 2,445,312 | `cd0e4c922d44704b81c84750796648afbbd695367594f56a6bcf34c7887ebb5e` |
+| psqlODBC | `psqlodbc35w.pdb` | 2,519,040 | `8b0bc806e5b9baff5eea318f20aee6f5bba2e7d1421a23c3c299f9f9e8441900` |
+| psqlODBC | `pgenlist.pdb` | 798,720 | `94fcfa190a5f0a27ba201b45e24c2cdb20be7f8d626b686c8d5de2aaed118eaa` |
+| psqlODBC | `pgenlista.pdb` | 798,720 | `be3ecafc39e5d83e3aa4df5735275ed54f57c34083519e96dc2ed0a3ced73073` |
+| libpq (PostgreSQL) | `libpq.dll` | 332,288 | `9332cc850b986b33ce3d7ee00a291a49fc1f46ff519fd07fb3f297b0c862fd7e` |
+| OpenSSL | `libcrypto-3.dll` | 4,490,752 | `2daf2ad5346c7c51a3427a7db852d4c4f6ac5f9d78dada535aaff7ab716ac706` |
+| OpenSSL | `libssl-3.dll` | 1,067,520 | `113e29a66da47888e3f51347d1a13fc8bb707d953c197d30fce16ab11372fb2b` |
+| Microsoft Visual C++ Runtime | `vcruntime140.dll` | 123,328 | `2fa6efc053203460a23d3a25158f227d895d2dadc63acc1a372da97c3a4281c3` |
+| Microsoft Visual C++ Runtime | `msvcp140.dll` | 618,944 | `f0cda2a0cf1fe6fbbf579b9098462329d3aaa7513a207af2e0f33b01456e388a` |
+
+固定原本:
+
+| 部品 | 原本 | バイト数 | SHA-256 |
+|---|---|---|---|
+| psqlODBC | https://raw.githubusercontent.com/postgresql-interfaces/psqlodbc/96fa03dbc968c40920c907bf18d3b4cbd8efeebc/license.txt | 25,746 | `3892f5f0585c553b72d0d4942d5a75935d0e8b0dcd0f5caa000a6853d648c67b` |
+| psqlODBC | https://github.com/postgresql-interfaces/psqlodbc/releases/download/REL-18_00_0006/psqlodbc_x86.msi のメンバー `LicenseAgreementDlg/LicenseText (installer/lgpl.rtf)` | 48,209 | `46877f59ecaf27ce07f67f5645b5bec7d9f9628f2e1c047fbd99a3be980870cd` |
+| libpq (PostgreSQL) | https://raw.githubusercontent.com/postgres/postgres/724edf9bde9d356724ad384a2e196edc3c9f80f7/COPYRIGHT | 1,198 | `3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd` |
+| OpenSSL | https://raw.githubusercontent.com/openssl/openssl/45e844fa2a14ec92d146bd8f5778ac130b6625fb/LICENSE.txt | 10,175 | `7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a` |
+| Microsoft Visual C++ Runtime | https://download.visualstudio.microsoft.com/download/pr/57eef8ae-a341-46c3-b0bc-c041027b54cd/F0BAB33A302B3CDB2E11113760D016F54FD3D2632C65BA7834FAC4F0ABD7F1A3/VC_redist.x86.exe | 6,941,536 | `f0bab33a302b3cdb2e11113760d016f54fd3d2632c65ba7834fac4f0abd7f1a3` |
+| Microsoft Visual C++ Runtime | https://visualstudio.microsoft.com/license-terms/vs2026-ga-visualcpp-v14-redist-runtime/（抽出テキストのコミット済み写し: `evidence/ms-vc14-redist-license-terms.txt`） | 11,877 | `5169806e806b0ae92d8843298d7f83098117841df70a75d0dc42295ce13f7336` |
+
+### 配布条件と結論（psqlODBC 18.00.0006）
+
+- ドライバ本体の LGPL 条件は、MSI のライセンスダイアログが表示する
+  LGPL 2.1 全文（固定済み）と、リリースコミットで固定した上流
+  license.txt で確認できる（両者の版表記の不一致は上記のとおり
+  記録した）。
+- libpq の PostgreSQL License と OpenSSL 3.5.9 の Apache-2.0 は、
+  正確な版の原本をコミット固定で対応付けた。両部品の表示が MSI 内に
+  存在しない点は、上流配布物の配布形態の特性として記録する
+  （K4 解釈 B）。
+- MSVC ランタイムは、版固定 VC_redist 本体のハッシュ固定とペイ
+  ロードのバイト一致で同定を確定し、条文テキストはオーナー決定 A
+  の方法で固定し、再頒布許諾は Microsoft 公式の再頒布リストで
+  確認した。
+
+**結論: 成立**（オーナー決定 2026-11-26、K4 解釈 B、および条文固定に
+ついて同日のオーナー決定 A）。全部品について同定・原本固定・再配布
+許諾がそろい、マニフェストの3カウントは両アーキテクチャとも 0 で
+ある。これにより standalone の未決残件は消滅し、両台帳合計は
+26行中 **成立26・未決0** となった。
+
+### 13.02.0000 の引退注記
+
+13.02.0000（`psqlodbc_13_02_0000-x64.zip`、3,868,961 B、SHA-256
+`0d2f93c43752019c5e35f4369b1c32b40671f90a833dff3c7273569b6cbf1808`）は
+台帳から削除した。理由: CVE-2026-109448 および
+CVE-2026-120057..120067 の対象版であること、同梱 OpenSSL 1.1.1l が
+サポート終了済みであること、VS 2017 再頒布条件の固定原本が存在
+しないこと。旧行の照合記録は本記録 §3 とカタログコミット
+`7480a281` の時点の台帳に保存される（Git 履歴は書き換えない）。
+
+
 ## 対応表への反映
 
 本記録（PR6）により、対応表の standalone 3行は PR5 の「成立」から
@@ -291,3 +532,8 @@ F フェーズの台帳管理へ引き継ぎ、E3 はこの状態で完了する
 引退した（冒頭の D3 記録を参照）。対応表は 26行中
 **成立25・未決1** となり、未決の残件は psqlODBC のみとなった。
 PostGIS 行は残件として F フェーズへ引き継がない。
+
+その後、psqlODBC 行は PR-1（2026-11-26）で上流 18.00.0006
+（x64 / x86 の2レコード）へ切り替えて成立とし（§4）、対応表は
+26行中 **成立26・未決0** となった。未決の残件は消滅し、F フェーズへ
+引き継ぐ未決残件はない。
