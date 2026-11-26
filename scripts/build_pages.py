@@ -1128,8 +1128,26 @@ def render_landscape_card(
     return card_html, search_text
 
 
+_ARCH_TOKENS = ("x86_64", "arm64", "amd64", "win64", "win32", "x64", "x86")
+
+
+def _asset_arch(asset_name: str) -> str:
+    lowered = asset_name.lower()
+    for token in _ARCH_TOKENS:
+        if token in lowered:
+            return token
+    return ""
+
+
 def render_cli_included_items(direct_records: list[dict], standalone_records: list[dict], lang: str) -> str:
     items_html: list[str] = []
+
+    # Standalone records sharing category+item+version would render identical
+    # label lines; count them so each can be told apart by architecture.
+    standalone_groups: dict[tuple[str, str, str], int] = {}
+    for rec in standalone_records:
+        key = (rec["category"], rec["item"], rec["upstreamVersion"])
+        standalone_groups[key] = standalone_groups.get(key, 0) + 1
 
     # Group direct-get records preserving first-seen extension order
     grouped: dict[str, list[dict]] = {}
@@ -1156,6 +1174,11 @@ def render_cli_included_items(direct_records: list[dict], standalone_records: li
         cat = rec["category"]
         item = rec["item"]
         ver = rec["upstreamVersion"]
+        arch_suffix = ""
+        if standalone_groups[(cat, item, ver)] > 1:
+            arch = _asset_arch(rec.get("assetName", ""))
+            if arch:
+                arch_suffix = f"（{esc(arch)}）" if lang == "ja" else f" ({esc(arch)})"
         if cat == "spatial" and item == "postgis":
             pg_ver = rec.get("pgroutingVersion", "")
             major = rec.get("pgMajor", "")
@@ -1171,13 +1194,13 @@ def render_cli_included_items(direct_records: list[dict], standalone_records: li
             label = "ツール" if lang == "ja" else "Tools"
             sep = "：" if lang == "ja" else ": "
             disp = "PgBouncer" if item == "pgbouncer" else item
-            items_html.append(f"<li>{esc(label)}{sep}{esc(disp)} {esc(ver)}</li>")
+            items_html.append(f"<li>{esc(label)}{sep}{esc(disp)} {esc(ver)}{arch_suffix}</li>")
         elif cat == "drivers":
             label = "ドライバ" if lang == "ja" else "Drivers"
             sep = "：" if lang == "ja" else ": "
             disp = "psqlODBC" if item == "psqlodbc" else item
             short_ver = ver[:-5] if ver.endswith(".0000") else ver
-            items_html.append(f"<li>{esc(label)}{sep}{esc(disp)} {esc(short_ver)}</li>")
+            items_html.append(f"<li>{esc(label)}{sep}{esc(disp)} {esc(short_ver)}{arch_suffix}</li>")
 
     return "".join(items_html)
 

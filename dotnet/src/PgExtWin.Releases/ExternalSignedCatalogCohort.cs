@@ -218,7 +218,7 @@ public static class ExternalSignedCatalogCohort
         if (root.GetProperty("schemaVersion").GetString() != schema)
             throw new InvalidDataException("Invalid external direct GET records");
         var records = new List<DownloadRecord>();
-        var identities = new HashSet<(string, string?, string)>();
+        var identities = new HashSet<(string, string?, string, string)>();
         foreach (var row in root.GetProperty("records").EnumerateArray())
         {
             string Text(string key) => row.GetProperty(key).GetString()
@@ -259,7 +259,7 @@ public static class ExternalSignedCatalogCohort
 
             void Add(string item, string itemVersion)
             {
-                if (string.IsNullOrWhiteSpace(itemVersion) || !identities.Add((item, major, itemVersion)))
+                if (string.IsNullOrWhiteSpace(itemVersion) || !identities.Add((item, major, itemVersion, asset)))
                     throw new InvalidDataException("Invalid or duplicate external download record");
                 records.Add(new DownloadRecord(new ExternalDownloadItem(item, category, major, itemVersion,
                     asset, license, size, sha, latest), pin));
