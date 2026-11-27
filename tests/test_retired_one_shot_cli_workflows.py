@@ -26,9 +26,14 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
     def test_current_cli_and_catalog_security_checks_remain(self):
         for name in ("validate.yml", "cli-candidate.yml",
                      "cli-anonymous-latest.yml", "cli-signed-catalog-feed.yml",
-                     "sync-verified-release.yml", "verify-manual-release.yml"):
+                     "sync-verified-release.yml"):
             with self.subTest(name=name):
                 self.assertTrue((WORKFLOWS / name).is_file())
+
+    def test_catalog_fleet_batch_and_manual_handoff_retired(self):
+        for name in ("issue112-p1-fleet-readonly.yml", "verify-manual-release.yml"):
+            with self.subTest(name=name):
+                self.assertFalse((WORKFLOWS / name).exists())
 
     def test_notify_website_is_retired(self):
         # Proposal C phase C2 retired the cross-repository published-UI
@@ -82,8 +87,7 @@ class RetiredOneShotCliWorkflows(unittest.TestCase):
         # Keep the currently required Release verifier, managed Catalog
         # ingestion and read-only drift monitoring.
         for name in ("validate.yml", "sync-verified-release.yml",
-                     "verify-manual-release.yml",
-                     "catalog-drift-readonly.yml", "issue112-p1-fleet-readonly.yml",
+                     "catalog-drift-readonly.yml",
                      "cli-anonymous-latest.yml", "cli-signed-catalog-feed.yml"):
             self.assertTrue((WORKFLOWS / name).is_file())
         validate = (WORKFLOWS / "validate.yml").read_text(encoding="utf-8")
