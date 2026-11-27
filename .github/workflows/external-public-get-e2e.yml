@@ -69,7 +69,7 @@ jobs:
                 "dotnet/src/PgExtWin.Releases/AtomicOriginalBatchDirectory.cs",
                 "dotnet/src/PgExtWin.Releases/ExternalOriginalZipIntegrity.cs",
                 "dotnet/src/PgExtWin.Releases/AtomicStageGuard.cs",
-                ".github/workflows/issue112-external-public-get-e2e.yml",
+                ".github/workflows/external-public-get-e2e.yml",
                 "scripts/issue112-public-original-get-e2e.ps1"
               ))
             )

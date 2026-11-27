@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-WF = (ROOT / '.github/workflows/issue112-external-public-get-e2e.yml').read_text()
+WF = (ROOT / '.github/workflows/external-public-get-e2e.yml').read_text()
 PS = (ROOT / 'scripts/issue112-public-original-get-e2e.ps1').read_text()
 
 
