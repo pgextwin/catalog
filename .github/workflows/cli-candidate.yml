@@ -21,7 +21,7 @@ on:
       - 'dotnet/**'
       - 'external/signed-direct-get/**'
       - '.github/workflows/cli-release.yml'
-      - '.github/workflows/issue112-external-public-get-e2e.yml'
+      - '.github/workflows/external-public-get-e2e.yml'
       - 'scripts/validate_public_get_pin.py'
       - 'tests/test_validate_public_get_pin.py'
       - 'external/direct-get.json'
@@ -115,9 +115,9 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: pwsh
         run: |
-          foreach ($workflow in @('.github/workflows/cli-release.yml','.github/workflows/issue112-external-public-get-e2e.yml')) {
+          foreach ($workflow in @('.github/workflows/cli-release.yml','.github/workflows/external-public-get-e2e.yml')) {
             $text=Get-Content $workflow -Raw
-            if ($workflow -like '*issue112-external-public-get-e2e.yml') {
+            if ($workflow -like '*external-public-get-e2e.yml') {
               $offset=$text.IndexOf(([string][char]10 + '  windows-real-original-get:'))
               if ($offset -lt 0) { throw 'Windows E2E job missing' }
               $text=$text.Substring($offset)

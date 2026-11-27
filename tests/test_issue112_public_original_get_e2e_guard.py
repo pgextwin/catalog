@@ -4,7 +4,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-WF = (ROOT / ".github/workflows/issue112-external-public-get-e2e.yml").read_text()
+WF = (ROOT / ".github/workflows/external-public-get-e2e.yml").read_text()
 PS = (ROOT / "scripts/issue112-public-original-get-e2e.ps1").read_text()
 COMMAND = "& $CliPath download-all --source external --pg all --output $dest"
 PASS = "DIRECT_PATH_ORIGINAL_GET_E2E=PASS"
@@ -50,7 +50,7 @@ class PublicOriginalGetE2EGuard(unittest.TestCase):
             'dotnet/src/PgExtWin.Releases/AtomicOriginalBatchDirectory.cs',
             'dotnet/src/PgExtWin.Releases/ExternalOriginalZipIntegrity.cs',
             'dotnet/src/PgExtWin.Releases/AtomicStageGuard.cs',
-            '.github/workflows/issue112-external-public-get-e2e.yml',
+            '.github/workflows/external-public-get-e2e.yml',
             'scripts/issue112-public-original-get-e2e.ps1',
         })
         self.assertNotIn('length', predicate)  # extra license/evidence files are allowed

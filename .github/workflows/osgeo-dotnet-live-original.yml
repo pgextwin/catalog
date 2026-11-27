@@ -6,7 +6,7 @@ on:
       - dotnet/tests/PgExtWin.Contract.Tests/OsgeoOriginalCandidateTransportTests.cs
       - dotnet/tests/PgExtWin.Contract.Tests/Program.cs
       - docs/issue-112-osgeo-https-candidate-adapter.md
-      - .github/workflows/issue112-osgeo-dotnet-live-original.yml
+      - .github/workflows/osgeo-dotnet-live-original.yml
 
 permissions:
   contents: read
