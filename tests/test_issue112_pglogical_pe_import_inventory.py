@@ -72,13 +72,7 @@ class OriginalPEImportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit.pe_imports(bytes(data))
 
-    def test_no_authorization_or_publish_from_imports(self):
-        workflow = (ROOT / ".github/workflows/issue112-pglogical-pe-inventory.yml").read_text()
-        self.assertIn("pull_request:", workflow)
-        self.assertIn("contents: read", workflow)
-        for forbidden in ("workflow_dispatch:", "contents: write", "id-token: write",
-                          "upload-artifact", "create-release", "schedule:"):
-            self.assertNotIn(forbidden, workflow)
+    def test_pe_inventory_rejects_local_execution(self):
         with patch.dict("os.environ", {"GITHUB_ACTIONS": "false"}, clear=True):
             with self.assertRaises(ValueError):
                 audit.audit_all()

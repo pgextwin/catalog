@@ -100,13 +100,7 @@ class DependencyResolutionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 audit.inventory({"lib/pglogical.dll": fixture()}, root, root)
 
-    def test_workflow_is_pr_only_and_no_write_capability(self):
-        workflow = (ROOT / ".github/workflows/issue112-pglogical-dependency-resolution.yml").read_text()
-        self.assertIn("pull_request:", workflow)
-        self.assertIn("contents: read", workflow)
-        for forbidden in ("workflow_dispatch:", "contents: write", "id-token: write",
-                          "upload-artifact", "schedule:", "push:", "release:"):
-            self.assertNotIn(forbidden, workflow)
+    def test_dependency_resolution_rejects_local_execution(self):
         with patch.dict("os.environ", {"GITHUB_ACTIONS": "false"}, clear=True):
             with patch.object(sys, "argv", ["audit", "--pg", "18"]):
                 with self.assertRaises(ValueError):

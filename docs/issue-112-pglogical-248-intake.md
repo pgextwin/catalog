@@ -131,18 +131,20 @@ Both commands generate **nonpublishing** review plans only; no provider GET or
 actual public `download-all` authorization is implied.
 
 
-## PG14–18 real-EDB PE dependency path candidate audit (new PR scope)
+## PG14–18 real-EDB PE dependency path candidate audit (retired workflow)
 
-The separate `issue112-pglogical-dependency-resolution.yml` PR-only Windows
-matrix is designed to identify where **each original provider PE import name**
-can be found in a pinned, freshly installed EnterpriseDB PostgreSQL directory
-(`PGROOT/bin`, `PGROOT/lib`) or the Windows runner `System32`.
-It reuses the exact-five-original SHA256/ZIP/PE parser and the existing
-protected Build EDB installer implementation. It follows EDB application
-binary imports with a finite graph bound and marks API-set names as virtual
-contracts rather than inventing physical DLLs. It uses in-memory original ZIP
-bytes and emits text-only candidate locations; it never stages, uploads,
-mirrors, signs or publishes an original.
+The PR-only Windows workflow `issue112-pglogical-dependency-resolution.yml`
+has been retired. The pglogical 2.4.8 proof scripts, their offline tests, and
+the original evidence cited above are retained.
+
+The matrix was designed to identify where **each original provider PE import
+name** could be found in a pinned, freshly installed EnterpriseDB PostgreSQL
+directory (`PGROOT/bin`, `PGROOT/lib`) or the Windows runner `System32`.
+It reused the exact-five-original SHA256/ZIP/PE parser and the existing
+protected Build EDB installer implementation. It followed EDB application
+binary imports with a finite graph bound and marked API-set names as virtual
+contracts. Original ZIP bytes stayed in memory and the audit emitted only
+text listings of candidate locations.
 
 This is **not** an assertion of a live Windows loader search order: System32
 transitive dependencies, API-set mappings, forwarded exports, SxS resolution,
@@ -152,11 +154,11 @@ gates. Any unresolved, unparseable, or depth-limited name is reported
 separately. A successful inventory job only means the bounded investigation
 completed; it does **not** mean dependency closure or licensing clearance.
 
-The original successful PG14–18 Sigstore/two-node runs and earlier PE import
-inventory are reused by reference and never rerun merely for this receipt.
-Until the new PR CI passes, this proposed audit has **no passing receipt**;
-even afterward `CANDIDATE_ONLY`, `GET_DENY`, `MIRROR_DENY`,
-`REDISTRIBUTION_DENY`, `RELEASE_DENY` and `PUBLISH_DENY` persist.
+The audit referenced the original successful PG14–18 Sigstore/two-node runs
+and earlier PE import inventory. A passing PR CI run was required for a
+dependency-resolution receipt. The `CANDIDATE_ONLY`, `GET_DENY`,
+`MIRROR_DENY`, `REDISTRIBUTION_DENY`, `RELEASE_DENY` and `PUBLISH_DENY`
+restrictions still apply.
 
 
 ## PE diagnostics v2 for unparsed entries (new PR scope)

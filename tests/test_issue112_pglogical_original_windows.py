@@ -113,16 +113,6 @@ class PgLogicalOriginalAdversarialTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit.inspect_zip(fixture_without_notice(payload), 18)
 
-    def test_archive_not_authorization(self):
-        workflow = (ROOT / ".github/workflows/issue112-pglogical-original-windows.yml").read_text()
-        self.assertIn("pull_request:", workflow)
-        self.assertNotIn("workflow_dispatch:", workflow)
-        self.assertNotIn("id-token: write", workflow)
-        self.assertNotIn("contents: write", workflow)
-        self.assertNotIn("upload-artifact", workflow)
-        self.assertNotIn("create-release", workflow)
-        self.assertNotIn("publisher", workflow.lower().split("jobs:", 1)[1])
-
 
 def fixture_without_notice(payload):
     data = io.BytesIO()
