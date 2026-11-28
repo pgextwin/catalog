@@ -42,13 +42,13 @@
   "capabilitiesSource": {
     "repository": "pgextwin/plpgsql_check",
     "path": "config/test-contract.json",
-    "commit": "573b4e204b56aa4f3ef7d3d9099e9314876041e5"
+    "commit": "75ccb5414039ce11683fc69e17328fe2311be1bb"
   },
   "upstream": {
     "repository": "okbob/plpgsql_check"
   },
   "repositoryId": 1410581312,
-  "latestReleaseId": 452374736,
+  "latestReleaseId": 461395824,
   "unavailableMajors": [
     "14"
   ],
@@ -221,6 +221,182 @@
               "asset": "plpgsql_check-v2.11.0-pg19-windows-x64.vulnerabilities.json",
               "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.0-windows.1/plpgsql_check-v2.11.0-pg19-windows-x64.vulnerabilities.json",
               "sha256": "1e62b987b55ad3bbb535d02d76291827fa118d65a5c0b218c8179e9e4e35f421"
+            }
+          }
+        }
+      ],
+      "admission": {
+        "catalogCommit": "f717d171db0a81dea073a3fcf18d94e026c9be60"
+      }
+    },
+    {
+      "releaseTag": "v2.11.1-windows.1",
+      "releaseId": 461395824,
+      "publishedAt": "2026-11-28T07:58:16Z",
+      "checksumsAsset": "SHA256SUMS.txt",
+      "packages": [
+        {
+          "pgMajor": "15",
+          "version": "2.11.1",
+          "asset": "plpgsql_check-v2.11.1-pg15-windows-x64.zip",
+          "assetId": 803746527,
+          "sha256": "6d59258b7a15a9ae257320d462b84af13be960dc638bab7457a434beedfcef49",
+          "license": {
+            "name": "MIT",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/plpgsql_check/blob/75ccb5414039ce11683fc69e17328fe2311be1bb/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg15-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg15-windows-x64.spdx.json",
+              "sha256": "ea3812c6f8c7c4b6e08f7eb1472d91bace54e1291c8bd46d327fc67201e3e7f8"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg15-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg15-windows-x64.vulnerabilities.json",
+              "sha256": "d573a6c868ed5377380f51d373b32aa96e462dc4944d8059d9d5c5a4524771c2"
+            }
+          }
+        },
+        {
+          "pgMajor": "16",
+          "version": "2.11.1",
+          "asset": "plpgsql_check-v2.11.1-pg16-windows-x64.zip",
+          "assetId": 803746553,
+          "sha256": "cc0b310c5bf01ad94b6afbde5fe412ae1c1eec91bb0db867d0e9522be2dd5487",
+          "license": {
+            "name": "MIT",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/plpgsql_check/blob/75ccb5414039ce11683fc69e17328fe2311be1bb/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg16-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg16-windows-x64.spdx.json",
+              "sha256": "26f55d793b4ff0d291eb6b0d49b49d56abd9788e03b9e1501912376a5e7fd03c"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg16-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg16-windows-x64.vulnerabilities.json",
+              "sha256": "dc8081a3d10f23f01df707da2d1e256abe1359d064cde6118ff17207fb902c72"
+            }
+          }
+        },
+        {
+          "pgMajor": "17",
+          "version": "2.11.1",
+          "asset": "plpgsql_check-v2.11.1-pg17-windows-x64.zip",
+          "assetId": 803746572,
+          "sha256": "e2f3c961d88ffabf843d817414f6d0be2223efc256410afc6506582d6dac8022",
+          "license": {
+            "name": "MIT",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/plpgsql_check/blob/75ccb5414039ce11683fc69e17328fe2311be1bb/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg17-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg17-windows-x64.spdx.json",
+              "sha256": "9e68c82d475531ad40586a8710042187be78eea7ffb54bf20b58fc48807e287c"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg17-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg17-windows-x64.vulnerabilities.json",
+              "sha256": "8d73e009fb1c8a54bece6f40e62895456869ea4c4f8ae30262ed859cb9be196d"
+            }
+          }
+        },
+        {
+          "pgMajor": "18",
+          "version": "2.11.1",
+          "asset": "plpgsql_check-v2.11.1-pg18-windows-x64.zip",
+          "assetId": 803746589,
+          "sha256": "150839aa5d4380f2af9dead025217e5661169a240efeec124bb458e6c07fa0e6",
+          "license": {
+            "name": "MIT",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/plpgsql_check/blob/75ccb5414039ce11683fc69e17328fe2311be1bb/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg18-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg18-windows-x64.spdx.json",
+              "sha256": "4031fdb4614361e29554759d00c0a4eeff537efac3e55f589669b4e730fcc6d3"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg18-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg18-windows-x64.vulnerabilities.json",
+              "sha256": "57004da303dd3171c5a4f0d81e05aaa9e1ad867621bb33b9539eda4496c12e49"
+            }
+          }
+        },
+        {
+          "pgMajor": "19",
+          "version": "2.11.1",
+          "asset": "plpgsql_check-v2.11.1-pg19-windows-x64.zip",
+          "assetId": 803746605,
+          "sha256": "438d7a7a099585e00acc830464f99f98d0e0bcb119ea767e7d8c418627ee20c2",
+          "license": {
+            "name": "MIT",
+            "evidenceUrls": [
+              "https://github.com/pgextwin/plpgsql_check/blob/75ccb5414039ce11683fc69e17328fe2311be1bb/LICENSE"
+            ]
+          },
+          "evidence": {
+            "buildProvenanceAttestation": {
+              "available": true
+            },
+            "sbom": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg19-windows-x64.spdx.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg19-windows-x64.spdx.json",
+              "sha256": "ff9315c02178dee9c43ddade340e2dbcf2441f70ef3d1fa46a2dd1028455832c"
+            },
+            "sbomAttestation": {
+              "available": true
+            },
+            "vulnerabilityReport": {
+              "available": true,
+              "asset": "plpgsql_check-v2.11.1-pg19-windows-x64.vulnerabilities.json",
+              "downloadUrl": "https://github.com/pgextwin/plpgsql_check/releases/download/v2.11.1-windows.1/plpgsql_check-v2.11.1-pg19-windows-x64.vulnerabilities.json",
+              "sha256": "866e6ef7eb1ab7cb6f16cc9a8e6f776a8a0ccdd4be2bef888ef4cee9c7420c5d"
             }
           }
         }
